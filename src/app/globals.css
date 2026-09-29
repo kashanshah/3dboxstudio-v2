@@ -212,3 +212,69 @@
   .pro-panel-grid button>span{height:76px}
   .pro-artwork-preview{height:190px}
 }
+
+/* Guided Studio layout — task-first, spacious, beginner-friendly. */
+.pro-studio{--studio-rail:96px;--studio-inspector:420px}
+.pro-studio-header{height:72px}
+.pro-studio-body{height:calc(100dvh - 72px);grid-template-columns:var(--studio-rail) minmax(0,1fr) var(--studio-inspector)}
+.pro-tool-rail{padding:14px 10px;gap:10px}
+.pro-tool-rail button{height:76px;border-radius:12px;font-size:13px;gap:8px}
+.pro-tool-rail button svg{width:23px;height:23px}
+.pro-inspector-title{height:88px;padding:18px 22px}
+.pro-inspector-title span{font-size:12px}
+.pro-inspector-title h2{font-size:24px}
+.pro-inspector-content{padding:22px 22px 40px}
+.pro-panel-intro{padding:4px 2px 20px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.pro-panel-intro h3{margin:0 0 8px;font-size:20px;line-height:1.2;letter-spacing:-.02em;font-weight:700}
+.pro-panel-intro p{margin:0;font-size:13px;line-height:1.55;color:var(--muted);max-width:34ch}
+.pro-card-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:0 1px 2px #10172005}
+.pro-card-section .pro-section-title{margin-top:0}
+.pro-section-title strong{font-size:14px;font-weight:700}
+.pro-section-title span{font-size:12px}
+.pro-help{font-size:12px;line-height:1.5;color:var(--muted);margin:10px 0 0}
+.pro-chip-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+.pro-chip-grid button{min-height:48px;font-size:13px;border-radius:10px}
+.pro-fields{gap:10px}
+.pro-fields label{font-size:12px}
+.pro-fields input{height:46px;font-size:14px;border-radius:9px}
+.pro-panel-grid{gap:12px}
+.pro-panel-grid button{border-radius:11px;padding:9px;font-size:13px}
+.pro-panel-grid button>span{height:96px;border-radius:8px;margin-bottom:9px}
+.pro-artwork-preview{height:250px;border-radius:12px}
+.pro-wide-button{height:48px;font-size:14px;border-radius:10px!important}
+.pro-segmented{padding:5px;border-radius:10px}
+.pro-segmented button{min-height:42px;font-size:13px;border-radius:7px}
+.pro-advanced{border:1px solid var(--line);border-radius:12px;background:#fff;margin-top:14px;overflow:hidden}
+.pro-advanced summary{list-style:none;cursor:pointer;height:48px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:var(--ink)}
+.pro-advanced summary::-webkit-details-marker{display:none}
+.pro-advanced summary svg{transition:transform .2s}
+.pro-advanced[open] summary svg{transform:rotate(180deg)}
+.pro-advanced-body{padding:0 14px 16px;border-top:1px solid var(--line)}
+.pro-control-row{font-size:13px}
+.pro-alignment{grid-template-columns:repeat(3,1fr);gap:8px}
+.pro-alignment button{height:42px}
+.pro-stage-badge{font-size:12px;padding:9px 12px;border-radius:9px}
+.pro-mode-switch button{height:42px;font-size:13px;padding:0 16px}
+.pro-camera-menu>button{height:44px;font-size:13px}
+.pro-status-bar{font-size:11px;height:36px}
+@media(max-width:1180px){
+  .pro-studio{--studio-inspector:390px;--studio-rail:86px}
+}
+@media(max-width:1050px){
+  .pro-studio{--studio-rail:82px}
+  .pro-studio-body{grid-template-columns:var(--studio-rail) minmax(0,1fr)}
+  .pro-inspector{top:72px;width:400px}
+}
+@media(max-width:640px){
+  .pro-studio-header{height:60px}
+  .pro-studio-body{height:calc(100dvh - 60px)}
+  .pro-canvas{inset:60px 0 70px}
+  .pro-inspector{top:60px;bottom:70px;width:100%;border-radius:16px 16px 0 0}
+  .pro-inspector-content{padding:18px 16px 30px}
+  .pro-panel-intro h3{font-size:20px}
+  .pro-panel-intro p{font-size:13px}
+  .pro-card-section{padding:16px;border-radius:12px}
+  .pro-panel-grid button>span{height:88px}
+  .pro-artwork-preview{height:220px}
+  .pro-mobile-dock{height:70px}
+}
