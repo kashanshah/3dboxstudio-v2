@@ -645,11 +645,6 @@ function Inspector(props: {
         <details className="pro-advanced pro-placement-details" open={false}>
           <summary>Adjust placement <ChevronDown size={16}/></summary>
           <div className="pro-advanced-body">
-            <ControlRow label="Size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
-            <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
-              const scale = Number(e.target.value);
-              props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, scale } } : current);
-            }}/>
             <ControlRow label="Rotate" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
             <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
               const rotation = Number(e.target.value);
