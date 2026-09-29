@@ -43,6 +43,10 @@ export function StudioShell() {
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
+  const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
+  const [mediaLibraryTab, setMediaLibraryTab] = useState<'library' | 'upload'>('library');
+  const [selectedMediaAssetId, setSelectedMediaAssetId] = useState<string | null>(null);
+  const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Prototype state · not yet persisted');
@@ -108,7 +112,17 @@ export function StudioShell() {
     setPanel(targetPanel);
     setTool('artwork');
     setInspectorOpen(true);
+    setMediaLibraryOpen(false);
     setMessage(`${asset.name} applied to the ${targetPanel} panel`);
+  };
+
+  const openMediaLibrary = (targetPanel = panel, tab: 'library' | 'upload' = 'library') => {
+    const currentAssetId = artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
+    setMediaTargetPanel(targetPanel);
+    setPanel(targetPanel);
+    setSelectedMediaAssetId(currentAssetId);
+    setMediaLibraryTab(tab);
+    setMediaLibraryOpen(true);
   };
 
   const handleArtwork = (file?: File) => {
@@ -121,8 +135,10 @@ export function StudioShell() {
     const fingerprint = `${file.name}:${file.size}:${file.lastModified}`;
     const existing = mediaAssetsRef.current.find(asset => asset.fingerprint === fingerprint);
     if (existing) {
-      applyAssetToPanel(existing);
-      setMessage(`${existing.name} reused from your library`);
+      setSelectedMediaAssetId(existing.id);
+      setMediaLibraryTab('library');
+      setMediaLibraryOpen(true);
+      setMessage(`${existing.name} is already in your library`);
       return;
     }
 
@@ -143,7 +159,10 @@ export function StudioShell() {
     };
 
     setMediaAssets(current => [asset, ...current]);
-    applyAssetToPanel(asset);
+    setSelectedMediaAssetId(asset.id);
+    setMediaLibraryTab('library');
+    setMediaLibraryOpen(true);
+    setMessage(`${asset.name} added to your library`);
 
     const image = new Image();
     image.onload = () => {
@@ -274,14 +293,13 @@ export function StudioShell() {
           >
             <span>{faceAction.panel}</span>
             <button onClick={() => {
-              setPanel(faceAction.panel);
               setTool('artwork');
               setInspectorOpen(true);
               setFaceAction(null);
-              requestAnimationFrame(() => fileRef.current?.click());
+              openMediaLibrary(faceAction.panel, artworkByPanel[faceAction.panel] ? 'library' : 'upload');
             }}>
               <Upload size={13} />
-              {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Upload artwork'}
+              {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Add artwork'}
             </button>
             {artworkByPanel[faceAction.panel] && <button
               className="pro-face-action-remove"
@@ -325,9 +343,23 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
       </aside>
     </div>
+
+    {mediaLibraryOpen && <MediaLibraryModal
+      assets={mediaAssets}
+      artworkByPanel={artworkByPanel}
+      targetPanel={mediaTargetPanel}
+      tab={mediaLibraryTab}
+      setTab={setMediaLibraryTab}
+      selectedAssetId={selectedMediaAssetId}
+      setSelectedAssetId={setSelectedMediaAssetId}
+      onUpload={() => fileRef.current?.click()}
+      onUse={(asset) => applyAssetToPanel(asset, mediaTargetPanel)}
+      onDelete={removeMediaAsset}
+      onClose={() => setMediaLibraryOpen(false)}
+    />}
 
     <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
       {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
@@ -341,7 +373,7 @@ function Inspector(props: {
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[]; onUseMediaAsset:(asset:LocalMediaAsset,panel?:string)=>void; onDeleteMediaAsset:(assetId:string)=>void;
-  onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
+  onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
   onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
@@ -376,36 +408,12 @@ function Inspector(props: {
     const designedCount = panels.filter(item => props.artworkByPanel[item]).length;
     return <div className="pro-inspector-content">
     <PanelIntro title="Place your design" text="Choose a panel, then reuse artwork from your library or upload something new." />
-    <div className="pro-card-section pro-library-card">
-      <SectionTitle title="Your library" meta={`${props.mediaAssets.length} image${props.mediaAssets.length === 1 ? '' : 's'}`} />
-      <button className="pro-library-upload" onClick={props.onPickArtwork}><Upload size={16}/> Upload new</button>
-      {props.mediaAssets.length === 0 ? <div className="pro-library-empty">
-        <ImageIcon size={24}/>
-        <b>Your artwork library is empty</b>
-        <span>Upload once and reuse the same image on any side.</span>
-      </div> : <div className="pro-library-grid">
-        {props.mediaAssets.map(asset => {
-          const usageCount = panels.filter(item => props.artworkByPanel[item]?.assetId === asset.id).length;
-          const isCurrent = selectedArtwork?.assetId === asset.id;
-          return <div key={asset.id} className={`pro-library-item ${isCurrent ? 'is-selected' : ''}`}>
-            <button className="pro-library-thumb" onClick={() => props.onUseMediaAsset(asset, props.panel)} title={`Use ${asset.name} on ${props.panel}`}>
-              <img src={asset.url} alt="" />
-              {isCurrent && <span className="pro-library-selected"><Check size={12}/> In use</span>}
-            </button>
-            <div className="pro-library-meta">
-              <button className="pro-library-name" onClick={() => props.onUseMediaAsset(asset, props.panel)}>{asset.name}</button>
-              <span>{asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}{formatBytes(asset.byteSize)}{usageCount > 0 ? ` · used on ${usageCount}` : ''}</span>
-            </div>
-            <button
-              className="pro-library-delete"
-              aria-label={`Delete ${asset.name} from library`}
-              title={usageCount > 0 ? 'Remove from all panels before deleting' : 'Delete from library'}
-              disabled={usageCount > 0}
-              onClick={() => props.onDeleteMediaAsset(asset.id)}
-            ><Trash2 size={14}/></button>
-          </div>;
-        })}
-      </div>}
+    <div className="pro-card-section pro-artwork-source-card">
+      <SectionTitle title="Artwork source" meta={props.mediaAssets.length > 0 ? `${props.mediaAssets.length} in library` : 'Library empty'} />
+      <div className="pro-artwork-source-actions">
+        <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(props.panel, 'library')}><ImageIcon size={16}/> Choose from library</button>
+        <button className="pro-secondary-button" onClick={() => props.onOpenMediaLibrary(props.panel, 'upload')}><Upload size={16}/> Upload new</button>
+      </div>
     </div>
     <div className="pro-card-section">
     <SectionTitle title="Choose a panel" meta={`${designedCount} of 6 designed`} />
@@ -421,8 +429,7 @@ function Inspector(props: {
     <SectionTitle title={`${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
     {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
     <div className="pro-artwork-actions">
-      <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? 'Upload replacement' : 'Upload new artwork'}</button>
-      {props.mediaAssets.length > 0 && <span className="pro-help">Or choose an existing image from your library above.</span>}
+      <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(props.panel, 'library')}><ImageIcon size={15}/>{selectedArtwork ? 'Change artwork' : 'Choose artwork'}</button>
     </div>
     {selectedArtwork && <button className="pro-remove-artwork" onClick={() => props.onRemoveArtwork(props.panel)}><Trash2 size={15}/> Remove artwork</button>}
     {selectedArtwork && <div className="pro-file"><Check size={15}/><span>{selectedArtwork.name}</span></div>}
@@ -546,6 +553,112 @@ function DielinePrototype({
       })}
     </div>
     <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected · shared structural source</strong></div>
+  </div>;
+}
+
+function MediaLibraryModal(props: {
+  assets: LocalMediaAsset[];
+  artworkByPanel: ArtworkByPanel;
+  targetPanel: string;
+  tab: 'library' | 'upload';
+  setTab: (tab:'library'|'upload')=>void;
+  selectedAssetId: string | null;
+  setSelectedAssetId: (id:string|null)=>void;
+  onUpload: ()=>void;
+  onUse: (asset:LocalMediaAsset)=>void;
+  onDelete: (assetId:string)=>void;
+  onClose: ()=>void;
+}) {
+  const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
+  const usageCount = selected ? panels.filter(panel => props.artworkByPanel[panel]?.assetId === selected.id).length : 0;
+
+  return <div className="pro-media-modal-backdrop" role="presentation" onMouseDown={(event) => {
+    if (event.target === event.currentTarget) props.onClose();
+  }}>
+    <section className="pro-media-modal" role="dialog" aria-modal="true" aria-label="Artwork library">
+      <header className="pro-media-modal-header">
+        <div>
+          <span>Artwork</span>
+          <h2>Media Library</h2>
+        </div>
+        <button aria-label="Close media library" onClick={props.onClose}><X size={20}/></button>
+      </header>
+
+      <div className="pro-media-tabs">
+        <button className={props.tab === 'upload' ? 'is-active' : ''} onClick={() => props.setTab('upload')}>Upload files</button>
+        <button className={props.tab === 'library' ? 'is-active' : ''} onClick={() => props.setTab('library')}>Media Library</button>
+      </div>
+
+      {props.tab === 'upload' ? <div className="pro-media-upload-pane">
+        <div className="pro-media-dropzone">
+          <Upload size={30}/>
+          <h3>Upload artwork</h3>
+          <p>Add PNG, JPG or WebP files to your library. You can reuse them across panels and future designs.</p>
+          <button className="pro-primary" onClick={props.onUpload}>Select files</button>
+          <span>Files stay in this local Studio session for now.</span>
+        </div>
+      </div> : <div className="pro-media-library-pane">
+        <div className="pro-media-browser">
+          <div className="pro-media-browser-toolbar">
+            <label className="pro-search"><Search size={16}/><input placeholder="Search library" /></label>
+            <button className="pro-secondary-button" onClick={props.onUpload}><Upload size={15}/> Upload new</button>
+          </div>
+          {props.assets.length === 0 ? <div className="pro-media-empty">
+            <ImageIcon size={30}/>
+            <h3>No artwork yet</h3>
+            <p>Upload an image and it will appear here for reuse.</p>
+            <button className="pro-primary" onClick={() => props.setTab('upload')}>Upload artwork</button>
+          </div> : <div className="pro-media-grid">
+            {props.assets.map(asset => {
+              const used = panels.filter(panel => props.artworkByPanel[panel]?.assetId === asset.id).length;
+              return <button
+                key={asset.id}
+                className={`pro-media-tile ${props.selectedAssetId === asset.id ? 'is-selected' : ''}`}
+                aria-pressed={props.selectedAssetId === asset.id}
+                onClick={() => props.setSelectedAssetId(asset.id)}
+              >
+                <img src={asset.url} alt={asset.name} />
+                {props.selectedAssetId === asset.id && <span className="pro-media-check"><Check size={14}/></span>}
+                {used > 0 && <span className="pro-media-usage">{used}</span>}
+              </button>;
+            })}
+          </div>}
+        </div>
+
+        <aside className="pro-media-details">
+          {selected ? <>
+            <img className="pro-media-detail-preview" src={selected.url} alt={selected.name} />
+            <h3>{selected.name}</h3>
+            <dl>
+              <div><dt>Type</dt><dd>{selected.mimeType.replace('image/','').toUpperCase()}</dd></div>
+              <div><dt>Size</dt><dd>{formatBytes(selected.byteSize)}</dd></div>
+              {selected.width && selected.height && <div><dt>Dimensions</dt><dd>{selected.width} × {selected.height}</dd></div>}
+              <div><dt>Used</dt><dd>{usageCount === 0 ? 'Not used yet' : `${usageCount} panel${usageCount === 1 ? '' : 's'}`}</dd></div>
+            </dl>
+            <button
+              className="pro-media-delete-link"
+              disabled={usageCount > 0}
+              title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete permanently from this local library'}
+              onClick={() => {
+                props.onDelete(selected.id);
+                props.setSelectedAssetId(null);
+              }}
+            ><Trash2 size={14}/> Delete permanently</button>
+          </> : <div className="pro-media-detail-empty">
+            <ImageIcon size={28}/>
+            <p>Select an image to see its details.</p>
+          </div>}
+        </aside>
+      </div>}
+
+      <footer className="pro-media-modal-footer">
+        <span>{props.tab === 'library' ? `Choose artwork for ${props.targetPanel}` : 'Upload files to your library'}</span>
+        <div>
+          <button className="pro-secondary-button" onClick={props.onClose}>Cancel</button>
+          {props.tab === 'library' && <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected)}>Use on {props.targetPanel}</button>}
+        </div>
+      </footer>
+    </section>
   </div>;
 }
 
