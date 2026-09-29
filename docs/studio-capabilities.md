@@ -1,6 +1,6 @@
 # Studio capabilities and imagery contract
 
-The target is a full packaging studio, with Pacdora as a capability benchmark. This is a delivery requirement, not a claim that V2 already provides feature parity. The current implementation is a CSS 3D sample-carton design preview. Product breadth must not be reduced to the closed cuboids used to explore the website UI.
+The target is a full packaging studio, with Pacdora as a capability benchmark. This is a delivery requirement, not a claim that V2 already provides feature parity. The studio route is a CSS 3D design preview; the restored original homepage uses an illustrative opened-box concept. Product breadth must not be reduced to the closed cuboids used to explore the website UI.
 
 ## Capability matrix
 
@@ -31,8 +31,8 @@ Foldable box geometry must share its structural source with dielines. Bottles an
 
 ## Image policy
 
-- Hero and clickable gallery examples use the current sample renderer and the same artwork as the demo.
-- The generated packaging collection is explicitly a concept/design target. Its fictional brands and shapes guide the planned carton and gift families; it is not evidence of supported closure mechanics or export fidelity.
+- The homepage has returned to the original Lovable composition and original still-life. Its illustrative editor window and opened-box geometry describe the planned workflow.
+- The later generated packaging collection is no longer the active homepage. Original concept images remain design references, not evidence of supported closure mechanics or export fidelity.
 - Every future product image must identify a shipped template, template version, project fixture, artwork, material, lighting, camera and opening state internally. A user should be able to reproduce it in the studio.
 - Feature pages for bottles, drawers, folding, transparent glass or animated openings require that exact workflow to be shipped and reviewed first. Until then, any exploration is labeled planned/concept.
 - Replace generated marketing studies with actual engine renders as families ship. Keep desktop, mobile, preview and export comparisons to catch differences in seams, proportions, color, finish, transparency, interior geometry and motion.

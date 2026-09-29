@@ -37,13 +37,13 @@ Manrope Variable, self-hosted through `@fontsource-variable/manrope`, with Aveni
 
 These values are shared CSS tokens. Scale the display to 40–58px on narrow screens, with tracking `-.055em` and line height `.98` for readable wrapping. Keep supporting copy quiet. The fictitious sample packaging brands retain separate artwork typography.
 
-## Homepage composition
+## Homepage composition — original variant restored
 
-Large original Lovable display typography anchors the original side-by-side hero: left-aligned copy and a live packaging showcase, followed by the interactive workspace. Sample artwork selection changes the box design and proportions. Color, finish, rotation, and camera controls update the visible result. Packaging gallery cards load their sample into the workspace; FAQ disclosure and mobile navigation work with the keyboard.
+The complete first Lovable variant from commit `f4c3c7d52aec7b7bc171173a94b7d497d75b2649` is authoritative. Port its actual source rather than reinterpret its visual direction: original navigation, “Design. Preview. Share.” headline, opened SIGNAL OBJECTS box, mini artwork inspector, floating material/review notes, dark workflow section, still-life showcase, closing section and footer.
 
-Use packaging examples and visual artwork-to-box comparisons in place of generic feature-card walls or decorative rings. The homepage's reusable styles are scoped in `home-experience.module.css`; renderer sample geometry and artwork are in `box-study.tsx`. This is CSS 3D illustrative geometry, not production WebGL, output rendering, or printable dielines. Keep that distinction clear without filling the product experience with implementation details.
+`original-home.tsx`, `original-package-box.tsx`, `original-brand-mark.tsx` and `original-button.tsx` adapt only framework imports and Tailwind utility equivalents for Next.js. `src/app/lovable-original.css` preserves the original marketing rules and OKLCH palette, scoped to avoid changing unrelated routes. The original still-life image is used rather than the later packaging collection. The “Watch the flow” action scrolls to the original workflow section.
 
-Visual exploration used the Lovable prototype, a Canva website concept, Floot's design principles, and original Higgsfield packaging imagery. Pacdora's homepage was inspected for hierarchy and product discovery; no Pacdora code or imagery was copied. The Canva concept remains a separate exploration, not the production implementation.
+This is a visual concept of the planned product. The illustrative editor window, saved state, sharing and collaboration notes are not implemented studio services. The linked studio route continues to identify the development preview. Use this full composition as the baseline for future page migrations; do not replace it with centered hero, sample gallery or a new composition unless explicitly requested.
 
 ## Interaction and layout
 
@@ -57,4 +57,4 @@ Expand this foundation with reusable page sections and component variants while 
 
 ## Imagery and studio fidelity
 
-See [studio capabilities](studio-capabilities.md). Hero and example cards use the same sample renderer as the workspace. The generated collection is labeled as a design target, not a studio export. As the real engine ships, replace marketing concept imagery with actual reproducible studio renders using versioned templates, artwork, materials, lighting, and camera presets. Do not advertise bottles, openings, or export quality before their end-to-end workflows ship.
+See [studio capabilities](studio-capabilities.md). The restored hero and still-life are the original visual concept. As the real engine ships, replace concept imagery with reproducible studio renders using versioned templates, artwork, materials, lighting and camera presets while preserving the chosen composition. Review product copy against shipped capabilities before launch.

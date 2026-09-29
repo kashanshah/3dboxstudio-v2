@@ -16,16 +16,14 @@ The initial app needs no credentials. `npm run check` runs ESLint, TypeScript, a
 
 ## First milestone
 
-- Fresh responsive homepage and shared visual system.
-- Blue and cool-neutral interface palette with self-hosted Manrope typography; see [design system](docs/design-system.md).
-- Interactive sample packaging concept (CSS 3D, not the future rendering engine).
-- Packaging-focused homepage workspace with selectable artwork studies, finish/color changes, camera presets, rotation, a working example gallery, FAQ disclosure, and mobile navigation.
-- `/studio` explicitly labeled as a design preview.
-- `/blog` journal scaffold with an honest empty state, ready for reviewed content migration.
-- Accessible controls, keyboard focus, skip links, and reduced motion support.
-- Development indexing disabled by default in metadata, robots.txt, and response headers.
+- Complete original Lovable homepage variant restored from `f4c3c7d52aec7b7bc171173a94b7d497d75b2649`, including its typography, layout, opened-box illustration, dark workflow and still-life showcase.
+- Original blue/cool-neutral palette and self-hosted Manrope; see [design system](docs/design-system.md).
+- `/studio` is an explicitly labeled interactive design preview, separate from the original homepage's illustrative editor window.
+- `/blog` is a journal scaffold, ready for reviewed content migration.
+- Keyboard focus, working navigation/CTA links and reduced-motion support.
+- Development indexing disabled by default in metadata, robots.txt and response headers.
 
-Artwork uploads, real box dimensions, auth, database, cloud projects, sharing, and exports are **not implemented** in this milestone. No placeholder save/export controls imply otherwise.
+Homepage status and review notes are illustrations of the planned workflow. Artwork uploads, real dimensions, auth, project saving, collaboration and exports are not implemented in this milestone.
 
 ## Environment isolation
 
