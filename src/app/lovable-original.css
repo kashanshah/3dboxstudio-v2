@@ -166,3 +166,50 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .lovable-original footer nav{display:flex;flex-wrap:wrap;gap:18px;font-size:11px}
 .lovable-original footer nav a:hover{color:var(--accent)}
 @media(max-width:760px){.lovable-original .seo-home-section{width:calc(100% - 36px);padding:62px 0}.lovable-original .seo-home-intro{grid-template-columns:1fr;gap:20px}.lovable-original .seo-home-grid{grid-template-columns:1fr;gap:28px}.lovable-original .seo-home-links{flex-direction:column;gap:14px}.lovable-original footer nav{order:3;width:100%;justify-content:center}}
+
+
+/* Homepage typography refresh — preserve Lovable composition, increase visual authority. */
+.lovable-original .site-nav{height:88px;width:min(1240px,calc(100% - 48px))}
+.lovable-original .original-brand{font-size:18px;font-weight:750;gap:11px}
+.lovable-original .original-brand-icon{width:38px;height:38px}
+.lovable-original .original-brand-icon svg{width:20px;height:20px}
+.lovable-original .original-nav-links{gap:34px}
+.lovable-original .site-nav a:not([class]){font-size:16px;font-weight:650;letter-spacing:-.01em}
+.lovable-original .original-button{height:44px;padding:10px 20px;font-size:15px;font-weight:700}
+.lovable-original .original-button-lg{height:54px;padding:12px 26px;font-size:16px}
+.lovable-original .hero-badge{font-size:13px}
+.lovable-original .hero-copy h1{font-size:clamp(70px,7.8vw,118px)}
+.lovable-original .hero-copy>p{font-size:20px;line-height:1.65;max-width:570px}
+.lovable-original .hero-proof{font-size:13px;gap:14px}
+.lovable-original .section-intro h2{font-size:clamp(46px,5.4vw,72px)}
+.lovable-original .workflow-grid h3{font-size:32px}
+.lovable-original .workflow-grid p{font-size:16px;max-width:340px}
+.lovable-original .showcase-copy h2{font-size:clamp(46px,5.5vw,72px)}
+.lovable-original .showcase-copy>p:not(.eyebrow){font-size:17px}
+.lovable-original .showcase-copy li{font-size:15px;padding:17px 0}
+.lovable-original .eyebrow{font-size:11px}
+.lovable-original .closing-section h2{font-size:clamp(60px,8.5vw,108px)}
+.lovable-original .seo-home-intro h2{font-size:clamp(46px,5.5vw,72px)}
+.lovable-original .seo-home-intro>p:last-child{font-size:17px}
+.lovable-original .seo-home-grid h3{font-size:22px}
+.lovable-original .seo-home-grid p{font-size:15px}
+.lovable-original .seo-home-links a{font-size:15px}
+.lovable-original.marketing-page footer{font-size:12px}
+.lovable-original.marketing-page footer nav{font-size:13px}
+@media(min-width:760px){
+  .lovable-original .original-nav-links{display:flex}
+}
+@media(max-width:1050px){
+  .lovable-original .site-nav a:not([class]){font-size:15px}
+  .lovable-original .original-nav-links{gap:22px}
+}
+@media(max-width:760px){
+  .lovable-original .site-nav{height:72px;width:calc(100% - 28px)}
+  .lovable-original .original-nav-links{display:none}
+  .lovable-original .original-brand{font-size:17px}
+  .lovable-original .hero-copy h1{font-size:clamp(58px,15vw,78px)}
+  .lovable-original .hero-copy>p{font-size:17px}
+  .lovable-original .workflow-grid h3{font-size:28px}
+  .lovable-original .workflow-grid p{font-size:15px}
+  .lovable-original .showcase-copy>p:not(.eyebrow){font-size:16px}
+}
