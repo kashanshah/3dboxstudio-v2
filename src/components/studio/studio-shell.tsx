@@ -72,6 +72,8 @@ export function StudioShell() {
     if (artworkUrl) URL.revokeObjectURL(artworkUrl);
   }, [artworkUrl]);
 
+  const pickArtwork = () => fileRef.current?.click();
+
   const exportPng = () => {
     if (mode !== '3d') {
       setMode('3d');
@@ -82,7 +84,7 @@ export function StudioShell() {
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>handleArtwork(e.target.files?.[0])}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -148,21 +150,21 @@ export function StudioShell() {
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button className="pro-inspector-close" onClick={() => setInspectorOpen(false)}><X size={17} /></button></div>
-        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkName={artworkName} fileRef={fileRef} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
+        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkName={artworkName} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
       </aside>
     </div>
 
     <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
       {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
     </nav>
-  </main>;
+  </main></>;
 }
 
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
-  artworkName:string|null; fileRef:React.RefObject<HTMLInputElement|null>; onArtwork:(file?:File)=>void;
+  artworkName:string|null; onPickArtwork:()=>void; onArtwork:(file?:File)=>void;
   onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
@@ -184,8 +186,7 @@ function Inspector(props: {
   if (tool === 'artwork') return <div className="pro-inspector-content">
     <SectionTitle title="Panels" meta="2 of 6 designed" />
     <div className="pro-panel-grid">{panels.map((item,i)=><button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}><span className={i<2?'has-art':''}>{i===0?'NOMA':i===1?'FIELD':'+'}</span><b>{item}</b>{i<2&&<i/>}</button>)}</div>
-    <input ref={props.fileRef} hidden type="file" accept="image/*,.pdf" onChange={e=>props.onArtwork(e.target.files?.[0])}/>
-    <button className="pro-wide-button" onClick={()=>props.fileRef.current?.click()}><Upload size={15}/>{props.artworkName ? 'Replace artwork' : 'Upload artwork'}</button>
+    <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{props.artworkName ? 'Replace artwork' : 'Upload artwork'}</button>
     {props.artworkName && <div className="pro-file"><Check size={14}/><span>{props.artworkName}</span></div>}
     <SectionTitle title="Placement" />
     <div className="pro-segmented"><button className="is-active">Fill</button><button>Fit</button><button>Tile</button></div>
