@@ -18,8 +18,8 @@ type Mode = '3d' | 'dieline';
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Structure', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
-  { id: 'material', label: 'Material', icon: Layers3 },
-  { id: 'opening', label: 'Opening', icon: PackageOpen },
+  { id: 'material', label: 'Finish', icon: Layers3 },
+  { id: 'opening', label: 'Open / Close', icon: PackageOpen },
   { id: 'scene', label: 'Scene', icon: Lightbulb },
   { id: 'export', label: 'Export', icon: Download },
 ];
@@ -217,10 +217,10 @@ function Inspector(props: {
 }) {
   const { tool } = props;
   if (tool === 'structure') return <div className="pro-inspector-content">
-    <SectionTitle title="Packaging family" meta="Template library" />
+    <SectionTitle title="Choose packaging" meta="Templates" />
     <label className="pro-search"><Search size={14}/><input placeholder="Search 7,000+ class catalog" /></label>
     <div className="pro-chip-grid">{families.map(item => <button key={item} className={props.family===item?'is-selected':''} onClick={()=>props.setFamily(item)}>{item}</button>)}</div>
-    <SectionTitle title="Dimensions" meta="mm" />
+    <SectionTitle title="Size" meta="Millimetres" />
     <div className="pro-fields">
       <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
       <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
@@ -275,7 +275,7 @@ function Inspector(props: {
   }
 
   if (tool === 'material') return <div className="pro-inspector-content">
-    <SectionTitle title="Board & finish" />
+    <SectionTitle title="Finish" />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
     <ControlRow label="Roughness" value="64" /><input className="pro-range" type="range" defaultValue="64"/>
     <ControlRow label="Reflectivity" value="18" /><input className="pro-range" type="range" defaultValue="18"/>
@@ -285,14 +285,14 @@ function Inspector(props: {
   if (tool === 'opening') return <div className="pro-inspector-content">
     <SectionTitle title="Closure" meta="Tuck top" />
     <div className="pro-opening-cards"><button className="is-selected"><PackageOpen/><span><b>Reverse tuck</b><small>Carton fixture</small></span></button><button><Box/><span><b>Mailer</b><small>Architecture proof</small></span></button><button><Layers3/><span><b>Drawer</b><small>Planned</small></span></button></div>
-    <SectionTitle title="Opening preview" meta={`${props.opening}%`} />
+    <SectionTitle title="Open / close preview" meta={`${props.opening}%`} />
     <div className="pro-play-row"><button><CirclePlay size={18}/></button><input className="pro-range" type="range" value={props.opening} onChange={e=>props.setOpening(Number(e.target.value))}/></div>
     <ControlRow label="Duration" value="1.8 s" /><input className="pro-range" type="range" defaultValue="45"/>
     <div className="pro-callout"><Sparkles size={15}/><span>Scrubbing is interactive now; physically validated hinge geometry lands in the engine slice.</span></div>
   </div>;
 
   if (tool === 'scene') return <div className="pro-inspector-content">
-    <SectionTitle title="Scene" meta="3 objects" />
+    <SectionTitle title="Scene" meta="Arrange your mockup" />
     <div className="pro-layer-list"><button className="is-selected"><Box/> Carton 01 <span>•••</span></button><button><Box/> Carton 02 <span>•••</span></button><button><Boxes/> Plinth <span>•••</span></button></div>
     <button className="pro-wide-button"><Plus size={15}/> Add object</button>
     <SectionTitle title="Environment" />
