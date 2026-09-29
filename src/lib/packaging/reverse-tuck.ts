@@ -5,6 +5,13 @@ export type CartonDimensions = {
   thickness: number;
 };
 
+export type FoldStage = {
+  id: 'walls' | 'back' | 'bottom' | 'top';
+  label: string;
+  start: number;
+  end: number;
+};
+
 export type CartonPanel = {
   id: 'front' | 'back' | 'left' | 'right' | 'top' | 'bottom' | 'glue';
   label: string;
@@ -14,6 +21,30 @@ export type CartonPanel = {
   height: number;
   kind: 'body' | 'flap' | 'glue';
 };
+
+export const REVERSE_TUCK_FOLD_STAGES: FoldStage[] = [
+  { id: 'walls', label: 'Raise side walls', start: 0.08, end: 0.52 },
+  { id: 'back', label: 'Wrap back panel', start: 0.26, end: 0.68 },
+  { id: 'bottom', label: 'Close bottom', start: 0.54, end: 0.84 },
+  { id: 'top', label: 'Close top', start: 0.70, end: 1.0 },
+];
+
+export function reverseTuckFoldState(progressPercent: number) {
+  const progress = clamp(progressPercent / 100, 0, 1);
+  const stage = (id: FoldStage['id']) => {
+    const item = REVERSE_TUCK_FOLD_STAGES.find(entry => entry.id === id)!;
+    const local = clamp((progress - item.start) / Math.max(0.001, item.end - item.start), 0, 1);
+    return easeInOutCubic(local);
+  };
+
+  return {
+    progress,
+    walls: stage('walls'),
+    back: stage('back'),
+    bottom: stage('bottom'),
+    top: stage('top'),
+  };
+}
 
 export const DEFAULT_CARTON_DIMENSIONS: CartonDimensions = {
   width: 120,
@@ -79,6 +110,12 @@ export function reverseTuckBounds(input: CartonDimensions) {
     width: Math.max(...panels.map(p => p.x + p.width)),
     height: Math.max(...panels.map(p => p.y + p.height)),
   };
+}
+
+function easeInOutCubic(value: number) {
+  return value < 0.5
+    ? 4 * value * value * value
+    : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
 function clamp(value: number, min: number, max: number) {

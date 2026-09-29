@@ -9,7 +9,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
-import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 
 export type CartonEngineHandle = {
@@ -446,107 +446,136 @@ function createRenderer(canvas: HTMLCanvasElement) {
 
 function buildMeshes(dimensions: CartonDimensions, opening: number, color: [number, number, number]): Mesh[] {
   const { width: w, height: h, depth: d } = dimensions;
-  const t = clamp(dimensions.thickness, 0.3, Math.min(w, d) * 0.12);
+  const t = clamp(dimensions.thickness, 0.3, Math.min(w, d) * 0.08);
+  const fold = reverseTuckFoldState(opening);
+  const wallAngle = fold.walls * Math.PI / 2;
+  const backAngle = fold.back * Math.PI / 2;
+  const topAngle = fold.top * Math.PI / 2;
+  const bottomAngle = fold.bottom * Math.PI / 2;
 
-  const x0 = -w / 2, x1 = w / 2;
-  const y0 = -h / 2, y1 = h / 2;
-  const z0 = -d / 2, z1 = d / 2;
-
-  const ix0 = x0 + t, ix1 = x1 - t;
-  const iy0 = y0 + t;
-  const iz0 = z0 + t, iz1 = z1 - t;
+  const x0 = -w / 2;
+  const x1 = w / 2;
+  const y0 = -h / 2;
+  const y1 = h / 2;
+  const zFront = d / 2;
 
   const darker: [number, number, number] = color.map(v => v * 0.86) as [number, number, number];
   const lighter: [number, number, number] = color.map(v => Math.min(1, v * 1.08)) as [number, number, number];
   const interior: [number, number, number] = color.map(v => Math.min(1, v * 0.92 + 0.08)) as [number, number, number];
-  const edge: [number, number, number] = color.map(v => v * 0.78) as [number, number, number];
 
-  // Exterior shell.
-  const front = quad(
-    [x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],
-    [0,0,1], color, true, 'Front',
-  );
-  const back = quad(
-    [x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],
-    [0,0,-1], darker, true, 'Back',
-  );
-  const left = quad(
-    [x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],
-    [-1,0,0], darker, true, 'Left',
-  );
-  const right = quad(
-    [x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],
-    [1,0,0], color, true, 'Right',
-  );
-  const bottom = quad(
-    [x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],
-    [0,-1,0], darker, true, 'Bottom',
-  );
-
-  // Interior cavity. These faces are wound so their normals point inward.
-  const innerFront = quad(
-    [ix1,iy0,iz1],[ix0,iy0,iz1],[ix0,y1,iz1],[ix1,y1,iz1],
-    [0,0,-1], interior, true, 'Interior Front',
-  );
-  const innerBack = quad(
-    [ix0,iy0,iz0],[ix1,iy0,iz0],[ix1,y1,iz0],[ix0,y1,iz0],
-    [0,0,1], interior, true, 'Interior Back',
-  );
-  const innerLeft = quad(
-    [ix0,iy0,iz1],[ix0,iy0,iz0],[ix0,y1,iz0],[ix0,y1,iz1],
-    [1,0,0], interior, true, 'Interior Left',
-  );
-  const innerRight = quad(
-    [ix1,iy0,iz0],[ix1,iy0,iz1],[ix1,y1,iz1],[ix1,y1,iz0],
-    [-1,0,0], interior, true, 'Interior Right',
-  );
-  const innerBottom = quad(
-    [ix0,iy0,iz1],[ix1,iy0,iz1],[ix1,iy0,iz0],[ix0,iy0,iz0],
-    [0,1,0], interior, true, 'Interior Bottom',
-  );
-
-  // Board-thickness rim around the open mouth.
-  const frontRim = quad(
-    [x0,y1,z1],[x1,y1,z1],[ix1,y1,iz1],[ix0,y1,iz1],
-    [0,1,0], edge,
-  );
-  const backRim = quad(
-    [x1,y1,z0],[x0,y1,z0],[ix0,y1,iz0],[ix1,y1,iz0],
-    [0,1,0], edge,
-  );
-  const leftRim = quad(
-    [x0,y1,z0],[x0,y1,z1],[ix0,y1,iz1],[ix0,y1,iz0],
-    [0,1,0], edge,
-  );
-  const rightRim = quad(
-    [x1,y1,z1],[x1,y1,z0],[ix1,y1,iz0],[ix1,y1,iz1],
-    [0,1,0], edge,
-  );
-
-  // Top flap: exterior and interior faces share the same hinge transform.
-  const flapModel = multiply4(
-    translation4(0, y1, z0),
-    rotationX4(-(clamp(opening, 0, 100) / 100) * Math.PI * 0.72),
-  );
-
-  const flapOuter = quad(
-    [x0,0,0],[x0,0,d],[x1,0,d],[x1,0,0],
-    [0,1,0], lighter, true, 'Top',
-  );
-  flapOuter.model = flapModel;
-
-  const flapInner = quad(
-    [x1,0,0],[x1,0,d],[x0,0,d],[x0,0,0],
-    [0,-1,0], interior, true, 'Interior Top',
-  );
-  flapInner.model = flapModel;
-
-  return [
-    front, back, left, right, bottom,
-    innerFront, innerBack, innerLeft, innerRight, innerBottom,
-    frontRim, backRim, leftRim, rightRim,
-    flapOuter, flapInner,
+  const frontCorners = [
+    [x0, y0, zFront],
+    [x1, y0, zFront],
+    [x1, y1, zFront],
+    [x0, y1, zFront],
   ];
+
+  const leftOuterX = x0 - d * Math.cos(wallAngle);
+  const leftOuterZ = zFront - d * Math.sin(wallAngle);
+  const leftCorners = [
+    [leftOuterX, y0, leftOuterZ],
+    [x0, y0, zFront],
+    [x0, y1, zFront],
+    [leftOuterX, y1, leftOuterZ],
+  ];
+
+  const rightOuterX = x1 + d * Math.cos(wallAngle);
+  const rightOuterZ = zFront - d * Math.sin(wallAngle);
+  const rightCorners = [
+    [x1, y0, zFront],
+    [rightOuterX, y0, rightOuterZ],
+    [rightOuterX, y1, rightOuterZ],
+    [x1, y1, zFront],
+  ];
+
+  const backDirectionAngle = wallAngle + backAngle;
+  const backDx = Math.cos(backDirectionAngle);
+  const backDz = -Math.sin(backDirectionAngle);
+  const backFarX = rightOuterX + w * backDx;
+  const backFarZ = rightOuterZ + w * backDz;
+  const backCorners = [
+    [rightOuterX, y0, rightOuterZ],
+    [backFarX, y0, backFarZ],
+    [backFarX, y1, backFarZ],
+    [rightOuterX, y1, rightOuterZ],
+  ];
+
+  const topOuterY = y1 + d * Math.cos(topAngle);
+  const topOuterZ = zFront - d * Math.sin(topAngle);
+  const topCorners = [
+    [x0, y1, zFront],
+    [x1, y1, zFront],
+    [x1, topOuterY, topOuterZ],
+    [x0, topOuterY, topOuterZ],
+  ];
+
+  const bottomOuterY = y0 - d * Math.cos(bottomAngle);
+  const bottomOuterZ = zFront - d * Math.sin(bottomAngle);
+  const bottomCorners = [
+    [x0, bottomOuterY, bottomOuterZ],
+    [x1, bottomOuterY, bottomOuterZ],
+    [x1, y0, zFront],
+    [x0, y0, zFront],
+  ];
+
+  const panels: Array<{
+    name: string;
+    corners: number[][];
+    surfaceColor: [number, number, number];
+    aspect: number;
+  }> = [
+    { name: 'Front', corners: frontCorners, surfaceColor: color, aspect: w / h },
+    { name: 'Left', corners: leftCorners, surfaceColor: darker, aspect: d / h },
+    { name: 'Right', corners: rightCorners, surfaceColor: color, aspect: d / h },
+    { name: 'Back', corners: backCorners, surfaceColor: darker, aspect: w / h },
+    { name: 'Top', corners: topCorners, surfaceColor: lighter, aspect: w / d },
+    { name: 'Bottom', corners: bottomCorners, surfaceColor: darker, aspect: w / d },
+  ];
+
+  const exteriorMeshes: Mesh[] = [];
+  const interiorMeshes: Mesh[] = [];
+
+  for (const panel of panels) {
+    const exterior = quadFromCorners(panel.corners, panel.surfaceColor, true, panel.name);
+    exterior.faceAspect = panel.aspect;
+    exteriorMeshes.push(exterior);
+
+    const normal = faceNormal(panel.corners);
+    const insideCorners = panel.corners.map(point => [
+      point[0] - normal[0] * t,
+      point[1] - normal[1] * t,
+      point[2] - normal[2] * t,
+    ]);
+    const reversed = [insideCorners[3], insideCorners[2], insideCorners[1], insideCorners[0]];
+    const inside = quadFromCorners(reversed, interior, true, `Interior ${panel.name}`);
+    inside.faceAspect = panel.aspect;
+    interiorMeshes.push(inside);
+  }
+
+  return [...exteriorMeshes, ...interiorMeshes];
+}
+
+function quadFromCorners(
+  corners: number[][],
+  color: [number, number, number],
+  useTexture = false,
+  panel?: string,
+): Mesh {
+  const normal = faceNormal(corners);
+  return quad(corners[0], corners[1], corners[2], corners[3], normal, color, useTexture, panel);
+}
+
+function faceNormal(corners: number[][]): [number, number, number] {
+  const a = corners[0], b = corners[1], d = corners[3];
+  const ab = [b[0]-a[0], b[1]-a[1], b[2]-a[2]];
+  const ad = [d[0]-a[0], d[1]-a[1], d[2]-a[2]];
+  const cross = [
+    ab[1] * ad[2] - ab[2] * ad[1],
+    ab[2] * ad[0] - ab[0] * ad[2],
+    ab[0] * ad[1] - ab[1] * ad[0],
+  ];
+  const length = Math.hypot(cross[0], cross[1], cross[2]) || 1;
+  return [cross[0] / length, cross[1] / length, cross[2] / length];
 }
 
 function quad(
