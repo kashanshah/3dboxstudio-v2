@@ -634,3 +634,14 @@
   .pro-artwork-choice-row{grid-template-columns:1fr}
   .pro-artwork-choice-row .pro-artwork-source-upload{height:46px}
 }
+
+.pro-fold-card{padding:20px}
+.pro-fold-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.pro-fold-heading>div{display:flex;flex-direction:column;gap:4px}
+.pro-fold-heading span{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.pro-fold-heading strong{font-size:18px;line-height:1.2;letter-spacing:-.02em}
+.pro-fold-heading>b{font-size:28px;line-height:1;color:var(--accent);letter-spacing:-.04em}
+.pro-fold-range{width:100%;height:32px;accent-color:var(--accent)}
+.pro-fold-endpoints{display:flex;justify-content:space-between;gap:12px;margin-top:4px;font-size:12px;color:var(--muted);font-weight:650}
+.pro-fold-play{width:100%;height:50px;margin-top:18px;border-radius:10px!important;background:var(--accent)!important;color:#fff;display:flex!important;align-items:center;justify-content:center;gap:9px;font-size:14px;font-weight:750}
+.pro-fold-play:hover{background:var(--accent-hover)!important}
