@@ -435,84 +435,82 @@ function Inspector(props: {
   if (tool === 'artwork') {
     const selectedKey = props.artworkScope === 'inside' ? `Interior ${props.panel}` : props.panel;
     const selectedArtwork = props.artworkByPanel[selectedKey];
-    const designedCount = panels.filter(item => props.artworkByPanel[props.artworkScope === 'inside' ? `Interior ${item}` : item]).length;
     return <div className="pro-inspector-content">
-    <PanelIntro title="Place your design" text="Design the outside and inside independently, using the same reusable artwork library." />
-    <div className="pro-scope-switch" role="group" aria-label="Artwork side">
-      <button className={props.artworkScope === 'outside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('outside')}>Outside</button>
-      <button className={props.artworkScope === 'inside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('inside')}>Inside</button>
-    </div>
-    <div className="pro-card-section pro-artwork-source-card">
-      <div className="pro-artwork-source-head">
+      <PanelIntro title="Place your design" text="Click any side of the box or dieline, then choose or upload artwork for that surface." />
+
+      <div className="pro-artwork-context">
         <div>
-          <strong>Artwork source</strong>
-          <span>Pick an existing image or add a new one.</span>
+          <span>Selected surface</span>
+          <strong>{props.artworkScope === 'inside' ? 'Inside ' : ''}{props.panel}</strong>
         </div>
-        {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
+        <div className="pro-scope-switch" role="group" aria-label="Artwork side">
+          <button className={props.artworkScope === 'outside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('outside')}>Outside</button>
+          <button className={props.artworkScope === 'inside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('inside')}>Inside</button>
+        </div>
       </div>
-      <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
-        <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
-        <span><b>Choose from library</b><small>Reuse uploaded artwork</small></span>
-        <ChevronDown size={16}/>
-      </button>
-      <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
-        <Upload size={15}/> Upload new artwork
-      </button>
-    </div>
-    <div className="pro-card-section">
-    <SectionTitle title="Choose a panel" meta={`${designedCount} of 6 designed`} />
-    <div className="pro-panel-grid">{panels.map(item=>{
-      const key = props.artworkScope === 'inside' ? `Interior ${item}` : item;
-      const artwork = props.artworkByPanel[key];
-      return <button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}>
-        <span className={artwork?'has-art pro-panel-art':''}>{artwork ? <span className="artwork-layer" style={artworkCss(artwork)} /> : '+'}</span>
-        <b>{item}</b>{artwork&&<i/>}
-      </button>;
-    })}</div>
-    </div>
-    <div className="pro-card-section">
-    <SectionTitle title={`${props.artworkScope === 'inside' ? 'Inside ' : ''}${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
-    {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
-    <div className="pro-artwork-actions">
-      <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}><ImageIcon size={15}/>{selectedArtwork ? 'Change artwork' : 'Choose artwork'}</button>
-    </div>
-    {selectedArtwork && <button className="pro-remove-artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/> Remove artwork</button>}
-    {selectedArtwork && <div className="pro-file"><Check size={15}/><span>{selectedArtwork.name}</span></div>}
-    </div>
-    <div className="pro-card-section">
-    <SectionTitle title="How it fits" />
-    <div className="pro-segmented">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => <button
-      key={mode}
-      className={selectedArtwork?.mode === mode ? 'is-active' : ''}
-      disabled={!selectedArtwork}
-      onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
-    >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
-    <p className="pro-help">{selectedArtwork?.mode === 'fill' ? 'Fills the whole panel. Some artwork may be cropped.' : selectedArtwork?.mode === 'tile' ? 'Repeats your artwork as a pattern.' : 'Shows the whole artwork without cropping.'}</p>
-    <details className="pro-advanced" open={false}>
-      <summary>Fine tune placement <ChevronDown size={16}/></summary>
-      <div className="pro-advanced-body">
-    <ControlRow label="Artwork size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
-    <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
-      const scale = Number(e.target.value);
-      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, scale } } : current);
-    }}/>
-    <ControlRow label="Rotation" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
-    <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
-      const rotation = Number(e.target.value);
-      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, rotation } } : current);
-    }}/>
-    <div className="pro-alignment">
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: -1 } } : current)}>↤</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 0 } } : current)}>↔</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 1 } } : current)}>↦</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
-    </div>
+
+      <div className="pro-card-section pro-artwork-source-card">
+        <div className="pro-artwork-source-head">
+          <div>
+            <strong>Artwork source</strong>
+            <span>{selectedArtwork ? 'Change or replace the current artwork.' : 'Pick an existing image or add a new one.'}</span>
+          </div>
+          {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
+        </div>
+
+        {selectedArtwork && <div className="pro-current-artwork">
+          <div className="pro-current-artwork-preview"><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>
+          <div className="pro-current-artwork-copy">
+            <b>{selectedArtwork.name}</b>
+            <small>{props.artworkScope === 'inside' ? 'Inside ' : ''}{props.panel}</small>
+          </div>
+          <button className="pro-current-artwork-remove" aria-label="Remove artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
+        </div>}
+
+        <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
+          <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
+          <span><b>{selectedArtwork ? 'Change artwork' : 'Choose from library'}</b><small>Reuse uploaded artwork</small></span>
+          <ChevronDown size={16}/>
+        </button>
+        <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
+          <Upload size={15}/> Upload new artwork
+        </button>
       </div>
-    </details>
-    </div>
-  </div>;
+
+      <div className="pro-card-section">
+        <SectionTitle title="How it fits" />
+        <div className="pro-segmented">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => <button
+          key={mode}
+          className={selectedArtwork?.mode === mode ? 'is-active' : ''}
+          disabled={!selectedArtwork}
+          onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
+        >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
+        <p className="pro-help">{selectedArtwork?.mode === 'fill' ? 'Fills the whole panel. Some artwork may be cropped.' : selectedArtwork?.mode === 'tile' ? 'Repeats your artwork as a pattern.' : selectedArtwork ? 'Shows the whole artwork without cropping.' : 'Choose artwork first to adjust placement.'}</p>
+        <details className="pro-advanced" open={false}>
+          <summary>Fine tune placement <ChevronDown size={16}/></summary>
+          <div className="pro-advanced-body">
+            <ControlRow label="Artwork size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
+            <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
+              const scale = Number(e.target.value);
+              props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, scale } } : current);
+            }}/>
+            <ControlRow label="Rotation" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
+            <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
+              const rotation = Number(e.target.value);
+              props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, rotation } } : current);
+            }}/>
+            <div className="pro-alignment">
+              <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: -1 } } : current)}>↤</button>
+              <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 0 } } : current)}>↔</button>
+              <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 1 } } : current)}>↦</button>
+              <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
+              <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
+              <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>;
   }
 
   if (tool === 'material') return <div className="pro-inspector-content">
