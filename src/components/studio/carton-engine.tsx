@@ -20,7 +20,7 @@ type Props = {
   dimensions: CartonDimensions;
   opening: number;
   material: string;
-  artworkUrl: string | null;
+  artworkByPanel: Record<string, string | null>;
   cameraPreset: string;
   zoom: number;
   lightIntensity?: number;
@@ -37,7 +37,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, artworkUrl, cameraPreset, zoom, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -97,13 +97,13 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       dimensions,
       opening,
       material,
-      artworkUrl,
+      artworkByPanel,
       yaw,
       pitch,
       zoom,
       lightIntensity,
     });
-  }, [dimensions, opening, material, artworkUrl, yaw, pitch, zoom, lightIntensity]);
+  }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -153,7 +153,7 @@ type Scene = {
   dimensions: CartonDimensions;
   opening: number;
   material: string;
-  artworkUrl: string | null;
+  artworkByPanel: Record<string, string | null>;
   yaw: number;
   pitch: number;
   zoom: number;
@@ -183,21 +183,15 @@ function createRenderer(canvas: HTMLCanvasElement) {
   const textureLocation = gl.getUniformLocation(program, 'uTexture');
 
   const buffer = gl.createBuffer();
-  const texture = gl.createTexture();
-  if (!buffer || !texture) return null;
+  if (!buffer) return null;
 
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  uploadPlaceholderTexture(gl);
+  const panelTextures = new Map<string, { texture: WebGLTexture; url: string; loaded: boolean }>();
 
   let scene: Scene = {
     dimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
     opening: 18,
     material: 'Soft touch',
-    artworkUrl: null,
+    artworkByPanel: {},
     yaw: -0.55,
     pitch: 0.28,
     zoom: 82,
@@ -238,14 +232,19 @@ function createRenderer(canvas: HTMLCanvasElement) {
     gl.uniform3f(lightLocation, -0.45, 0.8, 0.55);
     gl.uniform1f(lightIntensityLocation, clamp(scene.lightIntensity, 0.15, 1.5));
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(textureLocation, 0);
 
     for (const mesh of meshes) {
       gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
       gl.uniformMatrix4fv(modelLocation, false, mesh.model ?? identity4());
       gl.uniform3fv(colorLocation, mesh.color);
-      gl.uniform1i(useTextureLocation, mesh.useTexture && !!scene.artworkUrl ? 1 : 0);
+
+      const textureEntry = mesh.panel ? panelTextures.get(mesh.panel) : undefined;
+      const shouldUseTexture = !!mesh.useTexture && !!textureEntry?.loaded;
+      if (shouldUseTexture && textureEntry) {
+        gl.bindTexture(gl.TEXTURE_2D, textureEntry.texture);
+      }
+      gl.uniform1i(useTextureLocation, shouldUseTexture ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length / 8);
     }
   };
@@ -260,35 +259,60 @@ function createRenderer(canvas: HTMLCanvasElement) {
     }
   };
 
-  const setArtwork = (url: string | null) => {
+  const syncPanelTextures = (artworkByPanel: Record<string, string | null>) => {
     const token = ++artworkToken;
-    if (!url) {
-      uploadPlaceholderTexture(gl);
-      render();
-      return;
+    const activePanels = new Set(Object.entries(artworkByPanel).filter(([,url]) => !!url).map(([panel]) => panel));
+
+    for (const [panel, entry] of panelTextures) {
+      if (!activePanels.has(panel) || artworkByPanel[panel] !== entry.url) {
+        gl.deleteTexture(entry.texture);
+        panelTextures.delete(panel);
+      }
     }
-    const image = new Image();
-    image.onload = () => {
-      if (token !== artworkToken) return;
+
+    for (const [panel, url] of Object.entries(artworkByPanel)) {
+      if (!url) continue;
+      const current = panelTextures.get(panel);
+      if (current?.url === url) continue;
+
+      const texture = gl.createTexture();
+      if (!texture) continue;
       gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-      render();
-    };
-    image.onerror = () => {
-      if (token !== artworkToken) return;
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       uploadPlaceholderTexture(gl);
-      render();
-    };
-    image.src = url;
+
+      const entry = { texture, url, loaded: false };
+      panelTextures.set(panel, entry);
+
+      const image = new Image();
+      image.onload = () => {
+        if (token !== artworkToken) return;
+        const latest = panelTextures.get(panel);
+        if (!latest || latest.url !== url) return;
+        gl.bindTexture(gl.TEXTURE_2D, latest.texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        latest.loaded = true;
+        render();
+      };
+      image.onerror = () => {
+        const latest = panelTextures.get(panel);
+        if (latest?.url === url) latest.loaded = false;
+        render();
+      };
+      image.src = url;
+    }
   };
 
   return {
     setScene(next: Scene) {
-      const artworkChanged = next.artworkUrl !== scene.artworkUrl;
+      const artworkChanged = JSON.stringify(next.artworkByPanel) !== JSON.stringify(scene.artworkByPanel);
       scene = next;
-      if (artworkChanged) setArtwork(next.artworkUrl);
-      else render();
+      if (artworkChanged) syncPanelTextures(next.artworkByPanel);
+      render();
     },
     render,
     pickPanel(localX: number, localY: number) {
@@ -323,7 +347,8 @@ function createRenderer(canvas: HTMLCanvasElement) {
     dispose() {
       ++artworkToken;
       gl.deleteBuffer(buffer);
-      gl.deleteTexture(texture);
+      for (const entry of panelTextures.values()) gl.deleteTexture(entry.texture);
+      panelTextures.clear();
       gl.deleteProgram(program);
     },
   };
@@ -353,19 +378,19 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
   );
   const back = quad(
     [x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],
-    [0,0,-1], darker, false, 'Back',
+    [0,0,-1], darker, true, 'Back',
   );
   const left = quad(
     [x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],
-    [-1,0,0], darker, false, 'Left',
+    [-1,0,0], darker, true, 'Left',
   );
   const right = quad(
     [x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],
-    [1,0,0], color, false, 'Right',
+    [1,0,0], color, true, 'Right',
   );
   const bottom = quad(
     [x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],
-    [0,-1,0], darker, false, 'Bottom',
+    [0,-1,0], darker, true, 'Bottom',
   );
 
   // Interior cavity. These faces are wound so their normals point inward.
@@ -416,7 +441,7 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
 
   const flapOuter = quad(
     [x0,0,0],[x0,0,d],[x1,0,d],[x1,0,0],
-    [0,1,0], lighter, false, 'Top',
+    [0,1,0], lighter, true, 'Top',
   );
   flapOuter.model = flapModel;
 
