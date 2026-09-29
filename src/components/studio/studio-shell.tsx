@@ -130,6 +130,12 @@ export function StudioShell() {
             artworkUrl={artworkUrl}
             cameraPreset={camera}
             zoom={zoom}
+            onPanelSelect={(selectedPanel) => {
+              setPanel(selectedPanel);
+              setTool('artwork');
+              setInspectorOpen(true);
+              setMessage(`${selectedPanel} panel selected from the 3D carton`);
+            }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
         </div> : <DielinePrototype panel={panel} artworkName={artworkName} dimensions={dimensions} />}
