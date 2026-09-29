@@ -25,6 +25,7 @@ type Props = {
   cameraPreset: string;
   zoom: number;
   lightIntensity?: number;
+  selectedPanel?: string;
   onPanelSelect?: (panel: string) => void;
 };
 
@@ -39,13 +40,14 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, lightIntensity = 0.78, selectedPanel = 'Front', onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
   const [yaw, setYaw] = useState(-0.55);
   const [pitch, setPitch] = useState(0.28);
+  const [hoverPanel, setHoverPanel] = useState<string | null>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
 
   const resetCamera = () => {
@@ -104,8 +106,10 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       pitch,
       zoom,
       lightIntensity,
+      selectedPanel,
+      hoverPanel,
     });
-  }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity]);
+  }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity, selectedPanel, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -114,12 +118,18 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
-    const dx = event.clientX - drag.x;
-    const dy = event.clientY - drag.y;
-    if (Math.hypot(dx, dy) > 4) drag.moved = true;
-    setYaw(drag.yaw - dx * 0.008);
-    setPitch(clamp(drag.pitch + dy * 0.006, -1.15, 1.15));
+    if (drag) {
+      const dx = event.clientX - drag.x;
+      const dy = event.clientY - drag.y;
+      if (Math.hypot(dx, dy) > 4) drag.moved = true;
+      setYaw(drag.yaw - dx * 0.008);
+      setPitch(clamp(drag.pitch + dy * 0.006, -1.15, 1.15));
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const hovered = rendererRef.current?.pickPanel(event.clientX - rect.left, event.clientY - rect.top) ?? null;
+    setHoverPanel(hovered);
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -147,6 +157,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     onPointerMove={onPointerMove}
     onPointerUp={onPointerUp}
     onPointerCancel={() => { dragRef.current = null; }}
+    onPointerLeave={() => { dragRef.current = null; setHoverPanel(null); }}
     onWheel={onWheel}
   />;
 });
@@ -160,6 +171,8 @@ type Scene = {
   pitch: number;
   zoom: number;
   lightIntensity: number;
+  selectedPanel: string;
+  hoverPanel: string | null;
 };
 
 function createRenderer(canvas: HTMLCanvasElement) {
@@ -188,6 +201,9 @@ function createRenderer(canvas: HTMLCanvasElement) {
   const uvRotationLocation = gl.getUniformLocation(program, 'uUvRotation');
   const tileLocation = gl.getUniformLocation(program, 'uTile');
   const clipLocation = gl.getUniformLocation(program, 'uClipOutside');
+  const overlayColorLocation = gl.getUniformLocation(program, 'uOverlayColor');
+  const overlayAlphaLocation = gl.getUniformLocation(program, 'uOverlayAlpha');
+  const outlineAlphaLocation = gl.getUniformLocation(program, 'uOutlineAlpha');
 
   const buffer = gl.createBuffer();
   if (!buffer) return null;
@@ -203,6 +219,8 @@ function createRenderer(canvas: HTMLCanvasElement) {
     pitch: 0.28,
     zoom: 82,
     lightIntensity: 0.78,
+    selectedPanel: 'Front',
+    hoverPanel: null,
   };
   let artworkToken = 0;
 
@@ -264,6 +282,14 @@ function createRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1i(tileLocation, 0);
         gl.uniform1i(clipLocation, 0);
       }
+
+      const isEditablePanel = !!mesh.panel;
+      const isSelected = mesh.panel === scene.selectedPanel;
+      const isHovered = !!mesh.panel && mesh.panel === scene.hoverPanel && !isSelected;
+      gl.uniform3f(overlayColorLocation, 0.0, 0.46, 0.77);
+      gl.uniform1f(overlayAlphaLocation, isSelected ? 0.18 : isHovered ? 0.09 : 0.0);
+      gl.uniform1f(outlineAlphaLocation, isSelected ? 0.9 : isHovered ? 0.62 : isEditablePanel ? 0.18 : 0.0);
+
       gl.uniform1i(useTextureLocation, shouldUseTexture ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length / 8);
     }
@@ -580,6 +606,9 @@ uniform vec2 uUvOffset;
 uniform float uUvRotation;
 uniform bool uTile;
 uniform bool uClipOutside;
+uniform vec3 uOverlayColor;
+uniform float uOverlayAlpha;
+uniform float uOutlineAlpha;
 void main() {
   vec3 normal = normalize(vNormal);
   float diffuse = max(0.0, dot(normal, normalize(uLightDirection)));
@@ -597,7 +626,15 @@ void main() {
   if (uUseTexture && !(uClipOutside && outside)) {
     base = texture2D(uTexture, texUv);
   }
-  gl_FragColor = vec4(base.rgb * light, base.a);
+
+  vec3 shaded = base.rgb * light;
+  shaded = mix(shaded, uOverlayColor, uOverlayAlpha);
+
+  float edgeDistance = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
+  float edge = 1.0 - smoothstep(0.0, 0.028, edgeDistance);
+  shaded = mix(shaded, uOverlayColor, edge * uOutlineAlpha);
+
+  gl_FragColor = vec4(shaded, base.a);
 }
 `;
 
