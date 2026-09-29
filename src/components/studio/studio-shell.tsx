@@ -34,6 +34,7 @@ export function StudioShell() {
   const [mode, setMode] = useState<Mode>('3d');
   const [family, setFamily] = useState('Folding carton');
   const [panel, setPanel] = useState('Front');
+  const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
   const [material, setMaterial] = useState('Soft touch');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
@@ -57,6 +58,10 @@ export function StudioShell() {
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
+  const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
+  const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
+    ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
+    : { scope: 'outside' as const, panel: target };
 
   useEffect(() => {
     mediaAssetsRef.current = mediaAssets;
@@ -104,22 +109,26 @@ export function StudioShell() {
     setInspectorOpen(true);
   };
 
-  const applyAssetToPanel = (asset: LocalMediaAsset, targetPanel = panel) => {
+  const applyAssetToPanel = (asset: LocalMediaAsset, targetPanel = artworkKey()) => {
     setArtworkByPanel(current => ({
       ...current,
       [targetPanel]: defaultArtworkPlacement(asset.name, asset.url, asset.id),
     }));
-    setPanel(targetPanel);
+    const parsed = parseArtworkTarget(targetPanel);
+    setArtworkScope(parsed.scope);
+    setPanel(parsed.panel);
     setTool('artwork');
     setInspectorOpen(true);
     setMediaLibraryOpen(false);
-    setMessage(`${asset.name} applied to the ${targetPanel} panel`);
+    setMessage(`${asset.name} applied to ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
   };
 
-  const openMediaLibrary = (targetPanel = panel, tab: 'library' | 'upload' = 'library') => {
+  const openMediaLibrary = (targetPanel = artworkKey(), tab: 'library' | 'upload' = 'library') => {
     const currentAssetId = artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
+    const parsed = parseArtworkTarget(targetPanel);
     setMediaTargetPanel(targetPanel);
-    setPanel(targetPanel);
+    setArtworkScope(parsed.scope);
+    setPanel(parsed.panel);
     setSelectedMediaAssetId(currentAssetId);
     setMediaLibraryTab(tab);
     setMediaLibraryOpen(true);
@@ -277,9 +286,11 @@ export function StudioShell() {
             cameraPreset={camera}
             zoom={zoom}
             onPanelSelect={(selectedPanel, point) => {
-              setPanel(selectedPanel);
+              const parsed = parseArtworkTarget(selectedPanel);
+              setArtworkScope(parsed.scope);
+              setPanel(parsed.panel);
               setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
-              setMessage(`${selectedPanel} panel selected from the 3D carton`);
+              setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected from the 3D carton`);
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
@@ -312,6 +323,7 @@ export function StudioShell() {
         </div> : <DielinePrototype
           panel={panel}
           artworkByPanel={artworkByPanel}
+          artworkScope={artworkScope}
           dimensions={dimensions}
           onPanelSelect={(selectedPanel) => {
             setPanel(selectedPanel);
@@ -343,7 +355,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -369,6 +381,7 @@ export function StudioShell() {
 
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
+  artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
@@ -404,21 +417,27 @@ function Inspector(props: {
   </div>;
 
   if (tool === 'artwork') {
-    const selectedArtwork = props.artworkByPanel[props.panel];
-    const designedCount = panels.filter(item => props.artworkByPanel[item]).length;
+    const selectedKey = props.artworkScope === 'inside' ? `Interior ${props.panel}` : props.panel;
+    const selectedArtwork = props.artworkByPanel[selectedKey];
+    const designedCount = panels.filter(item => props.artworkByPanel[props.artworkScope === 'inside' ? `Interior ${item}` : item]).length;
     return <div className="pro-inspector-content">
-    <PanelIntro title="Place your design" text="Choose a panel, then reuse artwork from your library or upload something new." />
+    <PanelIntro title="Place your design" text="Design the outside and inside independently, using the same reusable artwork library." />
+    <div className="pro-scope-switch" role="group" aria-label="Artwork side">
+      <button className={props.artworkScope === 'outside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('outside')}>Outside</button>
+      <button className={props.artworkScope === 'inside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('inside')}>Inside</button>
+    </div>
     <div className="pro-card-section pro-artwork-source-card">
       <SectionTitle title="Artwork source" meta={props.mediaAssets.length > 0 ? `${props.mediaAssets.length} in library` : 'Library empty'} />
       <div className="pro-artwork-source-actions">
-        <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(props.panel, 'library')}><ImageIcon size={16}/> Choose from library</button>
-        <button className="pro-secondary-button" onClick={() => props.onOpenMediaLibrary(props.panel, 'upload')}><Upload size={16}/> Upload new</button>
+        <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}><ImageIcon size={16}/> Choose from library</button>
+        <button className="pro-secondary-button" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}><Upload size={16}/> Upload new</button>
       </div>
     </div>
     <div className="pro-card-section">
     <SectionTitle title="Choose a panel" meta={`${designedCount} of 6 designed`} />
     <div className="pro-panel-grid">{panels.map(item=>{
-      const artwork = props.artworkByPanel[item];
+      const key = props.artworkScope === 'inside' ? `Interior ${item}` : item;
+      const artwork = props.artworkByPanel[key];
       return <button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}>
         <span className={artwork?'has-art pro-panel-art':''}>{artwork ? <span className="artwork-layer" style={artworkCss(artwork)} /> : '+'}</span>
         <b>{item}</b>{artwork&&<i/>}
@@ -426,12 +445,12 @@ function Inspector(props: {
     })}</div>
     </div>
     <div className="pro-card-section">
-    <SectionTitle title={`${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
+    <SectionTitle title={`${props.artworkScope === 'inside' ? 'Inside ' : ''}${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
     {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
     <div className="pro-artwork-actions">
-      <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(props.panel, 'library')}><ImageIcon size={15}/>{selectedArtwork ? 'Change artwork' : 'Choose artwork'}</button>
+      <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}><ImageIcon size={15}/>{selectedArtwork ? 'Change artwork' : 'Choose artwork'}</button>
     </div>
-    {selectedArtwork && <button className="pro-remove-artwork" onClick={() => props.onRemoveArtwork(props.panel)}><Trash2 size={15}/> Remove artwork</button>}
+    {selectedArtwork && <button className="pro-remove-artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/> Remove artwork</button>}
     {selectedArtwork && <div className="pro-file"><Check size={15}/><span>{selectedArtwork.name}</span></div>}
     </div>
     <div className="pro-card-section">
@@ -440,7 +459,7 @@ function Inspector(props: {
       key={mode}
       className={selectedArtwork?.mode === mode ? 'is-active' : ''}
       disabled={!selectedArtwork}
-      onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, mode } } : current)}
+      onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
     >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
     <p className="pro-help">{selectedArtwork?.mode === 'fill' ? 'Fills the whole panel. Some artwork may be cropped.' : selectedArtwork?.mode === 'tile' ? 'Repeats your artwork as a pattern.' : 'Shows the whole artwork without cropping.'}</p>
     <details className="pro-advanced" open={false}>
@@ -449,20 +468,20 @@ function Inspector(props: {
     <ControlRow label="Artwork size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
     <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
       const scale = Number(e.target.value);
-      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, scale } } : current);
+      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, scale } } : current);
     }}/>
     <ControlRow label="Rotation" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
     <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
       const rotation = Number(e.target.value);
-      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, rotation } } : current);
+      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, rotation } } : current);
     }}/>
     <div className="pro-alignment">
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignX: -1 } } : current)}>↤</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignX: 0 } } : current)}>↔</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignX: 1 } } : current)}>↦</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
-      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: -1 } } : current)}>↤</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 0 } } : current)}>↔</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 1 } } : current)}>↦</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
     </div>
       </div>
     </details>
@@ -515,11 +534,13 @@ function Inspector(props: {
 function DielinePrototype({
   panel,
   artworkByPanel,
+  artworkScope,
   dimensions,
   onPanelSelect,
 }:{
   panel:string;
   artworkByPanel:ArtworkByPanel;
+  artworkScope:'outside'|'inside';
   dimensions:CartonDimensions;
   onPanelSelect:(panel:string)=>void;
 }) {
@@ -529,7 +550,7 @@ function DielinePrototype({
     <div className="pro-dieline pro-dieline-live" style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
       {cartonPanels.map(item => {
         const panelName = item.label[0] + item.label.slice(1).toLowerCase();
-        const artwork = artworkByPanel[panelName];
+        const artwork = artworkByPanel[artworkScope === 'inside' ? `Interior ${panelName}` : panelName];
         const selectable = item.id !== 'glue';
         return <button
           key={item.id}
@@ -552,7 +573,7 @@ function DielinePrototype({
         </button>;
       })}
     </div>
-    <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected · shared structural source</strong></div>
+    <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{artworkScope === 'inside' ? 'Inside ' : ''}{panel} selected · shared structural source</strong></div>
   </div>;
 }
 
@@ -570,7 +591,7 @@ function MediaLibraryModal(props: {
   onClose: ()=>void;
 }) {
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
-  const usageCount = selected ? panels.filter(panel => props.artworkByPanel[panel]?.assetId === selected.id).length : 0;
+  const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
 
   return <div className="pro-media-modal-backdrop" role="presentation" onMouseDown={(event) => {
     if (event.target === event.currentTarget) props.onClose();
@@ -610,7 +631,7 @@ function MediaLibraryModal(props: {
             <button className="pro-primary" onClick={() => props.setTab('upload')}>Upload artwork</button>
           </div> : <div className="pro-media-grid">
             {props.assets.map(asset => {
-              const used = panels.filter(panel => props.artworkByPanel[panel]?.assetId === asset.id).length;
+              const used = Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === asset.id).length;
               return <button
                 key={asset.id}
                 className={`pro-media-tile ${props.selectedAssetId === asset.id ? 'is-selected' : ''}`}
@@ -652,10 +673,10 @@ function MediaLibraryModal(props: {
       </div>}
 
       <footer className="pro-media-modal-footer">
-        <span>{props.tab === 'library' ? `Choose artwork for ${props.targetPanel}` : 'Upload files to your library'}</span>
+        <span>{props.tab === 'library' ? `Choose artwork for ${props.targetPanel.replace('Interior ', 'Inside ')}` : 'Upload files to your library'}</span>
         <div>
           <button className="pro-secondary-button" onClick={props.onClose}>Cancel</button>
-          {props.tab === 'library' && <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected)}>Use on {props.targetPanel}</button>}
+          {props.tab === 'library' && <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected)}>Use on {props.targetPanel.replace('Interior ', 'Inside ')}</button>}
         </div>
       </footer>
     </section>
