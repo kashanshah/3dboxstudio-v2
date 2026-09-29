@@ -81,6 +81,10 @@ export function StudioShell() {
   }, [faceAction]);
 
   const chooseTool = (id: Tool) => {
+    if (tool === id && inspectorOpen) {
+      setInspectorOpen(false);
+      return;
+    }
     setTool(id);
     setInspectorOpen(true);
   };
@@ -181,7 +185,6 @@ export function StudioShell() {
             onPanelSelect={(selectedPanel, point) => {
               setPanel(selectedPanel);
               setTool('artwork');
-              setInspectorOpen(true);
               setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
               setMessage(`${selectedPanel} panel selected from the 3D carton`);
             }}
@@ -212,7 +215,6 @@ export function StudioShell() {
           onPanelSelect={(selectedPanel) => {
             setPanel(selectedPanel);
             setTool('artwork');
-            setInspectorOpen(true);
             setMessage(`${selectedPanel} panel selected from the dieline`);
           }}
         />}
