@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
-  FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
   PackageOpen, Plus, Search, Share2, Sparkles,
   Trash2, Upload, X
 } from 'lucide-react';
@@ -25,7 +25,6 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'export', label: 'Export', icon: Download },
 ];
 
-const families = ['Folding carton','Mailer','Rigid box','Bottle','Jar','Can','Tube','Pouch','Cup'];
 const panels = ['Front','Back','Left','Right','Top','Bottom'];
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
@@ -210,11 +209,6 @@ export function StudioShell() {
     setMediaLibraryOpen(true);
   };
 
-  const handleArtwork = (file?: File) => {
-    if (file) handleArtworkFiles([file]);
-  };
-
-  const pickArtwork = () => fileRef.current?.click();
 
   const removeArtwork = (targetPanel: string) => {
     setArtworkByPanel(current => {
@@ -442,7 +436,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -475,8 +469,8 @@ function Inspector(props: {
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
-  mediaAssets: LocalMediaAsset[]; onUseMediaAsset:(asset:LocalMediaAsset,panel?:string)=>void; onDeleteMediaAsset:(assetId:string)=>void;
-  onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
+  mediaAssets: LocalMediaAsset[];
+  onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
   onExport:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
@@ -932,4 +926,3 @@ function PanelIntro({title,text}:{title:string;text:string}) {
 function SectionTitle({title,meta}:{title:string;meta?:string}) { return <div className="pro-section-title"><strong>{title}</strong>{meta&&<span>{meta}</span>}</div>; }
 function ControlRow({label,value}:{label:string;value:string}) { return <div className="pro-control-row"><span>{label}</span><strong>{value}</strong></div>; }
 function Field({label,value,onChange}:{label:string;value:string;onChange?:(value:number)=>void}) { return <label><span>{label}</span><input type="number" value={value} onChange={e=>onChange?.(Number(e.target.value))}/></label>; }
-function ExportCard({icon,title,text,active=false}:{icon:React.ReactNode;title:string;text:string;active?:boolean}) { return <button className={`pro-export-card ${active?'is-selected':''}`}>{icon}<span><b>{title}</b><small>{text}</small></span></button>; }
