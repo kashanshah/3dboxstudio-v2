@@ -545,3 +545,92 @@
   .pro-artwork-choice-row .pro-artwork-source-upload{height:40px}
   .pro-artwork-fit-head{align-items:flex-start;flex-direction:column;gap:3px}
 }
+
+/* Studio clarity scale — large, obvious, spacious controls. */
+.pro-studio{--studio-rail:104px;--studio-inspector:460px}
+.pro-tool-rail{padding:16px 12px;gap:10px}
+.pro-tool-rail button{height:82px;border-radius:14px;font-size:14px;font-weight:650;gap:9px}
+.pro-tool-rail button svg{width:25px;height:25px}
+.pro-inspector{
+  width:min(460px,calc(100vw - var(--studio-rail) - 40px));
+  border-radius:18px;
+}
+.pro-inspector-title{height:94px;padding:20px 24px}
+.pro-inspector-title span{font-size:12px;font-weight:700;letter-spacing:.08em}
+.pro-inspector-title h2{font-size:26px;line-height:1.1;letter-spacing:-.025em;margin-top:4px}
+.pro-inspector-close{width:42px;height:42px;border-radius:10px}
+.pro-inspector-content{max-height:calc(100% - 94px);padding:24px 24px 44px}
+.pro-panel-intro{padding:2px 2px 24px;margin-bottom:24px}
+.pro-panel-intro h3{font-size:22px;font-weight:750;letter-spacing:-.025em;margin-bottom:9px}
+.pro-panel-intro p{font-size:14px;line-height:1.55;max-width:38ch}
+.pro-card-section{padding:20px;border-radius:16px;margin-bottom:18px}
+.pro-section-title{margin:16px 0 14px}
+.pro-section-title strong{font-size:16px;font-weight:750;letter-spacing:-.01em}
+.pro-section-title span{font-size:13px}
+.pro-help{font-size:13px;line-height:1.55;margin-top:11px}
+.pro-search{height:48px;border-radius:10px;padding:0 13px}
+.pro-search input{font-size:14px}
+.pro-chip-grid{gap:10px}
+.pro-chip-grid button{min-height:50px;padding:10px 12px;font-size:14px;font-weight:650;border-radius:10px}
+.pro-fields{gap:10px}
+.pro-fields label{font-size:13px;font-weight:650}
+.pro-fields input{height:48px;margin-top:7px;padding:0 12px;font-size:15px;border-radius:10px}
+.pro-control-row{margin:20px 0 10px;font-size:14px}
+.pro-control-row strong{font-weight:750}
+.pro-wide-button{height:50px;font-size:14px;font-weight:700;border-radius:10px!important}
+.pro-secondary-button{height:48px;font-size:14px;font-weight:700;border-radius:10px}
+.pro-segmented{padding:5px;border-radius:11px}
+.pro-segmented button{min-height:44px;font-size:14px;font-weight:700;border-radius:8px}
+.pro-advanced{border-radius:13px;margin-top:16px}
+.pro-advanced summary{height:52px;padding:0 16px;font-size:14px;font-weight:750}
+.pro-advanced-body{padding:4px 16px 18px}
+.pro-scope-switch{gap:5px;padding:5px;border-radius:11px}
+.pro-scope-switch button{height:44px;font-size:14px;font-weight:700}
+.pro-artwork-context{padding:14px 16px;margin-bottom:16px;border-radius:12px}
+.pro-artwork-context>div:first-child span{font-size:11px}
+.pro-artwork-context>div:first-child strong{font-size:16px}
+.pro-artwork-source-head{margin-bottom:14px}
+.pro-artwork-source-head strong{font-size:16px}
+.pro-artwork-source-head span{font-size:13px}
+.pro-artwork-source-head small{font-size:11px}
+.pro-current-artwork{grid-template-columns:64px minmax(0,1fr) 38px;gap:12px;padding:10px;border-radius:11px;margin-bottom:12px}
+.pro-current-artwork-preview{width:64px;height:56px;border-radius:8px}
+.pro-current-artwork-copy b{font-size:14px}
+.pro-current-artwork-copy small{font-size:12px}
+.pro-current-artwork-remove{width:38px;height:38px}
+.pro-artwork-source-primary{min-height:68px;padding:12px 14px!important;border-radius:12px;grid-template-columns:42px minmax(0,1fr) auto;gap:12px}
+.pro-artwork-source-icon{width:42px;height:42px;border-radius:10px}
+.pro-artwork-source-primary b{font-size:15px}
+.pro-artwork-source-primary small{font-size:12px;margin-top:4px}
+.pro-artwork-source-upload{height:44px;font-size:13px}
+.pro-artwork-choice-row{gap:10px}
+.pro-artwork-choice-row .pro-artwork-source-upload{min-width:126px;padding:0 14px}
+.pro-artwork-fit-section{margin-top:18px;padding-top:16px}
+.pro-artwork-fit-head{margin-bottom:12px}
+.pro-artwork-fit-head strong{font-size:15px}
+.pro-artwork-fit-head span{font-size:12px}
+.pro-fit-options{gap:8px}
+.pro-fit-options button{min-height:62px;border-radius:10px;gap:4px}
+.pro-fit-options button b{font-size:14px}
+.pro-fit-options button small{font-size:11px}
+.pro-placement-details summary{height:48px;font-size:13px}
+.pro-camera-menu>button{height:46px;font-size:14px;padding:0 14px}
+.pro-mode-switch button{height:44px;font-size:14px;padding:0 16px}
+.pro-stage-badge{font-size:13px;padding:10px 13px}
+.pro-header-actions button{height:42px;min-width:42px;font-size:14px;padding:0 13px}
+.pro-project-copy strong{font-size:15px}
+.pro-project-copy span{font-size:11px}
+@media(max-width:1180px){
+  .pro-studio{--studio-rail:92px;--studio-inspector:430px}
+  .pro-tool-rail button{height:76px;font-size:13px}
+  .pro-inspector{width:min(430px,calc(100vw - var(--studio-rail) - 32px))}
+}
+@media(max-width:640px){
+  .pro-inspector{width:auto}
+  .pro-inspector-content{padding:20px 18px 32px}
+  .pro-panel-intro h3{font-size:21px}
+  .pro-panel-intro p{font-size:14px}
+  .pro-card-section{padding:18px}
+  .pro-artwork-choice-row{grid-template-columns:1fr}
+  .pro-artwork-choice-row .pro-artwork-source-upload{height:46px}
+}
