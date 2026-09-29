@@ -59,6 +59,10 @@ The first engine milestone is deliberately narrow but must be real end-to-end:
 
 The next architecture-proof slice adds one curved package (bottle or jar) and one multi-part articulated package (rigid lid/drawer or hinged gift structure). This prevents the engine from becoming box-specific before the data model stabilizes.
 
+## Artwork library and full-dieline implementation
+
+The detailed engineering specification for reusable media assets, full-dieline artwork mapping, panel overrides, storage deduplication, entitlements and rollout phases lives in [Artwork Library and Full-Dieline Artwork](artwork-library-full-dieline.md). Treat that document as the implementation contract for the artwork-library milestone.
+
 ## Engine foundation
 
 Use versioned packaging definitions with a family, structure identifier, parameter bounds, artwork regions/UVs, material slots, moving parts, pivots, fold sequence and supported outputs. Separate template geometry, project state and renderer state. Persist template version and all user settings so saved projects and marketing scenes remain reproducible.
