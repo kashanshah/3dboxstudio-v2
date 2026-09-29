@@ -24,6 +24,7 @@ type Props = {
   cameraPreset: string;
   zoom: number;
   lightIntensity?: number;
+  onPanelSelect?: (panel: string) => void;
 };
 
 type Mesh = {
@@ -31,17 +32,19 @@ type Mesh = {
   useTexture: boolean;
   color: [number, number, number];
   model?: Float32Array;
+  panel?: string;
+  pickCorners?: number[][];
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, artworkUrl, cameraPreset, zoom, lightIntensity = 0.78 },
+  { dimensions, opening, material, artworkUrl, cameraPreset, zoom, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
   const [yaw, setYaw] = useState(-0.55);
   const [pitch, setPitch] = useState(0.28);
-  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
 
   const resetCamera = () => {
     const preset = cameraForPreset(cameraPreset);
@@ -104,20 +107,29 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: event.clientX, y: event.clientY, yaw, pitch };
+    dragRef.current = { x: event.clientX, y: event.clientY, yaw, pitch, moved: false };
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     const drag = dragRef.current;
     if (!drag) return;
-    setYaw(drag.yaw + (event.clientX - drag.x) * 0.008);
-    setPitch(clamp(drag.pitch + (event.clientY - drag.y) * 0.006, -1.15, 1.15));
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    if (Math.hypot(dx, dy) > 4) drag.moved = true;
+    setYaw(drag.yaw - dx * 0.008);
+    setPitch(clamp(drag.pitch - dy * 0.006, -1.15, 1.15));
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current;
     dragRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!drag?.moved) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const panel = rendererRef.current?.pickPanel(event.clientX - rect.left, event.clientY - rect.top);
+      if (panel) onPanelSelect?.(panel);
     }
   };
 
@@ -279,6 +291,31 @@ function createRenderer(canvas: HTMLCanvasElement) {
       else render();
     },
     render,
+    pickPanel(localX: number, localY: number) {
+      const { width, height, depth } = scene.dimensions;
+      const maxDimension = Math.max(width, height, depth);
+      const aspect = Math.max(0.1, canvas.width / canvas.height);
+      const distance = maxDimension * (3.2 - clamp(scene.zoom / 100, 0.4, 1.4) * 0.9);
+      const eye = orbitEye(distance, scene.yaw, scene.pitch);
+      const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
+      const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20);
+      const viewProjection = multiply4(projection, view);
+      const meshes = buildMeshes(scene.dimensions, scene.opening, materialColor(scene.material))
+        .filter(mesh => mesh.panel && mesh.pickCorners);
+
+      const hits = meshes.map(mesh => {
+        const model = mesh.model ?? identity4();
+        const projected = mesh.pickCorners!.map(point => projectPoint(point, model, viewProjection, canvas.clientWidth, canvas.clientHeight));
+        if (!projected.every(Boolean)) return null;
+        const polygon = projected as [number, number, number][];
+        if (!pointInPolygon(localX, localY, polygon)) return null;
+        const depth = polygon.reduce((sum, point) => sum + point[2], 0) / polygon.length;
+        return { panel: mesh.panel!, depth };
+      }).filter((hit): hit is { panel: string; depth: number } => !!hit);
+
+      hits.sort((a, b) => a.depth - b.depth);
+      return hits[0]?.panel ?? null;
+    },
     resize() {
       resize();
       render();
@@ -312,23 +349,23 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
   // Exterior shell.
   const front = quad(
     [x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],
-    [0,0,1], color, true,
+    [0,0,1], color, true, 'Front',
   );
   const back = quad(
     [x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],
-    [0,0,-1], darker,
+    [0,0,-1], darker, false, 'Back',
   );
   const left = quad(
     [x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],
-    [-1,0,0], darker,
+    [-1,0,0], darker, false, 'Left',
   );
   const right = quad(
     [x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],
-    [1,0,0], color,
+    [1,0,0], color, false, 'Right',
   );
   const bottom = quad(
     [x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],
-    [0,-1,0], darker,
+    [0,-1,0], darker, false, 'Bottom',
   );
 
   // Interior cavity. These faces are wound so their normals point inward.
@@ -379,7 +416,7 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
 
   const flapOuter = quad(
     [x0,0,0],[x0,0,d],[x1,0,d],[x1,0,0],
-    [0,1,0], lighter,
+    [0,1,0], lighter, false, 'Top',
   );
   flapOuter.model = flapModel;
 
@@ -402,12 +439,13 @@ function quad(
   normal: [number, number, number],
   color: [number, number, number],
   useTexture = false,
+  panel?: string,
 ): Mesh {
   const vertices = [
     ...vertex(a, normal, [0,0]), ...vertex(b, normal, [1,0]), ...vertex(c, normal, [1,1]),
     ...vertex(a, normal, [0,0]), ...vertex(c, normal, [1,1]), ...vertex(d, normal, [0,1]),
   ];
-  return { vertices: new Float32Array(vertices), useTexture, color };
+  return { vertices: new Float32Array(vertices), useTexture, color, panel, pickCorners: panel ? [a,b,c,d] : undefined };
 }
 
 function vertex(position: number[], normal: number[], uv: number[]) {
@@ -580,6 +618,47 @@ function multiply4(a: Float32Array, b: Float32Array) {
     }
   }
   return out;
+}
+
+function projectPoint(
+  point: number[],
+  model: Float32Array,
+  viewProjection: Float32Array,
+  width: number,
+  height: number,
+): [number, number, number] | null {
+  const world = multiplyVec4(model, [point[0], point[1], point[2], 1]);
+  const clip = multiplyVec4(viewProjection, world);
+  if (Math.abs(clip[3]) < 1e-6) return null;
+  const ndcX = clip[0] / clip[3];
+  const ndcY = clip[1] / clip[3];
+  const ndcZ = clip[2] / clip[3];
+  return [
+    (ndcX * 0.5 + 0.5) * width,
+    (1 - (ndcY * 0.5 + 0.5)) * height,
+    ndcZ,
+  ];
+}
+
+function multiplyVec4(matrix: Float32Array, vector: number[]) {
+  return [
+    matrix[0] * vector[0] + matrix[4] * vector[1] + matrix[8] * vector[2] + matrix[12] * vector[3],
+    matrix[1] * vector[0] + matrix[5] * vector[1] + matrix[9] * vector[2] + matrix[13] * vector[3],
+    matrix[2] * vector[0] + matrix[6] * vector[1] + matrix[10] * vector[2] + matrix[14] * vector[3],
+    matrix[3] * vector[0] + matrix[7] * vector[1] + matrix[11] * vector[2] + matrix[15] * vector[3],
+  ];
+}
+
+function pointInPolygon(x: number, y: number, polygon: [number, number, number][]) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+    const intersects = ((yi > y) !== (yj > y))
+      && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-9) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
 }
 
 function normalize3(v: number[]) {
