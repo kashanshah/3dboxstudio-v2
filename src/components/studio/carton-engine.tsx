@@ -10,6 +10,7 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 
 export type CartonEngineHandle = {
   exportPng: (filename?: string) => boolean;
@@ -20,7 +21,7 @@ type Props = {
   dimensions: CartonDimensions;
   opening: number;
   material: string;
-  artworkByPanel: Record<string, string | null>;
+  artworkByPanel: ArtworkByPanel;
   cameraPreset: string;
   zoom: number;
   lightIntensity?: number;
@@ -34,6 +35,7 @@ type Mesh = {
   model?: Float32Array;
   panel?: string;
   pickCorners?: number[][];
+  faceAspect?: number;
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
@@ -153,7 +155,7 @@ type Scene = {
   dimensions: CartonDimensions;
   opening: number;
   material: string;
-  artworkByPanel: Record<string, string | null>;
+  artworkByPanel: ArtworkByPanel;
   yaw: number;
   pitch: number;
   zoom: number;
@@ -181,11 +183,16 @@ function createRenderer(canvas: HTMLCanvasElement) {
   const lightIntensityLocation = gl.getUniformLocation(program, 'uLightIntensity');
   const useTextureLocation = gl.getUniformLocation(program, 'uUseTexture');
   const textureLocation = gl.getUniformLocation(program, 'uTexture');
+  const uvScaleLocation = gl.getUniformLocation(program, 'uUvScale');
+  const uvOffsetLocation = gl.getUniformLocation(program, 'uUvOffset');
+  const uvRotationLocation = gl.getUniformLocation(program, 'uUvRotation');
+  const tileLocation = gl.getUniformLocation(program, 'uTile');
+  const clipLocation = gl.getUniformLocation(program, 'uClipOutside');
 
   const buffer = gl.createBuffer();
   if (!buffer) return null;
 
-  const panelTextures = new Map<string, { texture: WebGLTexture; url: string; loaded: boolean }>();
+  const panelTextures = new Map<string, { texture: WebGLTexture; url: string; loaded: boolean; width: number; height: number }>();
 
   let scene: Scene = {
     dimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
@@ -240,9 +247,22 @@ function createRenderer(canvas: HTMLCanvasElement) {
       gl.uniform3fv(colorLocation, mesh.color);
 
       const textureEntry = mesh.panel ? panelTextures.get(mesh.panel) : undefined;
-      const shouldUseTexture = !!mesh.useTexture && !!textureEntry?.loaded;
-      if (shouldUseTexture && textureEntry) {
+      const placement = mesh.panel ? scene.artworkByPanel[mesh.panel] : undefined;
+      const shouldUseTexture = !!mesh.useTexture && !!textureEntry?.loaded && !!placement;
+      if (shouldUseTexture && textureEntry && placement) {
         gl.bindTexture(gl.TEXTURE_2D, textureEntry.texture);
+        const transform = textureTransform(placement, textureEntry.width / textureEntry.height, mesh.faceAspect ?? 1);
+        gl.uniform2f(uvScaleLocation, transform.scaleX, transform.scaleY);
+        gl.uniform2f(uvOffsetLocation, transform.offsetX, transform.offsetY);
+        gl.uniform1f(uvRotationLocation, placement.rotation * Math.PI / 180);
+        gl.uniform1i(tileLocation, placement.mode === 'tile' ? 1 : 0);
+        gl.uniform1i(clipLocation, placement.mode === 'fit' ? 1 : 0);
+      } else {
+        gl.uniform2f(uvScaleLocation, 1, 1);
+        gl.uniform2f(uvOffsetLocation, 0, 0);
+        gl.uniform1f(uvRotationLocation, 0);
+        gl.uniform1i(tileLocation, 0);
+        gl.uniform1i(clipLocation, 0);
       }
       gl.uniform1i(useTextureLocation, shouldUseTexture ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length / 8);
@@ -259,19 +279,19 @@ function createRenderer(canvas: HTMLCanvasElement) {
     }
   };
 
-  const syncPanelTextures = (artworkByPanel: Record<string, string | null>) => {
+  const syncPanelTextures = (artworkByPanel: ArtworkByPanel) => {
     const token = ++artworkToken;
-    const activePanels = new Set(Object.entries(artworkByPanel).filter(([,url]) => !!url).map(([panel]) => panel));
+    const activePanels = new Set(Object.keys(artworkByPanel));
 
     for (const [panel, entry] of panelTextures) {
-      if (!activePanels.has(panel) || artworkByPanel[panel] !== entry.url) {
+      if (!activePanels.has(panel) || artworkByPanel[panel]?.url !== entry.url) {
         gl.deleteTexture(entry.texture);
         panelTextures.delete(panel);
       }
     }
 
-    for (const [panel, url] of Object.entries(artworkByPanel)) {
-      if (!url) continue;
+    for (const [panel, artwork] of Object.entries(artworkByPanel)) {
+      const url = artwork.url;
       const current = panelTextures.get(panel);
       if (current?.url === url) continue;
 
@@ -284,7 +304,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       uploadPlaceholderTexture(gl);
 
-      const entry = { texture, url, loaded: false };
+      const entry = { texture, url, loaded: false, width: 1, height: 1 };
       panelTextures.set(panel, entry);
 
       const image = new Image();
@@ -296,6 +316,8 @@ function createRenderer(canvas: HTMLCanvasElement) {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
         latest.loaded = true;
+        latest.width = image.naturalWidth || image.width || 1;
+        latest.height = image.naturalHeight || image.height || 1;
         render();
       };
       image.onerror = () => {
@@ -470,7 +492,16 @@ function quad(
     ...vertex(a, normal, [0,0]), ...vertex(b, normal, [1,0]), ...vertex(c, normal, [1,1]),
     ...vertex(a, normal, [0,0]), ...vertex(c, normal, [1,1]), ...vertex(d, normal, [0,1]),
   ];
-  return { vertices: new Float32Array(vertices), useTexture, color, panel, pickCorners: panel ? [a,b,c,d] : undefined };
+  const edge1 = Math.hypot(b[0]-a[0], b[1]-a[1], b[2]-a[2]);
+  const edge2 = Math.hypot(d[0]-a[0], d[1]-a[1], d[2]-a[2]);
+  return {
+    vertices: new Float32Array(vertices),
+    useTexture,
+    color,
+    panel,
+    pickCorners: panel ? [a,b,c,d] : undefined,
+    faceAspect: edge2 > 0 ? edge1 / edge2 : 1,
+  };
 }
 
 function vertex(position: number[], normal: number[], uv: number[]) {
@@ -543,14 +574,65 @@ uniform vec3 uLightDirection;
 uniform float uLightIntensity;
 uniform bool uUseTexture;
 uniform sampler2D uTexture;
+uniform vec2 uUvScale;
+uniform vec2 uUvOffset;
+uniform float uUvRotation;
+uniform bool uTile;
+uniform bool uClipOutside;
 void main() {
   vec3 normal = normalize(vNormal);
   float diffuse = max(0.0, dot(normal, normalize(uLightDirection)));
   float light = 0.52 + diffuse * 0.48 * uLightIntensity;
-  vec4 base = uUseTexture ? texture2D(uTexture, vUv) : vec4(uColor, 1.0);
+
+  vec2 centered = vUv - vec2(0.5) - uUvOffset;
+  float c = cos(uUvRotation);
+  float s = sin(uUvRotation);
+  vec2 rotated = mat2(c, -s, s, c) * centered;
+  vec2 texUv = rotated / uUvScale + vec2(0.5);
+  bool outside = texUv.x < 0.0 || texUv.x > 1.0 || texUv.y < 0.0 || texUv.y > 1.0;
+  if (uTile) texUv = fract(texUv);
+
+  vec4 base = vec4(uColor, 1.0);
+  if (uUseTexture && !(uClipOutside && outside)) {
+    base = texture2D(uTexture, texUv);
+  }
   gl_FragColor = vec4(base.rgb * light, base.a);
 }
 `;
+
+function textureTransform(
+  placement: ArtworkPlacement,
+  imageAspect: number,
+  faceAspect: number,
+) {
+  let scaleX = 1;
+  let scaleY = 1;
+
+  if (placement.mode === 'fill') {
+    if (imageAspect > faceAspect) scaleX = imageAspect / faceAspect;
+    else scaleY = faceAspect / imageAspect;
+  } else if (placement.mode === 'fit') {
+    if (imageAspect > faceAspect) scaleY = faceAspect / imageAspect;
+    else scaleX = imageAspect / faceAspect;
+  }
+
+  const userScale = Math.max(0.25, placement.scale / 100);
+  scaleX *= userScale;
+  scaleY *= userScale;
+
+  if (placement.mode === 'tile') {
+    const tileScale = Math.max(0.2, 100 / Math.max(25, placement.scale));
+    scaleX = tileScale;
+    scaleY = tileScale;
+  }
+
+  const overflowX = Math.max(0, 1 - 1 / Math.max(scaleX, 1e-5));
+  const overflowY = Math.max(0, 1 - 1 / Math.max(scaleY, 1e-5));
+  const offsetX = placement.alignX * overflowX * 0.5;
+  const offsetY = -placement.alignY * overflowY * 0.5;
+
+  return { scaleX, scaleY, offsetX, offsetY };
+}
 
 function materialColor(material: string): [number, number, number] {
   switch (material) {
