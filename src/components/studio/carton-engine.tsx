@@ -117,7 +117,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     const dy = event.clientY - drag.y;
     if (Math.hypot(dx, dy) > 4) drag.moved = true;
     setYaw(drag.yaw - dx * 0.008);
-    setPitch(clamp(drag.pitch - dy * 0.006, -1.15, 1.15));
+    setPitch(clamp(drag.pitch + dy * 0.006, -1.15, 1.15));
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLCanvasElement>) => {
