@@ -30,7 +30,7 @@ const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coat
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
 export function StudioShell() {
-  const [tool, setTool] = useState<Tool>('artwork');
+  const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
   const [family, setFamily] = useState('Folding carton');
   const [panel, setPanel] = useState('Front');
@@ -49,7 +49,7 @@ export function StudioShell() {
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
 
-  const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Studio';
+  const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
 
   useEffect(() => {
@@ -83,6 +83,7 @@ export function StudioShell() {
   const chooseTool = (id: Tool) => {
     if (tool === id && inspectorOpen) {
       setInspectorOpen(false);
+      setTool(null);
       return;
     }
     setTool(id);
@@ -184,7 +185,6 @@ export function StudioShell() {
             zoom={zoom}
             onPanelSelect={(selectedPanel, point) => {
               setPanel(selectedPanel);
-              setTool('artwork');
               setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
               setMessage(`${selectedPanel} panel selected from the 3D carton`);
             }}
@@ -214,7 +214,6 @@ export function StudioShell() {
           dimensions={dimensions}
           onPanelSelect={(selectedPanel) => {
             setPanel(selectedPanel);
-            setTool('artwork');
             setMessage(`${selectedPanel} panel selected from the dieline`);
           }}
         />}
@@ -229,13 +228,13 @@ export function StudioShell() {
           <button title="Fit view"><Maximize2 size={16} /></button>
         </div>
 
-        <button className="pro-mobile-inspector" onClick={() => setInspectorOpen(true)}><Sparkles size={14} /> Edit {activeLabel}</button>
+        <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
         <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button className="pro-inspector-close" onClick={() => setInspectorOpen(false)}><X size={17} /></button></div>
-        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />}
       </aside>
     </div>
 
