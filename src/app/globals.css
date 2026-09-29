@@ -344,3 +344,15 @@
   }
   .pro-inspector.is-open{transform:translateY(0) scale(1)}
 }
+
+.pro-inspector-close{
+  display:grid!important;
+  place-items:center;
+  width:38px;
+  height:38px;
+  border-radius:8px;
+  color:var(--muted);
+  background:transparent;
+  flex:0 0 auto;
+}
+.pro-inspector-close:hover{background:var(--panel);color:var(--ink)}
