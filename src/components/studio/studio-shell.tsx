@@ -41,6 +41,7 @@ export function StudioShell() {
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Prototype state · not yet persisted');
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
@@ -107,8 +108,8 @@ export function StudioShell() {
       <section className="pro-canvas" aria-label="Packaging workspace">
         <div className="pro-canvas-top">
           <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
-            <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => setMode('dieline')}><Grid3X3 size={14} /> Dieline</button>
-            <button className={mode === '3d' ? 'is-active' : ''} onClick={() => setMode('3d')}><Boxes size={14} /> 3D Preview</button>
+            <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); }}><Grid3X3 size={14} /> Dieline</button>
+            <button className={mode === '3d' ? 'is-active' : ''} onClick={() => { setMode('3d'); setFaceAction(null); }}><Boxes size={14} /> 3D Preview</button>
           </div>
           <div className="pro-camera-menu">
             <button><Aperture size={14} /> {camera} <ChevronDown size={13} /></button>
@@ -125,17 +126,34 @@ export function StudioShell() {
             opening={opening}
             material={material}
             artworkByPanel={artworkByPanel}
-            selectedPanel={panel}
             cameraPreset={camera}
             zoom={zoom}
-            onPanelSelect={(selectedPanel) => {
+            onPanelSelect={(selectedPanel, point) => {
               setPanel(selectedPanel);
               setTool('artwork');
               setInspectorOpen(true);
+              setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
               setMessage(`${selectedPanel} panel selected from the 3D carton`);
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
+          {faceAction && <div
+            className="pro-face-action"
+            style={{ left: Math.min(faceAction.x + 12, 520), top: Math.max(54, faceAction.y - 18) }}
+          >
+            <span>{faceAction.panel}</span>
+            <button onClick={() => {
+              setPanel(faceAction.panel);
+              setTool('artwork');
+              setInspectorOpen(true);
+              setFaceAction(null);
+              requestAnimationFrame(() => fileRef.current?.click());
+            }}>
+              <Upload size={13} />
+              {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Upload artwork'}
+            </button>
+            <button className="pro-face-action-close" aria-label="Dismiss face action" onClick={() => setFaceAction(null)}><X size={12}/></button>
+          </div>}
         </div> : <DielinePrototype
           panel={panel}
           artworkByPanel={artworkByPanel}
