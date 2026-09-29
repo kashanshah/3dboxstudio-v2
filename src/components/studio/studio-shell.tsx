@@ -36,6 +36,7 @@ export function StudioShell() {
   const [panel, setPanel] = useState('Front');
   const [material, setMaterial] = useState('Soft touch');
   const [camera, setCamera] = useState('Perspective');
+  const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpening] = useState(18);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
@@ -46,9 +47,24 @@ export function StudioShell() {
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
+  const cameraMenuRef = useRef<HTMLDivElement>(null);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Studio';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
+
+  useEffect(() => {
+    if (!cameraMenuOpen) return;
+
+    const dismissCameraMenu = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (cameraMenuRef.current?.contains(target)) return;
+      setCameraMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', dismissCameraMenu, true);
+    return () => document.removeEventListener('pointerdown', dismissCameraMenu, true);
+  }, [cameraMenuOpen]);
 
   useEffect(() => {
     if (!faceAction) return;
@@ -126,9 +142,28 @@ export function StudioShell() {
             <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); }}><Grid3X3 size={14} /> Dieline</button>
             <button className={mode === '3d' ? 'is-active' : ''} onClick={() => { setMode('3d'); setFaceAction(null); }}><Boxes size={14} /> 3D Preview</button>
           </div>
-          <div className="pro-camera-menu">
-            <button><Aperture size={14} /> {camera} <ChevronDown size={13} /></button>
-            <div className="pro-camera-popover">{cameras.map(item => <button key={item} onClick={() => setCamera(item)} className={camera === item ? 'is-active' : ''}>{item}</button>)}</div>
+          <div className="pro-camera-menu" ref={cameraMenuRef}>
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={cameraMenuOpen}
+              onClick={() => setCameraMenuOpen(open => !open)}
+            >
+              <Aperture size={14} /> {camera} <ChevronDown size={13} className={cameraMenuOpen ? 'is-open' : ''} />
+            </button>
+            {cameraMenuOpen && <div className="pro-camera-popover" role="menu">
+              {cameras.map(item => <button
+                key={item}
+                type="button"
+                role="menuitemradio"
+                aria-checked={camera === item}
+                onClick={() => {
+                  setCamera(item);
+                  setCameraMenuOpen(false);
+                }}
+                className={camera === item ? 'is-active' : ''}
+              >{item}</button>)}
+            </div>}
           </div>
         </div>
 
