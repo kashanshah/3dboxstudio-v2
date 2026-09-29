@@ -25,6 +25,7 @@ type Props = {
   artworkByPanel: ArtworkByPanel;
   cameraPreset: string;
   zoom: number;
+  onZoomChange?: (zoom: number) => void;
   lightIntensity?: number;
   onPanelSelect?: (panel: string, point: { x: number; y: number }) => void;
 };
@@ -40,7 +41,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, onZoomChange, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -193,6 +194,10 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
   const onWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
     event.preventDefault();
+    const sensitivity = event.ctrlKey ? 0.18 : 0.08;
+    const delta = clamp(-event.deltaY * sensitivity, -10, 10);
+    if (Math.abs(delta) < 0.05) return;
+    onZoomChange?.(clamp(zoom + delta, 40, 140));
   };
 
   return <canvas
