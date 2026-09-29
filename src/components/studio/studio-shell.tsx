@@ -45,9 +45,24 @@ export function StudioShell() {
   const [message, setMessage] = useState('Prototype state · not yet persisted');
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
+  const faceActionRef = useRef<HTMLDivElement>(null);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Studio';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
+
+  useEffect(() => {
+    if (!faceAction) return;
+
+    const dismissOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (faceActionRef.current?.contains(target)) return;
+      setFaceAction(null);
+    };
+
+    document.addEventListener('pointerdown', dismissOnOutsidePointer, true);
+    return () => document.removeEventListener('pointerdown', dismissOnOutsidePointer, true);
+  }, [faceAction]);
 
   const chooseTool = (id: Tool) => {
     setTool(id);
@@ -138,6 +153,7 @@ export function StudioShell() {
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
           {faceAction && <div
+            ref={faceActionRef}
             className="pro-face-action"
             style={{ left: Math.min(faceAction.x + 12, 520), top: Math.max(54, faceAction.y - 18) }}
           >
