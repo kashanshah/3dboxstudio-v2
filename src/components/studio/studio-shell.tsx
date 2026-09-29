@@ -443,11 +443,21 @@ function Inspector(props: {
       <button className={props.artworkScope === 'inside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('inside')}>Inside</button>
     </div>
     <div className="pro-card-section pro-artwork-source-card">
-      <SectionTitle title="Artwork source" meta={props.mediaAssets.length > 0 ? `${props.mediaAssets.length} in library` : 'Library empty'} />
-      <div className="pro-artwork-source-actions">
-        <button className="pro-wide-button" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}><ImageIcon size={16}/> Choose from library</button>
-        <button className="pro-secondary-button" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}><Upload size={16}/> Upload new</button>
+      <div className="pro-artwork-source-head">
+        <div>
+          <strong>Artwork source</strong>
+          <span>Pick an existing image or add a new one.</span>
+        </div>
+        {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
       </div>
+      <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
+        <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
+        <span><b>Choose from library</b><small>Reuse uploaded artwork</small></span>
+        <ChevronDown size={16}/>
+      </button>
+      <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
+        <Upload size={15}/> Upload new artwork
+      </button>
     </div>
     <div className="pro-card-section">
     <SectionTitle title="Choose a panel" meta={`${designedCount} of 6 designed`} />
