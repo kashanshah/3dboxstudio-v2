@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
-  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
-  PackageOpen, Plus, Search, Share2, Sparkles,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
+  PackageOpen, Ruler, Search, Share2, Sparkles, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -25,7 +25,6 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'export', label: 'Export', icon: Download },
 ];
 
-const panels = ['Front','Back','Left','Right','Top','Bottom'];
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
@@ -42,6 +41,7 @@ export function StudioShell() {
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpening] = useState(100);
+  const [showMeasurements, setShowMeasurements] = useState(false);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
@@ -237,6 +237,7 @@ export function StudioShell() {
   };
 
   const animateFold = (target: 0 | 100) => {
+    if (target === 0) setShowMeasurements(false);
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
     const start = opening;
     const startedAt = performance.now();
@@ -343,32 +344,66 @@ export function StudioShell() {
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
 
-          <div className="pro-canvas-fold" aria-label="Open or close carton">
+          {showMeasurements && opening >= 99.5 && <div className="pro-measurements-overlay" aria-label="Box measurements">
+            <div className="pro-measurement pro-measurement-width"><span>{dimensions.width} mm</span></div>
+            <div className="pro-measurement pro-measurement-height"><span>{dimensions.height} mm</span></div>
+            <div className="pro-measurement pro-measurement-depth"><span>{dimensions.depth} mm</span></div>
+          </div>}
+
+          <div className="pro-canvas-control-bar" aria-label="Canvas controls">
+            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
+              <ZoomOut size={20}/>
+            </button>
+            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}>
+              <ZoomIn size={20}/>
+            </button>
+            <span className="pro-canvas-bar-divider" />
             <button
-              className="pro-canvas-fold-play"
+              className="pro-canvas-bar-play"
               aria-label={opening >= 50 ? 'Open box' : 'Close box'}
               title={opening >= 50 ? 'Open box' : 'Close box'}
               onClick={() => animateFold(opening >= 50 ? 0 : 100)}
             >
               <CirclePlay size={19}/>
             </button>
-            <div className="pro-canvas-fold-main">
-              <div className="pro-canvas-fold-head">
-                <strong>Open / Close</strong>
-                <span>{Math.round(opening)}%</span>
-              </div>
-              <input
-                className="pro-canvas-fold-range"
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={Math.round(opening)}
-                aria-label="Open or close box"
-                onChange={e => setOpening(Number(e.target.value))}
-              />
-              <div className="pro-canvas-fold-labels"><span>Open</span><span>Closed</span></div>
-            </div>
+            <span className="pro-canvas-bar-label">Open</span>
+            <input
+              className="pro-canvas-bar-range"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={Math.round(opening)}
+              aria-label="Open or close box"
+              onChange={e => {
+                const nextOpening = Number(e.target.value);
+                if (nextOpening < 99.5) setShowMeasurements(false);
+                setOpening(nextOpening);
+              }}
+            />
+            <span className="pro-canvas-bar-label">Closed</span>
+            <span className="pro-canvas-bar-divider" />
+            <button
+              className="pro-canvas-bar-icon"
+              title="Fit view"
+              aria-label="Fit view"
+              onClick={() => {
+                setZoom(82);
+                engineRef.current?.resetCamera();
+              }}
+            >
+              <Maximize2 size={20}/>
+            </button>
+            <button
+              className={`pro-canvas-bar-icon pro-measure-toggle ${showMeasurements ? 'is-active' : ''}`}
+              title={opening >= 99.5 ? (showMeasurements ? 'Hide measurements' : 'Show measurements') : 'Close the box to show measurements'}
+              aria-label={showMeasurements ? 'Hide measurements' : 'Show measurements'}
+              aria-pressed={showMeasurements}
+              disabled={opening < 99.5}
+              onClick={() => setShowMeasurements(value => !value)}
+            >
+              <Ruler size={20}/>
+            </button>
           </div>
 
           {faceAction && <div
@@ -407,20 +442,6 @@ export function StudioShell() {
             setMessage(`${selectedPanel} panel selected from the dieline`);
           }}
         />}
-
-        <div className="pro-canvas-controls pro-canvas-tools">
-          <button title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}><Minus size={18} /></button>
-          <button title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}><Plus size={18} /></button>
-          <span />
-          <button
-            title="Fit view"
-            aria-label="Fit view"
-            onClick={() => {
-              setZoom(82);
-              engineRef.current?.resetCamera();
-            }}
-          ><Maximize2 size={18} /></button>
-        </div>
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
         <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
