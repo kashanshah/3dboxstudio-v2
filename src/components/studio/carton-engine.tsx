@@ -2,6 +2,7 @@
 
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -52,14 +53,14 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   const cameraAnimationRef = useRef<number | null>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
 
-  const cancelCameraAnimation = () => {
+  const cancelCameraAnimation = useCallback(() => {
     if (cameraAnimationRef.current !== null) {
       cancelAnimationFrame(cameraAnimationRef.current);
       cameraAnimationRef.current = null;
     }
-  };
+  }, []);
 
-  const animateCameraTo = (targetYaw: number, targetPitch: number) => {
+  const animateCameraTo = useCallback((targetYaw: number, targetPitch: number) => {
     cancelCameraAnimation();
 
     const startYaw = yawRef.current;
@@ -88,12 +89,12 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     };
 
     cameraAnimationRef.current = requestAnimationFrame(frame);
-  };
+  }, [cancelCameraAnimation]);
 
-  const resetCamera = () => {
+  const resetCamera = useCallback(() => {
     const preset = cameraForPreset(cameraPreset);
     animateCameraTo(preset.yaw, preset.pitch);
-  };
+  }, [cameraPreset, animateCameraTo]);
 
   useImperativeHandle(ref, () => ({
     exportPng(filename = '3d-box-studio-carton.png') {
@@ -107,12 +108,12 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       return true;
     },
     resetCamera,
-  }));
+  }), [resetCamera]);
 
   useEffect(() => {
     const preset = cameraForPreset(cameraPreset);
     animateCameraTo(preset.yaw, preset.pitch);
-  }, [cameraPreset]);
+  }, [cameraPreset, animateCameraTo]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -131,7 +132,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, []);
+  }, [cancelCameraAnimation]);
 
   useEffect(() => {
     const renderer = rendererRef.current;
