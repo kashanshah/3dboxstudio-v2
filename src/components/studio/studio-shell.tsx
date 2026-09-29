@@ -10,6 +10,7 @@ import {
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode } from '@/lib/packaging/artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -38,7 +39,7 @@ export function StudioShell() {
   const [opening, setOpening] = useState(18);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
-  const [artworkByPanel, setArtworkByPanel] = useState<Record<string, { name: string; url: string }>>({});
+  const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [message, setMessage] = useState('Prototype state · not yet persisted');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -62,7 +63,7 @@ export function StudioShell() {
     setArtworkByPanel(current => {
       const previous = current[panel];
       if (previous) URL.revokeObjectURL(previous.url);
-      return { ...current, [panel]: { name: file.name, url } };
+      return { ...current, [panel]: defaultArtworkPlacement(file.name, url) };
     });
     setTool('artwork');
     setMessage(`Artwork mapped to the ${panel} panel`);
@@ -123,7 +124,7 @@ export function StudioShell() {
             dimensions={dimensions}
             opening={opening}
             material={material}
-            artworkUrl={artworkByPanel.Front?.url ?? null}
+            artworkByPanel={Object.fromEntries(Object.entries(artworkByPanel).map(([key, artwork]) => [key, artwork]))}
             cameraPreset={camera}
             zoom={zoom}
             onPanelSelect={(selectedPanel) => {
@@ -162,7 +163,7 @@ export function StudioShell() {
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button className="pro-inspector-close" onClick={() => setInspectorOpen(false)}><X size={17} /></button></div>
-        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
+        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
       </aside>
     </div>
 
@@ -176,7 +177,7 @@ function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
-  artworkByPanel:Record<string,{name:string;url:string}>; onPickArtwork:()=>void; onArtwork:(file?:File)=>void;
+  artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>; onPickArtwork:()=>void; onArtwork:(file?:File)=>void;
   onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
@@ -203,18 +204,38 @@ function Inspector(props: {
     <div className="pro-panel-grid">{panels.map(item=>{
       const artwork = props.artworkByPanel[item];
       return <button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}>
-        <span className={artwork?'has-art pro-panel-art':''} style={artwork ? { backgroundImage: `url("${artwork.url}")` } : undefined}>{artwork ? '' : '+'}</span>
+        <span className={artwork?'has-art pro-panel-art':''}>{artwork ? <span className="artwork-layer" style={artworkCss(artwork)} /> : '+'}</span>
         <b>{item}</b>{artwork&&<i/>}
       </button>;
     })}</div>
-    {selectedArtwork && <div className="pro-artwork-preview" style={{ backgroundImage: `url("${selectedArtwork.url}")` }} aria-label={`${props.panel} artwork preview`} />}
+    {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
     <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? `Replace ${props.panel} artwork` : `Upload to ${props.panel}`}</button>
     {selectedArtwork && <div className="pro-file"><Check size={14}/><span>{selectedArtwork.name}</span></div>}
     <SectionTitle title="Placement" />
-    <div className="pro-segmented"><button className="is-active">Fill</button><button>Fit</button><button>Tile</button></div>
-    <ControlRow label="Scale" value="100%" /><input className="pro-range" type="range" defaultValue="72"/>
-    <ControlRow label="Rotation" value="0°" /><input className="pro-range" type="range" min="-180" max="180" defaultValue="0"/>
-    <div className="pro-alignment"><button>↤</button><button>↔</button><button>↦</button><button>↥</button><button>↕</button><button>↧</button></div>
+    <div className="pro-segmented">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => <button
+      key={mode}
+      className={selectedArtwork?.mode === mode ? 'is-active' : ''}
+      disabled={!selectedArtwork}
+      onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, mode } } : current)}
+    >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
+    <ControlRow label="Scale" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
+    <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
+      const scale = Number(e.target.value);
+      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, scale } } : current);
+    }}/>
+    <ControlRow label="Rotation" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
+    <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
+      const rotation = Number(e.target.value);
+      props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, rotation } } : current);
+    }}/>
+    <div className="pro-alignment">
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignX: -1 } } : current)}>↤</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignX: 0 } } : current)}>↔</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignX: 1 } } : current)}>↦</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
+      <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
+    </div>
   </div>;
   }
 
@@ -267,7 +288,7 @@ function DielinePrototype({
   onPanelSelect,
 }:{
   panel:string;
-  artworkByPanel:Record<string,{name:string;url:string}>;
+  artworkByPanel:ArtworkByPanel;
   dimensions:CartonDimensions;
   onPanelSelect:(panel:string)=>void;
 }) {
@@ -290,11 +311,12 @@ function DielinePrototype({
             top: `${item.y / bounds.height * 100}%`,
             width: `${item.width / bounds.width * 100}%`,
             height: `${item.height / bounds.height * 100}%`,
-            backgroundImage: artwork ? `url("${artwork.url}")` : undefined,
+            overflow: 'hidden',
           }}
           aria-label={selectable ? `Select ${panelName} panel` : 'Glue flap'}
         >
-          <span>{item.label}</span>
+          {artwork && <span className="artwork-layer" style={artworkCss(artwork)} />}
+          <span className="dl-label">{item.label}</span>
           {artwork && <b>ARTWORK</b>}
         </button>;
       })}
