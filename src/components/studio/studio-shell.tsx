@@ -68,10 +68,6 @@ export function StudioShell() {
     setMessage(`Artwork mapped to the ${panel} panel`);
   };
 
-  useEffect(() => () => {
-    Object.values(artworkByPanel).forEach(artwork => URL.revokeObjectURL(artwork.url));
-  }, [artworkByPanel]);
-
   const pickArtwork = () => fileRef.current?.click();
 
   const exportPng = () => {
