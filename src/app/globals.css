@@ -14,7 +14,7 @@
   --canvas: #e8edf3;
   --success: #278352;
   --focus: #0075c4;
-  --font-ui: 'Manrope Variable', 'Avenir Next', Arial, sans-serif;
+  --font-ui: 'Avenir Next', 'Manrope', Arial, sans-serif;
   --font-display: var(--font-ui);
   /* Original Lovable typography, f4c3c7d, inherited by V2. */
   --type-display: clamp(62px, 7vw, 108px);
