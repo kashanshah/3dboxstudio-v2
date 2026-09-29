@@ -458,3 +458,33 @@
 .pro-scope-switch button{height:42px;border-radius:7px;font-size:13px;font-weight:700;color:var(--muted)}
 .pro-scope-switch button:hover{color:var(--ink)}
 .pro-scope-switch button.is-active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,23,32,.10)}
+
+/* Studio primary actions must win over generic button reset rules. */
+.pro-studio .pro-primary,
+.pro-media-modal .pro-primary{
+  background:var(--accent)!important;
+  color:#fff!important;
+  border-color:var(--accent)!important;
+}
+.pro-studio .pro-primary:hover,
+.pro-media-modal .pro-primary:hover{
+  background:var(--accent-hover)!important;
+  color:#fff!important;
+}
+.pro-studio .pro-primary:disabled,
+.pro-media-modal .pro-primary:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+/* Drag-and-drop upload state. */
+.pro-media-dropzone{
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.pro-media-dropzone.is-dragging{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 12%,transparent);
+  transform:scale(1.006);
+}
+.pro-media-dropzone.is-dragging>svg{transform:translateY(-2px)}
