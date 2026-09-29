@@ -453,3 +453,8 @@
   .pro-media-modal-footer>span{display:none}
   .pro-media-modal-footer{padding:0 12px;justify-content:flex-end}
 }
+
+.pro-scope-switch{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:var(--panel);border:1px solid var(--line);border-radius:11px;margin:0 0 16px}
+.pro-scope-switch button{height:42px;border-radius:7px;font-size:13px;font-weight:700;color:var(--muted)}
+.pro-scope-switch button:hover{color:var(--ink)}
+.pro-scope-switch button.is-active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,23,32,.10)}
