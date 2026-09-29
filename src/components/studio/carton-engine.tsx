@@ -47,12 +47,52 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   const [yaw, setYaw] = useState(-0.55);
   const [pitch, setPitch] = useState(0.28);
   const [hoverPanel, setHoverPanel] = useState<string | null>(null);
+  const yawRef = useRef(-0.55);
+  const pitchRef = useRef(0.28);
+  const cameraAnimationRef = useRef<number | null>(null);
   const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
+
+  const cancelCameraAnimation = () => {
+    if (cameraAnimationRef.current !== null) {
+      cancelAnimationFrame(cameraAnimationRef.current);
+      cameraAnimationRef.current = null;
+    }
+  };
+
+  const animateCameraTo = (targetYaw: number, targetPitch: number) => {
+    cancelCameraAnimation();
+
+    const startYaw = yawRef.current;
+    const startPitch = pitchRef.current;
+    const yawDelta = shortestAngleDelta(startYaw, targetYaw);
+    const pitchDelta = targetPitch - startPitch;
+    const startedAt = performance.now();
+    const duration = 520;
+
+    const frame = (now: number) => {
+      const progress = clamp((now - startedAt) / duration, 0, 1);
+      const eased = easeInOutCubic(progress);
+      const nextYaw = startYaw + yawDelta * eased;
+      const nextPitch = startPitch + pitchDelta * eased;
+
+      yawRef.current = nextYaw;
+      pitchRef.current = nextPitch;
+      setYaw(nextYaw);
+      setPitch(nextPitch);
+
+      if (progress < 1) {
+        cameraAnimationRef.current = requestAnimationFrame(frame);
+      } else {
+        cameraAnimationRef.current = null;
+      }
+    };
+
+    cameraAnimationRef.current = requestAnimationFrame(frame);
+  };
 
   const resetCamera = () => {
     const preset = cameraForPreset(cameraPreset);
-    setYaw(preset.yaw);
-    setPitch(preset.pitch);
+    animateCameraTo(preset.yaw, preset.pitch);
   };
 
   useImperativeHandle(ref, () => ({
@@ -71,8 +111,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
   useEffect(() => {
     const preset = cameraForPreset(cameraPreset);
-    setYaw(preset.yaw);
-    setPitch(preset.pitch);
+    animateCameraTo(preset.yaw, preset.pitch);
   }, [cameraPreset]);
 
   useEffect(() => {
@@ -88,6 +127,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
     return () => {
       observer.disconnect();
+      cancelCameraAnimation();
       renderer.dispose();
       rendererRef.current = null;
     };
@@ -110,8 +150,9 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    cancelCameraAnimation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: event.clientX, y: event.clientY, yaw, pitch, moved: false };
+    dragRef.current = { x: event.clientX, y: event.clientY, yaw: yawRef.current, pitch: pitchRef.current, moved: false };
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -120,8 +161,12 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
       if (Math.hypot(dx, dy) > 4) drag.moved = true;
-      setYaw(drag.yaw - dx * 0.008);
-      setPitch(clamp(drag.pitch + dy * 0.006, -1.15, 1.15));
+      const nextYaw = drag.yaw - dx * 0.008;
+      const nextPitch = clamp(drag.pitch + dy * 0.006, -1.15, 1.15);
+      yawRef.current = nextYaw;
+      pitchRef.current = nextPitch;
+      setYaw(nextYaw);
+      setPitch(nextPitch);
       return;
     }
 
@@ -684,6 +729,19 @@ function materialColor(material: string): [number, number, number] {
     case 'Foil': return [0.78, 0.64, 0.3];
     default: return [0.78, 0.83, 0.87];
   }
+}
+
+function shortestAngleDelta(from: number, to: number) {
+  let delta = (to - from) % (Math.PI * 2);
+  if (delta > Math.PI) delta -= Math.PI * 2;
+  if (delta < -Math.PI) delta += Math.PI * 2;
+  return delta;
+}
+
+function easeInOutCubic(value: number) {
+  return value < 0.5
+    ? 4 * value * value * value
+    : 1 - Math.pow(-2 * value + 2, 3) / 2;
 }
 
 function cameraForPreset(preset: string) {
