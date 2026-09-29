@@ -322,7 +322,7 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
   );
 
   const flap = quad(
-    [x0,0,0],[x1,0,0],[x1,0,d],[x0,0,d],
+    [x0,0,0],[x0,0,d],[x1,0,d],[x1,0,0],
     [0,1,0], lighter,
   );
   flap.model = multiply4(
