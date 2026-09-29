@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
-  PackageOpen, Ruler, Search, SearchMinus, SearchPlus, Share2, Sparkles,
+  PackageOpen, Ruler, Search, Share2, Sparkles, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -352,10 +352,10 @@ export function StudioShell() {
 
           <div className="pro-canvas-control-bar" aria-label="Canvas controls">
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
-              <SearchMinus size={20}/>
+              <ZoomOut size={20}/>
             </button>
             <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}>
-              <SearchPlus size={20}/>
+              <ZoomIn size={20}/>
             </button>
             <span className="pro-canvas-bar-divider" />
             <button
