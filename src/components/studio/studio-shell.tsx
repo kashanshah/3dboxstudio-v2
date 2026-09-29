@@ -330,6 +330,35 @@ export function StudioShell() {
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Fold {Math.round(opening)}%</span></div>
+
+          <div className="pro-canvas-fold" aria-label="Fold carton">
+            <button
+              className="pro-canvas-fold-play"
+              aria-label={opening >= 50 ? 'Unfold to flat dieline' : 'Fold into assembled box'}
+              title={opening >= 50 ? 'Unfold to flat dieline' : 'Fold into assembled box'}
+              onClick={() => animateFold(opening >= 50 ? 0 : 100)}
+            >
+              <CirclePlay size={19}/>
+            </button>
+            <div className="pro-canvas-fold-main">
+              <div className="pro-canvas-fold-head">
+                <strong>Fold</strong>
+                <span>{Math.round(opening)}%</span>
+              </div>
+              <input
+                className="pro-canvas-fold-range"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={Math.round(opening)}
+                aria-label="Fold from flat dieline to assembled box"
+                onChange={e => setOpening(Number(e.target.value))}
+              />
+              <div className="pro-canvas-fold-labels"><span>Flat</span><span>Assembled</span></div>
+            </div>
+          </div>
+
           {faceAction && <div
             ref={faceActionRef}
             className="pro-face-action"
