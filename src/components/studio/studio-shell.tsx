@@ -38,8 +38,7 @@ export function StudioShell() {
   const [opening, setOpening] = useState(18);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
-  const [artworkName, setArtworkName] = useState<string | null>(null);
-  const [artworkUrl, setArtworkUrl] = useState<string | null>(null);
+  const [artworkByPanel, setArtworkByPanel] = useState<Record<string, { name: string; url: string }>>({});
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [message, setMessage] = useState('Prototype state · not yet persisted');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -56,21 +55,22 @@ export function StudioShell() {
   const handleArtwork = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setMessage('Use PNG, JPG or WebP artwork for the live WebGL texture');
+      setMessage('Use PNG, JPG or WebP artwork');
       return;
     }
-    setArtworkName(file.name);
-    setArtworkUrl(current => {
-      if (current) URL.revokeObjectURL(current);
-      return URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
+    setArtworkByPanel(current => {
+      const previous = current[panel];
+      if (previous) URL.revokeObjectURL(previous.url);
+      return { ...current, [panel]: { name: file.name, url } };
     });
-    setPanel('Front');
-    setMessage('Artwork mapped to the Front panel in WebGL');
+    setTool('artwork');
+    setMessage(`Artwork mapped to the ${panel} panel`);
   };
 
   useEffect(() => () => {
-    if (artworkUrl) URL.revokeObjectURL(artworkUrl);
-  }, [artworkUrl]);
+    Object.values(artworkByPanel).forEach(artwork => URL.revokeObjectURL(artwork.url));
+  }, [artworkByPanel]);
 
   const pickArtwork = () => fileRef.current?.click();
 
@@ -127,7 +127,7 @@ export function StudioShell() {
             dimensions={dimensions}
             opening={opening}
             material={material}
-            artworkUrl={artworkUrl}
+            artworkUrl={artworkByPanel.Front?.url ?? null}
             cameraPreset={camera}
             zoom={zoom}
             onPanelSelect={(selectedPanel) => {
@@ -138,7 +138,17 @@ export function StudioShell() {
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
-        </div> : <DielinePrototype panel={panel} artworkName={artworkName} dimensions={dimensions} />}
+        </div> : <DielinePrototype
+          panel={panel}
+          artworkByPanel={artworkByPanel}
+          dimensions={dimensions}
+          onPanelSelect={(selectedPanel) => {
+            setPanel(selectedPanel);
+            setTool('artwork');
+            setInspectorOpen(true);
+            setMessage(`${selectedPanel} panel selected from the dieline`);
+          }}
+        />}
 
         <div className="pro-canvas-controls">
           <button title="Select"><MousePointer2 size={16} /></button>
@@ -156,7 +166,7 @@ export function StudioShell() {
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button className="pro-inspector-close" onClick={() => setInspectorOpen(false)}><X size={17} /></button></div>
-        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkName={artworkName} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
+        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
       </aside>
     </div>
 
@@ -170,7 +180,7 @@ function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
-  artworkName:string|null; onPickArtwork:()=>void; onArtwork:(file?:File)=>void;
+  artworkByPanel:Record<string,{name:string;url:string}>; onPickArtwork:()=>void; onArtwork:(file?:File)=>void;
   onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
@@ -189,17 +199,28 @@ function Inspector(props: {
     <div className="pro-callout"><Box size={15}/><span><strong>Reverse tuck end</strong> · ECMA-style carton fixture for the first production slice.</span></div>
   </div>;
 
-  if (tool === 'artwork') return <div className="pro-inspector-content">
-    <SectionTitle title="Panels" meta="2 of 6 designed" />
-    <div className="pro-panel-grid">{panels.map((item,i)=><button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}><span className={i<2?'has-art':''}>{i===0?'NOMA':i===1?'FIELD':'+'}</span><b>{item}</b>{i<2&&<i/>}</button>)}</div>
-    <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{props.artworkName ? 'Replace artwork' : 'Upload artwork'}</button>
-    {props.artworkName && <div className="pro-file"><Check size={14}/><span>{props.artworkName}</span></div>}
+  if (tool === 'artwork') {
+    const selectedArtwork = props.artworkByPanel[props.panel];
+    const designedCount = panels.filter(item => props.artworkByPanel[item]).length;
+    return <div className="pro-inspector-content">
+    <SectionTitle title="Panels" meta={`${designedCount} of 6 designed`} />
+    <div className="pro-panel-grid">{panels.map(item=>{
+      const artwork = props.artworkByPanel[item];
+      return <button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}>
+        <span className={artwork?'has-art pro-panel-art':''} style={artwork ? { backgroundImage: `url("${artwork.url}")` } : undefined}>{artwork ? '' : '+'}</span>
+        <b>{item}</b>{artwork&&<i/>}
+      </button>;
+    })}</div>
+    {selectedArtwork && <div className="pro-artwork-preview" style={{ backgroundImage: `url("${selectedArtwork.url}")` }} aria-label={`${props.panel} artwork preview`} />}
+    <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? `Replace ${props.panel} artwork` : `Upload to ${props.panel}`}</button>
+    {selectedArtwork && <div className="pro-file"><Check size={14}/><span>{selectedArtwork.name}</span></div>}
     <SectionTitle title="Placement" />
     <div className="pro-segmented"><button className="is-active">Fill</button><button>Fit</button><button>Tile</button></div>
     <ControlRow label="Scale" value="100%" /><input className="pro-range" type="range" defaultValue="72"/>
     <ControlRow label="Rotation" value="0°" /><input className="pro-range" type="range" min="-180" max="180" defaultValue="0"/>
     <div className="pro-alignment"><button>↤</button><button>↔</button><button>↦</button><button>↥</button><button>↕</button><button>↧</button></div>
   </div>;
+  }
 
   if (tool === 'material') return <div className="pro-inspector-content">
     <SectionTitle title="Board & finish" />
@@ -243,24 +264,44 @@ function Inspector(props: {
   </div>;
 }
 
-function DielinePrototype({panel,artworkName,dimensions}:{panel:string;artworkName:string|null;dimensions:CartonDimensions}) {
-  const panels = reverseTuckPanels(dimensions);
+function DielinePrototype({
+  panel,
+  artworkByPanel,
+  dimensions,
+  onPanelSelect,
+}:{
+  panel:string;
+  artworkByPanel:Record<string,{name:string;url:string}>;
+  dimensions:CartonDimensions;
+  onPanelSelect:(panel:string)=>void;
+}) {
+  const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   return <div className="pro-dieline-stage">
     <div className="pro-dieline pro-dieline-live" style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
-      {panels.map(item => <button
-        key={item.id}
-        className={`dl-live ${item.id === panel.toLowerCase() ? 'is-selected' : ''} dl-${item.kind}`}
-        style={{
-          left: `${item.x / bounds.width * 100}%`,
-          top: `${item.y / bounds.height * 100}%`,
-          width: `${item.width / bounds.width * 100}%`,
-          height: `${item.height / bounds.height * 100}%`,
-        }}
-      >
-        <span>{item.label}</span>
-        {item.id === 'front' && <b>{artworkName ? 'ARTWORK' : '+'}</b>}
-      </button>)}
+      {cartonPanels.map(item => {
+        const panelName = item.label[0] + item.label.slice(1).toLowerCase();
+        const artwork = artworkByPanel[panelName];
+        const selectable = item.id !== 'glue';
+        return <button
+          key={item.id}
+          type="button"
+          disabled={!selectable}
+          onClick={() => selectable && onPanelSelect(panelName)}
+          className={`dl-live ${item.id === panel.toLowerCase() ? 'is-selected' : ''} dl-${item.kind} ${artwork ? 'has-artwork' : ''}`}
+          style={{
+            left: `${item.x / bounds.width * 100}%`,
+            top: `${item.y / bounds.height * 100}%`,
+            width: `${item.width / bounds.width * 100}%`,
+            height: `${item.height / bounds.height * 100}%`,
+            backgroundImage: artwork ? `url("${artwork.url}")` : undefined,
+          }}
+          aria-label={selectable ? `Select ${panelName} panel` : 'Glue flap'}
+        >
+          <span>{item.label}</span>
+          {artwork && <b>ARTWORK</b>}
+        </button>;
+      })}
     </div>
     <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected · shared structural source</strong></div>
   </div>;
