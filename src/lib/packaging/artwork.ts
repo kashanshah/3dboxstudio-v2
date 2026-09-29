@@ -1,6 +1,19 @@
 export type ArtworkMode = 'fill' | 'fit' | 'tile';
 
+export type LocalMediaAsset = {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  byteSize: number;
+  width: number | null;
+  height: number | null;
+  fingerprint: string;
+  createdAt: number;
+};
+
 export type ArtworkPlacement = {
+  assetId?: string;
   name: string;
   url: string;
   mode: ArtworkMode;
@@ -12,8 +25,9 @@ export type ArtworkPlacement = {
 
 export type ArtworkByPanel = Record<string, ArtworkPlacement>;
 
-export function defaultArtworkPlacement(name: string, url: string): ArtworkPlacement {
+export function defaultArtworkPlacement(name: string, url: string, assetId?: string): ArtworkPlacement {
   return {
+    assetId,
     name,
     url,
     mode: 'fill',
