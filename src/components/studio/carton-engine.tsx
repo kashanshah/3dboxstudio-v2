@@ -331,9 +331,10 @@ function createRenderer(canvas: HTMLCanvasElement) {
 
   return {
     setScene(next: Scene) {
-      const artworkChanged = JSON.stringify(next.artworkByPanel) !== JSON.stringify(scene.artworkByPanel);
+      const previousUrls = artworkUrlSignature(scene.artworkByPanel);
+      const nextUrls = artworkUrlSignature(next.artworkByPanel);
       scene = next;
-      if (artworkChanged) syncPanelTextures(next.artworkByPanel);
+      if (previousUrls !== nextUrls) syncPanelTextures(next.artworkByPanel);
       render();
     },
     render,
@@ -599,6 +600,13 @@ void main() {
   gl_FragColor = vec4(base.rgb * light, base.a);
 }
 `;
+
+function artworkUrlSignature(artworkByPanel: ArtworkByPanel) {
+  return Object.keys(artworkByPanel)
+    .sort()
+    .map(panel => `${panel}:${artworkByPanel[panel]?.url ?? ''}`)
+    .join('|');
+}
 
 function textureTransform(
   placement: ArtworkPlacement,
