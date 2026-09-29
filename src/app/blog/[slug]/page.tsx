@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
-import { SiteHeader, SiteFooter } from '@/components/site-shell';
-import { BLOG_POSTS, getBlogPostBySlug } from '@/content/blogPosts';
+import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
+import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -44,12 +44,19 @@ function inlineText(text: string) {
   });
 }
 
+function headingId(text: string, index: number) {
+  return `${text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${index}`;
+}
+
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
   const post = getBlogPostBySlug(slug);
   if (!post) notFound();
 
   const canonical = new URL(`/blog/${post.slug}`, site.url).toString();
+  const toc = post.sections.flatMap((section, index) => section.type === 'h2' ? [{ id: headingId(section.text, index), text: section.text }] : []);
+  const related = (post.relatedSlugs?.map((relatedSlug) => getBlogPostBySlug(relatedSlug)).filter(Boolean) ?? BLOG_POSTS.filter((item) => item.slug !== post.slug).slice(0, 3)) as typeof BLOG_POSTS;
+
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -72,37 +79,41 @@ export default async function BlogPostPage({ params }: Props) {
     })),
   } : null;
 
-  return <>
-    <SiteHeader />
-    <main id="main" className="article-shell">
-      <article className="article-page">
-        <Link className="article-back" href="/blog"><ArrowLeft size={15}/> All guides</Link>
-        <div className="article-heading">
-          <span className="eyebrow">3D BOX STUDIO GUIDE</span>
-          <h1>{post.title}</h1>
-          <p>{post.description}</p>
-          <div className="article-meta"><time dateTime={post.published}>{new Date(post.published + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>{post.updated ? <><span>·</span><span>Updated {new Date(post.updated + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></> : null}<span>·</span><span>{post.readMinutes} min read</span></div>
-        </div>
-        <img className="article-hero-image" src={`/images/blog/${post.slug}.webp`} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} width="1200" height="800" />
-        <div className="article-content">
+  return <ContentPageShell>
+    <article>
+      <header className="content-article-header">
+        <Link className="content-text-link" href="/blog"><ArrowLeft size={16}/> All guides</Link>
+        <p className="content-eyebrow">{getBlogCategoryLabel(getBlogCategory(post.slug))}</p>
+        <h1>{post.title}</h1>
+        <p className="content-article-summary">{post.description}</p>
+        <div className="content-article-meta"><time dateTime={post.published}>{new Date(post.published + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>{post.updated ? <><span>Updated {new Date(post.updated + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></> : null}<span>{post.readMinutes} min read</span></div>
+      </header>
+
+      <img className="content-article-hero" src={`/images/blog/${post.slug}.webp`} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} width="1200" height="800" />
+
+      <div className="content-article-layout">
+        <nav className="content-article-toc" aria-label="On this page"><p>On this page</p>{toc.map((item) => <a href={`#${item.id}`} key={item.id}>{item.text}</a>)}</nav>
+        <div className="content-article-body">
           {post.sections.map((section, index) => {
             if (section.type === 'p') return <p key={index}>{inlineText(section.text)}</p>;
-            if (section.type === 'h2') return <h2 key={index}>{section.text}</h2>;
+            if (section.type === 'h2') return <h2 id={headingId(section.text, index)} key={index}>{section.text}</h2>;
             if (section.type === 'h3') return <h3 key={index}>{section.text}</h3>;
             if (section.type === 'ul') return <ul key={index}>{section.items.map((item) => <li key={item}>{inlineText(item)}</li>)}</ul>;
             if (section.type === 'ol') return <ol key={index}>{section.items.map((item) => <li key={item}>{inlineText(item)}</li>)}</ol>;
-            if (section.type === 'callout') return <aside className="article-callout" key={index}>{inlineText(section.text)}</aside>;
-            if (section.type === 'cta') return <div className="article-cta" key={index}><Link className="button" href={section.href ?? '/studio'}>{section.label}<ArrowUpRight size={16}/></Link></div>;
-            if (section.type === 'faq') return post.faqs?.length ? <section className="article-faq" key={index}>{post.faqs.map((faq) => <details key={faq.question}><summary>{faq.question}</summary><p>{inlineText(faq.answer)}</p></details>)}</section> : null;
+            if (section.type === 'callout') return <aside className="content-article-callout" key={index}>{inlineText(section.text)}</aside>;
+            if (section.type === 'cta') return <div className="content-article-cta" key={index}><Link className="button" href={section.href ?? '/studio'}>{section.label}<ArrowUpRight size={16}/></Link></div>;
+            if (section.type === 'faq') return post.faqs?.length ? <section className="content-article-faq" key={index}>{post.faqs.map((faq) => <details key={faq.question}><summary>{faq.question}</summary><p>{inlineText(faq.answer)}</p></details>)}</section> : null;
             return null;
           })}
+          {post.faqs?.length && !post.sections.some((section) => section.type === 'faq') ? <section className="content-article-faq"><h2>Frequently asked questions</h2>{post.faqs.map((faq) => <details key={faq.question}><summary>{faq.question}</summary><p>{inlineText(faq.answer)}</p></details>)}</section> : null}
         </div>
-        {post.faqs?.length && !post.sections.some((s) => s.type === 'faq') ? <section className="article-content article-faq"><h2>Frequently asked questions</h2>{post.faqs.map((faq) => <details key={faq.question}><summary>{faq.question}</summary><p>{inlineText(faq.answer)}</p></details>)}</section> : null}
-        <nav className="article-next" aria-label="More packaging guides"><Link href="/blog">Explore all packaging guides <ArrowUpRight size={16}/></Link></nav>
-      </article>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
-      {faqSchema ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} /> : null}
-    </main>
-    <SiteFooter />
-  </>;
+      </div>
+    </article>
+
+    {related.length ? <section className="related-section"><p className="content-eyebrow">Keep reading</p><h2>Related packaging guides</h2><div className="content-article-grid">{related.slice(0,3).map((item) => <article className="content-article-card" key={item.slug}><Link href={`/blog/${item.slug}`}><div className="content-article-card-media"><img loading="lazy" src={`/images/blog/${item.slug}.webp`} alt="" width="1200" height="800"/></div><div className="content-article-meta"><span>{getBlogCategoryLabel(getBlogCategory(item.slug))}</span><span>{item.readMinutes} min read</span></div><h3>{item.title}</h3><p>{item.description}</p></Link></article>)}</div></section> : null}
+
+    <StudioCta title="Put the next packaging concept into motion." />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
+    {faqSchema ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} /> : null}
+  </ContentPageShell>;
 }
