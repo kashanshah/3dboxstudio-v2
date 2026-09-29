@@ -645,3 +645,50 @@
 .pro-fold-endpoints{display:flex;justify-content:space-between;gap:12px;margin-top:4px;font-size:12px;color:var(--muted);font-weight:650}
 .pro-fold-play{width:100%;height:50px;margin-top:18px;border-radius:10px!important;background:var(--accent)!important;color:#fff;display:flex!important;align-items:center;justify-content:center;gap:9px;font-size:14px;font-weight:750}
 .pro-fold-play:hover{background:var(--accent-hover)!important}
+
+/* Always-visible fold control on the 3D canvas. */
+.pro-canvas-fold{
+  position:absolute;
+  left:50%;
+  bottom:104px;
+  transform:translateX(-50%);
+  z-index:9;
+  width:min(520px,calc(100% - 180px));
+  min-height:88px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(16px);
+  box-shadow:var(--shadow-lift);
+  display:grid;
+  grid-template-columns:44px minmax(0,1fr);
+  gap:12px;
+  align-items:center;
+}
+.pro-canvas-fold-play{
+  width:44px;
+  height:44px;
+  border-radius:10px!important;
+  background:var(--accent)!important;
+  color:#fff;
+  display:grid!important;
+  place-items:center;
+}
+.pro-canvas-fold-play:hover{background:var(--accent-hover)!important}
+.pro-canvas-fold-main{min-width:0}
+.pro-canvas-fold-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px}
+.pro-canvas-fold-head strong{font-size:14px;font-weight:800;letter-spacing:-.01em}
+.pro-canvas-fold-head span{font-size:13px;font-weight:800;color:var(--accent)}
+.pro-canvas-fold-range{width:100%;height:24px;accent-color:var(--accent);cursor:pointer}
+.pro-canvas-fold-labels{display:flex;align-items:center;justify-content:space-between;margin-top:1px;font-size:11px;font-weight:700;color:var(--muted)}
+@media(max-width:760px){
+  .pro-canvas-fold{
+    bottom:138px;
+    width:calc(100% - 24px);
+    min-height:82px;
+    grid-template-columns:42px minmax(0,1fr);
+    padding:10px 12px;
+  }
+  .pro-canvas-fold-play{width:42px;height:42px}
+}
