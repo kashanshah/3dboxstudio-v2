@@ -102,7 +102,7 @@ export function StudioShell() {
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Prototype · local state</span></div>
+        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Saved on this device</span></div>
         <ChevronDown size={14} />
       </div>
       <div className="pro-header-actions">
@@ -134,7 +134,7 @@ export function StudioShell() {
 
         {mode === '3d' ? <div className="pro-3d-stage">
           <div className="pro-grid-floor" />
-          <div className="pro-stage-badge"><span/> Live WebGL · drag to orbit</div>
+          <div className="pro-stage-badge"><span/> Drag to rotate</div>
           <CartonEngine
             ref={engineRef}
             dimensions={dimensions}
@@ -217,25 +217,38 @@ function Inspector(props: {
 }) {
   const { tool } = props;
   if (tool === 'structure') return <div className="pro-inspector-content">
-    <SectionTitle title="Choose packaging" meta="Templates" />
-    <label className="pro-search"><Search size={14}/><input placeholder="Search 7,000+ class catalog" /></label>
-    <div className="pro-chip-grid">{families.map(item => <button key={item} className={props.family===item?'is-selected':''} onClick={()=>props.setFamily(item)}>{item}</button>)}</div>
-    <SectionTitle title="Size" meta="Millimetres" />
-    <div className="pro-fields">
-      <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
-      <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
-      <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+    <PanelIntro title="Set up your box" text="Choose the packaging style, then enter the finished outside size." />
+    <div className="pro-card-section">
+      <SectionTitle title="Box style" />
+      <label className="pro-search"><Search size={16}/><input placeholder="Search packaging styles" /></label>
+      <div className="pro-chip-grid">{families.map(item => <button key={item} className={props.family===item?'is-selected':''} onClick={()=>props.setFamily(item)}>{item}</button>)}</div>
     </div>
-    <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
-    <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
-    <div className="pro-callout"><Box size={15}/><span><strong>Reverse tuck end</strong> · ECMA-style carton fixture for the first production slice.</span></div>
+    <div className="pro-card-section">
+      <SectionTitle title="Finished size" meta="Outside measurements" />
+      <div className="pro-fields">
+        <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
+        <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
+        <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+      </div>
+      <p className="pro-help">Measure the box after it is folded and closed.</p>
+    </div>
+    <details className="pro-advanced">
+      <summary>Construction details <ChevronDown size={16}/></summary>
+      <div className="pro-advanced-body">
+        <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
+        <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
+        <div className="pro-callout"><Box size={16}/><span><strong>Reverse tuck end</strong><br/>Standard folding-carton construction.</span></div>
+      </div>
+    </details>
   </div>;
 
   if (tool === 'artwork') {
     const selectedArtwork = props.artworkByPanel[props.panel];
     const designedCount = panels.filter(item => props.artworkByPanel[item]).length;
     return <div className="pro-inspector-content">
-    <SectionTitle title="Panels" meta={`${designedCount} of 6 designed`} />
+    <PanelIntro title="Place your design" text="Choose a panel, upload artwork, then adjust how it fits." />
+    <div className="pro-card-section">
+    <SectionTitle title="Choose a panel" meta={`${designedCount} of 6 designed`} />
     <div className="pro-panel-grid">{panels.map(item=>{
       const artwork = props.artworkByPanel[item];
       return <button key={item} className={props.panel===item?'is-selected':''} onClick={()=>props.setPanel(item)}>
@@ -243,17 +256,26 @@ function Inspector(props: {
         <b>{item}</b>{artwork&&<i/>}
       </button>;
     })}</div>
+    </div>
+    <div className="pro-card-section">
+    <SectionTitle title={`${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
     {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
     <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? `Replace ${props.panel} artwork` : `Upload to ${props.panel}`}</button>
-    {selectedArtwork && <div className="pro-file"><Check size={14}/><span>{selectedArtwork.name}</span></div>}
-    <SectionTitle title="Placement" />
+    {selectedArtwork && <div className="pro-file"><Check size={15}/><span>{selectedArtwork.name}</span></div>}
+    </div>
+    <div className="pro-card-section">
+    <SectionTitle title="How it fits" />
     <div className="pro-segmented">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => <button
       key={mode}
       className={selectedArtwork?.mode === mode ? 'is-active' : ''}
       disabled={!selectedArtwork}
       onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, mode } } : current)}
     >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
-    <ControlRow label="Scale" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
+    <p className="pro-help">{selectedArtwork?.mode === 'fill' ? 'Fills the whole panel. Some artwork may be cropped.' : selectedArtwork?.mode === 'tile' ? 'Repeats your artwork as a pattern.' : 'Shows the whole artwork without cropping.'}</p>
+    <details className="pro-advanced" open={false}>
+      <summary>Fine tune placement <ChevronDown size={16}/></summary>
+      <div className="pro-advanced-body">
+    <ControlRow label="Artwork size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
     <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
       const scale = Number(e.target.value);
       props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, scale } } : current);
@@ -270,6 +292,9 @@ function Inspector(props: {
       <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
       <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
       <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [props.panel]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
+    </div>
+      </div>
+    </details>
     </div>
   </div>;
   }
@@ -358,6 +383,10 @@ function DielinePrototype({
     </div>
     <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected · shared structural source</strong></div>
   </div>;
+}
+
+function PanelIntro({title,text}:{title:string;text:string}) {
+  return <div className="pro-panel-intro"><h3>{title}</h3><p>{text}</p></div>;
 }
 
 function SectionTitle({title,meta}:{title:string;meta?:string}) { return <div className="pro-section-title"><strong>{title}</strong>{meta&&<span>{meta}</span>}</div>; }
