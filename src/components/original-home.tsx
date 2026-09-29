@@ -44,8 +44,18 @@ export function OriginalHome() {
 
     <section id="showcase" className="showcase-section"><div className="showcase-image"><Image src="/images/lovable-original-still-life.jpg" alt="A white carton, charcoal mailer, and kraft paper box" width={1600} height={1000} sizes="(max-width: 700px) 100vw, 600px"/><span className="image-caption">Materials that feel real, before they are.</span></div><div className="showcase-copy"><p className="eyebrow">Make better calls, earlier</p><h2>See the package—not just the dieline.</h2><p>Move naturally between structure, artwork, material, and opening behavior in a workspace that keeps the object at the center.</p><ul><li><span>01</span>Artwork organized by face</li><li><span>02</span>Materials with believable character</li><li><span>03</span>Opening motion you can direct</li></ul><Button variant="outline" asChild><Link href="/studio">Explore the Studio <ArrowRight/></Link></Button></div></section>
 
+    <section className="seo-home-section">
+      <div className="seo-home-intro"><p className="eyebrow">Free browser-based packaging mockups</p><h2>A 3D box designer for cartons, mailers, and client previews.</h2><p>3D Box Studio is an online packaging mockup generator for visualizing custom box dimensions, per-face artwork, materials, and opening behavior before print. Use the Studio for fast visual validation, then keep production dielines and press proofs in your printer or structural CAD workflow.</p></div>
+      <div className="seo-home-grid">
+        <article><span>01</span><h3>Custom dimensions</h3><p>Preview folding cartons, mailer boxes, product packaging, and custom proportions without being locked to a static mockup template.</p></article>
+        <article><span>02</span><h3>Artwork by face</h3><p>Place front, back, side, top, and bottom graphics in context and review how branding reads around the finished pack.</p></article>
+        <article><span>03</span><h3>Review in 3D</h3><p>Rotate the package, inspect openings and materials, and create presentation-ready previews earlier in the packaging workflow.</p></article>
+      </div>
+      <div className="seo-home-links"><Link href="/blog">Read packaging guides <ArrowRight/></Link><Link href="/faq">3D Box Studio FAQ <ArrowRight/></Link></div>
+    </section>
+
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the idea feel real.</h2><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
-    <footer><BrandMark/><span>Designed for packaging teams.</span><span>© 2026 3D Box Studio</span></footer>
+    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><span>© 2026 3D Box Studio</span></footer>
   </main>
 }
 
