@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download,
-  FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
-  MousePointer2, PackageOpen, Plus, Redo2, Rotate3d, Search, Share2, Sparkles,
-  Trash2, Undo2, Upload, X
+  Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
+  PackageOpen, Ruler, Search, Share2, Sparkles, ZoomIn, ZoomOut,
+  Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
+import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -24,21 +25,23 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'export', label: 'Export', icon: Download },
 ];
 
-const families = ['Folding carton','Mailer','Rigid box','Bottle','Jar','Can','Tube','Pouch','Cup'];
-const panels = ['Front','Back','Left','Right','Top','Bottom'];
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
 export function StudioShell() {
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
-  const [family, setFamily] = useState('Folding carton');
+  const [family, setFamily] = useState('Reverse Tuck End Carton');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('reverse-tuck-carton');
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('All');
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
   const [material, setMaterial] = useState('Soft touch');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const [opening, setOpening] = useState(18);
+  const [opening, setOpening] = useState(100);
+  const [showMeasurements, setShowMeasurements] = useState(false);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
@@ -50,11 +53,12 @@ export function StudioShell() {
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
-  const [message, setMessage] = useState('Prototype state · not yet persisted');
+  const [message, setMessage] = useState('Ready');
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
+  const foldAnimationRef = useRef<number | null>(null);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
@@ -69,6 +73,7 @@ export function StudioShell() {
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
+    if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
   }, []);
 
   useEffect(() => {
@@ -98,6 +103,17 @@ export function StudioShell() {
     document.addEventListener('pointerdown', dismissOnOutsidePointer, true);
     return () => document.removeEventListener('pointerdown', dismissOnOutsidePointer, true);
   }, [faceAction]);
+
+  const chooseTemplate = (template: PackagingTemplateDefinition) => {
+    if (template.status !== 'ready') {
+      setMessage(`${template.name} is in the catalog, but its real geometry is not ready yet`);
+      return;
+    }
+    setSelectedTemplateId(template.id);
+    setFamily(template.name);
+    if (template.defaultDimensions) setDimensions(template.defaultDimensions);
+    setMessage(`${template.name} selected`);
+  };
 
   const chooseTool = (id: Tool) => {
     if (tool === id && inspectorOpen) {
@@ -193,11 +209,6 @@ export function StudioShell() {
     setMediaLibraryOpen(true);
   };
 
-  const handleArtwork = (file?: File) => {
-    if (file) handleArtworkFiles([file]);
-  };
-
-  const pickArtwork = () => fileRef.current?.click();
 
   const removeArtwork = (targetPanel: string) => {
     setArtworkByPanel(current => {
@@ -225,6 +236,26 @@ export function StudioShell() {
     setMessage('Image removed from your local library');
   };
 
+  const animateFold = (target: 0 | 100) => {
+    if (target === 0) setShowMeasurements(false);
+    if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+    const start = opening;
+    const startedAt = performance.now();
+    const duration = 1500;
+
+    const frame = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      setOpening(start + (target - start) * eased);
+      if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
+      else foldAnimationRef.current = null;
+    };
+
+    foldAnimationRef.current = requestAnimationFrame(frame);
+  };
+
   const exportPng = () => {
     if (mode !== '3d') {
       setMode('3d');
@@ -240,14 +271,10 @@ export function StudioShell() {
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Saved on this device</span></div>
-        <ChevronDown size={14} />
+        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Local design</span></div>
       </div>
       <div className="pro-header-actions">
-        <button aria-label="Undo" title="Undo"><Undo2 size={16} /></button>
-        <button aria-label="Redo" title="Redo"><Redo2 size={16} /></button>
-        <button className="pro-secondary"><Share2 size={15} /> <span>Share</span></button>
-        <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={15} /> <span>Export</span></button>
+        <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
       </div>
     </header>
 
@@ -271,9 +298,12 @@ export function StudioShell() {
               aria-expanded={cameraMenuOpen}
               onClick={() => setCameraMenuOpen(open => !open)}
             >
-              <Aperture size={14} /> {camera} <ChevronDown size={13} className={cameraMenuOpen ? 'is-open' : ''} />
+              <Camera size={16} />
+              <span>Camera Angle</span>
+              <small>{camera}</small>
+              <ChevronDown size={14} className={cameraMenuOpen ? 'is-open' : ''} />
             </button>
-            {cameraMenuOpen && <div className="pro-camera-popover" role="menu">
+            {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label="Camera angles">
               {cameras.map(item => <button
                 key={item}
                 type="button"
@@ -284,7 +314,10 @@ export function StudioShell() {
                   setCameraMenuOpen(false);
                 }}
                 className={camera === item ? 'is-active' : ''}
-              >{item}</button>)}
+              >
+                <span className={`pro-camera-view-icon is-${item.toLowerCase()}`} aria-hidden="true"><i/><i/><i/></span>
+                <b>{item}</b>
+              </button>)}
             </div>}
           </div>}
         </div>
@@ -300,6 +333,7 @@ export function StudioShell() {
             artworkByPanel={artworkByPanel}
             cameraPreset={camera}
             zoom={zoom}
+            onZoomChange={setZoom}
             onPanelSelect={(selectedPanel, point) => {
               const parsed = parseArtworkTarget(selectedPanel);
               setArtworkScope(parsed.scope);
@@ -308,7 +342,70 @@ export function StudioShell() {
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected from the 3D carton`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
+
+          {showMeasurements && opening >= 99.5 && <div className="pro-measurements-overlay" aria-label="Box measurements">
+            <div className="pro-measurement pro-measurement-width"><span>{dimensions.width} mm</span></div>
+            <div className="pro-measurement pro-measurement-height"><span>{dimensions.height} mm</span></div>
+            <div className="pro-measurement pro-measurement-depth"><span>{dimensions.depth} mm</span></div>
+          </div>}
+
+          <div className="pro-canvas-control-bar" aria-label="Canvas controls">
+            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
+              <ZoomOut size={20}/>
+            </button>
+            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}>
+              <ZoomIn size={20}/>
+            </button>
+            <span className="pro-canvas-bar-divider" />
+            <button
+              className="pro-canvas-bar-play"
+              aria-label={opening >= 50 ? 'Open box' : 'Close box'}
+              title={opening >= 50 ? 'Open box' : 'Close box'}
+              onClick={() => animateFold(opening >= 50 ? 0 : 100)}
+            >
+              <CirclePlay size={19}/>
+            </button>
+            <span className="pro-canvas-bar-label">Open</span>
+            <input
+              className="pro-canvas-bar-range"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={Math.round(opening)}
+              aria-label="Open or close box"
+              onChange={e => {
+                const nextOpening = Number(e.target.value);
+                if (nextOpening < 99.5) setShowMeasurements(false);
+                setOpening(nextOpening);
+              }}
+            />
+            <span className="pro-canvas-bar-label">Closed</span>
+            <span className="pro-canvas-bar-divider" />
+            <button
+              className="pro-canvas-bar-icon"
+              title="Fit view"
+              aria-label="Fit view"
+              onClick={() => {
+                setZoom(82);
+                engineRef.current?.resetCamera();
+              }}
+            >
+              <Maximize2 size={20}/>
+            </button>
+            <button
+              className={`pro-canvas-bar-icon pro-measure-toggle ${showMeasurements ? 'is-active' : ''}`}
+              title={opening >= 99.5 ? (showMeasurements ? 'Hide measurements' : 'Show measurements') : 'Close the box to show measurements'}
+              aria-label={showMeasurements ? 'Hide measurements' : 'Show measurements'}
+              aria-pressed={showMeasurements}
+              disabled={opening < 99.5}
+              onClick={() => setShowMeasurements(value => !value)}
+            >
+              <Ruler size={20}/>
+            </button>
+          </div>
+
           {faceAction && <div
             ref={faceActionRef}
             className="pro-face-action"
@@ -346,16 +443,6 @@ export function StudioShell() {
           }}
         />}
 
-        <div className="pro-canvas-controls">
-          <button title="Select"><MousePointer2 size={16} /></button>
-          <button title="Orbit"><Rotate3d size={16} /></button>
-          <span />
-          <button onClick={() => setZoom(Math.max(40, zoom - 10))}><Minus size={15} /></button>
-          <strong>{zoom}%</strong>
-          <button onClick={() => setZoom(Math.min(140, zoom + 10))}><Plus size={15} /></button>
-          <button title="Fit view"><Maximize2 size={16} /></button>
-        </div>
-
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
         <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
       </section>
@@ -370,7 +457,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -396,41 +483,98 @@ export function StudioShell() {
 }
 
 function Inspector(props: {
-  tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
+  tool: Tool; family: string; setFamily: (v:string)=>void;
+  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void;
+  panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
-  mediaAssets: LocalMediaAsset[]; onUseMediaAsset:(asset:LocalMediaAsset,panel?:string)=>void; onDeleteMediaAsset:(assetId:string)=>void;
-  onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; setMessage:(v:string)=>void;
+  mediaAssets: LocalMediaAsset[];
+  onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
+  onExport:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
-  if (tool === 'structure') return <div className="pro-inspector-content">
-    <PanelIntro title="Set up your box" text="Choose the packaging style, then enter the finished outside size." />
-    <div className="pro-card-section">
-      <SectionTitle title="Box style" />
-      <label className="pro-search"><Search size={16}/><input placeholder="Search packaging styles" /></label>
-      <div className="pro-chip-grid">{families.map(item => <button key={item} className={props.family===item?'is-selected':''} onClick={()=>props.setFamily(item)}>{item}</button>)}</div>
-    </div>
-    <div className="pro-card-section">
-      <SectionTitle title="Finished size" meta="Outside measurements" />
-      <div className="pro-fields">
-        <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
-        <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
-        <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+  if (tool === 'structure') {
+    const categories = getPackagingTemplateCategories();
+    const query = props.templateSearch.trim().toLowerCase();
+    const templates = PACKAGING_TEMPLATES.filter(template => {
+      const categoryMatch = props.templateCategory === 'All' || template.category === props.templateCategory;
+      const searchMatch = !query || [template.name, template.shortName, template.category, ...template.tags]
+        .some(value => value.toLowerCase().includes(query));
+      return categoryMatch && searchMatch;
+    });
+    const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
+
+    return <div className="pro-inspector-content pro-structure-content">
+      <PanelIntro title="Choose your packaging" text="Browse a growing library of real packaging structures. Pick a template first, then set its size." />
+
+      <div className="pro-structure-current">
+        <span>Current template</span>
+        <div>
+          <TemplateVisual template={selectedTemplate} compact />
+          <div>
+            <strong>{selectedTemplate.name}</strong>
+            <small>{selectedTemplate.category} · Ready to edit</small>
+          </div>
+        </div>
       </div>
-      <p className="pro-help">Measure the box after it is folded and closed.</p>
-    </div>
-    <details className="pro-advanced">
-      <summary>Construction details <ChevronDown size={16}/></summary>
-      <div className="pro-advanced-body">
-        <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
-        <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
-        <div className="pro-callout"><Box size={16}/><span><strong>Reverse tuck end</strong><br/>Standard folding-carton construction.</span></div>
+
+      <label className="pro-search pro-structure-search">
+        <Search size={18}/>
+        <input value={props.templateSearch} onChange={e=>props.setTemplateSearch(e.target.value)} placeholder="Search packaging templates" />
+      </label>
+
+      <div className="pro-structure-categories" aria-label="Template categories">
+        {categories.map(category => <button
+          key={category}
+          className={props.templateCategory === category ? 'is-active' : ''}
+          onClick={()=>props.setTemplateCategory(category)}
+        >{category}</button>)}
       </div>
-    </details>
-  </div>;
+
+      <div className="pro-template-grid">
+        {templates.map(template => {
+          const active = template.id === props.selectedTemplateId;
+          return <button
+            key={template.id}
+            className={`pro-template-card ${active ? 'is-selected' : ''} ${template.status === 'planned' ? 'is-planned' : ''}`}
+            onClick={()=>props.onChooseTemplate(template)}
+          >
+            <TemplateVisual template={template} />
+            <div className="pro-template-card-copy">
+              <strong>{template.shortName}</strong>
+              <span>{template.category}</span>
+            </div>
+            <small className={template.status === 'ready' ? 'is-ready' : ''}>{template.status === 'ready' ? 'Ready' : 'Coming soon'}</small>
+          </button>;
+        })}
+      </div>
+
+      {templates.length === 0 && <div className="pro-template-empty">
+        <Search size={24}/>
+        <strong>No templates found</strong>
+        <span>Try another search or category.</span>
+      </div>}
+
+      <div className="pro-card-section pro-structure-size-card">
+        <SectionTitle title="Finished size" meta="Outside measurements" />
+        <div className="pro-fields">
+          <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
+          <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
+          <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+        </div>
+        <p className="pro-help">Measure the finished package after it is folded and closed.</p>
+        <details className="pro-advanced">
+          <summary>Material thickness <ChevronDown size={17}/></summary>
+          <div className="pro-advanced-body">
+            <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
+            <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
+          </div>
+        </details>
+      </div>
+    </div>;
+  }
 
   if (tool === 'artwork') {
     const selectedKey = props.artworkScope === 'inside' ? `Interior ${props.panel}` : props.panel;
@@ -449,11 +593,11 @@ function Inspector(props: {
         </div>
       </div>
 
-      <div className="pro-card-section pro-artwork-source-card">
+      <div className="pro-card-section pro-artwork-design-card">
         <div className="pro-artwork-source-head">
           <div>
-            <strong>Artwork source</strong>
-            <span>{selectedArtwork ? 'Change or replace the current artwork.' : 'Pick an existing image or add a new one.'}</span>
+            <strong>Design on this side</strong>
+            <span>{selectedArtwork ? 'Your image is ready. Change it or adjust how it sits on the box.' : 'Choose an image to place on this side.'}</span>
           </div>
           {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
         </div>
@@ -467,34 +611,41 @@ function Inspector(props: {
           <button className="pro-current-artwork-remove" aria-label="Remove artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
         </div>}
 
-        <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
-          <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
-          <span><b>{selectedArtwork ? 'Change artwork' : 'Choose from library'}</b><small>Reuse uploaded artwork</small></span>
-          <ChevronDown size={16}/>
-        </button>
-        <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
-          <Upload size={15}/> Upload new artwork
-        </button>
-      </div>
+        <div className="pro-artwork-choice-row">
+          <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
+            <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
+            <span><b>{selectedArtwork ? 'Change image' : 'Choose image'}</b><small>From your library</small></span>
+            <ChevronDown size={16}/>
+          </button>
+          <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
+            <Upload size={15}/> Upload new
+          </button>
+        </div>
 
-      <div className="pro-card-section">
-        <SectionTitle title="How it fits" />
-        <div className="pro-segmented">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => <button
-          key={mode}
-          className={selectedArtwork?.mode === mode ? 'is-active' : ''}
-          disabled={!selectedArtwork}
-          onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
-        >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
-        <p className="pro-help">{selectedArtwork?.mode === 'fill' ? 'Fills the whole panel. Some artwork may be cropped.' : selectedArtwork?.mode === 'tile' ? 'Repeats your artwork as a pattern.' : selectedArtwork ? 'Shows the whole artwork without cropping.' : 'Choose artwork first to adjust placement.'}</p>
-        <details className="pro-advanced" open={false}>
-          <summary>Fine tune placement <ChevronDown size={16}/></summary>
+        <div className="pro-artwork-fit-section">
+          <div className="pro-artwork-fit-head">
+            <strong>Image fit</strong>
+            <span>{selectedArtwork?.mode === 'fill' ? 'Covers the whole side' : selectedArtwork?.mode === 'tile' ? 'Repeats as a pattern' : 'Shows the whole image'}</span>
+          </div>
+          <div className="pro-fit-options">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => {
+            const copy = mode === 'fill'
+              ? { label: 'Cover', hint: 'Edge to edge' }
+              : mode === 'fit'
+                ? { label: 'Fit', hint: 'Show it all' }
+                : { label: 'Repeat', hint: 'Make a pattern' };
+            return <button
+              key={mode}
+              className={selectedArtwork?.mode === mode ? 'is-active' : ''}
+              disabled={!selectedArtwork}
+              onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
+            ><b>{copy.label}</b><small>{copy.hint}</small></button>;
+          })}</div>
+        </div>
+
+        <details className="pro-advanced pro-placement-details" open={false}>
+          <summary>Adjust placement <ChevronDown size={16}/></summary>
           <div className="pro-advanced-body">
-            <ControlRow label="Artwork size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
-            <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
-              const scale = Number(e.target.value);
-              props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, scale } } : current);
-            }}/>
-            <ControlRow label="Rotation" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
+            <ControlRow label="Rotate" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
             <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
               const rotation = Number(e.target.value);
               props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, rotation } } : current);
@@ -514,44 +665,74 @@ function Inspector(props: {
   }
 
   if (tool === 'material') return <div className="pro-inspector-content">
-    <SectionTitle title="Finish" />
+    <PanelIntro title="Choose a finish" text="Pick the surface that best matches how you want the package to feel." />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
-    <ControlRow label="Roughness" value="64" /><input className="pro-range" type="range" defaultValue="64"/>
-    <ControlRow label="Reflectivity" value="18" /><input className="pro-range" type="range" defaultValue="18"/>
-    <ControlRow label="Print depth" value="Subtle" /><input className="pro-range" type="range" defaultValue="22"/>
+    <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
   </div>;
 
-  if (tool === 'opening') return <div className="pro-inspector-content">
-    <SectionTitle title="Closure" meta="Tuck top" />
-    <div className="pro-opening-cards"><button className="is-selected"><PackageOpen/><span><b>Reverse tuck</b><small>Carton fixture</small></span></button><button><Box/><span><b>Mailer</b><small>Architecture proof</small></span></button><button><Layers3/><span><b>Drawer</b><small>Planned</small></span></button></div>
-    <SectionTitle title="Open / close preview" meta={`${props.opening}%`} />
-    <div className="pro-play-row"><button><CirclePlay size={18}/></button><input className="pro-range" type="range" value={props.opening} onChange={e=>props.setOpening(Number(e.target.value))}/></div>
-    <ControlRow label="Duration" value="1.8 s" /><input className="pro-range" type="range" defaultValue="45"/>
-    <div className="pro-callout"><Sparkles size={15}/><span>Scrubbing is interactive now; physically validated hinge geometry lands in the engine slice.</span></div>
-  </div>;
+  if (tool === 'opening') {
+    const stage = props.opening <= 4
+      ? 'Flat dieline'
+      : props.opening < 52
+        ? 'Raising the walls'
+        : props.opening < 68
+          ? 'Wrapping the back'
+          : props.opening < 84
+            ? 'Closing the bottom'
+            : props.opening < 99
+              ? 'Closing the top'
+              : 'Assembled box';
+
+    return <div className="pro-inspector-content">
+      <PanelIntro title="Open or close your box" text="Drag the slider to move smoothly between the fully open structure and the finished closed package." />
+      <div className="pro-card-section pro-fold-card">
+        <div className="pro-fold-heading">
+          <div><span>Open / close</span><strong>{stage}</strong></div>
+          <b>{Math.round(props.opening)}%</b>
+        </div>
+        <input
+          className="pro-range pro-fold-range"
+          aria-label="Open or close box"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Math.round(props.opening)}
+          onChange={e=>props.setOpening(Number(e.target.value))}
+        />
+        <div className="pro-fold-endpoints"><span>Open</span><span>Closed</span></div>
+        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}>
+          <CirclePlay size={20}/>
+          {props.opening >= 50 ? 'Open box' : 'Close box'}
+        </button>
+      </div>
+      <div className="pro-callout"><Sparkles size={16}/><span>Artwork stays attached to each surface throughout the fold.</span></div>
+    </div>;
+  }
 
   if (tool === 'scene') return <div className="pro-inspector-content">
-    <SectionTitle title="Scene" meta="Arrange your mockup" />
-    <div className="pro-layer-list"><button className="is-selected"><Box/> Carton 01 <span>•••</span></button><button><Box/> Carton 02 <span>•••</span></button><button><Boxes/> Plinth <span>•••</span></button></div>
-    <button className="pro-wide-button"><Plus size={15}/> Add object</button>
-    <SectionTitle title="Environment" />
-    <div className="pro-scene-preview"><span>Soft daylight</span></div>
-    <ControlRow label="Light intensity" value="78" /><input className="pro-range" type="range" defaultValue="78"/>
-    <ControlRow label="Shadow softness" value="62" /><input className="pro-range" type="range" defaultValue="62"/>
-    <div className="pro-segmented"><button className="is-active">Floor</button><button>Floating</button><button>Transparent</button></div>
+    <PanelIntro title="Build a scene" text="Arrange multiple packages, backgrounds, and lighting for presentation-ready mockups." />
+    <div className="pro-feature-empty">
+      <Lightbulb size={28}/>
+      <strong>Scene builder is coming next</strong>
+      <p>For now, keep working with the package itself. Multi-object layouts, lighting, backgrounds, and floor controls will be added here when they are functional.</p>
+    </div>
   </div>;
 
   return <div className="pro-inspector-content">
-    <SectionTitle title="Export" meta="Engine-aware" />
-    <ExportCard icon={<ImageIcon/>} title="Still image" text="PNG / JPG · HD, 2K, 4K, 8K" active/>
-    <ExportCard icon={<CirclePlay/>} title="Animation" text="Turntable / opening · MP4"/>
-    <ExportCard icon={<Share2/>} title="Share review" text="Versioned 3D link / embed"/>
-    <ExportCard icon={<Grid3X3/>} title="Production file" text="Dieline · PDF / SVG / DXF"/>
-    <SectionTitle title="Still settings" />
-    <div className="pro-segmented"><button>HD</button><button>2K</button><button className="is-active">4K</button><button>8K</button></div>
-    <div className="pro-segmented"><button className="is-active">PNG</button><button>JPG</button><button>Transparent</button></div>
-    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={15}/> Export live PNG</button>
-    <div className="pro-import-box"><FileUp size={19}/><div><strong>Dieline to 3D</strong><span>Import SVG/DXF · classify cut/crease · assign folds</span></div><button onClick={()=>props.setMessage('Dieline import flow opened · parser not connected yet')}>Import</button></div>
+    <PanelIntro title="Export your design" text="Download the current 3D view now. More export formats will appear here as they become available." />
+    <div className="pro-export-ready">
+      <ImageIcon size={22}/>
+      <div><strong>PNG image</strong><span>Exports the current 3D camera view.</span></div>
+    </div>
+    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/> Download PNG</button>
+
+    <div className="pro-export-coming">
+      <span>Coming soon</span>
+      <div><CirclePlay size={18}/><p><strong>Animation</strong><small>Turntable and open / close video</small></p></div>
+      <div><Share2 size={18}/><p><strong>Share link</strong><small>Send an interactive review link</small></p></div>
+      <div><Grid3X3 size={18}/><p><strong>Production dieline</strong><small>PDF, SVG, and DXF export</small></p></div>
+    </div>
   </div>;
 }
 
@@ -599,6 +780,32 @@ function DielinePrototype({
     </div>
     <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{artworkScope === 'inside' ? 'Inside ' : ''}{panel} selected · shared structural source</strong></div>
   </div>;
+}
+
+function TemplateVisual({template,compact=false}:{template:PackagingTemplateDefinition;compact?:boolean}) {
+  const visualClass = template.family === 'bottle'
+    ? 'is-bottle'
+    : template.family === 'jar'
+      ? 'is-jar'
+      : template.family === 'pouch'
+        ? 'is-pouch'
+        : template.family === 'cup'
+          ? 'is-cup'
+          : template.family === 'can'
+            ? 'is-can'
+            : template.family === 'rigid-box'
+              ? 'is-rigid'
+              : template.family === 'corrugated'
+                ? 'is-corrugated'
+                : template.id.includes('sleeve')
+                  ? 'is-sleeve'
+                  : 'is-carton';
+
+  return <span className={`pro-template-visual ${visualClass} ${compact ? 'is-compact' : ''}`} aria-hidden="true">
+    <i className="shape-main"/>
+    <i className="shape-side"/>
+    <i className="shape-top"/>
+  </span>;
 }
 
 function MediaLibraryModal(props: {
@@ -735,4 +942,3 @@ function PanelIntro({title,text}:{title:string;text:string}) {
 function SectionTitle({title,meta}:{title:string;meta?:string}) { return <div className="pro-section-title"><strong>{title}</strong>{meta&&<span>{meta}</span>}</div>; }
 function ControlRow({label,value}:{label:string;value:string}) { return <div className="pro-control-row"><span>{label}</span><strong>{value}</strong></div>; }
 function Field({label,value,onChange}:{label:string;value:string;onChange?:(value:number)=>void}) { return <label><span>{label}</span><input type="number" value={value} onChange={e=>onChange?.(Number(e.target.value))}/></label>; }
-function ExportCard({icon,title,text,active=false}:{icon:React.ReactNode;title:string;text:string;active?:boolean}) { return <button className={`pro-export-card ${active?'is-selected':''}`}>{icon}<span><b>{title}</b><small>{text}</small></span></button>; }

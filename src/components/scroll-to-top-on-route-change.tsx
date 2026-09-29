@@ -4,9 +4,8 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 
 /**
- * Next.js can preserve the previous scroll position during client-side route
- * transitions. Marketing/content pages should open at the top unless the URL
- * explicitly includes a hash target.
+ * Open normal client-side route changes at the top while preserving explicit
+ * hash navigation such as /#workflow and /#showcase.
  */
 export function ScrollToTopOnRouteChange() {
   const pathname = usePathname();

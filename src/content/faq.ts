@@ -51,7 +51,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Is 3D Box Studio a free 3D box maker?",
     answer:
-      "Yes. 3D Box Studio is a free 3D box maker and design tool that runs entirely in your browser. There is no paywall for dimensions, materials, openings, per-face artwork, HDRI lighting, PNG export, or JSON import/export. Create a free account to open the studio and start designing. Email verification is optional for now—you can save, share, and export right after signing up.",
+      "Yes. The current 3D Box Studio preview runs in your browser and can be opened without an account. You can explore packaging templates, adjust dimensions, place artwork, open and close the structure, rotate the 3D view, and export a PNG preview. Accounts and persistent cloud projects are planned, but they are not required in the current V2 Studio.",
   },
   {
     id: "3d-box-simulation-use",
@@ -86,21 +86,21 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "privacy",
     question: "Where is my data stored?",
     answer:
-      "While you work, your design stays in the browser session. When you upload face artwork, the studio auto-saves to the cloud as “Untitled” (rename anytime via File → Rename). Images upload to AWS S3 and configuration is stored in a Postgres database. You can also save manually with File → Save (⌘S).",
+      "In the current V2 Studio, design state and uploaded artwork stay in your browser session. The local Artwork Library lets you reuse an uploaded image across multiple surfaces during that session. Persistent accounts, project storage, and cloud media storage are planned for a later milestone.",
   },
   {
     id: "cloud-share",
     category: "export",
     question: "How do cloud save and share links work?",
     answer:
-      "Uploading face artwork auto-saves your design to the cloud as “Untitled”. Use File → Rename to change the name. File → Save (⌘S) updates an existing project; File → Save As creates a copy with a new link. File → Open lets you paste a share link or ID to reload a saved design. After saving, use File → Share Preview Link or Copy Preview Link to send clients a separate view-only URL (<code>/preview/…</code>). Editor links use <code>/studio/…</code> and are not exposed in preview mode.",
+      "Cloud save and share links are not available in the current V2 Studio yet. The present version is focused on the core packaging workflow: template selection, dimensions, artwork, folding, 3D inspection, and PNG export. Persistent projects and shareable review links are planned for a later release.",
   },
   {
     id: "view-only-preview",
     category: "export",
     question: "Can I send a view-only preview link to clients?",
     answer:
-      "Yes. After you save a design to the cloud, use File → Share Preview Link or Copy Preview Link. The preview URL uses its own token and opens read-only mode: clients can orbit, zoom, adjust lighting, animate openings, and export PNGs, but cannot discover or use your editor link from that page.",
+      "Not yet in V2. A dedicated view-only review link is planned, but the current Studio does not generate client share links. You can export a PNG of the current 3D view for review today.",
   },
   {
     id: "color-accuracy",
@@ -114,21 +114,21 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "export",
     question: "Can I export or import my 3D box design as JSON?",
     answer:
-      "Yes. In the studio you can download a v1 JSON file that contains dimensions, materials, openings, viewport options, per-face rotations, and images as base64. Import that file on another machine or browser to restore the same preview—useful for offline backups alongside cloud share links.",
+      "Not yet in V2. Project serialization is part of the planned persistent-project workflow. The current Studio keeps its design state in the browser session and supports PNG export from the 3D view.",
   },
   {
     id: "export-formats",
     category: "export",
     question: "What file formats can I export?",
     answer:
-      "You can save designs to the cloud with editor and view-only preview links (File → Save / Save As), export a PNG snapshot of the 3D viewport for presentations and marketing, record a short MP4 video of the viewport, and download or import a full setup as JSON. There is no DXF, PDF die-line, or GLB export—the focus is fast visual preview.",
+      "PNG export from the current 3D view is available now. Animation, share links, project files, and production-oriented PDF, SVG, and DXF exports are planned and are shown as upcoming features rather than active controls.",
   },
   {
     id: "box-types",
     category: "overview",
     question: "What box types can I design?",
     answer:
-      "3D Box Studio supports folding cartons and mailer-style boxes with configurable lid and flap openings. You can set custom dimensions in millimeters, centimeters, or inches and apply artwork to each face independently.",
+      "The first engine-ready structure is a reverse-tuck folding carton with editable dimensions, outside and inside artwork surfaces, and a full open-to-closed fold simulation. The Structure catalog already includes additional cartons, mailers, rigid boxes, bottles, jars, pouches, cups, and cans as planned templates that will become usable as their real geometry is implemented.",
   },
   {
     id: "who-is-it-for",
@@ -142,7 +142,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "comparison",
     question: "Is 3D Box Studio a free Pacdora alternative?",
     answer:
-      "For quick 3D box mockups and client previews, yes. Pacdora offers a large dieline template library, print-ready exports, and 4K campaign renders. 3D Box Studio is a free browser tool focused on interactive 3D simulation—custom dimensions, per-face artwork, material presets, and PNG export—without subscriptions or credits. Use Pacdora when you need production dielines; use 3D Box Studio when you need fast visual validation.",
+      "3D Box Studio is being built as a browser-based packaging design alternative focused on an intuitive 2D/3D workflow. Pacdora currently has a much larger template library and mature production/export tooling. V2 already supports a real foldable reverse-tuck carton, custom dimensions, reusable artwork, inside/outside surfaces, camera controls, and PNG export; more templates and production workflows are being added progressively.",
   },
   {
     id: "download-required",
@@ -156,21 +156,21 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "overview",
     question: "Can I use 3D box mockups for Amazon or Shopify product listings?",
     answer:
-      "Yes. Export a viewport PNG and use it in Amazon main images, A+ content, Shopify product pages, or social ads. The mockup helps you test angles and artwork before a photo shoot. For final listing photography, many sellers still use professional product photos—but 3D previews accelerate early listing setup and internal approvals.",
+      "You can export a PNG preview for presentations, internal review, or early e-commerce layout work. Whether a render meets a marketplace's final image requirements depends on that marketplace and the quality of the final scene, so verify the applicable listing rules before publishing.",
   },
   {
     id: "commercial-use",
     category: "getting-started",
     question: "Can I use exported mockups commercially?",
     answer:
-      "Yes. PNG and MP4 exports from your own designs are yours to use in client work, marketing, e-commerce listings, and presentations. Always ensure your uploaded artwork and logos are properly licensed for commercial use.",
+      "PNG exports created from your own designs can be used in client work, presentations, and marketing, provided you have the rights to the artwork, logos, and other assets you upload. MP4 export is planned but is not part of the current V2 Studio.",
   },
   {
     id: "custom-dimensions",
     category: "technical",
     question: "Can I set custom box dimensions in millimeters, centimeters, or inches?",
     answer:
-      "Yes. Enter any width, height, and depth in millimeters, centimeters, or inches. The 3D preview updates in real time so you can compare standard retail sizes, custom mailers, or shipper boxes without being locked to template dimensions.",
+      "Yes. The current reverse-tuck template lets you edit width, height, depth, and board thickness in millimeters, and the 3D structure updates from the same dimensions. Additional unit systems can be added later through the template parameter layer.",
   },
   {
     id: "folding-carton-explainer",
@@ -198,21 +198,21 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Do I need an account to use 3D Box Studio?",
     answer:
-      "Yes. Create a free account to open the studio and start a new design. Email verification is optional for now—you can save, share, and export right after signing up. Shared project links and view-only previews remain available without an account.",
+      "No account is required for the current V2 Studio preview. Designs currently live in the browser session. Accounts will become useful when persistent projects, cloud media libraries, and collaboration are introduced.",
   },
   {
     id: "unboxing-video",
     category: "export",
     question: "Can I record an unboxing video or animation of my box mockup?",
     answer:
-      "Yes. Use the viewport recording feature to capture a short MP4 of your 3D box—ideal for storyboarding unboxing videos, crowdfunding campaign clips, or social media teasers before physical samples exist.",
+      "Not yet in V2. The fold engine can already animate the structure between open and closed states in the browser, but MP4/video export is planned for a later export milestone.",
   },
   {
     id: "material-presets",
     category: "technical",
     question: "What packaging materials can I simulate?",
     answer:
-      "Material presets include kraft board, white carton, gloss and matte plastic, corrugated cardboard, and metallic foil. Combined with HDRI studio lighting, these presets help you approximate how artwork reads on different substrates before print.",
+      "The current Studio includes simple visual finish presets such as white board, kraft, soft touch, matte coated, gloss coated, and foil. More physically detailed controls for roughness, reflectivity, lighting, transparency, and premium finishes will be added as those rendering controls become functional.",
   },
 ];
 
