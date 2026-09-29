@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { site } from '@/lib/site';
+import { ScrollToTopOnRouteChange } from '@/components/scroll-to-top-on-route-change';
 import '@fontsource/manrope/400.css';
 import '@fontsource/manrope/500.css';
 import '@fontsource/manrope/600.css';
@@ -14,5 +15,5 @@ export const metadata: Metadata = {
   robots: { index: site.indexable, follow: site.indexable },
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><ScrollToTopOnRouteChange />{children}</body></html>;
 }
