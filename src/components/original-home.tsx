@@ -10,7 +10,7 @@ export function OriginalHome() {
   return <main id="main" className="lovable-original marketing-page">
     <nav className="site-nav">
       <BrandMark />
-      <div className="original-nav-links"><a href="#workflow">Workflow</a><a href="#showcase">Examples</a><a href="#details">Details</a></div>
+      <div className="original-nav-links"><a href="#workflow">Workflow</a><a href="#showcase">Examples</a><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link></div>
       <Button asChild size="sm"><Link href="/studio">Open Studio <ArrowRight /></Link></Button>
     </nav>
 
