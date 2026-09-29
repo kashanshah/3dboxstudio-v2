@@ -521,3 +521,27 @@
   .pro-artwork-context{align-items:stretch;flex-direction:column}
   .pro-artwork-context .pro-scope-switch{min-width:0;width:100%}
 }
+
+.pro-artwork-design-card{padding:16px}
+.pro-artwork-choice-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.pro-artwork-choice-row .pro-artwork-source-primary{min-height:58px}
+.pro-artwork-choice-row .pro-artwork-source-upload{width:auto;min-width:112px;height:auto;margin:0;border:1px solid var(--line)!important;background:#fff!important;color:var(--ink);padding:0 12px}
+.pro-artwork-choice-row .pro-artwork-source-upload:hover{background:var(--panel)!important}
+.pro-artwork-fit-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.pro-artwork-fit-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.pro-artwork-fit-head strong{font-size:13px;font-weight:750}
+.pro-artwork-fit-head span{font-size:10px;color:var(--muted)}
+.pro-fit-options{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pro-fit-options button{min-height:54px;padding:8px 6px;border:1px solid var(--line)!important;border-radius:9px;background:#fff!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--muted)}
+.pro-fit-options button:hover:not(:disabled){border-color:var(--accent-line)!important;background:#fbfdff!important;color:var(--ink)}
+.pro-fit-options button.is-active{border-color:var(--accent)!important;background:var(--accent-soft)!important;color:var(--accent)}
+.pro-fit-options button b{font-size:12px}
+.pro-fit-options button small{font-size:9px;color:inherit;opacity:.78}
+.pro-fit-options button:disabled{opacity:.42;cursor:not-allowed}
+.pro-placement-details{margin-top:12px}
+.pro-placement-details summary{height:44px;font-size:12px}
+@media(max-width:640px){
+  .pro-artwork-choice-row{grid-template-columns:1fr}
+  .pro-artwork-choice-row .pro-artwork-source-upload{height:40px}
+  .pro-artwork-fit-head{align-items:flex-start;flex-direction:column;gap:3px}
+}
