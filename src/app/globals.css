@@ -766,3 +766,47 @@
   .pro-template-card{padding:10px!important}
   .pro-template-card-copy strong{font-size:14px}
 }
+
+/* Visual camera angle picker */
+.pro-camera-menu>button{min-width:210px;justify-content:flex-start}
+.pro-camera-menu>button>span{font-weight:800;font-size:14px}
+.pro-camera-menu>button>small{margin-left:auto;font-size:11px;color:var(--muted);font-weight:700}
+.pro-camera-angle-grid{
+  top:52px;
+  width:286px;
+  padding:10px;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+.pro-camera-angle-grid button{
+  min-height:92px;
+  padding:9px 8px;
+  border-radius:10px;
+  border:1px solid var(--line)!important;
+  background:#fff!important;
+  display:flex!important;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  color:var(--muted);
+}
+.pro-camera-angle-grid button:hover{border-color:var(--accent-line)!important;background:#fbfdff!important;color:var(--ink)}
+.pro-camera-angle-grid button.is-active{border-color:var(--accent)!important;background:var(--accent-soft)!important;color:var(--accent)}
+.pro-camera-angle-grid button b{font-size:12px;font-weight:800}
+.pro-camera-view-icon{position:relative;width:46px;height:38px;display:block}
+.pro-camera-view-icon i{position:absolute;display:block;width:24px;height:24px;border:2px solid currentColor;background:rgba(255,255,255,.75)}
+.pro-camera-view-icon i:nth-child(1){left:10px;top:8px}
+.pro-camera-view-icon i:nth-child(2){left:18px;top:3px;transform:skewY(-28deg);opacity:.62}
+.pro-camera-view-icon i:nth-child(3){left:18px;top:13px;transform:skewY(28deg);opacity:.45}
+.pro-camera-view-icon.is-front i:nth-child(2),.pro-camera-view-icon.is-front i:nth-child(3),
+.pro-camera-view-icon.is-back i:nth-child(2),.pro-camera-view-icon.is-back i:nth-child(3){display:none}
+.pro-camera-view-icon.is-left{transform:rotateY(18deg)}
+.pro-camera-view-icon.is-right{transform:scaleX(-1) rotateY(18deg)}
+.pro-camera-view-icon.is-top{transform:rotateX(58deg)}
+.pro-camera-view-icon.is-perspective{transform:rotate(-4deg)}
+
+.pro-canvas-tools{bottom:42px;padding:5px 6px}
+.pro-canvas-tools button{width:42px;height:42px;border-radius:8px}
+.pro-canvas-tools>span{height:24px;width:1px;background:var(--line)}
