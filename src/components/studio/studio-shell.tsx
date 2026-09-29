@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
-  PackageOpen, Search, SearchMinus, SearchPlus, Share2, Sparkles,
+  PackageOpen, Ruler, Search, SearchMinus, SearchPlus, Share2, Sparkles,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -42,6 +42,7 @@ export function StudioShell() {
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpening] = useState(100);
+  const [showMeasurements, setShowMeasurements] = useState(false);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
@@ -75,6 +76,10 @@ export function StudioShell() {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
   }, []);
+
+  useEffect(() => {
+    if (opening < 99.5 && showMeasurements) setShowMeasurements(false);
+  }, [opening, showMeasurements]);
 
   useEffect(() => {
     if (!cameraMenuOpen) return;
@@ -343,6 +348,12 @@ export function StudioShell() {
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
 
+          {showMeasurements && opening >= 99.5 && <div className="pro-measurements-overlay" aria-label="Box measurements">
+            <div className="pro-measurement pro-measurement-width"><span>{dimensions.width} mm</span></div>
+            <div className="pro-measurement pro-measurement-height"><span>{dimensions.height} mm</span></div>
+            <div className="pro-measurement pro-measurement-depth"><span>{dimensions.depth} mm</span></div>
+          </div>}
+
           <div className="pro-canvas-control-bar" aria-label="Canvas controls">
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
               <SearchMinus size={20}/>
@@ -382,6 +393,16 @@ export function StudioShell() {
               }}
             >
               <Maximize2 size={20}/>
+            </button>
+            <button
+              className={`pro-canvas-bar-icon pro-measure-toggle ${showMeasurements ? 'is-active' : ''}`}
+              title={opening >= 99.5 ? (showMeasurements ? 'Hide measurements' : 'Show measurements') : 'Close the box to show measurements'}
+              aria-label={showMeasurements ? 'Hide measurements' : 'Show measurements'}
+              aria-pressed={showMeasurements}
+              disabled={opening < 99.5}
+              onClick={() => setShowMeasurements(value => !value)}
+            >
+              <Ruler size={20}/>
             </button>
           </div>
 
