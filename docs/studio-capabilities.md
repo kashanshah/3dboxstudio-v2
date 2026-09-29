@@ -21,7 +21,43 @@ The target is a full packaging studio, with Pacdora as a capability benchmark. T
 | Output and review | Still images, transparent background, turntable/opening video, shareable 3D review and saved projects | Output matches the saved scene; resolution, format and access permissions verified end to end |
 | Editing reliability | Undo/redo, autosave, versioning, duplication and recovery | Reload/recovery preserves geometry, artwork, camera, scene and opening state |
 
-These rows combine the user's requirements, verified public Pacdora feature descriptions and our own acceptance criteria. They are a baseline, not an exhaustive audit of every competitor feature. A hands-on workflow audit and a template-level backlog must precede any parity claim. AI design, custom model import, integrations and broader catalog coverage remain audit items rather than silently assumed capabilities.
+These rows combine the user's requirements, verified public Pacdora feature descriptions and our own acceptance criteria. They are the baseline for the V2 product contract. A hands-on workflow audit and a template-level backlog must precede any parity claim.
+
+## Pacdora-class premium parity backlog
+
+Treat this as a tracked product requirement, not a marketing claim. V2 does not need to copy Pacdora's interface, but it must support the same class of professional packaging workflows before we describe it as feature-complete.
+
+| Premium capability | V2 requirement |
+| --- | --- |
+| Large template catalog | Searchable, filterable, favoritable packaging library spanning cartons, corrugated, rigid, bottles/jars, cans, tubes, pouches/bags, cups/containers and additional validated structures. Catalog architecture must scale to thousands of versioned templates. |
+| Real-time 2D + 3D workflow | A dieline/design view and immersive 3D preview must operate on the same project state, with artwork edits reflected immediately and reproducibly. |
+| High-resolution rendering | Browser export presets for HD, 2K, 4K and 8K stills where device capability permits, with PNG/JPG, transparent background and scene-background variants. |
+| Motion output | Turntable, opening/folding and camera-sequence MP4 export with deterministic timing and saved animation state. |
+| Production dielines | Printable dieline export with cut, crease, glue and bleed semantics derived from the same structural definition as the 3D geometry. PDF/DXF/SVG support is evaluated per workflow. |
+| Dieline-to-3D | SVG/DXF import, line classification, fold direction, hinge assignment, diagnostics, material choice and interactive folding preview. |
+| Scene creator | Multiple packaging objects in one scene with transform, duplicate, grouping/layer ordering, lighting, floor/background, shadows and camera composition. |
+| Materials and finishes | Paper/cardboard/kraft/corrugated/plastic/glass/metal plus matte, gloss, transparency, roughness, reflectivity and selected premium finish effects. |
+| Sharing and review | Shareable 3D review links, permission-aware versions, comments/annotations, approval status and embeddable review where appropriate. |
+| AI-assisted workflows | Optional, non-dominant AI entry points for structure discovery, artwork ideation, background/scene generation and packaging concept assistance. AI output must remain editable and tied to real project geometry. |
+| Pro workflow reliability | Undo/redo, autosave, named versions, duplication, recovery, import diagnostics, explicit unsupported states and deterministic exports. |
+| Responsive professional UX | Desktop-first precision tools, purposeful tablet drawers and a viewport-first mobile mode with task sheets rather than a collapsed desktop layout. |
+
+### First production vertical slice
+
+The first engine milestone is deliberately narrow but must be real end-to-end:
+
+1. Choose a validated folding-carton template.
+2. Set width, height, depth, units and supported board thickness.
+3. Switch between shared-source dieline and 3D preview.
+4. Upload artwork and assign it to a panel.
+5. Crop, scale, rotate, align and choose fit/fill behavior.
+6. Orbit, pan, zoom, reset and inspect the package in real 3D.
+7. Change board material/finish and basic studio lighting/background.
+8. Scrub the opening state on a physically coherent hinged closure.
+9. Export a deterministic PNG from the saved camera/scene state.
+10. Reload the serialized fixture and reproduce the same visual result.
+
+The next architecture-proof slice adds one curved package (bottle or jar) and one multi-part articulated package (rigid lid/drawer or hinged gift structure). This prevents the engine from becoming box-specific before the data model stabilizes.
 
 ## Engine foundation
 
