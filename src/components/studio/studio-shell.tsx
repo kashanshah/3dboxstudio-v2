@@ -237,10 +237,10 @@ export function StudioShell() {
       <section className="pro-canvas" aria-label="Packaging workspace">
         <div className="pro-canvas-top">
           <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
-            <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); }}><Grid3X3 size={14} /> Dieline</button>
+            <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> Dieline</button>
             <button className={mode === '3d' ? 'is-active' : ''} onClick={() => { setMode('3d'); setFaceAction(null); }}><Boxes size={14} /> 3D Preview</button>
           </div>
-          <div className="pro-camera-menu" ref={cameraMenuRef}>
+          {mode === '3d' && <div className="pro-camera-menu" ref={cameraMenuRef}>
             <button
               type="button"
               aria-haspopup="menu"
@@ -262,7 +262,7 @@ export function StudioShell() {
                 className={camera === item ? 'is-active' : ''}
               >{item}</button>)}
             </div>}
-          </div>
+          </div>}
         </div>
 
         {mode === '3d' ? <div className="pro-3d-stage">
