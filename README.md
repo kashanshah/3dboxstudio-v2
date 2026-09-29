@@ -19,6 +19,7 @@ The initial app needs no credentials. `npm run check` runs ESLint, TypeScript, a
 - Fresh responsive homepage and shared visual system.
 - Blue and cool-neutral interface palette with self-hosted Manrope typography; see [design system](docs/design-system.md).
 - Interactive sample packaging concept (CSS 3D, not the future rendering engine).
+- Packaging-focused homepage workspace with selectable artwork studies, finish/color changes, camera presets, rotation, a working example gallery, FAQ disclosure, and mobile navigation.
 - `/studio` explicitly labeled as a design preview.
 - `/blog` journal scaffold with an honest empty state, ready for reviewed content migration.
 - Accessible controls, keyboard focus, skip links, and reduced motion support.
@@ -32,4 +33,4 @@ Create a separate Neon project named `3dboxstudio-v2`. Do not reuse the V1 datab
 
 The existing S3 bucket may be reused with V2-only prefixes and IAM permissions scoped to those prefixes. Environment variables alone do not enforce access restrictions. Existing V1 object paths must remain unchanged.
 
-See [architecture](docs/architecture.md) and [roadmap](docs/roadmap.md). Keep `SITE_INDEXABLE=false` for all development and preview deployments. Robots directives are not access control; use hosting authentication for private previews.
+See [architecture](docs/architecture.md), [roadmap](docs/roadmap.md), and the [studio capability and imagery requirements](docs/studio-capabilities.md). Keep `SITE_INDEXABLE=false` for all development and preview deployments. Robots directives are not access control; use hosting authentication for private previews.

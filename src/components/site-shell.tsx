@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { Box, ArrowUpRight } from 'lucide-react';
+import { Box, ArrowUpRight, Menu } from 'lucide-react';
 
 export function Brand() {
   return <Link href="/" className="brand" aria-label="3D Box Studio home"><span className="brand-icon"><Box size={21} strokeWidth={1.7} /></span><span>3D Box<span className="brand-light"> Studio</span></span></Link>;
 }
 export function SiteHeader() {
-  return <><a className="skip-link" href="#main">Skip to content</a><header className="site-header"><Brand /><nav aria-label="Main navigation"><Link href="/#workflow">How it works</Link><Link href="/blog">Journal</Link></nav><Link className="button button-small" href="/studio">Explore V2 <ArrowUpRight size={16} /></Link></header></>;
+  return <><a className="skip-link" href="#main">Skip to content</a><header className="site-header"><div className="header-inner"><Brand /><nav aria-label="Main navigation"><Link href="/#studio-demo">Product</Link><Link href="/#examples">Examples</Link><Link href="/#workflow">Workflow</Link><Link href="/blog">Journal</Link></nav><Link className="button button-small header-cta" href="/studio">Studio preview <ArrowUpRight size={15} /></Link><details className="mobile-navigation"><summary aria-label="Open navigation menu"><Menu size={21} /></summary><nav aria-label="Mobile navigation"><Link href="/#studio-demo">Product demo</Link><Link href="/#examples">Packaging examples</Link><Link href="/#workflow">Workflow</Link><Link href="/blog">Journal</Link><Link href="/studio">Studio preview</Link></nav></details></div></header></>;
 }
 export function SiteFooter() {
-  return <footer className="site-footer"><div><Brand /><p>A little imagination. A new dimension.</p></div><div className="footer-links"><Link href="/blog">Journal</Link><Link href="/studio">V2 preview</Link></div><span className="footer-note">V2 in development · {new Date().getFullYear()}</span></footer>;
+  return <footer className="site-footer"><div><Brand /><p>Packaging in a new dimension.</p></div><div className="footer-links"><Link href="/#studio-demo">Product demo</Link><Link href="/#examples">Examples</Link><Link href="/blog">Journal</Link><Link href="/studio">Studio preview</Link></div><span className="footer-note">V2 in development · {new Date().getFullYear()}</span></footer>;
 }
