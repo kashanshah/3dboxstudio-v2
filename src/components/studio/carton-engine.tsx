@@ -294,12 +294,22 @@ function createRenderer(canvas: HTMLCanvasElement) {
 
 function buildMeshes(dimensions: CartonDimensions, opening: number, color: [number, number, number]): Mesh[] {
   const { width: w, height: h, depth: d } = dimensions;
+  const t = clamp(dimensions.thickness, 0.3, Math.min(w, d) * 0.12);
+
   const x0 = -w / 2, x1 = w / 2;
   const y0 = -h / 2, y1 = h / 2;
   const z0 = -d / 2, z1 = d / 2;
+
+  const ix0 = x0 + t, ix1 = x1 - t;
+  const iy0 = y0 + t;
+  const iz0 = z0 + t, iz1 = z1 - t;
+
   const darker: [number, number, number] = color.map(v => v * 0.86) as [number, number, number];
   const lighter: [number, number, number] = color.map(v => Math.min(1, v * 1.08)) as [number, number, number];
+  const interior: [number, number, number] = color.map(v => Math.min(1, v * 0.92 + 0.08)) as [number, number, number];
+  const edge: [number, number, number] = color.map(v => v * 0.78) as [number, number, number];
 
+  // Exterior shell.
   const front = quad(
     [x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],
     [0,0,1], color, true,
@@ -321,16 +331,70 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
     [0,-1,0], darker,
   );
 
-  const flap = quad(
-    [x0,0,0],[x0,0,d],[x1,0,d],[x1,0,0],
-    [0,1,0], lighter,
+  // Interior cavity. These faces are wound so their normals point inward.
+  const innerFront = quad(
+    [ix1,iy0,iz1],[ix0,iy0,iz1],[ix0,y1,iz1],[ix1,y1,iz1],
+    [0,0,-1], interior,
   );
-  flap.model = multiply4(
+  const innerBack = quad(
+    [ix0,iy0,iz0],[ix1,iy0,iz0],[ix1,y1,iz0],[ix0,y1,iz0],
+    [0,0,1], interior,
+  );
+  const innerLeft = quad(
+    [ix0,iy0,iz1],[ix0,iy0,iz0],[ix0,y1,iz0],[ix0,y1,iz1],
+    [1,0,0], interior,
+  );
+  const innerRight = quad(
+    [ix1,iy0,iz0],[ix1,iy0,iz1],[ix1,y1,iz1],[ix1,y1,iz0],
+    [-1,0,0], interior,
+  );
+  const innerBottom = quad(
+    [ix0,iy0,iz1],[ix1,iy0,iz1],[ix1,iy0,iz0],[ix0,iy0,iz0],
+    [0,1,0], interior,
+  );
+
+  // Board-thickness rim around the open mouth.
+  const frontRim = quad(
+    [x0,y1,z1],[x1,y1,z1],[ix1,y1,iz1],[ix0,y1,iz1],
+    [0,1,0], edge,
+  );
+  const backRim = quad(
+    [x1,y1,z0],[x0,y1,z0],[ix0,y1,iz0],[ix1,y1,iz0],
+    [0,1,0], edge,
+  );
+  const leftRim = quad(
+    [x0,y1,z0],[x0,y1,z1],[ix0,y1,iz1],[ix0,y1,iz0],
+    [0,1,0], edge,
+  );
+  const rightRim = quad(
+    [x1,y1,z1],[x1,y1,z0],[ix1,y1,iz0],[ix1,y1,iz1],
+    [0,1,0], edge,
+  );
+
+  // Top flap: exterior and interior faces share the same hinge transform.
+  const flapModel = multiply4(
     translation4(0, y1, z0),
     rotationX4(-(clamp(opening, 0, 100) / 100) * Math.PI * 0.72),
   );
 
-  return [front, back, left, right, bottom, flap];
+  const flapOuter = quad(
+    [x0,0,0],[x0,0,d],[x1,0,d],[x1,0,0],
+    [0,1,0], lighter,
+  );
+  flapOuter.model = flapModel;
+
+  const flapInner = quad(
+    [x1,0,0],[x1,0,d],[x0,0,d],[x0,0,0],
+    [0,-1,0], interior,
+  );
+  flapInner.model = flapModel;
+
+  return [
+    front, back, left, right, bottom,
+    innerFront, innerBack, innerLeft, innerRight, innerBottom,
+    frontRim, backRim, leftRim, rightRim,
+    flapOuter, flapInner,
+  ];
 }
 
 function quad(
