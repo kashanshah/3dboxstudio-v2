@@ -233,7 +233,15 @@ export function StudioShell() {
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
-        <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button className="pro-inspector-close" onClick={() => setInspectorOpen(false)}><X size={17} /></button></div>
+        <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button
+  className="pro-inspector-close"
+  aria-label="Close tool panel"
+  title="Close"
+  onClick={() => {
+    setInspectorOpen(false);
+    setTool(null);
+  }}
+><X size={18} /></button></div>
         {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />}
       </aside>
     </div>
