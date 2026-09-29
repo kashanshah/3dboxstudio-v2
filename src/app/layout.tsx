@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { site } from '@/lib/site';
+import '@fontsource-variable/manrope';
 import './globals.css';
 
 export const metadata: Metadata = {

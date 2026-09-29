@@ -17,6 +17,7 @@ The initial app needs no credentials. `npm run check` runs ESLint, TypeScript, a
 ## First milestone
 
 - Fresh responsive homepage and shared visual system.
+- Blue and cool-neutral interface palette with self-hosted Manrope typography; see [design system](docs/design-system.md).
 - Interactive sample packaging concept (CSS 3D, not the future rendering engine).
 - `/studio` explicitly labeled as a design preview.
 - `/blog` journal scaffold with an honest empty state, ready for reviewed content migration.
