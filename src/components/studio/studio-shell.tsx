@@ -25,7 +25,6 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'export', label: 'Export', icon: Download },
 ];
 
-const panels = ['Front','Back','Left','Right','Top','Bottom'];
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
@@ -76,10 +75,6 @@ export function StudioShell() {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
   }, []);
-
-  useEffect(() => {
-    if (opening < 99.5 && showMeasurements) setShowMeasurements(false);
-  }, [opening, showMeasurements]);
 
   useEffect(() => {
     if (!cameraMenuOpen) return;
@@ -242,6 +237,7 @@ export function StudioShell() {
   };
 
   const animateFold = (target: 0 | 100) => {
+    if (target === 0) setShowMeasurements(false);
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
     const start = opening;
     const startedAt = performance.now();
@@ -379,7 +375,11 @@ export function StudioShell() {
               step="1"
               value={Math.round(opening)}
               aria-label="Open or close box"
-              onChange={e => setOpening(Number(e.target.value))}
+              onChange={e => {
+                const nextOpening = Number(e.target.value);
+                if (nextOpening < 99.5) setShowMeasurements(false);
+                setOpening(nextOpening);
+              }}
             />
             <span className="pro-canvas-bar-label">Closed</span>
             <span className="pro-canvas-bar-divider" />
