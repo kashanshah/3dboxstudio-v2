@@ -5,7 +5,7 @@ import {
   Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download,
   FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
   MousePointer2, PackageOpen, Plus, Redo2, Rotate3d, Search, Share2, Sparkles,
-  Undo2, Upload, X
+  Trash2, Undo2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
@@ -108,6 +108,19 @@ export function StudioShell() {
 
   const pickArtwork = () => fileRef.current?.click();
 
+  const removeArtwork = (targetPanel: string) => {
+    setArtworkByPanel(current => {
+      const artwork = current[targetPanel];
+      if (!artwork) return current;
+      URL.revokeObjectURL(artwork.url);
+      const next = { ...current };
+      delete next[targetPanel];
+      return next;
+    });
+    setMessage(`Artwork removed from the ${targetPanel} panel`);
+    setFaceAction(null);
+  };
+
   const exportPng = () => {
     if (mode !== '3d') {
       setMode('3d');
@@ -206,6 +219,12 @@ export function StudioShell() {
               <Upload size={13} />
               {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Upload artwork'}
             </button>
+            {artworkByPanel[faceAction.panel] && <button
+              className="pro-face-action-remove"
+              onClick={() => removeArtwork(faceAction.panel)}
+            >
+              <Trash2 size={13} /> Remove artwork
+            </button>}
             <button className="pro-face-action-close" aria-label="Dismiss face action" onClick={() => setFaceAction(null)}><X size={12}/></button>
           </div>}
         </div> : <DielinePrototype
@@ -242,7 +261,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -256,7 +275,7 @@ function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
-  artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>; onPickArtwork:()=>void; onArtwork:(file?:File)=>void;
+  artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>; onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
   onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
@@ -305,6 +324,7 @@ function Inspector(props: {
     <SectionTitle title={`${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
     {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
     <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? `Replace ${props.panel} artwork` : `Upload to ${props.panel}`}</button>
+    {selectedArtwork && <button className="pro-remove-artwork" onClick={() => props.onRemoveArtwork(props.panel)}><Trash2 size={15}/> Remove artwork</button>}
     {selectedArtwork && <div className="pro-file"><Check size={15}/><span>{selectedArtwork.name}</span></div>}
     </div>
     <div className="pro-card-section">
