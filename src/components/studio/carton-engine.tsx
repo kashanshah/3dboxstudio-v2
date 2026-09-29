@@ -25,8 +25,7 @@ type Props = {
   cameraPreset: string;
   zoom: number;
   lightIntensity?: number;
-  selectedPanel?: string;
-  onPanelSelect?: (panel: string) => void;
+  onPanelSelect?: (panel: string, point: { x: number; y: number }) => void;
 };
 
 type Mesh = {
@@ -40,7 +39,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, lightIntensity = 0.78, selectedPanel = 'Front', onPanelSelect },
+  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -106,10 +105,9 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       pitch,
       zoom,
       lightIntensity,
-      selectedPanel,
       hoverPanel,
     });
-  }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity, selectedPanel, hoverPanel]);
+  }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -140,8 +138,10 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     }
     if (!drag?.moved) {
       const rect = event.currentTarget.getBoundingClientRect();
-      const panel = rendererRef.current?.pickPanel(event.clientX - rect.left, event.clientY - rect.top);
-      if (panel) onPanelSelect?.(panel);
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const panel = rendererRef.current?.pickPanel(x, y);
+      if (panel) onPanelSelect?.(panel, { x, y });
     }
   };
 
@@ -171,7 +171,6 @@ type Scene = {
   pitch: number;
   zoom: number;
   lightIntensity: number;
-  selectedPanel: string;
   hoverPanel: string | null;
 };
 
@@ -219,7 +218,6 @@ function createRenderer(canvas: HTMLCanvasElement) {
     pitch: 0.28,
     zoom: 82,
     lightIntensity: 0.78,
-    selectedPanel: 'Front',
     hoverPanel: null,
   };
   let artworkToken = 0;
@@ -283,12 +281,10 @@ function createRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1i(clipLocation, 0);
       }
 
-      const isEditablePanel = !!mesh.panel;
-      const isSelected = mesh.panel === scene.selectedPanel;
-      const isHovered = !!mesh.panel && mesh.panel === scene.hoverPanel && !isSelected;
+      const isHovered = !!mesh.panel && mesh.panel === scene.hoverPanel;
       gl.uniform3f(overlayColorLocation, 0.0, 0.46, 0.77);
-      gl.uniform1f(overlayAlphaLocation, isSelected ? 0.18 : isHovered ? 0.09 : 0.0);
-      gl.uniform1f(outlineAlphaLocation, isSelected ? 0.9 : isHovered ? 0.62 : isEditablePanel ? 0.18 : 0.0);
+      gl.uniform1f(overlayAlphaLocation, isHovered ? 0.10 : 0.0);
+      gl.uniform1f(outlineAlphaLocation, isHovered ? 0.72 : 0.0);
 
       gl.uniform1i(useTextureLocation, shouldUseTexture ? 1 : 0);
       gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length / 8);
