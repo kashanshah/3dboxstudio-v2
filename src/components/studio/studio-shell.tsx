@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download,
   FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
-  MousePointer2, PackageOpen, Plus, Redo2, Rotate3d, Search, Share2, Sparkles,
+  MousePointer2, PackageOpen, Redo2, Rotate3d, Search, Share2, Sparkles,
   Trash2, Undo2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -336,6 +336,7 @@ export function StudioShell() {
             artworkByPanel={artworkByPanel}
             cameraPreset={camera}
             zoom={zoom}
+            onZoomChange={setZoom}
             onPanelSelect={(selectedPanel, point) => {
               const parsed = parseArtworkTarget(selectedPanel);
               setArtworkScope(parsed.scope);
@@ -411,14 +412,17 @@ export function StudioShell() {
           }}
         />}
 
-        <div className="pro-canvas-controls">
-          <button title="Select"><MousePointer2 size={16} /></button>
-          <button title="Orbit"><Rotate3d size={16} /></button>
+        <div className="pro-canvas-controls pro-canvas-tools">
+          <button title="Select"><MousePointer2 size={17} /></button>
+          <button title="Orbit"><Rotate3d size={17} /></button>
           <span />
-          <button onClick={() => setZoom(Math.max(40, zoom - 10))}><Minus size={15} /></button>
-          <strong>{zoom}%</strong>
-          <button onClick={() => setZoom(Math.min(140, zoom + 10))}><Plus size={15} /></button>
-          <button title="Fit view"><Maximize2 size={16} /></button>
+          <button
+            title="Fit view"
+            onClick={() => {
+              setZoom(82);
+              engineRef.current?.resetCamera();
+            }}
+          ><Maximize2 size={17} /></button>
         </div>
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
