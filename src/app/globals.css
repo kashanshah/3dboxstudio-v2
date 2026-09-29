@@ -294,3 +294,53 @@
   .pro-inspector{top:0;bottom:0;width:100%;right:0;border-radius:16px 16px 0 0;transform:translateY(calc(100% + 12px))}
   .pro-inspector.is-open{transform:translateY(0)}
 }
+
+/* Floating secondary tool panel beside the primary left rail. */
+.pro-studio-body{position:relative;grid-template-columns:var(--studio-rail) minmax(0,1fr)}
+.pro-inspector{
+  position:absolute;
+  top:12px;
+  left:calc(var(--studio-rail) + 12px);
+  right:auto;
+  bottom:12px;
+  width:min(420px,calc(100vw - var(--studio-rail) - 36px));
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fff;
+  transform:translateX(-16px) scale(.985);
+  opacity:0;
+  pointer-events:none;
+  transition:transform .18s ease,opacity .18s ease,box-shadow .18s ease;
+  box-shadow:none;
+  overflow:hidden;
+  z-index:25;
+}
+.pro-inspector.is-open{
+  transform:translateX(0) scale(1);
+  opacity:1;
+  pointer-events:auto;
+  box-shadow:var(--shadow-lift);
+}
+.pro-inspector-title{position:sticky;top:0;z-index:2;border-bottom:1px solid var(--line);background:#fff}
+.pro-inspector-content{overflow-y:auto;max-height:calc(100% - 88px)}
+@media(max-width:1050px){
+  .pro-inspector{
+    top:10px;
+    left:calc(var(--studio-rail) + 10px);
+    bottom:10px;
+    width:min(400px,calc(100vw - var(--studio-rail) - 24px));
+  }
+}
+@media(max-width:640px){
+  .pro-inspector{
+    top:auto;
+    left:8px;
+    right:8px;
+    bottom:78px;
+    width:auto;
+    height:min(72dvh,680px);
+    border-radius:16px;
+    transform:translateY(18px) scale(.985);
+  }
+  .pro-inspector.is-open{transform:translateY(0) scale(1)}
+}
