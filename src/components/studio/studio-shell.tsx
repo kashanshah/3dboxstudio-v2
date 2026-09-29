@@ -10,7 +10,7 @@ import {
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode } from '@/lib/packaging/artwork';
+import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -41,6 +41,8 @@ export function StudioShell() {
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
+  const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
+  const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Prototype state · not yet persisted');
@@ -51,6 +53,14 @@ export function StudioShell() {
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
+
+  useEffect(() => {
+    mediaAssetsRef.current = mediaAssets;
+  }, [mediaAssets]);
+
+  useEffect(() => () => {
+    for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
+  }, []);
 
   useEffect(() => {
     if (!cameraMenuOpen) return;
@@ -90,20 +100,58 @@ export function StudioShell() {
     setInspectorOpen(true);
   };
 
+  const applyAssetToPanel = (asset: LocalMediaAsset, targetPanel = panel) => {
+    setArtworkByPanel(current => ({
+      ...current,
+      [targetPanel]: defaultArtworkPlacement(asset.name, asset.url, asset.id),
+    }));
+    setPanel(targetPanel);
+    setTool('artwork');
+    setInspectorOpen(true);
+    setMessage(`${asset.name} applied to the ${targetPanel} panel`);
+  };
+
   const handleArtwork = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       setMessage('Use PNG, JPG or WebP artwork');
       return;
     }
+
+    const fingerprint = `${file.name}:${file.size}:${file.lastModified}`;
+    const existing = mediaAssetsRef.current.find(asset => asset.fingerprint === fingerprint);
+    if (existing) {
+      applyAssetToPanel(existing);
+      setMessage(`${existing.name} reused from your library`);
+      return;
+    }
+
     const url = URL.createObjectURL(file);
-    setArtworkByPanel(current => {
-      const previous = current[panel];
-      if (previous) URL.revokeObjectURL(previous.url);
-      return { ...current, [panel]: defaultArtworkPlacement(file.name, url) };
-    });
-    setTool('artwork');
-    setMessage(`Artwork mapped to the ${panel} panel`);
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const asset: LocalMediaAsset = {
+      id,
+      name: file.name,
+      url,
+      mimeType: file.type,
+      byteSize: file.size,
+      width: null,
+      height: null,
+      fingerprint,
+      createdAt: Date.now(),
+    };
+
+    setMediaAssets(current => [asset, ...current]);
+    applyAssetToPanel(asset);
+
+    const image = new Image();
+    image.onload = () => {
+      setMediaAssets(current => current.map(item => item.id === id
+        ? { ...item, width: image.naturalWidth, height: image.naturalHeight }
+        : item));
+    };
+    image.src = url;
   };
 
   const pickArtwork = () => fileRef.current?.click();
@@ -112,13 +160,26 @@ export function StudioShell() {
     setArtworkByPanel(current => {
       const artwork = current[targetPanel];
       if (!artwork) return current;
-      URL.revokeObjectURL(artwork.url);
       const next = { ...current };
       delete next[targetPanel];
       return next;
     });
     setMessage(`Artwork removed from the ${targetPanel} panel`);
     setFaceAction(null);
+  };
+
+  const removeMediaAsset = (assetId: string) => {
+    const inUse = Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
+    if (inUse) {
+      setMessage('Remove this image from every panel before deleting it from the library');
+      return;
+    }
+    setMediaAssets(current => {
+      const asset = current.find(item => item.id === assetId);
+      if (asset) URL.revokeObjectURL(asset.url);
+      return current.filter(item => item.id !== assetId);
+    });
+    setMessage('Image removed from your local library');
   };
 
   const exportPng = () => {
@@ -131,7 +192,7 @@ export function StudioShell() {
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>handleArtwork(e.target.files?.[0])}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtwork(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -264,7 +325,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -278,7 +339,9 @@ function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
-  artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>; onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
+  artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
+  mediaAssets: LocalMediaAsset[]; onUseMediaAsset:(asset:LocalMediaAsset,panel?:string)=>void; onDeleteMediaAsset:(assetId:string)=>void;
+  onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
   onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
