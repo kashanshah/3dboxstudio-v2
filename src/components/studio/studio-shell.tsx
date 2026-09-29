@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download, Expand,
+  Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download,
   FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
   MousePointer2, PackageOpen, Plus, Redo2, Rotate3d, Search, Share2, Sparkles,
-  Undo2, Upload, X, ZoomIn
+  Undo2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
