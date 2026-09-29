@@ -206,7 +206,10 @@ export function StudioShell() {
           {faceAction && <div
             ref={faceActionRef}
             className="pro-face-action"
-            style={{ left: Math.min(faceAction.x + 12, 520), top: Math.max(54, faceAction.y - 18) }}
+            style={{
+              left: `clamp(12px, ${faceAction.x + 12}px, calc(100% - 280px))`,
+              top: `clamp(54px, ${faceAction.y - 18}px, calc(100% - 58px))`,
+            }}
           >
             <span>{faceAction.panel}</span>
             <button onClick={() => {
