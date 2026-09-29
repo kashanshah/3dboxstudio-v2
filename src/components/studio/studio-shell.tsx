@@ -11,6 +11,7 @@ import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
+import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -32,7 +33,10 @@ const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 export function StudioShell() {
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
-  const [family, setFamily] = useState('Folding carton');
+  const [family, setFamily] = useState('Reverse Tuck End Carton');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('reverse-tuck-carton');
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [templateCategory, setTemplateCategory] = useState('All');
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
   const [material, setMaterial] = useState('Soft touch');
@@ -100,6 +104,17 @@ export function StudioShell() {
     document.addEventListener('pointerdown', dismissOnOutsidePointer, true);
     return () => document.removeEventListener('pointerdown', dismissOnOutsidePointer, true);
   }, [faceAction]);
+
+  const chooseTemplate = (template: PackagingTemplateDefinition) => {
+    if (template.status !== 'ready') {
+      setMessage(`${template.name} is in the catalog, but its real geometry is not ready yet`);
+      return;
+    }
+    setSelectedTemplateId(template.id);
+    setFamily(template.name);
+    if (template.defaultDimensions) setDimensions(template.defaultDimensions);
+    setMessage(`${template.name} selected`);
+  };
 
   const chooseTool = (id: Tool) => {
     if (tool === id && inspectorOpen) {
@@ -420,7 +435,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -446,7 +461,9 @@ export function StudioShell() {
 }
 
 function Inspector(props: {
-  tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
+  tool: Tool; family: string; setFamily: (v:string)=>void;
+  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void;
+  panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
@@ -456,31 +473,86 @@ function Inspector(props: {
   onExport:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
-  if (tool === 'structure') return <div className="pro-inspector-content">
-    <PanelIntro title="Set up your box" text="Choose the packaging style, then enter the finished outside size." />
-    <div className="pro-card-section">
-      <SectionTitle title="Box style" />
-      <label className="pro-search"><Search size={16}/><input placeholder="Search packaging styles" /></label>
-      <div className="pro-chip-grid">{families.map(item => <button key={item} className={props.family===item?'is-selected':''} onClick={()=>props.setFamily(item)}>{item}</button>)}</div>
-    </div>
-    <div className="pro-card-section">
-      <SectionTitle title="Finished size" meta="Outside measurements" />
-      <div className="pro-fields">
-        <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
-        <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
-        <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+  if (tool === 'structure') {
+    const categories = getPackagingTemplateCategories();
+    const query = props.templateSearch.trim().toLowerCase();
+    const templates = PACKAGING_TEMPLATES.filter(template => {
+      const categoryMatch = props.templateCategory === 'All' || template.category === props.templateCategory;
+      const searchMatch = !query || [template.name, template.shortName, template.category, ...template.tags]
+        .some(value => value.toLowerCase().includes(query));
+      return categoryMatch && searchMatch;
+    });
+    const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
+
+    return <div className="pro-inspector-content pro-structure-content">
+      <PanelIntro title="Choose your packaging" text="Browse a growing library of real packaging structures. Pick a template first, then set its size." />
+
+      <div className="pro-structure-current">
+        <span>Current template</span>
+        <div>
+          <TemplateVisual template={selectedTemplate} compact />
+          <div>
+            <strong>{selectedTemplate.name}</strong>
+            <small>{selectedTemplate.category} · Ready to edit</small>
+          </div>
+        </div>
       </div>
-      <p className="pro-help">Measure the box after it is folded and closed.</p>
-    </div>
-    <details className="pro-advanced">
-      <summary>Construction details <ChevronDown size={16}/></summary>
-      <div className="pro-advanced-body">
-        <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
-        <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
-        <div className="pro-callout"><Box size={16}/><span><strong>Reverse tuck end</strong><br/>Standard folding-carton construction.</span></div>
+
+      <label className="pro-search pro-structure-search">
+        <Search size={18}/>
+        <input value={props.templateSearch} onChange={e=>props.setTemplateSearch(e.target.value)} placeholder="Search packaging templates" />
+      </label>
+
+      <div className="pro-structure-categories" aria-label="Template categories">
+        {categories.map(category => <button
+          key={category}
+          className={props.templateCategory === category ? 'is-active' : ''}
+          onClick={()=>props.setTemplateCategory(category)}
+        >{category}</button>)}
       </div>
-    </details>
-  </div>;
+
+      <div className="pro-template-grid">
+        {templates.map(template => {
+          const active = template.id === props.selectedTemplateId;
+          return <button
+            key={template.id}
+            className={`pro-template-card ${active ? 'is-selected' : ''} ${template.status === 'planned' ? 'is-planned' : ''}`}
+            onClick={()=>props.onChooseTemplate(template)}
+          >
+            <TemplateVisual template={template} />
+            <div className="pro-template-card-copy">
+              <strong>{template.shortName}</strong>
+              <span>{template.category}</span>
+            </div>
+            <small className={template.status === 'ready' ? 'is-ready' : ''}>{template.status === 'ready' ? 'Ready' : 'Coming soon'}</small>
+          </button>;
+        })}
+      </div>
+
+      {templates.length === 0 && <div className="pro-template-empty">
+        <Search size={24}/>
+        <strong>No templates found</strong>
+        <span>Try another search or category.</span>
+      </div>}
+
+      <div className="pro-card-section pro-structure-size-card">
+        <SectionTitle title="Finished size" meta="Outside measurements" />
+        <div className="pro-fields">
+          <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
+          <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
+          <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+        </div>
+        <p className="pro-help">Measure the finished package after it is folded and closed.</p>
+        <details className="pro-advanced">
+          <summary>Material thickness <ChevronDown size={17}/></summary>
+          <div className="pro-advanced-body">
+            <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
+            <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
+          </div>
+        </details>
+      </div>
+    </div>;
+  }
 
   if (tool === 'artwork') {
     const selectedKey = props.artworkScope === 'inside' ? `Interior ${props.panel}` : props.panel;
@@ -692,6 +764,32 @@ function DielinePrototype({
     </div>
     <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{artworkScope === 'inside' ? 'Inside ' : ''}{panel} selected · shared structural source</strong></div>
   </div>;
+}
+
+function TemplateVisual({template,compact=false}:{template:PackagingTemplateDefinition;compact?:boolean}) {
+  const visualClass = template.family === 'bottle'
+    ? 'is-bottle'
+    : template.family === 'jar'
+      ? 'is-jar'
+      : template.family === 'pouch'
+        ? 'is-pouch'
+        : template.family === 'cup'
+          ? 'is-cup'
+          : template.family === 'can'
+            ? 'is-can'
+            : template.family === 'rigid-box'
+              ? 'is-rigid'
+              : template.family === 'corrugated'
+                ? 'is-corrugated'
+                : template.id.includes('sleeve')
+                  ? 'is-sleeve'
+                  : 'is-carton';
+
+  return <span className={`pro-template-visual ${visualClass} ${compact ? 'is-compact' : ''}`} aria-hidden="true">
+    <i className="shape-main"/>
+    <i className="shape-side"/>
+    <i className="shape-top"/>
+  </span>;
 }
 
 function MediaLibraryModal(props: {
