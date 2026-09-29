@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
 import { FAQ_CATEGORIES, FAQ_ITEMS, FAQ_PAGE_DESCRIPTION, FAQ_PAGE_TITLE, getCategoryLabel, faqAnswerPlainText } from '@/content/faq';
-import { site } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: { absolute: FAQ_PAGE_TITLE },
