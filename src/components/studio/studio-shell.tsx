@@ -19,7 +19,7 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Structure', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
   { id: 'material', label: 'Finish', icon: Layers3 },
-  { id: 'opening', label: 'Open / Close', icon: PackageOpen },
+  { id: 'opening', label: 'Fold', icon: PackageOpen },
   { id: 'scene', label: 'Scene', icon: Lightbulb },
   { id: 'export', label: 'Export', icon: Download },
 ];
@@ -38,7 +38,7 @@ export function StudioShell() {
   const [material, setMaterial] = useState('Soft touch');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const [opening, setOpening] = useState(18);
+  const [opening, setOpening] = useState(100);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
@@ -55,6 +55,7 @@ export function StudioShell() {
   const engineRef = useRef<CartonEngineHandle>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
+  const foldAnimationRef = useRef<number | null>(null);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
@@ -69,6 +70,7 @@ export function StudioShell() {
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
+    if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
   }, []);
 
   useEffect(() => {
@@ -225,6 +227,25 @@ export function StudioShell() {
     setMessage('Image removed from your local library');
   };
 
+  const animateFold = (target: 0 | 100) => {
+    if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+    const start = opening;
+    const startedAt = performance.now();
+    const duration = 1500;
+
+    const frame = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      setOpening(start + (target - start) * eased);
+      if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
+      else foldAnimationRef.current = null;
+    };
+
+    foldAnimationRef.current = requestAnimationFrame(frame);
+  };
+
   const exportPng = () => {
     if (mode !== '3d') {
       setMode('3d');
@@ -308,7 +329,7 @@ export function StudioShell() {
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected from the 3D carton`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Fold {Math.round(opening)}%</span></div>
           {faceAction && <div
             ref={faceActionRef}
             className="pro-face-action"
@@ -370,7 +391,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onUseMediaAsset={applyAssetToPanel} onDeleteMediaAsset={removeMediaAsset} onOpenMediaLibrary={openMediaLibrary} onPickArtwork={pickArtwork} onArtwork={handleArtwork} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -403,7 +424,7 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[]; onUseMediaAsset:(asset:LocalMediaAsset,panel?:string)=>void; onDeleteMediaAsset:(assetId:string)=>void;
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onPickArtwork:()=>void; onArtwork:(file?:File)=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
   if (tool === 'structure') return <div className="pro-inspector-content">
@@ -533,14 +554,45 @@ function Inspector(props: {
     <ControlRow label="Print depth" value="Subtle" /><input className="pro-range" type="range" defaultValue="22"/>
   </div>;
 
-  if (tool === 'opening') return <div className="pro-inspector-content">
-    <SectionTitle title="Closure" meta="Tuck top" />
-    <div className="pro-opening-cards"><button className="is-selected"><PackageOpen/><span><b>Reverse tuck</b><small>Carton fixture</small></span></button><button><Box/><span><b>Mailer</b><small>Architecture proof</small></span></button><button><Layers3/><span><b>Drawer</b><small>Planned</small></span></button></div>
-    <SectionTitle title="Open / close preview" meta={`${props.opening}%`} />
-    <div className="pro-play-row"><button><CirclePlay size={18}/></button><input className="pro-range" type="range" value={props.opening} onChange={e=>props.setOpening(Number(e.target.value))}/></div>
-    <ControlRow label="Duration" value="1.8 s" /><input className="pro-range" type="range" defaultValue="45"/>
-    <div className="pro-callout"><Sparkles size={15}/><span>Scrubbing is interactive now; physically validated hinge geometry lands in the engine slice.</span></div>
-  </div>;
+  if (tool === 'opening') {
+    const stage = props.opening <= 4
+      ? 'Flat dieline'
+      : props.opening < 52
+        ? 'Raising the walls'
+        : props.opening < 68
+          ? 'Wrapping the back'
+          : props.opening < 84
+            ? 'Closing the bottom'
+            : props.opening < 99
+              ? 'Closing the top'
+              : 'Assembled box';
+
+    return <div className="pro-inspector-content">
+      <PanelIntro title="Fold your box" text="Drag the slider to see how the flat dieline becomes the finished package." />
+      <div className="pro-card-section pro-fold-card">
+        <div className="pro-fold-heading">
+          <div><span>Fold progress</span><strong>{stage}</strong></div>
+          <b>{Math.round(props.opening)}%</b>
+        </div>
+        <input
+          className="pro-range pro-fold-range"
+          aria-label="Fold from flat dieline to assembled box"
+          type="range"
+          min="0"
+          max="100"
+          step="1"
+          value={Math.round(props.opening)}
+          onChange={e=>props.setOpening(Number(e.target.value))}
+        />
+        <div className="pro-fold-endpoints"><span>Flat dieline</span><span>Assembled</span></div>
+        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}>
+          <CirclePlay size={20}/>
+          {props.opening >= 50 ? 'Unfold to dieline' : 'Fold into box'}
+        </button>
+      </div>
+      <div className="pro-callout"><Sparkles size={16}/><span>Artwork stays attached to each surface throughout the fold.</span></div>
+    </div>;
+  }
 
   if (tool === 'scene') return <div className="pro-inspector-content">
     <SectionTitle title="Scene" meta="Arrange your mockup" />
