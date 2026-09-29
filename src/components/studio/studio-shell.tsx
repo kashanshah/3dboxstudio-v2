@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download,
+  Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
   FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
-  MousePointer2, PackageOpen, Redo2, Rotate3d, Search, Share2, Sparkles,
+  PackageOpen, Plus, Redo2, Search, Share2, Sparkles,
   Trash2, Undo2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -20,7 +20,7 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Structure', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
   { id: 'material', label: 'Finish', icon: Layers3 },
-  { id: 'opening', label: 'Fold', icon: PackageOpen },
+  { id: 'opening', label: 'Open / Close', icon: PackageOpen },
   { id: 'scene', label: 'Scene', icon: Lightbulb },
   { id: 'export', label: 'Export', icon: Download },
 ];
@@ -307,9 +307,12 @@ export function StudioShell() {
               aria-expanded={cameraMenuOpen}
               onClick={() => setCameraMenuOpen(open => !open)}
             >
-              <Aperture size={14} /> {camera} <ChevronDown size={13} className={cameraMenuOpen ? 'is-open' : ''} />
+              <Camera size={16} />
+              <span>Camera Angle</span>
+              <small>{camera}</small>
+              <ChevronDown size={14} className={cameraMenuOpen ? 'is-open' : ''} />
             </button>
-            {cameraMenuOpen && <div className="pro-camera-popover" role="menu">
+            {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label="Camera angles">
               {cameras.map(item => <button
                 key={item}
                 type="button"
@@ -320,7 +323,10 @@ export function StudioShell() {
                   setCameraMenuOpen(false);
                 }}
                 className={camera === item ? 'is-active' : ''}
-              >{item}</button>)}
+              >
+                <span className={`pro-camera-view-icon is-${item.toLowerCase()}`} aria-hidden="true"><i/><i/><i/></span>
+                <b>{item}</b>
+              </button>)}
             </div>}
           </div>}
         </div>
@@ -345,20 +351,20 @@ export function StudioShell() {
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected from the 3D carton`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Fold {Math.round(opening)}%</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
 
-          <div className="pro-canvas-fold" aria-label="Fold carton">
+          <div className="pro-canvas-fold" aria-label="Open or close carton">
             <button
               className="pro-canvas-fold-play"
-              aria-label={opening >= 50 ? 'Unfold to flat dieline' : 'Fold into assembled box'}
-              title={opening >= 50 ? 'Unfold to flat dieline' : 'Fold into assembled box'}
+              aria-label={opening >= 50 ? 'Open box' : 'Close box'}
+              title={opening >= 50 ? 'Open box' : 'Close box'}
               onClick={() => animateFold(opening >= 50 ? 0 : 100)}
             >
               <CirclePlay size={19}/>
             </button>
             <div className="pro-canvas-fold-main">
               <div className="pro-canvas-fold-head">
-                <strong>Fold</strong>
+                <strong>Open / Close</strong>
                 <span>{Math.round(opening)}%</span>
               </div>
               <input
@@ -368,10 +374,10 @@ export function StudioShell() {
                 max="100"
                 step="1"
                 value={Math.round(opening)}
-                aria-label="Fold from flat dieline to assembled box"
+                aria-label="Open or close box"
                 onChange={e => setOpening(Number(e.target.value))}
               />
-              <div className="pro-canvas-fold-labels"><span>Flat</span><span>Assembled</span></div>
+              <div className="pro-canvas-fold-labels"><span>Open</span><span>Closed</span></div>
             </div>
           </div>
 
@@ -413,16 +419,17 @@ export function StudioShell() {
         />}
 
         <div className="pro-canvas-controls pro-canvas-tools">
-          <button title="Select"><MousePointer2 size={17} /></button>
-          <button title="Orbit"><Rotate3d size={17} /></button>
+          <button title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}><Minus size={18} /></button>
+          <button title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}><Plus size={18} /></button>
           <span />
           <button
             title="Fit view"
+            aria-label="Fit view"
             onClick={() => {
               setZoom(82);
               engineRef.current?.resetCamera();
             }}
-          ><Maximize2 size={17} /></button>
+          ><Maximize2 size={18} /></button>
         </div>
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
@@ -673,15 +680,15 @@ function Inspector(props: {
               : 'Assembled box';
 
     return <div className="pro-inspector-content">
-      <PanelIntro title="Fold your box" text="Drag the slider to see how the flat dieline becomes the finished package." />
+      <PanelIntro title="Open or close your box" text="Drag the slider to move smoothly between the fully open structure and the finished closed package." />
       <div className="pro-card-section pro-fold-card">
         <div className="pro-fold-heading">
-          <div><span>Fold progress</span><strong>{stage}</strong></div>
+          <div><span>Open / close</span><strong>{stage}</strong></div>
           <b>{Math.round(props.opening)}%</b>
         </div>
         <input
           className="pro-range pro-fold-range"
-          aria-label="Fold from flat dieline to assembled box"
+          aria-label="Open or close box"
           type="range"
           min="0"
           max="100"
@@ -689,10 +696,10 @@ function Inspector(props: {
           value={Math.round(props.opening)}
           onChange={e=>props.setOpening(Number(e.target.value))}
         />
-        <div className="pro-fold-endpoints"><span>Flat dieline</span><span>Assembled</span></div>
+        <div className="pro-fold-endpoints"><span>Open</span><span>Closed</span></div>
         <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}>
           <CirclePlay size={20}/>
-          {props.opening >= 50 ? 'Unfold to dieline' : 'Fold into box'}
+          {props.opening >= 50 ? 'Open box' : 'Close box'}
         </button>
       </div>
       <div className="pro-callout"><Sparkles size={16}/><span>Artwork stays attached to each surface throughout the fold.</span></div>
