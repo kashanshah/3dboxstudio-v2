@@ -124,7 +124,8 @@ export function StudioShell() {
             dimensions={dimensions}
             opening={opening}
             material={material}
-            artworkByPanel={Object.fromEntries(Object.entries(artworkByPanel).map(([key, artwork]) => [key, artwork]))}
+            artworkByPanel={artworkByPanel}
+            selectedPanel={panel}
             cameraPreset={camera}
             zoom={zoom}
             onPanelSelect={(selectedPanel) => {
