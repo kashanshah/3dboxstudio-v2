@@ -32,7 +32,6 @@ export function ContentPageShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => setMenuOpen(false), [pathname]);
 
   const active = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
@@ -49,8 +48,8 @@ export function ContentPageShell({ children }: { children: ReactNode }) {
         </div>
       </div>
       {menuOpen && <nav className="content-mobile-menu" aria-label="Mobile navigation">
-        {links.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}
-        <Link href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
+        {links.map((item) => <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}</Link>)}
+        <Link href="/studio" onClick={() => setMenuOpen(false)}>Open Studio <ArrowUpRight size={16}/></Link>
       </nav>}
     </header>
 
