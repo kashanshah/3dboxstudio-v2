@@ -23,7 +23,7 @@ The primary action shade is slightly darker than the prototype's bright blue to 
 
 ## Typography
 
-Manrope Variable, self-hosted through `@fontsource-variable/manrope`, with Avenir Next and system fallbacks. No Google Fonts request or font download is required at build time. Preserve the original Lovable prototype's typography from commit `f4c3c7d52aec7b7bc171173a94b7d497d75b2649` rather than inventing a replacement. The user explicitly preferred that typography before the subsequent homepage exploration.
+Match the original Lovable prototype's effective typography from commit `f4c3c7d52aec7b7bc171173a94b7d497d75b2649`. That prototype declares `Manrope, Avenir Next, sans-serif` but does not load Manrope, so on macOS it resolves to Avenir Next. V2 therefore prefers `Avenir Next` for visual parity and self-hosts standard static `Manrope` through `@fontsource/manrope` as the cross-platform fallback. Do not use `Manrope Variable` here.
 
 | Token | Original reference |
 | --- | --- |
