@@ -281,3 +281,16 @@
 
 .pro-camera-menu>button svg:last-child{transition:transform .16s ease}
 .pro-camera-menu>button svg:last-child.is-open{transform:rotate(180deg)}
+
+/* Canvas-first inspector drawer: no width reserved while closed. */
+.pro-studio-body{position:relative;grid-template-columns:var(--studio-rail) minmax(0,1fr)}
+.pro-inspector{position:absolute;top:0;right:0;bottom:0;width:var(--studio-inspector);transform:translateX(calc(100% + 18px));transition:transform .22s ease,box-shadow .22s ease;box-shadow:none}
+.pro-inspector.is-open{transform:translateX(0);box-shadow:var(--shadow-lift)}
+@media(max-width:1050px){
+  .pro-studio-body{grid-template-columns:var(--studio-rail) minmax(0,1fr)}
+  .pro-inspector{top:0;bottom:0;width:min(400px,calc(100vw - var(--studio-rail)));right:0}
+}
+@media(max-width:640px){
+  .pro-inspector{top:0;bottom:0;width:100%;right:0;border-radius:16px 16px 0 0;transform:translateY(calc(100% + 12px))}
+  .pro-inspector.is-open{transform:translateY(0)}
+}
