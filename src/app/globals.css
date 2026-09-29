@@ -106,3 +106,9 @@
 .dl-live .dl-label,.dl-live b{position:relative;z-index:2}
 .dl-live.has-artwork b{padding:3px 5px;border-radius:4px;background:#0008;color:#fff;font-size:8px}
 .dl-live:disabled{cursor:default;opacity:.68}
+
+.pro-face-action{position:absolute;z-index:6;display:flex;align-items:center;gap:6px;padding:5px 6px 5px 8px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:var(--shadow-lift);font-size:9px;white-space:nowrap}
+.pro-face-action>span{color:var(--muted);font-weight:700}
+.pro-face-action>button:not(.pro-face-action-close){height:27px;padding:0 8px;border-radius:5px;background:var(--accent);color:#fff;display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700}
+.pro-face-action-close{width:24px;height:24px;border-radius:4px;display:grid;place-items:center;color:var(--muted)}
+.pro-face-action-close:hover{background:var(--panel);color:var(--ink)}
