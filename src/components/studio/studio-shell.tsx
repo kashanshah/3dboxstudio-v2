@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
-  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
-  PackageOpen, Plus, Search, Share2, Sparkles,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
+  PackageOpen, Search, SearchMinus, SearchPlus, Share2, Sparkles,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -343,32 +343,46 @@ export function StudioShell() {
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
 
-          <div className="pro-canvas-fold" aria-label="Open or close carton">
+          <div className="pro-canvas-control-bar" aria-label="Canvas controls">
+            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
+              <SearchMinus size={20}/>
+            </button>
+            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}>
+              <SearchPlus size={20}/>
+            </button>
+            <span className="pro-canvas-bar-divider" />
             <button
-              className="pro-canvas-fold-play"
+              className="pro-canvas-bar-play"
               aria-label={opening >= 50 ? 'Open box' : 'Close box'}
               title={opening >= 50 ? 'Open box' : 'Close box'}
               onClick={() => animateFold(opening >= 50 ? 0 : 100)}
             >
               <CirclePlay size={19}/>
             </button>
-            <div className="pro-canvas-fold-main">
-              <div className="pro-canvas-fold-head">
-                <strong>Open / Close</strong>
-                <span>{Math.round(opening)}%</span>
-              </div>
-              <input
-                className="pro-canvas-fold-range"
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={Math.round(opening)}
-                aria-label="Open or close box"
-                onChange={e => setOpening(Number(e.target.value))}
-              />
-              <div className="pro-canvas-fold-labels"><span>Open</span><span>Closed</span></div>
-            </div>
+            <span className="pro-canvas-bar-label">Open</span>
+            <input
+              className="pro-canvas-bar-range"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={Math.round(opening)}
+              aria-label="Open or close box"
+              onChange={e => setOpening(Number(e.target.value))}
+            />
+            <span className="pro-canvas-bar-label">Closed</span>
+            <span className="pro-canvas-bar-divider" />
+            <button
+              className="pro-canvas-bar-icon"
+              title="Fit view"
+              aria-label="Fit view"
+              onClick={() => {
+                setZoom(82);
+                engineRef.current?.resetCamera();
+              }}
+            >
+              <Maximize2 size={20}/>
+            </button>
           </div>
 
           {faceAction && <div
@@ -407,20 +421,6 @@ export function StudioShell() {
             setMessage(`${selectedPanel} panel selected from the dieline`);
           }}
         />}
-
-        <div className="pro-canvas-controls pro-canvas-tools">
-          <button title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}><Minus size={18} /></button>
-          <button title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}><Plus size={18} /></button>
-          <span />
-          <button
-            title="Fit view"
-            aria-label="Fit view"
-            onClick={() => {
-              setZoom(82);
-              engineRef.current?.resetCamera();
-            }}
-          ><Maximize2 size={18} /></button>
-        </div>
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
         <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
