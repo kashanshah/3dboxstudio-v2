@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
-import { SiteHeader, SiteFooter } from '@/components/site-shell';
-import { FAQ_CATEGORIES, FAQ_ITEMS, FAQ_PAGE_DESCRIPTION, FAQ_PAGE_TITLE, getCategoryLabel, faqAnswerPlainText } from '@/content/faq';
+import Link from 'next/link';
+import { ArrowUpRight } from 'lucide-react';
+import { ContentHero, ContentPageShell } from '@/components/content-page-shell';
+import { FaqExplorer } from '@/components/faq-explorer';
+import { FAQ_CATEGORIES, FAQ_ITEMS, FAQ_PAGE_DESCRIPTION, FAQ_PAGE_TITLE, faqAnswerPlainText } from '@/content/faq';
 
 export const metadata: Metadata = {
   title: { absolute: FAQ_PAGE_TITLE },
@@ -14,8 +17,10 @@ export default function FaqPage() {
     '@context': 'https://schema.org', '@type': 'FAQPage',
     mainEntity: FAQ_ITEMS.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: faqAnswerPlainText(item.answer) } })),
   };
-  return <><SiteHeader/><main id="main" className="section seo-static-page"><span className="eyebrow">HELP & ANSWERS</span><h1>Frequently asked questions.</h1><p className="page-intro">{FAQ_PAGE_DESCRIPTION}</p>
-    {FAQ_CATEGORIES.map((category) => <section className="faq-group" key={category.id}><h2>{getCategoryLabel(category.id)}</h2><div className="faq-list">{FAQ_ITEMS.filter((item) => item.category === category.id).map((item) => <details key={item.id}><summary>{item.question}</summary><p dangerouslySetInnerHTML={{__html:item.answer}}/></details>)}</div></section>)}
+  return <ContentPageShell>
+    <ContentHero eyebrow="Help center" title="How can we help?" intro="Straightforward answers about designing, previewing, sharing, and exporting packaging work in 3D Box Studio." />
+    <FaqExplorer items={FAQ_ITEMS} categories={FAQ_CATEGORIES} />
+    <section className="content-cta"><div><p className="content-eyebrow">Still need help?</p><h2>Tell us where you’re stuck.</h2><p>Share the structure, file type, or workflow step you’re working on and we’ll point you in the right direction.</p></div><Link className="button" href="/contact">Contact us <ArrowUpRight size={17}/></Link></section>
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/>
-  </main><SiteFooter/></>;
+  </ContentPageShell>;
 }

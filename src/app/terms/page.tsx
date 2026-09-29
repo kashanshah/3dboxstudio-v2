@@ -1,13 +1,32 @@
 import type { Metadata } from 'next';
-import { SiteHeader, SiteFooter } from '@/components/site-shell';
-import { TERMS_EFFECTIVE_DATE, TERMS_PAGE_DESCRIPTION, TERMS_PAGE_TITLE, TERMS_SECTIONS } from '@/content/terms';
+import { ContentPageShell } from '@/components/content-page-shell';
+import { TERMS_EFFECTIVE_DATE, TERMS_PAGE_DESCRIPTION, TERMS_PAGE_TITLE, TERMS_SECTIONS, type TermsSection } from '@/content/terms';
 
 export const metadata: Metadata = { title: { absolute: `${TERMS_PAGE_TITLE} | 3D Box Studio` }, description: TERMS_PAGE_DESCRIPTION, alternates: { canonical: '/terms' } };
 
+function slug(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+function groups() {
+  const result: { title: string; id: string; sections: TermsSection[] }[] = [];
+  for (const section of TERMS_SECTIONS) {
+    if (section.type === 'h2') result.push({ title: section.text, id: `terms-${slug(section.text)}`, sections: [] });
+    else {
+      if (!result.length) result.push({ title: 'Overview', id: 'terms-overview', sections: [] });
+      result[result.length - 1].sections.push(section);
+    }
+  }
+  return result;
+}
+
 export default function TermsPage() {
-  return <><SiteHeader/><main id="main" className="section seo-static-page legal-page"><span className="eyebrow">LEGAL</span><h1>{TERMS_PAGE_TITLE}</h1><p className="legal-date">Effective {TERMS_EFFECTIVE_DATE}</p><div className="legal-content">{TERMS_SECTIONS.map((section,index)=>{
-    if(section.type==='h2') return <h2 key={index}>{section.text}</h2>;
-    if(section.type==='p') return <p key={index}>{section.text}</p>;
-    return <ul key={index}>{section.items.map((item)=><li key={item}>{item}</li>)}</ul>;
-  })}</div></main><SiteFooter/></>;
+  const grouped = groups();
+  return <ContentPageShell>
+    <header className="legal-header"><p className="content-eyebrow">Legal</p><h1>{TERMS_PAGE_TITLE}</h1><p>{TERMS_PAGE_DESCRIPTION}</p><div className="legal-meta"><span>Effective {TERMS_EFFECTIVE_DATE}</span><span>Terms for using 3D Box Studio</span></div></header>
+    <div className="legal-layout">
+      <nav className="legal-toc" aria-label="Terms sections"><b>On this page</b>{grouped.map((group) => <a key={group.id} href={`#${group.id}`}>{group.title}</a>)}</nav>
+      <article className="legal-body">{grouped.map((group) => <section id={group.id} key={group.id}><h2>{group.title}</h2>{group.sections.map((section,index) => {
+        if(section.type==='p') return <p key={index}>{section.text}</p>;
+        return <ul key={index}>{section.items.map((item)=><li key={item}>{item}</li>)}</ul>;
+      })}</section>)}</article>
+    </div>
+  </ContentPageShell>;
 }
