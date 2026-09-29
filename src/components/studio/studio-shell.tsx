@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Aperture, Box, Boxes, Check, ChevronDown, CirclePlay, Download, Expand,
   FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
@@ -8,6 +8,8 @@ import {
   Undo2, Upload, X, ZoomIn
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
+import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
+import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -35,16 +37,16 @@ export function StudioShell() {
   const [camera, setCamera] = useState('Perspective');
   const [opening, setOpening] = useState(18);
   const [zoom, setZoom] = useState(82);
+  const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkName, setArtworkName] = useState<string | null>(null);
+  const [artworkUrl, setArtworkUrl] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [message, setMessage] = useState('Prototype state · not yet persisted');
   const fileRef = useRef<HTMLInputElement>(null);
+  const engineRef = useRef<CartonEngineHandle>(null);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Studio';
-  const boxStyle = useMemo(() => ({
-    '--studio-open': opening / 100,
-    '--studio-zoom': zoom / 100,
-  }) as React.CSSProperties, [opening, zoom]);
+  const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
 
   const chooseTool = (id: Tool) => {
     setTool(id);
@@ -53,9 +55,31 @@ export function StudioShell() {
 
   const handleArtwork = (file?: File) => {
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage('Use PNG, JPG or WebP artwork for the live WebGL texture');
+      return;
+    }
     setArtworkName(file.name);
+    setArtworkUrl(current => {
+      if (current) URL.revokeObjectURL(current);
+      return URL.createObjectURL(file);
+    });
     setPanel('Front');
-    setMessage('Artwork loaded into prototype state');
+    setMessage('Artwork mapped to the Front panel in WebGL');
+  };
+
+  useEffect(() => () => {
+    if (artworkUrl) URL.revokeObjectURL(artworkUrl);
+  }, [artworkUrl]);
+
+  const exportPng = () => {
+    if (mode !== '3d') {
+      setMode('3d');
+      setMessage('Switched to 3D Preview — click export again to capture PNG');
+      return;
+    }
+    const exported = engineRef.current?.exportPng('3d-box-studio-reverse-tuck.png');
+    setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
   return <main className="pro-studio" style={boxStyle}>
@@ -93,7 +117,20 @@ export function StudioShell() {
           </div>
         </div>
 
-        {mode === '3d' ? <ThreeDPrototype family={family} panel={panel} artworkName={artworkName} material={material} opening={opening} /> : <DielinePrototype panel={panel} artworkName={artworkName} />}
+        {mode === '3d' ? <div className="pro-3d-stage">
+          <div className="pro-grid-floor" />
+          <div className="pro-stage-badge"><span/> Live WebGL · drag to orbit</div>
+          <CartonEngine
+            ref={engineRef}
+            dimensions={dimensions}
+            opening={opening}
+            material={material}
+            artworkUrl={artworkUrl}
+            cameraPreset={camera}
+            zoom={zoom}
+          />
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
+        </div> : <DielinePrototype panel={panel} artworkName={artworkName} dimensions={dimensions} />}
 
         <div className="pro-canvas-controls">
           <button title="Select"><MousePointer2 size={16} /></button>
@@ -106,12 +143,12 @@ export function StudioShell() {
         </div>
 
         <button className="pro-mobile-inspector" onClick={() => setInspectorOpen(true)}><Sparkles size={14} /> Edit {activeLabel}</button>
-        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · 120 × 180 × 55 mm</span></div>
+        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button className="pro-inspector-close" onClick={() => setInspectorOpen(false)}><X size={17} /></button></div>
-        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} artworkName={artworkName} fileRef={fileRef} onArtwork={handleArtwork} setMessage={setMessage} />
+        <Inspector tool={tool} family={family} setFamily={setFamily} panel={panel} setPanel={setPanel} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkName={artworkName} fileRef={fileRef} onArtwork={handleArtwork} onExport={exportPng} setMessage={setMessage} />
       </aside>
     </div>
 
@@ -124,8 +161,9 @@ export function StudioShell() {
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void; panel:string; setPanel:(v:string)=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
+  dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   artworkName:string|null; fileRef:React.RefObject<HTMLInputElement|null>; onArtwork:(file?:File)=>void;
-  setMessage:(v:string)=>void;
+  onExport:()=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
   if (tool === 'structure') return <div className="pro-inspector-content">
@@ -133,9 +171,13 @@ function Inspector(props: {
     <label className="pro-search"><Search size={14}/><input placeholder="Search 7,000+ class catalog" /></label>
     <div className="pro-chip-grid">{families.map(item => <button key={item} className={props.family===item?'is-selected':''} onClick={()=>props.setFamily(item)}>{item}</button>)}</div>
     <SectionTitle title="Dimensions" meta="mm" />
-    <div className="pro-fields"><Field label="Width" value="120"/><Field label="Height" value="180"/><Field label="Depth" value="55"/></div>
-    <ControlRow label="Board thickness" value="0.5 mm" />
-    <input className="pro-range" type="range" min="2" max="12" defaultValue="5" />
+    <div className="pro-fields">
+      <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
+      <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
+      <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
+    </div>
+    <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
+    <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
     <div className="pro-callout"><Box size={15}/><span><strong>Reverse tuck end</strong> · ECMA-style carton fixture for the first production slice.</span></div>
   </div>;
 
@@ -189,37 +231,35 @@ function Inspector(props: {
     <SectionTitle title="Still settings" />
     <div className="pro-segmented"><button>HD</button><button>2K</button><button className="is-active">4K</button><button>8K</button></div>
     <div className="pro-segmented"><button className="is-active">PNG</button><button>JPG</button><button>Transparent</button></div>
-    <button className="pro-primary pro-export-button" onClick={()=>props.setMessage('Export configured · production renderer not connected yet')}><Download size={15}/> Prepare PNG export</button>
+    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={15}/> Export live PNG</button>
     <div className="pro-import-box"><FileUp size={19}/><div><strong>Dieline to 3D</strong><span>Import SVG/DXF · classify cut/crease · assign folds</span></div><button onClick={()=>props.setMessage('Dieline import flow opened · parser not connected yet')}>Import</button></div>
   </div>;
 }
 
-function ThreeDPrototype({family,panel,artworkName,material,opening}:{family:string;panel:string;artworkName:string|null;material:string;opening:number}) {
-  return <div className="pro-3d-stage">
-    <div className="pro-grid-floor" />
-    <div className="pro-stage-badge"><span/> Perspective · prototype renderer</div>
-    <div className="pro-box-wrap">
-      <div className="pro-box-model">
-        <div className="pro-face pro-front"><small>{panel==='Front'?'SELECTED PANEL':'FRONT'}</small><strong>{artworkName?'NOMA':'YOUR'}<br/>{artworkName?'FIELD TEA':'ARTWORK'}</strong><i/></div>
-        <div className="pro-face pro-side">3D BOX STUDIO</div>
-        <div className="pro-face pro-top" style={{ transform: `rotateX(${90 + opening * .55}deg) translateZ(70px)` }}>OPEN</div>
-      </div>
-      <div className="pro-box-shadow"/>
-    </div>
-    <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Opening {opening}%</span></div>
-  </div>;
-}
-
-function DielinePrototype({panel,artworkName}:{panel:string;artworkName:string|null}) {
+function DielinePrototype({panel,artworkName,dimensions}:{panel:string;artworkName:string|null;dimensions:CartonDimensions}) {
+  const panels = reverseTuckPanels(dimensions);
+  const bounds = reverseTuckBounds(dimensions);
   return <div className="pro-dieline-stage">
-    <div className="pro-dieline">
-      <span className="dl dl-top">TOP</span><span className="dl dl-left">LEFT</span><span className="dl dl-front">FRONT<br/><b>{artworkName?'NOMA':'+'}</b></span><span className="dl dl-right">RIGHT</span><span className="dl dl-back">BACK</span><span className="dl dl-bottom">BOTTOM</span>
+    <div className="pro-dieline pro-dieline-live" style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
+      {panels.map(item => <button
+        key={item.id}
+        className={`dl-live ${item.id === panel.toLowerCase() ? 'is-selected' : ''} dl-${item.kind}`}
+        style={{
+          left: `${item.x / bounds.width * 100}%`,
+          top: `${item.y / bounds.height * 100}%`,
+          width: `${item.width / bounds.width * 100}%`,
+          height: `${item.height / bounds.height * 100}%`,
+        }}
+      >
+        <span>{item.label}</span>
+        {item.id === 'front' && <b>{artworkName ? 'ARTWORK' : '+'}</b>}
+      </button>)}
     </div>
-    <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected</strong></div>
+    <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected · shared structural source</strong></div>
   </div>;
 }
 
 function SectionTitle({title,meta}:{title:string;meta?:string}) { return <div className="pro-section-title"><strong>{title}</strong>{meta&&<span>{meta}</span>}</div>; }
 function ControlRow({label,value}:{label:string;value:string}) { return <div className="pro-control-row"><span>{label}</span><strong>{value}</strong></div>; }
-function Field({label,value}:{label:string;value:string}) { return <label><span>{label}</span><input defaultValue={value}/></label>; }
+function Field({label,value,onChange}:{label:string;value:string;onChange?:(value:number)=>void}) { return <label><span>{label}</span><input type="number" value={value} onChange={e=>onChange?.(Number(e.target.value))}/></label>; }
 function ExportCard({icon,title,text,active=false}:{icon:React.ReactNode;title:string;text:string;active?:boolean}) { return <button className={`pro-export-card ${active?'is-selected':''}`}>{icon}<span><b>{title}</b><small>{text}</small></span></button>; }
