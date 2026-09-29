@@ -134,52 +134,67 @@ export function StudioShell() {
     setMediaLibraryOpen(true);
   };
 
-  const handleArtwork = (file?: File) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
+  const handleArtworkFiles = (files: File[]) => {
+    const imageFiles = files.filter(file => ['image/png', 'image/jpeg', 'image/webp'].includes(file.type));
+    if (imageFiles.length === 0) {
       setMessage('Use PNG, JPG or WebP artwork');
       return;
     }
 
-    const fingerprint = `${file.name}:${file.size}:${file.lastModified}`;
-    const existing = mediaAssetsRef.current.find(asset => asset.fingerprint === fingerprint);
-    if (existing) {
-      setSelectedMediaAssetId(existing.id);
-      setMediaLibraryTab('library');
-      setMediaLibraryOpen(true);
-      setMessage(`${existing.name} is already in your library`);
-      return;
+    const existingByFingerprint = new Map(mediaAssetsRef.current.map(asset => [asset.fingerprint, asset]));
+    const newAssets: LocalMediaAsset[] = [];
+    let selectedId: string | null = null;
+
+    for (const file of imageFiles) {
+      const fingerprint = `${file.name}:${file.size}:${file.lastModified}`;
+      const existing = existingByFingerprint.get(fingerprint);
+      if (existing) {
+        selectedId ??= existing.id;
+        continue;
+      }
+
+      const url = URL.createObjectURL(file);
+      const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const asset: LocalMediaAsset = {
+        id,
+        name: file.name,
+        url,
+        mimeType: file.type,
+        byteSize: file.size,
+        width: null,
+        height: null,
+        fingerprint,
+        createdAt: Date.now(),
+      };
+      existingByFingerprint.set(fingerprint, asset);
+      newAssets.push(asset);
+      selectedId ??= id;
+
+      const image = new Image();
+      image.onload = () => {
+        setMediaAssets(current => current.map(item => item.id === id
+          ? { ...item, width: image.naturalWidth, height: image.naturalHeight }
+          : item));
+      };
+      image.src = url;
     }
 
-    const url = URL.createObjectURL(file);
-    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const asset: LocalMediaAsset = {
-      id,
-      name: file.name,
-      url,
-      mimeType: file.type,
-      byteSize: file.size,
-      width: null,
-      height: null,
-      fingerprint,
-      createdAt: Date.now(),
-    };
+    if (newAssets.length > 0) {
+      setMediaAssets(current => [...newAssets, ...current]);
+      setMessage(`${newAssets.length} image${newAssets.length === 1 ? '' : 's'} added to your library`);
+    } else {
+      setMessage('Those images are already in your library');
+    }
 
-    setMediaAssets(current => [asset, ...current]);
-    setSelectedMediaAssetId(asset.id);
+    if (selectedId) setSelectedMediaAssetId(selectedId);
     setMediaLibraryTab('library');
     setMediaLibraryOpen(true);
-    setMessage(`${asset.name} added to your library`);
+  };
 
-    const image = new Image();
-    image.onload = () => {
-      setMediaAssets(current => current.map(item => item.id === id
-        ? { ...item, width: image.naturalWidth, height: image.naturalHeight }
-        : item));
-    };
-    image.src = url;
+  const handleArtwork = (file?: File) => {
+    if (file) handleArtworkFiles([file]);
   };
 
   const pickArtwork = () => fileRef.current?.click();
@@ -220,7 +235,7 @@ export function StudioShell() {
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtwork(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -368,6 +383,7 @@ export function StudioShell() {
       selectedAssetId={selectedMediaAssetId}
       setSelectedAssetId={setSelectedMediaAssetId}
       onUpload={() => fileRef.current?.click()}
+      onDropFiles={handleArtworkFiles}
       onUse={(asset) => applyAssetToPanel(asset, mediaTargetPanel)}
       onDelete={removeMediaAsset}
       onClose={() => setMediaLibraryOpen(false)}
@@ -586,10 +602,12 @@ function MediaLibraryModal(props: {
   selectedAssetId: string | null;
   setSelectedAssetId: (id:string|null)=>void;
   onUpload: ()=>void;
+  onDropFiles: (files:File[])=>void;
   onUse: (asset:LocalMediaAsset)=>void;
   onDelete: (assetId:string)=>void;
   onClose: ()=>void;
 }) {
+  const [dragging, setDragging] = useState(false);
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
 
@@ -611,10 +629,23 @@ function MediaLibraryModal(props: {
       </div>
 
       {props.tab === 'upload' ? <div className="pro-media-upload-pane">
-        <div className="pro-media-dropzone">
+        <div
+          className={`pro-media-dropzone ${dragging ? 'is-dragging' : ''}`}
+          onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
+          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setDragging(true); }}
+          onDragLeave={(event) => {
+            event.preventDefault();
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            props.onDropFiles(Array.from(event.dataTransfer.files));
+          }}
+        >
           <Upload size={30}/>
-          <h3>Upload artwork</h3>
-          <p>Add PNG, JPG or WebP files to your library. You can reuse them across panels and future designs.</p>
+          <h3>{dragging ? 'Drop files here' : 'Drag artwork here'}</h3>
+          <p>Drop PNG, JPG or WebP files here, or choose files from your device. Uploaded images are reusable across panels and designs.</p>
           <button className="pro-primary" onClick={props.onUpload}>Select files</button>
           <span>Files stay in this local Studio session for now.</span>
         </div>
