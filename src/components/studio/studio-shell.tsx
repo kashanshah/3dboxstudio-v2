@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
   FileUp, Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus,
-  PackageOpen, Plus, Redo2, Search, Share2, Sparkles,
-  Trash2, Undo2, Upload, X
+  PackageOpen, Plus, Search, Share2, Sparkles,
+  Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
@@ -54,7 +54,7 @@ export function StudioShell() {
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
-  const [message, setMessage] = useState('Prototype state · not yet persisted');
+  const [message, setMessage] = useState('Ready');
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
@@ -276,14 +276,10 @@ export function StudioShell() {
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Saved on this device</span></div>
-        <ChevronDown size={14} />
+        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Local design</span></div>
       </div>
       <div className="pro-header-actions">
-        <button aria-label="Undo" title="Undo"><Undo2 size={16} /></button>
-        <button aria-label="Redo" title="Redo"><Redo2 size={16} /></button>
-        <button className="pro-secondary"><Share2 size={15} /> <span>Share</span></button>
-        <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={15} /> <span>Export</span></button>
+        <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
       </div>
     </header>
 
@@ -659,11 +655,9 @@ function Inspector(props: {
   }
 
   if (tool === 'material') return <div className="pro-inspector-content">
-    <SectionTitle title="Finish" />
+    <PanelIntro title="Choose a finish" text="Pick the surface that best matches how you want the package to feel." />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
-    <ControlRow label="Roughness" value="64" /><input className="pro-range" type="range" defaultValue="64"/>
-    <ControlRow label="Reflectivity" value="18" /><input className="pro-range" type="range" defaultValue="18"/>
-    <ControlRow label="Print depth" value="Subtle" /><input className="pro-range" type="range" defaultValue="22"/>
+    <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
   </div>;
 
   if (tool === 'opening') {
@@ -707,27 +701,28 @@ function Inspector(props: {
   }
 
   if (tool === 'scene') return <div className="pro-inspector-content">
-    <SectionTitle title="Scene" meta="Arrange your mockup" />
-    <div className="pro-layer-list"><button className="is-selected"><Box/> Carton 01 <span>•••</span></button><button><Box/> Carton 02 <span>•••</span></button><button><Boxes/> Plinth <span>•••</span></button></div>
-    <button className="pro-wide-button"><Plus size={15}/> Add object</button>
-    <SectionTitle title="Environment" />
-    <div className="pro-scene-preview"><span>Soft daylight</span></div>
-    <ControlRow label="Light intensity" value="78" /><input className="pro-range" type="range" defaultValue="78"/>
-    <ControlRow label="Shadow softness" value="62" /><input className="pro-range" type="range" defaultValue="62"/>
-    <div className="pro-segmented"><button className="is-active">Floor</button><button>Floating</button><button>Transparent</button></div>
+    <PanelIntro title="Build a scene" text="Arrange multiple packages, backgrounds, and lighting for presentation-ready mockups." />
+    <div className="pro-feature-empty">
+      <Lightbulb size={28}/>
+      <strong>Scene builder is coming next</strong>
+      <p>For now, keep working with the package itself. Multi-object layouts, lighting, backgrounds, and floor controls will be added here when they are functional.</p>
+    </div>
   </div>;
 
   return <div className="pro-inspector-content">
-    <SectionTitle title="Export" meta="Engine-aware" />
-    <ExportCard icon={<ImageIcon/>} title="Still image" text="PNG / JPG · HD, 2K, 4K, 8K" active/>
-    <ExportCard icon={<CirclePlay/>} title="Animation" text="Turntable / opening · MP4"/>
-    <ExportCard icon={<Share2/>} title="Share review" text="Versioned 3D link / embed"/>
-    <ExportCard icon={<Grid3X3/>} title="Production file" text="Dieline · PDF / SVG / DXF"/>
-    <SectionTitle title="Still settings" />
-    <div className="pro-segmented"><button>HD</button><button>2K</button><button className="is-active">4K</button><button>8K</button></div>
-    <div className="pro-segmented"><button className="is-active">PNG</button><button>JPG</button><button>Transparent</button></div>
-    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={15}/> Export live PNG</button>
-    <div className="pro-import-box"><FileUp size={19}/><div><strong>Dieline to 3D</strong><span>Import SVG/DXF · classify cut/crease · assign folds</span></div><button onClick={()=>props.setMessage('Dieline import flow opened · parser not connected yet')}>Import</button></div>
+    <PanelIntro title="Export your design" text="Download the current 3D view now. More export formats will appear here as they become available." />
+    <div className="pro-export-ready">
+      <ImageIcon size={22}/>
+      <div><strong>PNG image</strong><span>Exports the current 3D camera view.</span></div>
+    </div>
+    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/> Download PNG</button>
+
+    <div className="pro-export-coming">
+      <span>Coming soon</span>
+      <div><CirclePlay size={18}/><p><strong>Animation</strong><small>Turntable and open / close video</small></p></div>
+      <div><Share2 size={18}/><p><strong>Share link</strong><small>Send an interactive review link</small></p></div>
+      <div><Grid3X3 size={18}/><p><strong>Production dieline</strong><small>PDF, SVG, and DXF export</small></p></div>
+    </div>
   </div>;
 }
 
