@@ -766,3 +766,60 @@
   .pro-template-card{padding:10px!important}
   .pro-template-card-copy strong{font-size:14px}
 }
+
+
+/* Typography scale refresh — larger, calmer, more confident navigation and content hierarchy. */
+:root{
+  --type-nav:16px;
+  --type-body:16px;
+  --type-lead:19px;
+  --type-eyebrow:12px;
+  --type-section:clamp(46px,5.4vw,72px);
+  --type-display:clamp(68px,7.6vw,116px);
+}
+body{font-size:var(--type-body)}
+.site-header{height:82px}
+.header-inner{width:min(1240px,calc(100% - 56px));gap:30px}
+.site-header nav{font-size:var(--type-nav);font-weight:650;gap:32px;letter-spacing:-.01em}
+.site-header nav a{padding:12px 0}
+.brand{font-size:19px;font-weight:750;letter-spacing:-.035em}
+.brand-icon{width:36px;height:36px}
+.header-cta{min-height:46px;padding-inline:21px;font-size:15px}
+.button{min-height:52px;padding-inline:26px;font-size:15px;font-weight:700}
+.button-small{min-height:46px}
+.text-link{font-size:15px;font-weight:700}
+.eyebrow{font-size:var(--type-eyebrow);letter-spacing:.13em}
+.page-intro{font-size:19px;line-height:1.65;max-width:650px}
+.journal-page h1{font-size:clamp(58px,6.4vw,82px);line-height:.98}
+.journal-card h2{font-size:28px}
+.journal-card p{font-size:15px;line-height:1.7}
+.article-heading>p{font-size:20px}
+.article-meta{font-size:12px}
+.article-content,.article-content p{font-size:17px;line-height:1.82}
+.article-content h2{font-size:36px}
+.article-content h3{font-size:24px}
+.faq-list summary,.article-faq summary{font-size:17px}
+.faq-list p{font-size:16px}
+.seo-static-page>h1{font-size:clamp(54px,6.5vw,82px)}
+.faq-group>h2,.legal-content h2{font-size:32px}
+.legal-content p,.legal-content li{font-size:16px}
+.contact-card h2{font-size:29px}
+.footer-links{font-size:14px}
+.site-footer p{font-size:13px}
+.footer-note{font-size:12px}
+@media(max-width:900px){
+  .site-header nav{gap:20px;font-size:14px}
+  .header-inner{width:calc(100% - 36px)}
+  .header-cta{font-size:14px;padding-inline:15px}
+}
+@media(max-width:600px){
+  .site-header{height:70px}
+  .brand{font-size:18px}
+  .brand-icon{width:34px;height:34px}
+  .mobile-navigation summary{width:42px;height:42px}
+  .site-header .mobile-navigation nav{top:62px;width:min(280px,calc(100vw - 28px));padding:12px}
+  .mobile-navigation nav a{padding:14px 13px;font-size:16px;font-weight:650}
+  .page-intro{font-size:17px}
+  .article-heading>p{font-size:18px}
+  .article-content,.article-content p{font-size:16px}
+}
