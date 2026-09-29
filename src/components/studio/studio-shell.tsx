@@ -449,11 +449,11 @@ function Inspector(props: {
         </div>
       </div>
 
-      <div className="pro-card-section pro-artwork-source-card">
+      <div className="pro-card-section pro-artwork-design-card">
         <div className="pro-artwork-source-head">
           <div>
-            <strong>Artwork source</strong>
-            <span>{selectedArtwork ? 'Change or replace the current artwork.' : 'Pick an existing image or add a new one.'}</span>
+            <strong>Design on this side</strong>
+            <span>{selectedArtwork ? 'Your image is ready. Change it or adjust how it sits on the box.' : 'Choose an image to place on this side.'}</span>
           </div>
           {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
         </div>
@@ -467,34 +467,46 @@ function Inspector(props: {
           <button className="pro-current-artwork-remove" aria-label="Remove artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
         </div>}
 
-        <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
-          <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
-          <span><b>{selectedArtwork ? 'Change artwork' : 'Choose from library'}</b><small>Reuse uploaded artwork</small></span>
-          <ChevronDown size={16}/>
-        </button>
-        <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
-          <Upload size={15}/> Upload new artwork
-        </button>
-      </div>
+        <div className="pro-artwork-choice-row">
+          <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
+            <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
+            <span><b>{selectedArtwork ? 'Change image' : 'Choose image'}</b><small>From your library</small></span>
+            <ChevronDown size={16}/>
+          </button>
+          <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
+            <Upload size={15}/> Upload new
+          </button>
+        </div>
 
-      <div className="pro-card-section">
-        <SectionTitle title="How it fits" />
-        <div className="pro-segmented">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => <button
-          key={mode}
-          className={selectedArtwork?.mode === mode ? 'is-active' : ''}
-          disabled={!selectedArtwork}
-          onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
-        >{mode[0].toUpperCase() + mode.slice(1)}</button>)}</div>
-        <p className="pro-help">{selectedArtwork?.mode === 'fill' ? 'Fills the whole panel. Some artwork may be cropped.' : selectedArtwork?.mode === 'tile' ? 'Repeats your artwork as a pattern.' : selectedArtwork ? 'Shows the whole artwork without cropping.' : 'Choose artwork first to adjust placement.'}</p>
-        <details className="pro-advanced" open={false}>
-          <summary>Fine tune placement <ChevronDown size={16}/></summary>
+        <div className="pro-artwork-fit-section">
+          <div className="pro-artwork-fit-head">
+            <strong>Image fit</strong>
+            <span>{selectedArtwork?.mode === 'fill' ? 'Covers the whole side' : selectedArtwork?.mode === 'tile' ? 'Repeats as a pattern' : 'Shows the whole image'}</span>
+          </div>
+          <div className="pro-fit-options">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => {
+            const copy = mode === 'fill'
+              ? { label: 'Cover', hint: 'Edge to edge' }
+              : mode === 'fit'
+                ? { label: 'Fit', hint: 'Show it all' }
+                : { label: 'Repeat', hint: 'Make a pattern' };
+            return <button
+              key={mode}
+              className={selectedArtwork?.mode === mode ? 'is-active' : ''}
+              disabled={!selectedArtwork}
+              onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
+            ><b>{copy.label}</b><small>{copy.hint}</small></button>;
+          })}</div>
+        </div>
+
+        <details className="pro-advanced pro-placement-details" open={false}>
+          <summary>Adjust placement <ChevronDown size={16}/></summary>
           <div className="pro-advanced-body">
-            <ControlRow label="Artwork size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
+            <ControlRow label="Size" value={selectedArtwork ? `${selectedArtwork.scale}%` : '—'} />
             <input className="pro-range" type="range" min="25" max="250" value={selectedArtwork?.scale ?? 100} disabled={!selectedArtwork} onChange={e => {
               const scale = Number(e.target.value);
               props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, scale } } : current);
             }}/>
-            <ControlRow label="Rotation" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
+            <ControlRow label="Rotate" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
             <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
               const rotation = Number(e.target.value);
               props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, rotation } } : current);
