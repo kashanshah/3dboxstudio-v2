@@ -375,7 +375,38 @@ function Inspector(props: {
     const selectedArtwork = props.artworkByPanel[props.panel];
     const designedCount = panels.filter(item => props.artworkByPanel[item]).length;
     return <div className="pro-inspector-content">
-    <PanelIntro title="Place your design" text="Choose a panel, upload artwork, then adjust how it fits." />
+    <PanelIntro title="Place your design" text="Choose a panel, then reuse artwork from your library or upload something new." />
+    <div className="pro-card-section pro-library-card">
+      <SectionTitle title="Your library" meta={`${props.mediaAssets.length} image${props.mediaAssets.length === 1 ? '' : 's'}`} />
+      <button className="pro-library-upload" onClick={props.onPickArtwork}><Upload size={16}/> Upload new</button>
+      {props.mediaAssets.length === 0 ? <div className="pro-library-empty">
+        <ImageIcon size={24}/>
+        <b>Your artwork library is empty</b>
+        <span>Upload once and reuse the same image on any side.</span>
+      </div> : <div className="pro-library-grid">
+        {props.mediaAssets.map(asset => {
+          const usageCount = panels.filter(item => props.artworkByPanel[item]?.assetId === asset.id).length;
+          const isCurrent = selectedArtwork?.assetId === asset.id;
+          return <div key={asset.id} className={`pro-library-item ${isCurrent ? 'is-selected' : ''}`}>
+            <button className="pro-library-thumb" onClick={() => props.onUseMediaAsset(asset, props.panel)} title={`Use ${asset.name} on ${props.panel}`}>
+              <img src={asset.url} alt="" />
+              {isCurrent && <span className="pro-library-selected"><Check size={12}/> In use</span>}
+            </button>
+            <div className="pro-library-meta">
+              <button className="pro-library-name" onClick={() => props.onUseMediaAsset(asset, props.panel)}>{asset.name}</button>
+              <span>{asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}{formatBytes(asset.byteSize)}{usageCount > 0 ? ` · used on ${usageCount}` : ''}</span>
+            </div>
+            <button
+              className="pro-library-delete"
+              aria-label={`Delete ${asset.name} from library`}
+              title={usageCount > 0 ? 'Remove from all panels before deleting' : 'Delete from library'}
+              disabled={usageCount > 0}
+              onClick={() => props.onDeleteMediaAsset(asset.id)}
+            ><Trash2 size={14}/></button>
+          </div>;
+        })}
+      </div>}
+    </div>
     <div className="pro-card-section">
     <SectionTitle title="Choose a panel" meta={`${designedCount} of 6 designed`} />
     <div className="pro-panel-grid">{panels.map(item=>{
@@ -389,7 +420,10 @@ function Inspector(props: {
     <div className="pro-card-section">
     <SectionTitle title={`${props.panel} artwork`} meta={selectedArtwork ? 'Ready' : 'Empty'} />
     {selectedArtwork && <div className="pro-artwork-preview" aria-label={`${props.panel} artwork preview`}><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>}
-    <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? `Replace ${props.panel} artwork` : `Upload to ${props.panel}`}</button>
+    <div className="pro-artwork-actions">
+      <button className="pro-wide-button" onClick={props.onPickArtwork}><Upload size={15}/>{selectedArtwork ? 'Upload replacement' : 'Upload new artwork'}</button>
+      {props.mediaAssets.length > 0 && <span className="pro-help">Or choose an existing image from your library above.</span>}
+    </div>
     {selectedArtwork && <button className="pro-remove-artwork" onClick={() => props.onRemoveArtwork(props.panel)}><Trash2 size={15}/> Remove artwork</button>}
     {selectedArtwork && <div className="pro-file"><Check size={15}/><span>{selectedArtwork.name}</span></div>}
     </div>
@@ -513,6 +547,12 @@ function DielinePrototype({
     </div>
     <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="bleed"/>Bleed</span><strong>{panel} panel selected · shared structural source</strong></div>
   </div>;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function PanelIntro({title,text}:{title:string;text:string}) {
