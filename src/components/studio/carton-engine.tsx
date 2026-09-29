@@ -486,23 +486,23 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
   // Interior cavity. These faces are wound so their normals point inward.
   const innerFront = quad(
     [ix1,iy0,iz1],[ix0,iy0,iz1],[ix0,y1,iz1],[ix1,y1,iz1],
-    [0,0,-1], interior,
+    [0,0,-1], interior, true, 'Interior Front',
   );
   const innerBack = quad(
     [ix0,iy0,iz0],[ix1,iy0,iz0],[ix1,y1,iz0],[ix0,y1,iz0],
-    [0,0,1], interior,
+    [0,0,1], interior, true, 'Interior Back',
   );
   const innerLeft = quad(
     [ix0,iy0,iz1],[ix0,iy0,iz0],[ix0,y1,iz0],[ix0,y1,iz1],
-    [1,0,0], interior,
+    [1,0,0], interior, true, 'Interior Left',
   );
   const innerRight = quad(
     [ix1,iy0,iz0],[ix1,iy0,iz1],[ix1,y1,iz1],[ix1,y1,iz0],
-    [-1,0,0], interior,
+    [-1,0,0], interior, true, 'Interior Right',
   );
   const innerBottom = quad(
     [ix0,iy0,iz1],[ix1,iy0,iz1],[ix1,iy0,iz0],[ix0,iy0,iz0],
-    [0,1,0], interior,
+    [0,1,0], interior, true, 'Interior Bottom',
   );
 
   // Board-thickness rim around the open mouth.
@@ -537,7 +537,7 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
 
   const flapInner = quad(
     [x1,0,0],[x1,0,d],[x0,0,d],[x0,0,0],
-    [0,-1,0], interior,
+    [0,-1,0], interior, true, 'Interior Top',
   );
   flapInner.model = flapModel;
 
