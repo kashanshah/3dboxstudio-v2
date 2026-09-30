@@ -7,11 +7,9 @@ import {
   useImperativeHandle,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
+  type PointerEvent as ReactPointerEvent
 } from 'react';
 import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { wheelStudioZoom } from '@/lib/studio-zoom';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 
 export type CartonEngineHandle = {
@@ -47,7 +45,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, onZoomChange, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -213,10 +211,6 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     }
   };
 
-  const onWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    onZoomChange?.(value => wheelStudioZoom(value, event.deltaY, event.deltaMode, event.ctrlKey));
-  };
 
   return <canvas
     ref={canvasRef}
@@ -227,7 +221,6 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     onPointerUp={onPointerUp}
     onPointerCancel={() => { dragRef.current = null; }}
     onPointerLeave={() => { dragRef.current = null; setHoverPanel(null); }}
-    onWheel={onWheel}
   />;
 });
 
