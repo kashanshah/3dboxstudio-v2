@@ -257,9 +257,13 @@ test('base box and split-top nets preserve finished face dimensions',()=>{
   assert.equal(base.find(panel=>panel.id==='left').width,160);
   assert.equal(base.find(panel=>panel.id==='top').height,160);
   assert.equal(splitA.filter(panel=>panel.id.startsWith('top')).length,2);
-  assert.equal(splitA.find(panel=>panel.id==='topLeft').width,120);
-  assert.equal(splitA.find(panel=>panel.id==='topRight').width,120);
+  assert.equal(splitA.find(panel=>panel.id==='topLeft').width,160);
+  assert.equal(splitA.find(panel=>panel.id==='topLeft').height,120);
+  assert.equal(splitA.find(panel=>panel.id==='topRight').width,160);
+  assert.equal(splitA.find(panel=>panel.id==='topRight').height,120);
+  assert.equal(splitB.find(panel=>panel.id==='topLeft').width,240);
   assert.equal(splitB.find(panel=>panel.id==='topLeft').height,80);
+  assert.equal(splitB.find(panel=>panel.id==='topRight').width,240);
   assert.equal(splitB.find(panel=>panel.id==='topRight').height,80);
   assert.ok(baseBoxBounds(dimensions).width>dimensions.width);
   assert.ok(splitTopBoxBounds(dimensions,'side_a').height>dimensions.height);
@@ -288,4 +292,16 @@ test('split-top template always exposes two separately textured top panels',()=>
     assert.ok(exterior.includes('Top Right'));
     assert.ok(!exterior.includes('Top'));
   }
+});
+
+
+test('base-box lid variants attach the top face to the matching body panel',()=>{
+ const d={width:240,height:100,depth:160,thickness:.5};
+ const modes=[['lid_from_front','front'],['lid_from_back','back'],['lid_from_left','left'],['lid_from_right','right']];
+ for(const [mode,bodyId] of modes){
+  const panels=baseBoxPanels(d,mode),body=panels.find(panel=>panel.id===bodyId),top=panels.find(panel=>panel.id==='top');
+  assert.equal(top.x,body.x,mode+' top x should align to hinge wall');
+  assert.equal(top.width,body.width,mode+' top hinge edge should equal wall top edge');
+  assert.equal(top.y+top.height,body.y,mode+' top should touch the selected wall');
+ }
 });
