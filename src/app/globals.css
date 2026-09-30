@@ -3282,3 +3282,248 @@ body{font-size:var(--type-body)}
     padding:0 7px;
   }
 }
+
+
+/* Precision artwork transforms — modern selection chrome + magnetic snapping. */
+.pro-transform-box{
+  inset:-2px;
+  border:2px solid var(--accent);
+  border-radius:2px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.72),0 0 0 3px rgba(0,117,196,.08);
+}
+.pro-transform-box:before,.pro-transform-box:after{display:none}
+
+.pro-transform-handle{
+  width:12px;
+  height:12px;
+  padding:0!important;
+  border:2px solid var(--accent)!important;
+  border-radius:3px;
+  background:#fff!important;
+  box-shadow:0 1px 5px rgba(16,23,32,.22);
+}
+.pro-transform-resize{width:12px;height:12px;border-radius:3px}
+.pro-transform-nw{left:-7px;top:-7px}
+.pro-transform-n{left:50%;top:-6px;width:14px;height:8px;border-radius:5px;transform:translateX(-50%)}
+.pro-transform-ne{right:-7px;top:-7px}
+.pro-transform-e{right:-6px;top:50%;width:8px;height:14px;border-radius:5px;transform:translateY(-50%)}
+.pro-transform-se{right:-7px;bottom:-7px}
+.pro-transform-s{left:50%;bottom:-6px;width:14px;height:8px;border-radius:5px;transform:translateX(-50%)}
+.pro-transform-sw{left:-7px;bottom:-7px}
+.pro-transform-w{left:-6px;top:50%;width:8px;height:14px;border-radius:5px;transform:translateY(-50%)}
+
+.pro-transform-rotate{
+  left:50%;
+  top:-44px;
+  width:28px;
+  height:28px;
+  display:grid;
+  place-items:center;
+  transform:translateX(-50%);
+  border:1px solid color-mix(in srgb,var(--accent) 55%,var(--line))!important;
+  border-radius:999px;
+  background:#fff!important;
+  color:var(--accent);
+  cursor:grab;
+  box-shadow:0 5px 16px rgba(16,23,32,.16);
+}
+.pro-transform-rotate:active{cursor:grabbing}
+.pro-transform-rotate:before{
+  top:26px;
+  height:16px;
+  background:var(--accent);
+  opacity:.72;
+}
+.pro-transform-rotate svg{pointer-events:none}
+.pro-transform-rotate span{display:none}
+
+.pro-transform-feedback{
+  position:absolute;
+  z-index:8;
+  left:50%;
+  top:-78px;
+  transform:translateX(-50%);
+  min-height:26px;
+  display:inline-flex;
+  align-items:center;
+  padding:0 8px;
+  border-radius:7px;
+  background:var(--ink);
+  color:#fff;
+  box-shadow:0 5px 16px rgba(16,23,32,.18);
+  font-size:11px;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+  pointer-events:none;
+}
+
+.pro-snap-guide{
+  position:absolute;
+  z-index:40;
+  pointer-events:none;
+  background:#d73ca6;
+  box-shadow:0 0 0 1px rgba(255,255,255,.55);
+}
+.pro-snap-guide.is-x{
+  top:-200%;
+  bottom:-200%;
+  width:1px;
+}
+.pro-snap-guide.is-y{
+  left:-200%;
+  right:-200%;
+  height:1px;
+}
+
+.pro-snap-toggle{
+  min-height:40px;
+  padding:0 11px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:650;
+}
+.pro-snap-toggle:hover{color:var(--ink);background:var(--panel)}
+.pro-snap-toggle.is-active{
+  border-color:var(--accent-line);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+
+.pro-precision-transform{
+  margin-top:12px;
+  padding:14px;
+  border-top:1px solid var(--line);
+  background:linear-gradient(180deg,#fff,#fbfcfe);
+}
+.pro-precision-transform-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:12px;
+}
+.pro-precision-transform-head>div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.pro-precision-transform-head>div>span{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.pro-precision-transform-head strong{font-size:14px}
+.pro-precision-transform-head>span{
+  min-height:28px;
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:0 8px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.pro-precision-transform-head>span.is-on{
+  border-color:var(--accent-line);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.pro-precision-transform-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.pro-precision-transform-grid label{
+  position:relative;
+  min-width:0;
+}
+.pro-precision-transform-grid label>span{
+  position:absolute;
+  z-index:2;
+  left:10px;
+  top:50%;
+  transform:translateY(-50%);
+  display:flex;
+  align-items:center;
+  gap:4px;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  pointer-events:none;
+}
+.pro-precision-transform-grid input{
+  width:100%;
+  height:42px;
+  padding:0 34px 0 30px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+  font-size:13px;
+  font-weight:650;
+  outline:none;
+}
+.pro-precision-transform-grid input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.pro-precision-transform-grid label>small{
+  position:absolute;
+  right:9px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--muted);
+  font-size:10px;
+  pointer-events:none;
+}
+.pro-precision-transform-grid .is-rotation{
+  grid-column:1/-1;
+}
+.pro-precision-transform-grid .is-rotation input{padding-left:82px}
+.pro-precision-transform>p{
+  margin:10px 0 0;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.pro-precision-transform kbd{
+  padding:2px 5px;
+  border:1px solid var(--line);
+  border-bottom-width:2px;
+  border-radius:5px;
+  background:#fff;
+  color:var(--ink);
+  font-family:inherit;
+  font-size:10px;
+  font-weight:700;
+}
+
+@media(max-width:640px){
+  .pro-transform-handle{width:16px;height:16px}
+  .pro-transform-nw{left:-9px;top:-9px}
+  .pro-transform-ne{right:-9px;top:-9px}
+  .pro-transform-se{right:-9px;bottom:-9px}
+  .pro-transform-sw{left:-9px;bottom:-9px}
+  .pro-transform-n,.pro-transform-s{width:18px;height:10px}
+  .pro-transform-e,.pro-transform-w{width:10px;height:18px}
+  .pro-transform-rotate{top:-48px;width:32px;height:32px}
+  .pro-transform-rotate:before{top:30px}
+  .pro-transform-feedback{top:-84px}
+  .pro-snap-toggle{min-height:42px}
+  .pro-precision-transform{padding:12px}
+  .pro-precision-transform-grid input{height:44px;font-size:16px}
+}
