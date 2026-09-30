@@ -14,7 +14,11 @@ test('PostgreSQL: initial import, week-later changes, repeat sync, and rollback 
  await source.query("INSERT INTO shared_designs(id,user_id,images,view_count,config) VALUES('d1','u1','{\"front\":\"key\"}',1,'{\"width\":120}')");
  const dry=await runLegacySync({source,target});assert.equal(dry.users.inserted,1);
  assert.equal((await target.query("SELECT COUNT(*)::int count FROM information_schema.tables WHERE table_schema='public'")).rows[0].count,0);
- const first=await runLegacySync({source,target,apply:true});assert.equal(first.users.inserted,1);
+ const progress=[];
+ const first=await runLegacySync({source,target,apply:true,onProgress:message=>progress.push(message)});
+ assert.ok(progress.some(message=>message.includes('Read users: 1')));
+ assert.ok(progress.some(message=>message.includes('shared_designs: 1')));
+ assert.equal(progress.at(-1),'Database sync complete');assert.equal(first.users.inserted,1);
  await target.query("UPDATE users SET password_hash='V2-new-password' WHERE id='u1'");
  await source.query("UPDATE users SET name='Updated',password_hash='V1-new-password',email_verified_at=NOW() WHERE id='u1'");
  await source.query("UPDATE shared_designs SET view_count=20 WHERE id='d1'");

@@ -16,7 +16,8 @@
     "test": "node --test scripts/*.test.mjs scripts/admin-dashboard.test.cjs scripts/account-actions.test.cjs scripts/email-templates.test.cjs",
     "sync:legacy": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-legacy-users.mjs",
     "sync:legacy-assets": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-asset-sync.mjs",
-    "test:geometry": "node --test scripts/studio-geometry.test.cjs"
+    "test:geometry": "node --test scripts/studio-geometry.test.cjs",
+    "migrate:all": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-all.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
