@@ -1458,7 +1458,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{selectedTemplateId==='reverse-tuck-carton'?`Assembled ${Math.round(opening)}%`:`Open ${Math.round(opening)}%`}</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{`Assembled ${Math.round(formation)}%`}{selectedTemplateId!=='reverse-tuck-carton'&&openingMode!=='closed'?` · Open ${Math.round(opening)}%`:''}</span></div>
 
           {faceAction && <div
             ref={faceActionRef}
@@ -1547,28 +1547,44 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
                 <div className="pro-artwork-preview-fold-head">
-                  <span>{selectedTemplateId==='reverse-tuck-carton'?'Formation':'Open / close'}</span>
-                  <strong>{Math.round(selectedTemplateId==='reverse-tuck-carton'?formation:opening)}%</strong>
+                  <span>Formation</span>
+                  <strong>{Math.round(formation)}%</strong>
                 </div>
                 <div className="pro-artwork-preview-fold-row">
-                  <span>{selectedTemplateId==='reverse-tuck-carton'?'Flat':'Closed'}</span>
+                  <span>Flat</span>
                   <input
                     type="range"
                     min="0"
                     max="100"
                     step="1"
-                    value={Math.round(selectedTemplateId==='reverse-tuck-carton'?formation:opening)}
-                    disabled={selectedTemplateId!=='reverse-tuck-carton'&&formation<99}
-                    aria-label={selectedTemplateId==='reverse-tuck-carton'?'Box formation':'Open or close box in 3D preview'}
+                    value={Math.round(formation)}
+                    aria-label="Box formation in 3D preview"
                     onChange={e=>{
                       if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
                       foldAnimationRef.current=null;
-                      if(selectedTemplateId==='reverse-tuck-carton')setFormation(Number(e.target.value));
-                      else setOpening(Number(e.target.value));
+                      setFormation(Number(e.target.value));
                     }}
                   />
-                  <span>{selectedTemplateId==='reverse-tuck-carton'?'Assembled':'Open'}</span>
+                  <span>Assembled</span>
                 </div>
+                {selectedTemplateId!=='reverse-tuck-carton' && <div className="pro-artwork-preview-fold-row">
+                  <span>Closed</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(opening)}
+                    disabled={formation<99 || openingMode==='closed'}
+                    aria-label="Open or close box in 3D preview"
+                    onChange={e=>{
+                      if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+                      foldAnimationRef.current=null;
+                      setOpening(Number(e.target.value));
+                    }}
+                  />
+                  <span>Open</span>
+                </div>}
               </div>
             </>}
           </aside>
