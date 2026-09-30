@@ -3813,9 +3813,6 @@ body{font-size:var(--type-body)}
 /* Creation settings belong on the left; outcome settings stay on the right. */
 
 
-
-
-
 /* Design: minimal top canvas action, editing controls left, live preview right. */
 .pro-2d-design-toolbar{
   top:12px;
@@ -4173,10 +4170,8 @@ body{font-size:var(--type-body)}
   .pro-canvas.is-workflow-design .pro-dieline-legend{
     left:8px;right:8px;bottom:58px;
   }
-  .pro-inspector.is-workflow-box,
-  
-  .pro-inspector.is-workflow-box.is-open,
-  
+
+
 }
 
 
@@ -4528,9 +4523,6 @@ body{font-size:var(--type-body)}
   grid-row:1;
 }
 
-
-.pro-inspector.is-workflow-box,
-
 .pro-design-inspector-shell{
   left:12px!important;
   width:min(384px,calc(100vw - var(--studio-tool-rail) - 36px))!important;
@@ -4717,9 +4709,7 @@ body{font-size:var(--type-body)}
   .pro-studio-tool-rail{padding-inline:6px}
   .pro-studio-tool-rail button{min-height:66px;font-size:10px}
   .pro-studio-tool-rail button svg{width:20px;height:20px}
-  
-  .pro-inspector.is-workflow-box,
-  
+
   .pro-design-context-stack{width:280px}
 }
 @media(max-width:760px){
@@ -4748,9 +4738,7 @@ body{font-size:var(--type-body)}
   .pro-studio-tool-rail button span{max-width:none}
   .pro-studio-tool-rail button svg{width:18px;height:18px}
   .pro-canvas{grid-column:1!important}
-  .pro-inspector,
-  .pro-inspector.is-workflow-box,
-  
+
   .pro-design-inspector-shell{
     left:8px!important;
     right:8px!important;
@@ -4775,7 +4763,6 @@ body{font-size:var(--type-body)}
 
 /* Canonical Studio inspector shell.
    Workflow steps share this positioning; only content changes. */
-
 
 
 @media(max-width:1100px) and (min-width:761px){
