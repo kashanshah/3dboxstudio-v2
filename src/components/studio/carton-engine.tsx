@@ -11,6 +11,7 @@ import {
   type WheelEvent as ReactWheelEvent,
 } from 'react';
 import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { wheelStudioZoom } from '@/lib/studio-zoom';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 
 export type CartonEngineHandle = {
@@ -28,7 +29,7 @@ type Props = {
   artworkByPanel: ArtworkByPanel;
   cameraPreset: string;
   zoom: number;
-  onZoomChange?: (zoom: number) => void;
+  onZoomChange?: React.Dispatch<React.SetStateAction<number>>;
   lightIntensity?: number;
   onPanelSelect?: (panel: string, point: { x: number; y: number }) => void;
 };
@@ -211,10 +212,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
   const onWheel = (event: ReactWheelEvent<HTMLCanvasElement>) => {
     event.preventDefault();
-    const sensitivity = event.ctrlKey ? 0.18 : 0.08;
-    const delta = clamp(-event.deltaY * sensitivity, -10, 10);
-    if (Math.abs(delta) < 0.05) return;
-    onZoomChange?.(clamp(zoom + delta, 40, 140));
+    onZoomChange?.(value => wheelStudioZoom(value, event.deltaY, event.deltaMode, event.ctrlKey));
   };
 
   return <canvas
@@ -299,11 +297,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
     const { width, height, depth } = scene.dimensions;
     const maxDimension = Math.max(width, height, depth);
     const aspect = Math.max(0.1, canvas.width / canvas.height);
-    const distance = maxDimension * (3.2 - clamp(scene.zoom / 100, 0.4, 1.4) * 0.9);
-    const eye = orbitEye(distance, scene.yaw, scene.pitch);
-    const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
-    const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20);
-    const viewProjection = multiply4(projection, view);
+    const viewProjection = studioViewProjection(maxDimension, aspect, scene.yaw, scene.pitch, scene.zoom);
     const materialBase = materialColor(scene.material);
     const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
     const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
@@ -444,11 +438,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
       const { width, height, depth } = scene.dimensions;
       const maxDimension = Math.max(width, height, depth);
       const aspect = Math.max(0.1, canvas.width / canvas.height);
-      const distance = maxDimension * (3.2 - clamp(scene.zoom / 100, 0.4, 1.4) * 0.9);
-      const eye = orbitEye(distance, scene.yaw, scene.pitch);
-      const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
-      const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20);
-      const viewProjection = multiply4(projection, view);
+      const viewProjection = studioViewProjection(maxDimension, aspect, scene.yaw, scene.pitch, scene.zoom);
       const materialBase = materialColor(scene.material);
       const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
       const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
@@ -931,8 +921,8 @@ function rotationX4(angle: number) {
   ]);
 }
 
-function perspective(fov: number, aspect: number, near: number, far: number) {
-  const f = 1 / Math.tan(fov / 2);
+function perspective(fov: number, aspect: number, near: number, far: number, zoomScale = 1) {
+  const f = zoomScale / Math.tan(fov / 2);
   const nf = 1 / (near - far);
   return new Float32Array([
     f / aspect,0,0,0,
@@ -1016,3 +1006,11 @@ function normalize3(v: number[]) {
 function cross3(a:number[],b:number[]) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]; }
 function dot3(a:number[],b:number[]) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
 function clamp(value:number,min:number,max:number){ return Math.min(max,Math.max(min,value)); }
+
+/** Shared by drawing and picking. Magnify the lens without moving through the box or clipping distant zoom levels. */
+export function studioViewProjection(maxDimension: number, aspect: number, yaw: number, pitch: number, zoom: number) {
+  const eye = orbitEye(maxDimension * 2.462, yaw, pitch);
+  const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
+  const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20, zoom / 82);
+  return multiply4(projection, view);
+}

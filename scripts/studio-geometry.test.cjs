@@ -68,6 +68,33 @@ test('raster canvas keeps the sheet aspect ratio for unusually wide and tall net
   }
 });
 
+const {scaleStudioZoom,wheelStudioZoom}=require('../src/lib/studio-zoom.ts');
+const {studioViewProjection}=require('../src/components/studio/carton-engine.tsx');
+test('zoom controls continue past previous limits and preserve positive scales',()=>{
+  let zoom=82;
+  for(let i=0;i<100;i++)zoom=scaleStudioZoom(zoom,1.1);
+  assert.ok(zoom>100000);
+  for(let i=0;i<200;i++)zoom=scaleStudioZoom(zoom,1/1.1);
+  assert.ok(zoom>0&&zoom<.01);
+  assert.ok(wheelStudioZoom(200,-100)>200);
+  assert.ok(wheelStudioZoom(40,100)<40);
+  assert.equal(wheelStudioZoom(82,0),82);
+  near(wheelStudioZoom(82,3,1),wheelStudioZoom(82,48,0));
+  assert.ok(wheelStudioZoom(82,-1000)>wheelStudioZoom(82,-100));
+  assert.equal(scaleStudioZoom(Number.MAX_VALUE,2),Number.MAX_VALUE);
+  assert.equal(scaleStudioZoom(Number.MIN_VALUE,.5),Number.MIN_VALUE);
+});
+test('3D projection keeps magnifying past old limits without moving the camera through the box',()=>{
+  const original=studioViewProjection(180,1.5,-.55,.28,82);
+  for(const zoom of [.01,20,40,140,500,100000]){
+    const matrix=studioViewProjection(180,1.5,-.55,.28,zoom);
+    assert.ok(matrix.every(Number.isFinite));
+    assert.ok(Math.abs(matrix[0]-original[0]*zoom/82)<Math.max(1,Math.abs(matrix[0]))*1e-6);
+    assert.ok(Math.abs(matrix[1]-original[1]*zoom/82)<Math.max(1,Math.abs(matrix[1]))*1e-6);
+    near(matrix[2],original[2]);
+    near(matrix[3],original[3]);
+  }
+});
 
 test('finished dimensions define exact 2D panel sizes used for 3D texture crops',()=>{
   for(const dimensions of fixtures){
