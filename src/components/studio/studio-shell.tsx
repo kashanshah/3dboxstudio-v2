@@ -133,7 +133,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const initial = initialProject?.state;
   const [projectId,setProjectId] = useState(initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
-  const [projectUpdatedAt,setProjectUpdatedAt] = useState(initialProject?.updatedAt);
+  const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
   const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
@@ -1155,7 +1155,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         return value;
       }
       const targetName=saveAsCopy?`${projectName} copy`:projectName;
-      const body = JSON.stringify({name:targetName,state:await persist(state),preview,updatedAt:saveAsCopy?undefined:projectUpdatedAt,force:forceOverwrite});
+      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,force:forceOverwrite});
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
       const targetProjectId=saveAsCopy?undefined:projectId;
       const response=await fetch(targetProjectId?`/api/projects/${targetProjectId}`:'/api/projects',{method:targetProjectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
@@ -1164,7 +1164,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         if(response.status===409) throw new Error('SAVE_CONFLICT');
         throw new Error(result.error || 'Could not save your design.');
       }
-      setProjectId(result.project.id);setProjectUpdatedAt(result.project.updated_at);
+      setProjectId(result.project.id);setProjectRevision(result.project.revision);
       if(saveAsCopy){setProjectName(targetName);setFavorite(false);}
       if(saveAsCopy||!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
       setSaveFailed(false);
@@ -1188,7 +1188,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectUpdatedAt, projectId,
+    projectName, projectRevision, projectId,
   ]);
 
   useEffect(() => {
