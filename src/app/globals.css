@@ -1213,3 +1213,11 @@ body{font-size:var(--type-body)}
 .pro-mapping-checklist span.is-done{color:#237247}.pro-mapping-checklist span.is-done svg{color:#278352}
 .pro-map-to-3d{width:100%;justify-content:center}.pro-map-to-3d:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:980px){.pro-dieline-mapper-layout{grid-template-columns:1fr}.pro-dieline-mapping-panel{max-height:none}}
+
+/* Canonical vector brand assets */
+.brand.brand-vector{display:inline-flex;align-items:center;line-height:0}
+.brand-vector-logo{display:block;width:154px;height:auto}
+.marketing-sticky-header .brand-vector-logo{width:136px}
+.pro-project .brand-vector-logo{width:142px}
+.marketing-footer .brand-vector-logo{width:154px}
+@media(max-width:760px){.brand-vector-logo{width:140px}}
