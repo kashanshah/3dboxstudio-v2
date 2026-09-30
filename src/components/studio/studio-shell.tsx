@@ -933,7 +933,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         />
 
         </div>
-          <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
+          <div className={`pro-canvas-control-bar pro-shared-canvas-control-bar${mode==='dieline'?' is-2d':''}`} aria-label="Canvas controls">
             <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
@@ -941,6 +941,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1.1))}>
               <ZoomIn size={20}/>
             </button>
+            {mode === 'dieline' && <>
+              <span className="pro-2d-zoom-value" aria-live="polite">{Number(dielineZoom.toFixed(1))}%</span>
+              <span className="pro-canvas-bar-divider" />
+            </>}
             {mode === '3d' && <>
               <span className="pro-canvas-bar-divider" />
               <button
@@ -1797,9 +1801,10 @@ function DielinePrototype({
         <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
       </div>
       <div className="pro-2d-toolbar-summary">
-        <span>{artworkScope === 'inside' ? 'Inside / reverse side' : 'Outside / front side'}</span>
+        <span>{artworkScope === 'inside' ? 'Inside artwork' : 'Outside artwork'}</span>
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
+      <div className="pro-2d-toolbar-actions">
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
       <button
         type="button"
@@ -1820,6 +1825,7 @@ function DielinePrototype({
         finally { setPrinting(false); }
       }}><Download size={16}/> {printing?'Preparing print…':'Print / Save PDF'}</button>
       <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Check size={16}/> Apply Changes</button>
+      </div>
     </div>
 
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
