@@ -625,6 +625,7 @@ export function StudioShell() {
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
           panEnabled={panEnabled}
+          setPanEnabled={setPanEnabled}
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
           onChoosePanelArtwork={() => openMediaLibrary(artworkKey())}
@@ -637,7 +638,7 @@ export function StudioShell() {
           </aside>
         </div>
           <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
-            <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag canvas" aria-label="Drag canvas" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
+            <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(Math.max(40, zoom - 10)) : setDielineZoom(Math.max(45, dielineZoom - 10))}>
               <ZoomOut size={20}/>
             </button>
@@ -1233,6 +1234,7 @@ function DielinePrototype({
   zoom,
   onZoomChange,
   panEnabled,
+  setPanEnabled,
   canvasPan,
   setCanvasPan,
   onChoosePanelArtwork,
@@ -1260,6 +1262,7 @@ function DielinePrototype({
   zoom:number;
   onZoomChange:(zoom:number)=>void;
   panEnabled:boolean;
+  setPanEnabled:(enabled:boolean)=>void;
   canvasPan:{x:number;y:number};
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
   onChoosePanelArtwork:()=>void;
@@ -1475,6 +1478,13 @@ function DielinePrototype({
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
       <button className="pro-secondary-button" onClick={onChoosePanelArtwork}><ImageIcon size={16}/> Add image to {selectedPanel}</button>
+      <button
+        type="button"
+        className={`pro-secondary-button pro-drag-board-button${panEnabled?' is-active':''}`}
+        aria-pressed={panEnabled}
+        title={panEnabled ? 'Stop dragging the board' : 'Drag the 2D board'}
+        onClick={()=>setPanEnabled(!panEnabled)}
+      ><Move size={16}/> {panEnabled ? 'Dragging board' : 'Drag board'}</button>
       {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
         selectedLayer.id,
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),

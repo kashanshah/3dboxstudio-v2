@@ -1911,3 +1911,20 @@ body{font-size:var(--type-body)}
 .pro-printed-artwork-layer{position:absolute;transform-origin:center}
 .pro-printed-artwork-layer img{display:block;width:100%;height:100%;object-fit:fill}
 .pro-artwork-transform-hit-area{position:absolute;inset:0}
+
+
+/* Clear 2D board-pan affordance */
+.pro-drag-board-button.is-active{
+  border-color:var(--accent)!important;
+  background:var(--accent-soft)!important;
+  color:var(--accent)!important;
+}
+.pro-dieline-workspace.is-pan-enabled{
+  cursor:grab;
+}
+.pro-dieline-workspace.is-pan-enabled:active{
+  cursor:grabbing;
+}
+.pro-dieline-workspace.is-pan-enabled .pro-dieline-live{
+  cursor:grab;
+}
