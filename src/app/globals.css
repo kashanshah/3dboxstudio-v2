@@ -4438,6 +4438,106 @@ body{font-size:var(--type-body)}
 }
 
 
+/* Design uses the same primary inspector shell as Box and Preview. */
+.pro-design-inspector-shell{
+  top:12px!important;
+  left:12px!important;
+  bottom:12px!important;
+  width:min(384px,calc(100vw - 36px))!important;
+  padding:0!important;
+  gap:0!important;
+  overflow:hidden!important;
+  border:1px solid var(--line)!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:var(--shadow-lift)!important;
+}
+.pro-design-inspector-title{
+  flex:0 0 84px;
+  height:84px!important;
+  padding:14px 18px!important;
+  border-bottom:1px solid var(--line)!important;
+  background:#fff!important;
+}
+.pro-design-inspector-title>div{
+  gap:2px;
+}
+.pro-design-inspector-title span{
+  color:var(--accent)!important;
+  font-size:11px!important;
+  letter-spacing:.1em!important;
+}
+.pro-design-inspector-title h2{
+  margin:0!important;
+  font-size:21px!important;
+  line-height:1.2;
+  font-weight:750!important;
+  letter-spacing:-.025em;
+}
+.pro-design-inspector-close{
+  display:grid!important;
+  place-items:center;
+  width:34px!important;
+  height:34px!important;
+  border-radius:8px!important;
+  color:var(--muted)!important;
+}
+.pro-design-inspector-close:hover{
+  background:var(--panel)!important;
+  color:var(--ink)!important;
+}
+.pro-design-inspector-content{
+  min-height:0;
+  flex:1 1 auto;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.pro-design-inspector-shell .pro-dieline-surface-switch{
+  flex:none;
+}
+.pro-design-inspector-shell>.pro-dieline-layers-panel,
+.pro-design-inspector-shell .pro-dieline-layers-panel{
+  flex:1 1 260px;
+  min-height:220px!important;
+}
+.pro-design-inspector-shell .pro-design-output{
+  flex:none;
+  padding-top:4px;
+}
+@media(max-width:1180px) and (min-width:761px){
+  .pro-design-inspector-shell{
+    left:10px!important;
+    width:min(384px,calc(100vw - 20px))!important;
+  }
+}
+@media(max-width:760px){
+  .pro-design-inspector-shell{
+    top:auto!important;
+    left:8px!important;
+    right:8px!important;
+    bottom:12px!important;
+    width:auto!important;
+    max-height:72dvh;
+    border-radius:16px!important;
+  }
+  .pro-design-inspector-title{
+    height:76px!important;
+    flex-basis:76px;
+    padding:12px 14px!important;
+  }
+  .pro-design-inspector-title h2{
+    font-size:19px!important;
+  }
+  .pro-design-inspector-content{
+    padding:12px;
+  }
+}
+
+
 /* Design should feel like the same playground as the surrounding Studio canvas. */
 .pro-dieline-stage{
   background:inherit!important;
