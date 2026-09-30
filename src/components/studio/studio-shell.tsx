@@ -1204,17 +1204,24 @@ function DielinePrototype({
         const dirY = handle.includes('s') ? 1 : -1;
         const anchorX = -dirX * startWidth / 2;
         const anchorY = -dirY * startHeight / 2;
-        const originalX = dirX * startWidth;
-        const originalY = dirY * startHeight;
-        const currentX = localX - anchorX;
-        const currentY = localY - anchorY;
-        const denominator = originalX * originalX + originalY * originalY || 1;
-        let scale = (currentX * originalX + currentY * originalY) / denominator;
-        const minScale = Math.max(minWidth / startWidth, minHeight / startHeight);
-        const maxScale = Math.min(maxWidth / startWidth, maxHeight / startHeight);
-        scale = Math.max(minScale, Math.min(maxScale, scale));
-        newWidth = startWidth * scale;
-        newHeight = startHeight * scale;
+        const currentWidth = Math.max(minWidth, Math.min(maxWidth, dirX * (localX - anchorX)));
+        const currentHeight = Math.max(minHeight, Math.min(maxHeight, dirY * (localY - anchorY)));
+
+        if (event.shiftKey) {
+          // Shift unlocks the aspect ratio, so width and height can move independently.
+          newWidth = currentWidth;
+          newHeight = currentHeight;
+        } else {
+          const scaleX = currentWidth / startWidth;
+          const scaleY = currentHeight / startHeight;
+          const scale = Math.max(
+            Math.max(minWidth / startWidth, minHeight / startHeight),
+            Math.min(Math.min(maxWidth / startWidth, maxHeight / startHeight), Math.max(scaleX, scaleY)),
+          );
+          newWidth = startWidth * scale;
+          newHeight = startHeight * scale;
+        }
+
         const movingX = anchorX + dirX * newWidth;
         const movingY = anchorY + dirY * newHeight;
         centerLocalX = (anchorX + movingX) / 2;
@@ -1225,7 +1232,8 @@ function DielinePrototype({
         newWidth = Math.max(minWidth, Math.min(maxWidth, dirX * (localX - anchorX)));
         const movingX = anchorX + dirX * newWidth;
         centerLocalX = (anchorX + movingX) / 2;
-        if (event.shiftKey) {
+
+        if (!event.shiftKey) {
           const scale = newWidth / startWidth;
           newHeight = Math.max(minHeight, Math.min(maxHeight, startHeight * scale));
         }
@@ -1235,7 +1243,8 @@ function DielinePrototype({
         newHeight = Math.max(minHeight, Math.min(maxHeight, dirY * (localY - anchorY)));
         const movingY = anchorY + dirY * newHeight;
         centerLocalY = (anchorY + movingY) / 2;
-        if (event.shiftKey) {
+
+        if (!event.shiftKey) {
           const scale = newHeight / startHeight;
           newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth * scale));
         }
@@ -1403,7 +1412,7 @@ function DielinePrototype({
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{layers.length ? 'Corners resize proportionally · side handles resize freely · Shift preserves proportions · 3D updates automatically' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
+      <strong>{layers.length ? 'Resize keeps proportions · hold Shift to change proportions freely · 3D updates automatically' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
     </div>
 
     <div className="pro-canvas-control-bar pro-2d-canvas-control-bar" aria-label="2D canvas zoom controls">
