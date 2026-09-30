@@ -1014,40 +1014,43 @@ function ImportedDielineMapper({
 }
 
 function DielinePrototype({
-  panel,
   importedDieline,
   mapping,
   setMapping,
   artworkByPanel,
-  fullDielineArtwork,
-  fullDielineTransform,
-  onFullDielineTransformChange,
+  layers,
+  selectedLayerId,
+  onSelectLayer,
+  onUpdateLayer,
+  onDuplicateLayer,
+  onRemoveLayer,
+  onMoveLayer,
   artworkScope,
   dimensions,
   onChooseFullLayout,
-  onRemoveFullLayout,
-  onApplyFullLayoutTo3D,
   onClearImportedDieline,
 }:{
-  panel:string;
   importedDieline:ParsedDieline|null;
   mapping:DielineMapping|null;
   setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
   artworkByPanel:ArtworkByPanel;
-  fullDielineArtwork:ArtworkPlacement | null;
-  fullDielineTransform:FullDielineTransform;
-  onFullDielineTransformChange:(value:FullDielineTransform)=>void;
+  layers:FullDielineArtworkLayer[];
+  selectedLayerId:string|null;
+  onSelectLayer:(id:string|null)=>void;
+  onUpdateLayer:(id:string,transform:FullDielineTransform)=>void;
+  onDuplicateLayer:(id:string)=>void;
+  onRemoveLayer:(id:string)=>void;
+  onMoveLayer:(id:string,direction:-1|1)=>void;
   artworkScope:'outside'|'inside';
   dimensions:CartonDimensions;
   onChooseFullLayout:()=>void;
-  onRemoveFullLayout:()=>void;
-  onApplyFullLayoutTo3D:()=>void | Promise<void>;
   onClearImportedDieline:()=>void;
 }) {
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
-  const transformRef = useRef<HTMLDivElement>(null);
+  const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const gestureRef = useRef<{
+    layerId:string;
     type:'move'|'resize'|'rotate';
     pointerId:number;
     startX:number;
@@ -1059,62 +1062,75 @@ function DielinePrototype({
     startAngle:number;
   } | null>(null);
 
-  const beginFullArtworkGesture = (event: React.PointerEvent, type:'move'|'resize'|'rotate') => {
-    if (!fullDielineArtwork) return;
+  const beginLayerGesture = (
+    event: React.PointerEvent<HTMLDivElement | HTMLButtonElement>,
+    layer: FullDielineArtworkLayer,
+    type:'move'|'resize'|'rotate',
+  ) => {
     event.preventDefault();
     event.stopPropagation();
-    const container = transformRef.current?.parentElement;
-    if (!container || !transformRef.current) return;
+    onSelectLayer(layer.id);
+    const element = event.currentTarget.closest('.pro-full-artwork-transform') as HTMLDivElement | null;
+    const container = element?.parentElement;
+    if (!element || !container) return;
     const rect = container.getBoundingClientRect();
-    const centerX = rect.left + rect.width * fullDielineTransform.x / 100;
-    const centerY = rect.top + rect.height * fullDielineTransform.y / 100;
+    const centerX = rect.left + rect.width * layer.transform.x / 100;
+    const centerY = rect.top + rect.height * layer.transform.y / 100;
     const dx = event.clientX - centerX;
     const dy = event.clientY - centerY;
     gestureRef.current = {
+      layerId:layer.id,
       type,
       pointerId:event.pointerId,
       startX:event.clientX,
       startY:event.clientY,
-      start:{...fullDielineTransform},
+      start:{...layer.transform},
       centerX,
       centerY,
-      startDistance:Math.max(1, Math.hypot(dx,dy)),
+      startDistance:Math.max(1,Math.hypot(dx,dy)),
       startAngle:Math.atan2(dy,dx),
     };
-    transformRef.current.setPointerCapture(event.pointerId);
+    element.setPointerCapture(event.pointerId);
   };
 
-  const updateFullArtworkGesture = (event: React.PointerEvent) => {
+  const updateLayerGesture = (event: React.PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current;
     if (!gesture || gesture.pointerId !== event.pointerId) return;
-    const container = transformRef.current?.parentElement;
+    const container = event.currentTarget.parentElement;
     if (!container) return;
     const rect = container.getBoundingClientRect();
+
     if (gesture.type === 'move') {
-      const dx = (event.clientX - gesture.startX) / Math.max(1, rect.width) * 100;
-      const dy = (event.clientY - gesture.startY) / Math.max(1, rect.height) * 100;
-      onFullDielineTransformChange({
+      const dx = (event.clientX - gesture.startX) / Math.max(1,rect.width) * 100;
+      const dy = (event.clientY - gesture.startY) / Math.max(1,rect.height) * 100;
+      onUpdateLayer(gesture.layerId,{
         ...gesture.start,
         x:Math.max(-100,Math.min(200,gesture.start.x+dx)),
         y:Math.max(-100,Math.min(200,gesture.start.y+dy)),
       });
       return;
     }
+
     if (gesture.type === 'resize') {
-      const distance = Math.hypot(event.clientX-gesture.centerX,event.clientY-gesture.centerY);
-      const ratio = distance / Math.max(1,gesture.startDistance);
-      onFullDielineTransformChange({...gesture.start,width:Math.max(8,Math.min(300,gesture.start.width*ratio))});
+      const distance=Math.hypot(event.clientX-gesture.centerX,event.clientY-gesture.centerY);
+      const ratio=distance/Math.max(1,gesture.startDistance);
+      onUpdateLayer(gesture.layerId,{
+        ...gesture.start,
+        width:Math.max(8,Math.min(300,gesture.start.width*ratio)),
+      });
       return;
     }
-    const angle = Math.atan2(event.clientY-gesture.centerY,event.clientX-gesture.centerX);
-    const delta = (angle-gesture.startAngle)*180/Math.PI;
-    onFullDielineTransformChange({...gesture.start,rotation:gesture.start.rotation+delta});
+
+    const angle=Math.atan2(event.clientY-gesture.centerY,event.clientX-gesture.centerX);
+    const delta=(angle-gesture.startAngle)*180/Math.PI;
+    onUpdateLayer(gesture.layerId,{...gesture.start,rotation:gesture.start.rotation+delta});
   };
 
-  const endFullArtworkGesture = (event: React.PointerEvent) => {
-    if (gestureRef.current?.pointerId !== event.pointerId) return;
-    if (transformRef.current?.hasPointerCapture(event.pointerId)) transformRef.current.releasePointerCapture(event.pointerId);
-    gestureRef.current = null;
+  const endLayerGesture = (event: React.PointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    gestureRef.current=null;
   };
 
   if (importedDieline) {
@@ -1129,65 +1145,107 @@ function DielinePrototype({
   return <div className="pro-dieline-stage pro-2d-design-stage">
     {artworkScope === 'outside' ? <div className="pro-2d-design-toolbar">
       <div>
-        <span>Full layout artwork</span>
-        <strong>{fullDielineArtwork ? fullDielineArtwork.name : 'No full-layout artwork yet'}</strong>
+        <span>Artwork layers</span>
+        <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
-      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/>{fullDielineArtwork ? 'Change image' : 'Add artwork'}</button>
-      {fullDielineArtwork && <button className="pro-secondary-button" onClick={() => onFullDielineTransformChange(DEFAULT_FULL_DIELINE_TRANSFORM)}><Maximize2 size={15}/> Reset</button>}
-      {fullDielineArtwork && <button className="pro-primary pro-apply-layout-3d" onClick={() => void onApplyFullLayoutTo3D()}><Boxes size={15}/> Apply to 3D</button>}
-      {fullDielineArtwork && <button className="pro-2d-remove-layout" onClick={onRemoveFullLayout}><Trash2 size={15}/> Remove</button>}
+      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add artwork</button>
+      {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(selectedLayer.id,DEFAULT_FULL_DIELINE_TRANSFORM)}><Maximize2 size={15}/> Reset selected</button>}
+      <span className="pro-live-sync-badge"><span/> Live 3D</span>
     </div> : <div className="pro-2d-design-toolbar pro-2d-inside-note">
-      <div><span>Inside design</span><strong>Choose individual inside panels to place artwork.</strong></div>
+      <div><span>Inside design</span><strong>Inside panel overrides remain available from the Artwork inspector.</strong></div>
     </div>}
 
-    <div className={`pro-dieline pro-dieline-live${fullDielineArtwork && artworkScope === 'outside' ? ' has-full-layout-editor' : ''}`} style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
-      {fullDielineArtwork && artworkScope === 'outside' ? <div
-        ref={transformRef}
-        className="pro-full-artwork-transform"
-        style={{
-          left:`${fullDielineTransform.x}%`,
-          top:`${fullDielineTransform.y}%`,
-          width:`${fullDielineTransform.width}%`,
-          transform:`translate(-50%,-50%) rotate(${fullDielineTransform.rotation}deg)`,
-        }}
-        onPointerDown={event => beginFullArtworkGesture(event,'move')}
-        onPointerMove={updateFullArtworkGesture}
-        onPointerUp={endFullArtworkGesture}
-        onPointerCancel={endFullArtworkGesture}
-      >
-        <img src={fullDielineArtwork.url} alt={fullDielineArtwork.name} draggable={false}/>
-        <span className="pro-transform-box" aria-hidden="true"/>
-        <button type="button" className="pro-transform-handle pro-transform-resize" aria-label="Resize artwork" onPointerDown={event=>beginFullArtworkGesture(event,'resize')}/>
-        <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate artwork" onPointerDown={event=>beginFullArtworkGesture(event,'rotate')}><span/></button>
-      </div> : null}
-      {cartonPanels.map(item => {
-        const panelName = item.label[0] + item.label.slice(1).toLowerCase();
-        const explicitArtwork = artworkByPanel[artworkScope === 'inside' ? `Interior ${panelName}` : panelName];
-        const hasArtwork = !!explicitArtwork || (!!fullDielineArtwork && artworkScope === 'outside');
+    <div className="pro-dieline-workspace">
+      {artworkScope === 'outside' && <aside className="pro-dieline-layers-panel" aria-label="Artwork layers">
+        <div className="pro-dieline-layers-heading">
+          <div><span>Layers</span><strong>{layers.length}</strong></div>
+          <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
+        </div>
+        {layers.length ? <div className="pro-dieline-layer-list">
+          {[...layers].reverse().map((layer,reverseIndex) => {
+            const realIndex=layers.length-1-reverseIndex;
+            const selected=layer.id===selectedLayerId;
+            return <button
+              type="button"
+              key={layer.id}
+              className={selected?'is-selected':''}
+              onClick={()=>onSelectLayer(layer.id)}
+            >
+              <img src={layer.url} alt="" />
+              <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)}% · {Math.round(layer.transform.rotation)}°</small></span>
+              <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
+            </button>;
+          })}
+        </div> : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>Add artwork to start composing.</span></div>}
 
-        return <div
-          key={item.id}
-          className={`dl-live dl-${item.kind} ${hasArtwork ? 'has-artwork' : ''} ${explicitArtwork ? 'has-explicit-artwork' : ''}`}
-          style={{
-            left: `${item.x / bounds.width * 100}%`,
-            top: `${item.y / bounds.height * 100}%`,
-            width: `${item.width / bounds.width * 100}%`,
-            height: `${item.height / bounds.height * 100}%`,
-            overflow: 'hidden',
-          }}
-          aria-hidden="true"
-        >
-          {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)} /> : null}
-          <span className="dl-label">{item.label}</span>
-          {explicitArtwork && <b>OVERRIDE</b>}
-        </div>;
-      })}
+        {selectedLayer && <div className="pro-dieline-layer-actions">
+          <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={14}/></button>
+          <button type="button" title="Send backward" aria-label="Send selected layer backward" disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={14}/></button>
+          <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={14}/></button>
+          <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={14}/></button>
+        </div>}
+      </aside>}
+
+      <div
+        className={`pro-dieline pro-dieline-live${layers.length && artworkScope==='outside' ? ' has-full-layout-editor' : ''}`}
+        style={{aspectRatio:`${bounds.width} / ${bounds.height}`}}
+        onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
+      >
+        {artworkScope==='outside' && layers.map((layer,index)=>{
+          const selected=layer.id===selectedLayerId;
+          return <div
+            key={layer.id}
+            className={`pro-full-artwork-transform${selected?' is-selected':''}`}
+            style={{
+              left:`${layer.transform.x}%`,
+              top:`${layer.transform.y}%`,
+              width:`${layer.transform.width}%`,
+              transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`,
+              zIndex:10+index,
+            }}
+            onPointerDown={event=>beginLayerGesture(event,layer,'move')}
+            onPointerMove={updateLayerGesture}
+            onPointerUp={endLayerGesture}
+            onPointerCancel={endLayerGesture}
+          >
+            <img src={layer.url} alt={layer.name} draggable={false}/>
+            {selected && <>
+              <span className="pro-transform-box" aria-hidden="true"/>
+              <button type="button" className="pro-transform-handle pro-transform-resize" aria-label="Resize selected artwork" onPointerDown={event=>beginLayerGesture(event,layer,'resize')}/>
+              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate selected artwork" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><span/></button>
+            </>}
+          </div>;
+        })}
+
+        {cartonPanels.map(item => {
+          const panelName=item.label[0]+item.label.slice(1).toLowerCase();
+          const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
+          const hasArtwork=!!explicitArtwork || (layers.length>0 && artworkScope==='outside');
+          return <div
+            key={item.id}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''}`}
+            style={{
+              left:`${item.x/bounds.width*100}%`,
+              top:`${item.y/bounds.height*100}%`,
+              width:`${item.width/bounds.width*100}%`,
+              height:`${item.height/bounds.height*100}%`,
+              overflow:'hidden',
+            }}
+            aria-hidden="true"
+          >
+            {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
+            <span className="dl-label">{item.label}</span>
+            {explicitArtwork && <b>OVERRIDE</b>}
+          </div>;
+        })}
+      </div>
     </div>
+
     <div className="pro-dieline-legend">
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{fullDielineArtwork ? 'Drag artwork to move · use corner handle to resize · rotation handle to rotate · Apply to 3D when ready' : 'Add artwork, then drag, resize and rotate it directly on the dieline'}</strong>
+      <strong>{layers.length ? 'Select a layer · drag to move · resize/rotate with handles · 3D updates automatically' : 'Add multiple images and compose them directly on the dieline'}</strong>
     </div>
   </div>;
 }
