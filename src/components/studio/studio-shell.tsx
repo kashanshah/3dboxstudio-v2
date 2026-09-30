@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
@@ -933,10 +934,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         </div>
           <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
             <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
-            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(Math.max(40, zoom - 10)) : setDielineZoom(Math.max(45, dielineZoom - 10))}>
+            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
             </button>
-            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(Math.min(140, zoom + 10)) : setDielineZoom(Math.min(200, dielineZoom + 10))}>
+            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1.1))}>
               <ZoomIn size={20}/>
             </button>
             {mode === '3d' && <>
@@ -1558,7 +1559,7 @@ function DielinePrototype({
   onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
   zoom:number;
-  onZoomChange:(zoom:number)=>void;
+  onZoomChange:React.Dispatch<React.SetStateAction<number>>;
   panEnabled:boolean;
   setPanEnabled:(enabled:boolean)=>void;
   canvasPan:{x:number;y:number};
@@ -1796,8 +1797,7 @@ function DielinePrototype({
       onWheel={(event)=>{
         if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
         event.preventDefault();
-        const step = event.deltaY > 0 ? -8 : 8;
-        onZoomChange(Math.max(45,Math.min(200,zoom+step)));
+        onZoomChange(value => wheelStudioZoom(value, event.deltaY, event.deltaMode, event.ctrlKey));
       }}
       onPointerDownCapture={(event)=>{
         if (!panEnabled) return;
