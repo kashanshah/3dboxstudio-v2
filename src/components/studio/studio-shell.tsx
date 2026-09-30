@@ -183,6 +183,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate.id);
   const [templateSearch, setTemplateSearch] = useState('');
   const [templateCategory, setTemplateCategory] = useState('All');
+  const [templatePreview,setTemplatePreview] = useState<PackagingTemplateDefinition|null>(null);
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
   const [material, setMaterial] = useState(initial?.material ?? 'Soft touch');
@@ -1583,6 +1584,22 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     </div>
 
     <div className="pro-studio-body">
+      <nav className={`pro-studio-tool-rail is-${workflowStep}`} aria-label={`${activeAreaConfig?.label ?? 'Studio'} tools`}>
+        {workflowStep==='box' && <>
+          <button type="button" className={tool==='structure'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('structure')}><Box size={22}/><span>Box & Size</span></button>
+          <button type="button" className={tool==='material'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('material')}><Layers3 size={22}/><span>Material & Finish</span></button>
+        </>}
+        {workflowStep==='design' && <>
+          <button type="button" className={artworkScope==='outside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>Outside</span></button>
+          <button type="button" className={artworkScope==='inside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>Inside</span></button>
+          <button type="button" className={designToolsOpen?'is-active':''} onClick={()=>{setTool('artwork');setDesignToolsOpen(true);}}><Upload size={22}/><span>Images</span></button>
+        </>}
+        {workflowStep==='preview' && <>
+          <button type="button" className={tool==='opening'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('opening')}><PackageOpen size={22}/><span>Open / Close</span></button>
+          <button type="button" className={tool==='scene'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('scene')}><Lightbulb size={22}/><span>Scene</span></button>
+          <button type="button" className={tool==='export'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('export')}><Download size={22}/><span>Download</span></button>
+        </>}
+      </nav>
       <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?'Packaging design workspace':workflowStep==='box'?'Box setup workspace':'3D preview and download workspace'}>
 
         <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
@@ -1802,16 +1819,37 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {activeAreaConfig && activeAreaConfig.tools.length > 1 && <nav className="pro-inspector-subnav" aria-label={`${activeAreaConfig.label} tools`}>
-          {activeAreaConfig.tools.map(toolId => {
-            const item=tools.find(candidate=>candidate.id===toolId)!;
-            const Icon=item.icon;
-            return <button key={toolId} type="button" className={tool===toolId?'is-active':''} aria-pressed={tool===toolId} onClick={()=>selectTool(toolId)}><Icon size={15}/><span>{item.label}</span></button>;
-          })}
-        </nav>}
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
+
+    {templatePreview && <div className="pro-template-preview-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setTemplatePreview(null);}}>
+      <section className="pro-template-preview-modal" role="dialog" aria-modal="true" aria-labelledby="template-preview-title">
+        <header>
+          <div><span>Packaging template</span><h2 id="template-preview-title">{templatePreview.name}</h2><p>{templatePreview.category}</p></div>
+          <button type="button" aria-label="Close template preview" onClick={()=>setTemplatePreview(null)}><X size={20}/></button>
+        </header>
+        <div className="pro-template-preview-body">
+          <div className="pro-template-preview-art"><TemplateVisual template={templatePreview}/></div>
+          <div className="pro-template-preview-details">
+            <span>Structure preview</span>
+            <strong>{templatePreview.shortName}</strong>
+            <p>Review the structure before replacing the current box template.</p>
+            {templatePreview.defaultDimensions && <dl>
+              <div><dt>Width</dt><dd>{formatDimension(templatePreview.defaultDimensions.width,measurementUnit)} {measurementUnit}</dd></div>
+              <div><dt>Height</dt><dd>{formatDimension(templatePreview.defaultDimensions.height,measurementUnit)} {measurementUnit}</dd></div>
+              <div><dt>Depth</dt><dd>{formatDimension(templatePreview.defaultDimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
+            </dl>}
+          </div>
+        </div>
+        <footer>
+          <button type="button" className="pro-secondary-button" onClick={()=>setTemplatePreview(null)}>Cancel</button>
+          <button type="button" className="pro-primary" disabled={templatePreview.status!=='ready'} onClick={()=>{chooseTemplate(templatePreview);setTemplatePreview(null);}}>
+            {templatePreview.status==='ready'?'Use this template':'Coming soon'}
+          </button>
+        </footer>
+      </section>
+    </div>}
 
     {mediaLibraryOpen && <MediaLibraryModal
       key={`${artworkScope}:${mediaTargetPanel}:${selectedMediaAssetId ?? 'none'}`}
@@ -1916,7 +1954,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void;
-  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onImportDieline:()=>void; importedDieline:ParsedDieline|null;
+  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onPreviewTemplate:(template:PackagingTemplateDefinition)=>void; onImportDieline:()=>void; importedDieline:ParsedDieline|null;
   panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void;
@@ -2017,7 +2055,7 @@ function Inspector(props: {
           return <button
             key={template.id}
             className={`pro-template-card ${active ? 'is-selected' : ''} ${template.status === 'planned' ? 'is-planned' : ''}`}
-            onClick={()=>props.onChooseTemplate(template)}
+            onClick={()=>props.onPreviewTemplate(template)}
           >
             <TemplateVisual template={template} />
             <div className="pro-template-card-copy">
