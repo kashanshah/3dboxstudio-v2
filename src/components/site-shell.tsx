@@ -28,14 +28,13 @@ function NavigationLinks({ onNavigate, compact = false }: { onNavigate?: () => v
   </>;
 }
 
-export function SiteHeader() {
-  const [menuOpen, setMenuOpen] = useState(false);
+export function MarketingStickyHeader() {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     const update = () => {
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const revealPoint = Math.min(window.innerHeight * 1.5, Math.max(0, maxScroll - 1));
+      const revealPoint = Math.min(window.innerHeight * 0.75, Math.max(0, maxScroll - 1));
       setRevealed(maxScroll > window.innerHeight * 0.5 && window.scrollY >= revealPoint);
     };
     update();
@@ -46,6 +45,20 @@ export function SiteHeader() {
       window.removeEventListener('resize', update);
     };
   }, []);
+
+  return <header className={`marketing-sticky-header${revealed ? ' is-visible' : ''}`} aria-hidden={!revealed}>
+    <div className="marketing-header-inner is-compact">
+      <Brand />
+      <nav className="marketing-nav-links" aria-label="Sticky navigation"><NavigationLinks compact /></nav>
+      <div className="marketing-header-actions">
+        <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
+      </div>
+    </div>
+  </header>;
+}
+
+export function SiteHeader() {
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const headerContents = (compact = false) => <div className={compact ? 'marketing-header-inner is-compact' : 'marketing-header-inner'}>
     <Brand />
@@ -61,9 +74,7 @@ export function SiteHeader() {
     <header className="marketing-header">{headerContents(false)}
       {menuOpen ? <nav className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /><Link href="/studio" onClick={() => setMenuOpen(false)}>Open Studio <ArrowUpRight size={16}/></Link></nav> : null}
     </header>
-    <header className={`marketing-sticky-header${revealed ? ' is-visible' : ''}`} aria-hidden={!revealed}>
-      {headerContents(true)}
-    </header>
+    <MarketingStickyHeader />
   </>;
 }
 

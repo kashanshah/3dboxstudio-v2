@@ -4,10 +4,11 @@ import { ArrowRight, Box, CirclePlay, Download, Layers3, MoveUpRight, PackageChe
 import { BrandMark } from "./original-brand-mark";
 import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
+import { MarketingStickyHeader } from "./site-shell";
 
 
 export function OriginalHome() {
-  return <main id="main" className="lovable-original marketing-page">
+  return <><main id="main" className="lovable-original marketing-page">
     <nav className="site-nav">
       <BrandMark />
       <div className="original-nav-links"><a href="#workflow">Workflow</a><a href="#showcase">Examples</a><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link></div>
@@ -56,6 +57,6 @@ export function OriginalHome() {
 
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the idea feel real.</h2><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
     <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><span>© 2026 3D Box Studio</span></footer>
-  </main>
+  </main><MarketingStickyHeader /></>
 }
 
