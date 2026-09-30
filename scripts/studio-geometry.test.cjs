@@ -269,6 +269,24 @@ test('base box and split-top nets preserve finished face dimensions',()=>{
   assert.ok(splitTopBoxBounds(dimensions,'side_a').height>dimensions.height);
 });
 
+test('base and split-top templates separate flat formation from package opening',()=>{
+  const dimensions={width:240,height:100,depth:160,thickness:.5};
+  const flat=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:0,openingMode:'lid_from_back'});
+  const closed=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:100,openingMode:'lid_from_back'});
+  const open=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:100,openingMode:'lid_from_back'});
+  const flatTop=flat.find(mesh=>mesh.panel==='Top').pickCorners;
+  const closedTop=closed.find(mesh=>mesh.panel==='Top').pickCorners;
+  const openTop=open.find(mesh=>mesh.panel==='Top').pickCorners;
+  assert.ok(flat.every(mesh=>!mesh.panel||mesh.pickCorners.every(point=>Math.abs(point[2]-flat[0].pickCorners[0][2])<dimensions.depth+dimensions.thickness+1)),'flat formation must remain on the dieline plane');
+  assert.ok(closedTop.every(point=>Math.abs(point[1]-dimensions.height/2)<1e-6),'opening 0 must be a closed horizontal lid');
+  assert.ok(openTop.some((point,index)=>Math.abs(point[1]-closedTop[index][1])>1),'opening 100 must move the lid away from closed');
+  assert.notDeepEqual(flatTop,closedTop,'formation 0 and assembled closed must be distinct states');
+
+  const splitFlat=buildMeshes({width:400,height:300,depth:300,thickness:.5},0,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:0,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a'});
+  const splitOpen=buildMeshes({width:400,height:300,depth:300,thickness:.5},100,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a'});
+  assert.notDeepEqual(splitFlat.find(mesh=>mesh.panel==='Top Left').pickCorners,splitOpen.find(mesh=>mesh.panel==='Top Left').pickCorners);
+});
+
 test('legacy base-box opening modes articulate existing faces without changing topology',()=>{
   const dimensions={width:240,height:100,depth:160,thickness:.5};
   const closed=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
