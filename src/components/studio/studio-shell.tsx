@@ -1351,7 +1351,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
         <span className="pro-divider" />
         <div className="pro-project-copy"><input ref={projectNameRef} aria-label="Design name" value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">Your designs</Link></div>
         <div className="pro-file-menu" ref={fileMenuRef}>
-          <button type="button" className="pro-file-menu-trigger" aria-label="File actions" aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
+          <button type="button" className="pro-file-menu-trigger" aria-label="File actions" title="File actions" aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
           {fileMenuOpen&&<div className="pro-file-menu-popover" role="menu">
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign();}}><Download size={15}/><span><strong>Save</strong><small>⌘/Ctrl + S</small></span></button>
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>Save a copy</strong><small>Create an independent design</small></span></button>
@@ -1367,13 +1367,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       <div className="pro-header-actions">
         <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':''}`} disabled={saving} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':'Save'}</button>
         <AccountButton compact className="pro-secondary" />
-        <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
+        <button className="pro-primary" title="Download your design" onClick={() => chooseTool('export')}><Download size={16} /> <span>Download</span></button>
       </div>
     </header>
 
     <div className="pro-studio-body">
       <aside className="pro-tool-rail" aria-label="Studio tools">
-        {tools.map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)} aria-pressed={tool === id}>
+        {tools.map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)} aria-pressed={tool === id} title={label}>
           <Icon size={18} strokeWidth={1.7} /><span>{label}</span>
         </button>)}
       </aside>
@@ -1385,6 +1385,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
             <button
               type="button"
               aria-haspopup="menu"
+              aria-label="Camera angle"
+              title="Choose camera angle"
               aria-expanded={cameraMenuOpen}
               onClick={() => setCameraMenuOpen(open => !open)}
             >
