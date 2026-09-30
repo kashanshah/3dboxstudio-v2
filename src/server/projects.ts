@@ -2,6 +2,7 @@ import { ensureV2Schema,getSql } from './db';
 import type { SavedStudioProject } from '@/lib/studio-project';
 import { validProjectState } from '@/lib/studio-project';
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
+import { ensureLegacyMediaForDesign } from '@/server/legacy-media';
 
 export type WorkspaceDesign={id:string;name:string;updatedAt:string;preview:string|null;legacy:boolean;href:string|null;favorite:boolean};
 
@@ -63,7 +64,7 @@ export async function getStudioProject(userId:string,id:string):Promise<SavedStu
  const legacyRows=await sql`SELECT source,source_id,payload FROM legacy_records WHERE source||':'||source_id=${id} AND entity_type='shared_designs' AND deleted_at IS NULL AND payload->>'user_id'=${userId} LIMIT 1` as {source:string;source_id:string;payload:unknown}[];
  const legacy=legacyRows[0];
  if(!legacy)return null;
+ const mediaByFace=await ensureLegacyMediaForDesign(userId,legacy.payload);
  const assetBaseUrl=process.env.LEGACY_ASSET_BASE_URL?.trim();
- if(!assetBaseUrl)return null;
- return legacyDesignToStudioProject({source:legacy.source,sourceId:legacy.source_id,payload:legacy.payload,assetBaseUrl});
+ return legacyDesignToStudioProject({source:legacy.source,sourceId:legacy.source_id,payload:legacy.payload,assetBaseUrl,mediaByFace});
 }
