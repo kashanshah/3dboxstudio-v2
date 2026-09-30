@@ -59,6 +59,31 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
+export function sheetTransformToPhysical(
+  transform: FullDielineTransform,
+  bounds: {width:number;height:number},
+) {
+  return {
+    centerX: bounds.width * transform.x / 100,
+    centerY: bounds.height * transform.y / 100,
+    width: bounds.width * transform.width / 100,
+    height: bounds.height * transform.height / 100,
+    rotation: transform.rotation,
+  };
+}
+
+export function panelRasterSize(
+  panel:{width:number;height:number},
+  maxCanvas=1200,
+) {
+  const pixelsPerMm=maxCanvas/Math.max(panel.width,panel.height);
+  return {
+    width:Math.max(1,Math.round(panel.width*pixelsPerMm)),
+    height:Math.max(1,Math.round(panel.height*pixelsPerMm)),
+    pixelsPerMm,
+  };
+}
+
 export async function rasterizeFullDielineLayers(
   layers: FullDielineArtworkLayer[],
   dimensions: CartonDimensions,
@@ -72,44 +97,40 @@ export async function rasterizeFullDielineLayers(
   })));
 
   const bounds = reverseTuckBounds(dimensions);
-  const {width:canvasWidth,height:canvasHeight}=dielineRasterSize(bounds);
-  const canvas = document.createElement('canvas');
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas is not available.');
-
-  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
-  for (const { layer, image } of loaded) {
-    const targetWidth = canvasWidth * layer.transform.width / 100;
-    const targetHeight = canvasHeight * layer.transform.height / 100;
-    const cx = canvasWidth * layer.transform.x / 100;
-    const cy = canvasHeight * layer.transform.y / 100;
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(layer.transform.rotation * Math.PI / 180);
-    ctx.drawImage(image, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
-    ctx.restore();
-  }
-
   const result: ArtworkByPanel = {};
   const compositeName = layers.length === 1 ? layers[0].name : `${layers.length} layer composition`;
-  for (const item of reverseTuckPanels(dimensions)) {
-    const sx = Math.round(item.x / bounds.width * canvasWidth);
-    const sy = Math.round(item.y / bounds.height * canvasHeight);
-    const sw = Math.max(1, Math.round(item.width / bounds.width * canvasWidth));
-    const sh = Math.max(1, Math.round(item.height / bounds.height * canvasHeight));
 
+  // Render each face directly from the physical 2D sheet coordinate system.
+  // This deliberately avoids drawing one giant sheet bitmap and cropping it
+  // afterwards: each 3D texture is now generated from the exact panel rectangle
+  // (Front W×H, sides D×H, top/bottom W×D).
+  for (const panel of reverseTuckPanels(dimensions)) {
+    const raster=panelRasterSize(panel);
     const panelCanvas = document.createElement('canvas');
-    panelCanvas.width = sw;
-    panelCanvas.height = sh;
-    const panelCtx = panelCanvas.getContext('2d');
-    if (!panelCtx) continue;
-    panelCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    panelCanvas.width = raster.width;
+    panelCanvas.height = raster.height;
+    const ctx = panelCanvas.getContext('2d');
+    if (!ctx) continue;
+    ctx.clearRect(0,0,panelCanvas.width,panelCanvas.height);
 
-    const panelName = item.label[0] + item.label.slice(1).toLowerCase();
+    const scaleX=panelCanvas.width/panel.width;
+    const scaleY=panelCanvas.height/panel.height;
+
+    for(const {layer,image} of loaded){
+      const physical=sheetTransformToPhysical(layer.transform,bounds);
+      const localCenterX=(physical.centerX-panel.x)*scaleX;
+      const localCenterY=(physical.centerY-panel.y)*scaleY;
+      const widthPx=physical.width*scaleX;
+      const heightPx=physical.height*scaleY;
+
+      ctx.save();
+      ctx.translate(localCenterX,localCenterY);
+      ctx.rotate(physical.rotation*Math.PI/180);
+      ctx.drawImage(image,-widthPx/2,-heightPx/2,widthPx,heightPx);
+      ctx.restore();
+    }
+
+    const panelName = panel.label[0] + panel.label.slice(1).toLowerCase();
     result[`${panelPrefix}${panelName}`] = {
       ...defaultArtworkPlacement(compositeName, panelCanvas.toDataURL('image/png')),
       panelTexture: true,
@@ -120,6 +141,7 @@ export async function rasterizeFullDielineLayers(
       alignY: 0,
     };
   }
+
   return result;
 }
 
