@@ -10,10 +10,11 @@ import {
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { artworkCropCss, artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
+import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
+import { DEFAULT_FULL_DIELINE_TRANSFORM, rasterizeFullDielineArtwork, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -47,6 +48,8 @@ export function StudioShell() {
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [fullDielineArtwork, setFullDielineArtwork] = useState<ArtworkPlacement | null>(null);
+  const [fullDielineTransform, setFullDielineTransform] = useState<FullDielineTransform>(DEFAULT_FULL_DIELINE_TRANSFORM);
+  const [mappedFullDielineArtwork, setMappedFullDielineArtwork] = useState<ArtworkByPanel>({});
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -68,30 +71,8 @@ export function StudioShell() {
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
-    const inherited: ArtworkByPanel = {};
-    if (fullDielineArtwork) {
-      const bounds = reverseTuckBounds(dimensions);
-      for (const item of reverseTuckPanels(dimensions)) {
-        if (item.id === 'glue') continue;
-        const panelName = item.label[0] + item.label.slice(1).toLowerCase();
-        inherited[panelName] = {
-          ...fullDielineArtwork,
-          mode: 'fill',
-          scale: 100,
-          rotation: 0,
-          alignX: 0,
-          alignY: 0,
-          crop: {
-            x: item.x / bounds.width,
-            y: item.y / bounds.height,
-            width: item.width / bounds.width,
-            height: item.height / bounds.height,
-          },
-        };
-      }
-    }
-    return { ...inherited, ...artworkByPanel };
-  }, [artworkByPanel, dimensions, fullDielineArtwork]);
+    return { ...mappedFullDielineArtwork, ...artworkByPanel };
+  }, [artworkByPanel, mappedFullDielineArtwork]);
   const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
   const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
     ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
@@ -158,6 +139,8 @@ export function StudioShell() {
   const applyAssetToPanel = (asset: LocalMediaAsset, targetPanel = artworkKey()) => {
     if (targetPanel === '__FULL_DIELINE__') {
       setFullDielineArtwork(defaultArtworkPlacement(asset.name, asset.url, asset.id));
+      setFullDielineTransform(DEFAULT_FULL_DIELINE_TRANSFORM);
+      setMappedFullDielineArtwork({});
       setMediaLibraryOpen(false);
       setMode('dieline');
       setMessage(`${asset.name} applied across the full 2D layout`);
@@ -482,13 +465,31 @@ export function StudioShell() {
           setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
           fullDielineArtwork={fullDielineArtwork}
+          fullDielineTransform={fullDielineTransform}
+          onFullDielineTransformChange={setFullDielineTransform}
           artworkScope={artworkScope}
           dimensions={dimensions}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
           onRemoveFullLayout={() => {
             setFullDielineArtwork(null);
+            setMappedFullDielineArtwork({});
             setMessage('Full-layout artwork removed');
+          }}
+          onApplyFullLayoutTo3D={async () => {
+            if (!fullDielineArtwork) return;
+            try {
+              setMessage('Mapping 2D artwork to 3D panels…');
+              const mapped = await rasterizeFullDielineArtwork({
+                id: fullDielineArtwork.assetId,
+                name: fullDielineArtwork.name,
+                url: fullDielineArtwork.url,
+              }, fullDielineTransform, dimensions);
+              setMappedFullDielineArtwork(mapped);
+              setMessage('2D artwork mapped to the 3D package');
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : 'Could not map artwork to 3D');
+            }
           }}
           onPanelSelect={(selectedPanel) => {
             setPanel(selectedPanel);
@@ -936,10 +937,13 @@ function DielinePrototype({
   setMapping,
   artworkByPanel,
   fullDielineArtwork,
+  fullDielineTransform,
+  onFullDielineTransformChange,
   artworkScope,
   dimensions,
   onChooseFullLayout,
   onRemoveFullLayout,
+  onApplyFullLayoutTo3D,
   onClearImportedDieline,
   onPanelSelect,
 }:{
@@ -949,15 +953,88 @@ function DielinePrototype({
   setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
   artworkByPanel:ArtworkByPanel;
   fullDielineArtwork:ArtworkPlacement | null;
+  fullDielineTransform:FullDielineTransform;
+  onFullDielineTransformChange:(value:FullDielineTransform)=>void;
   artworkScope:'outside'|'inside';
   dimensions:CartonDimensions;
   onChooseFullLayout:()=>void;
   onRemoveFullLayout:()=>void;
+  onApplyFullLayoutTo3D:()=>void | Promise<void>;
   onClearImportedDieline:()=>void;
   onPanelSelect:(panel:string)=>void;
 }) {
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
+  const transformRef = useRef<HTMLDivElement>(null);
+  const gestureRef = useRef<{
+    type:'move'|'resize'|'rotate';
+    pointerId:number;
+    startX:number;
+    startY:number;
+    start:FullDielineTransform;
+    centerX:number;
+    centerY:number;
+    startDistance:number;
+    startAngle:number;
+  } | null>(null);
+
+  const beginFullArtworkGesture = (event: React.PointerEvent, type:'move'|'resize'|'rotate') => {
+    if (!fullDielineArtwork) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const container = transformRef.current?.parentElement;
+    if (!container || !transformRef.current) return;
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.left + rect.width * fullDielineTransform.x / 100;
+    const centerY = rect.top + rect.height * fullDielineTransform.y / 100;
+    const dx = event.clientX - centerX;
+    const dy = event.clientY - centerY;
+    gestureRef.current = {
+      type,
+      pointerId:event.pointerId,
+      startX:event.clientX,
+      startY:event.clientY,
+      start:{...fullDielineTransform},
+      centerX,
+      centerY,
+      startDistance:Math.max(1, Math.hypot(dx,dy)),
+      startAngle:Math.atan2(dy,dx),
+    };
+    transformRef.current.setPointerCapture(event.pointerId);
+  };
+
+  const updateFullArtworkGesture = (event: React.PointerEvent) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const container = transformRef.current?.parentElement;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (gesture.type === 'move') {
+      const dx = (event.clientX - gesture.startX) / Math.max(1, rect.width) * 100;
+      const dy = (event.clientY - gesture.startY) / Math.max(1, rect.height) * 100;
+      onFullDielineTransformChange({
+        ...gesture.start,
+        x:Math.max(-100,Math.min(200,gesture.start.x+dx)),
+        y:Math.max(-100,Math.min(200,gesture.start.y+dy)),
+      });
+      return;
+    }
+    if (gesture.type === 'resize') {
+      const distance = Math.hypot(event.clientX-gesture.centerX,event.clientY-gesture.centerY);
+      const ratio = distance / Math.max(1,gesture.startDistance);
+      onFullDielineTransformChange({...gesture.start,width:Math.max(8,Math.min(300,gesture.start.width*ratio))});
+      return;
+    }
+    const angle = Math.atan2(event.clientY-gesture.centerY,event.clientX-gesture.centerX);
+    const delta = (angle-gesture.startAngle)*180/Math.PI;
+    onFullDielineTransformChange({...gesture.start,rotation:gesture.start.rotation+delta});
+  };
+
+  const endFullArtworkGesture = (event: React.PointerEvent) => {
+    if (gestureRef.current?.pointerId !== event.pointerId) return;
+    if (transformRef.current?.hasPointerCapture(event.pointerId)) transformRef.current.releasePointerCapture(event.pointerId);
+    gestureRef.current = null;
+  };
 
   if (importedDieline) {
     return <ImportedDielineMapper
@@ -974,39 +1051,46 @@ function DielinePrototype({
         <span>Full layout artwork</span>
         <strong>{fullDielineArtwork ? fullDielineArtwork.name : 'No full-layout artwork yet'}</strong>
       </div>
-      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/>{fullDielineArtwork ? 'Change layout image' : 'Choose layout image'}</button>
+      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/>{fullDielineArtwork ? 'Change image' : 'Add artwork'}</button>
+      {fullDielineArtwork && <button className="pro-secondary-button" onClick={() => onFullDielineTransformChange(DEFAULT_FULL_DIELINE_TRANSFORM)}><Maximize2 size={15}/> Reset</button>}
+      {fullDielineArtwork && <button className="pro-primary pro-apply-layout-3d" onClick={() => void onApplyFullLayoutTo3D()}><Boxes size={15}/> Apply to 3D</button>}
       {fullDielineArtwork && <button className="pro-2d-remove-layout" onClick={onRemoveFullLayout}><Trash2 size={15}/> Remove</button>}
     </div> : <div className="pro-2d-design-toolbar pro-2d-inside-note">
       <div><span>Inside design</span><strong>Choose individual inside panels to place artwork.</strong></div>
     </div>}
 
-    <div className="pro-dieline pro-dieline-live" style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
+    <div className={`pro-dieline pro-dieline-live${fullDielineArtwork && artworkScope === 'outside' ? ' has-full-layout-editor' : ''}`} style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
+      {fullDielineArtwork && artworkScope === 'outside' ? <div
+        ref={transformRef}
+        className="pro-full-artwork-transform"
+        style={{
+          left:`${fullDielineTransform.x}%`,
+          top:`${fullDielineTransform.y}%`,
+          width:`${fullDielineTransform.width}%`,
+          transform:`translate(-50%,-50%) rotate(${fullDielineTransform.rotation}deg)`,
+        }}
+        onPointerDown={event => beginFullArtworkGesture(event,'move')}
+        onPointerMove={updateFullArtworkGesture}
+        onPointerUp={endFullArtworkGesture}
+        onPointerCancel={endFullArtworkGesture}
+      >
+        <img src={fullDielineArtwork.url} alt={fullDielineArtwork.name} draggable={false}/>
+        <span className="pro-transform-box" aria-hidden="true"/>
+        <button type="button" className="pro-transform-handle pro-transform-resize" aria-label="Resize artwork" onPointerDown={event=>beginFullArtworkGesture(event,'resize')}/>
+        <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate artwork" onPointerDown={event=>beginFullArtworkGesture(event,'rotate')}><span/></button>
+      </div> : null}
       {cartonPanels.map(item => {
         const panelName = item.label[0] + item.label.slice(1).toLowerCase();
         const explicitArtwork = artworkByPanel[artworkScope === 'inside' ? `Interior ${panelName}` : panelName];
-        const masterCrop = fullDielineArtwork && artworkScope === 'outside' && item.id !== 'glue'
-          ? {
-              x: item.x / bounds.width,
-              y: item.y / bounds.height,
-              width: item.width / bounds.width,
-              height: item.height / bounds.height,
-            }
-          : null;
         const selectable = item.id !== 'glue';
-        const hasArtwork = !!explicitArtwork || !!masterCrop;
-        const inheritedStyle = masterCrop && fullDielineArtwork
-          ? {
-              backgroundImage: `url("${fullDielineArtwork.url}")`,
-              ...artworkCropCss(masterCrop),
-            }
-          : undefined;
+        const hasArtwork = !!explicitArtwork || (!!fullDielineArtwork && artworkScope === 'outside');
 
         return <button
           key={item.id}
           type="button"
           disabled={!selectable}
           onClick={() => selectable && onPanelSelect(panelName)}
-          className={`dl-live ${item.id === panel.toLowerCase() ? 'is-selected' : ''} dl-${item.kind} ${hasArtwork ? 'has-artwork' : ''} ${masterCrop && !explicitArtwork ? 'is-inherited-artwork' : ''}`}
+          className={`dl-live ${item.id === panel.toLowerCase() ? 'is-selected' : ''} dl-${item.kind} ${hasArtwork ? 'has-artwork' : ''} ${explicitArtwork ? 'has-explicit-artwork' : ''}`}
           style={{
             left: `${item.x / bounds.width * 100}%`,
             top: `${item.y / bounds.height * 100}%`,
@@ -1016,9 +1100,7 @@ function DielinePrototype({
           }}
           aria-label={selectable ? `Select ${panelName} panel` : 'Glue flap'}
         >
-          {explicitArtwork
-            ? <span className="artwork-layer" style={artworkCss(explicitArtwork)} />
-            : inheritedStyle && <span className="artwork-layer" style={inheritedStyle} />}
+          {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)} /> : null}
           <span className="dl-label">{item.label}</span>
           {explicitArtwork && <b>OVERRIDE</b>}
         </button>;
@@ -1028,7 +1110,7 @@ function DielinePrototype({
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{fullDielineArtwork ? 'Full layout automatically sliced to 3D faces' : 'Choose one image for the full layout, or click a panel for a side-specific design'}</strong>
+      <strong>{fullDielineArtwork ? 'Drag artwork to move · use corner handle to resize · rotation handle to rotate · Apply to 3D when ready' : 'Add one image across the dieline, or click a panel for side-specific artwork'}</strong>
     </div>
   </div>;
 }
