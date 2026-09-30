@@ -175,3 +175,30 @@ test('print page includes all corners of rotated artwork beyond each edge',()=>{
   }
  }
 });
+
+
+test('board thickness edges are single two-sided surfaces with no coplanar duplicates',()=>{
+  for(const dimensions of fixtures){
+    for(const closure of [0,50,100]){
+      const meshes=buildMeshes(dimensions,closure,[1,1,1],[.8,.8,.8]);
+      const edges=meshes.filter(mesh=>!mesh.panel);
+      assert.ok(edges.length>0 && edges.length<=7*4,'coincident hinge edges should be deduplicated');
+      assert.ok(edges.every(mesh=>mesh.doubleSided===true),'physical edge meshes must be rendered two-sided');
+
+      const signatures=new Set();
+      for(const mesh of edges){
+        const points=[];
+        for(let i=0;i<mesh.vertices.length;i+=8){
+          points.push([
+            Number(mesh.vertices[i].toFixed(5)),
+            Number(mesh.vertices[i+1].toFixed(5)),
+            Number(mesh.vertices[i+2].toFixed(5)),
+          ].join(','));
+        }
+        const signature=[...new Set(points)].sort().join('|');
+        assert.ok(!signatures.has(signature),'duplicate coplanar edge geometry detected');
+        signatures.add(signature);
+      }
+    }
+  }
+});
