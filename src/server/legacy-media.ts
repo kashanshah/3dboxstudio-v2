@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { getSql } from '@/server/db';
-import type { MediaAssetDto } from '@/server/media-assets';
+import { headStoredObject, type MediaAssetDto } from '@/server/media-assets';
 
 type JsonRecord=Record<string,unknown>;
 function record(value:unknown):JsonRecord{return value&&typeof value==='object'&&!Array.isArray(value)?value as JsonRecord:{};}
@@ -28,8 +28,9 @@ export async function ensureLegacyMediaForDesign(userId:string,payloadValue:unkn
  for(const [faceId,entryValue] of Object.entries(images)){
    const entry=record(entryValue),key=sourceKey(entry);if(!key)continue;
    const storageKey=targetKey(key),id=stableId(userId,storageKey);
+   let objectMeta;try{objectMeta=await headStoredObject(storageKey);}catch{continue;}
    const name=typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`;
-   const mime=typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png';
+   const mime=objectMeta.contentType || (typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png');
    let width:null|number=null,height:null|number=null;
    const placement=record(record(config.faceImagePlacements)[faceId]);
    const sourceId=typeof placement.sourceImageId==='string'?placement.sourceImageId:'';
@@ -39,7 +40,7 @@ export async function ensureLegacyMediaForDesign(userId:string,payloadValue:unkn
    const fingerprint='legacy:'+createHash('sha256').update(storageKey).digest('hex');
    const rows=await sql`
      INSERT INTO media_assets(id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint)
-     VALUES(${id},${userId},${name.slice(0,255)},${mime},0,${width},${height},${storageKey},${fingerprint})
+     VALUES(${id},${userId},${name.slice(0,255)},${mime},${objectMeta.byteSize},${width},${height},${storageKey},${fingerprint})
      ON CONFLICT(user_id,storage_key) DO UPDATE SET
        name=EXCLUDED.name,
        mime_type=EXCLUDED.mime_type,
