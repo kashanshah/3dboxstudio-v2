@@ -130,15 +130,18 @@ async function main() {
   const apply = process.argv.includes('--apply');
   const sourceBucket = process.env.LEGACY_AWS_S3_BUCKET?.trim() || process.env.AWS_S3_BUCKET?.trim();
   const targetBucket = process.env.AWS_S3_BUCKET?.trim();
-  const sourcePrefix = process.env.LEGACY_AWS_S3_PREFIX?.trim();
-  const targetPrefix = process.env.AWS_S3_PREFIX?.trim();
+  const sourcePrefix = process.env.LEGACY_AWS_S3_PREFIX?.trim()
+    || process.env.AWS_S3_SHARE_PREFIX?.trim()
+    || 'shares/';
+  const targetPrefix = process.env.AWS_S3_PREFIX?.trim() || 'v2/uploads/';
   const targetSubprefix = process.env.LEGACY_ASSET_TARGET_SUBPREFIX?.trim() || 'legacy/';
   const region = process.env.AWS_REGION?.trim();
 
-  if (!region) throw new Error('AWS_REGION is required.');
-  if (!sourceBucket || !targetBucket || !sourcePrefix || !targetPrefix) {
-    throw new Error('Configure LEGACY_AWS_S3_PREFIX, AWS_S3_BUCKET, AWS_S3_PREFIX, and optionally LEGACY_AWS_S3_BUCKET.');
-  }
+  const missing = [];
+  if (!region) missing.push('AWS_REGION');
+  if (!targetBucket) missing.push('AWS_S3_BUCKET');
+  if (!sourceBucket) missing.push('LEGACY_AWS_S3_BUCKET or AWS_S3_BUCKET');
+  if (missing.length) throw new Error(`Missing required environment variable${missing.length === 1 ? '' : 's'}: ${missing.join(', ')}`);
 
   const client = new S3Client({ region });
   try {
