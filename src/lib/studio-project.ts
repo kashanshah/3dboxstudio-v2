@@ -32,6 +32,7 @@ export type StudioProjectState={
  outsideCustomColor:string;
  insideCustomColor:string;
 };
+
 export type SavedStudioProject={
  id:string;
  name:string;
@@ -39,10 +40,13 @@ export type SavedStudioProject={
  updatedAt:string;
  favorite:boolean;
  revision:number;
+ workspaceProjectId:string|null;
  legacyImport?:boolean;
 };
+
 const TEMPLATE_IDS=new Set(['reverse-tuck-carton','base-box','split-top-box']);
 const OPENING_MODES=new Set<LegacyOpeningMode>(['closed','lid_from_back','lid_from_front','lid_from_left','lid_from_right','top_split_meet_center','door_left','door_right','double_doors']);
+
 export function validProjectState(value:unknown):value is StudioProjectState{
  if(!value||typeof value!=='object')return false;const s=value as StudioProjectState;
  if(s.version!==1||!TEMPLATE_IDS.has(s.templateId)||!s.dimensions||!['width','height','depth','thickness'].every(key=>typeof s.dimensions[key as keyof CartonDimensions]==='number'&&Number.isFinite(s.dimensions[key as keyof CartonDimensions])&&s.dimensions[key as keyof CartonDimensions]>0))return false;
