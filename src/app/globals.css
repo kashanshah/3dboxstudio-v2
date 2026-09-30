@@ -73,6 +73,10 @@
 .pro-save-design.is-save-failed{border-color:#dc2626!important;color:#b91c1c!important;background:#fff7f7!important}
 .pro-status-bar.is-save-failed{color:#b91c1c;background:#fff7f7e8;border-top-color:#fecaca}
 .pro-status-bar.is-save-failed .pro-status-dot{background:#dc2626}
+.pro-studio-toast{position:absolute;left:50%;bottom:88px;transform:translateX(-50%);z-index:30;max-width:min(520px,calc(100% - 32px));min-height:42px;padding:10px 14px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(23,26,31,.96);color:#fff;box-shadow:0 14px 34px rgba(15,23,42,.28),0 2px 8px rgba(15,23,42,.18);backdrop-filter:blur(14px);display:flex;align-items:center;gap:9px;font-size:12px;font-weight:650;line-height:1.35;pointer-events:none}
+.pro-studio-toast .pro-status-dot{flex:0 0 auto;box-shadow:0 0 0 4px rgba(255,255,255,.08)}
+.pro-studio-toast.is-error{background:rgba(127,29,29,.97);border-color:rgba(254,202,202,.28)}
+.pro-studio-toast.is-error .pro-status-dot{background:#fecaca}
 .pro-mobile-inspector{display:none}
 .pro-inspector{background:#fff;border-left:1px solid var(--line);overflow-y:auto;z-index:20}.pro-inspector-title{height:64px;padding:11px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:2}.pro-inspector-title>div{display:flex;flex-direction:column}.pro-inspector-title span{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}.pro-inspector-title h2{font-size:17px;margin-top:2px;font-weight:650}.pro-inspector-close{display:none;width:30px;height:30px;border-radius:5px}
 .pro-inspector-content{padding:14px 14px 28px}.pro-section-title{display:flex;align-items:center;justify-content:space-between;margin:8px 0 10px}.pro-section-title strong{font-size:9px;text-transform:uppercase;letter-spacing:.08em}.pro-section-title span{font-size:9px;color:var(--muted)}
@@ -2606,3 +2610,5 @@ body{font-size:var(--type-body)}
 @media(max-width:640px){
   .pro-file-menu-popover{position:fixed;top:60px;left:8px;right:8px;width:auto}
 }
+
+@media(max-width:640px){.pro-studio-toast{position:fixed;left:12px;right:12px;bottom:86px;transform:none;max-width:none;min-height:46px;padding:11px 13px;font-size:12px;z-index:60}}
