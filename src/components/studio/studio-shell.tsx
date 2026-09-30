@@ -796,6 +796,71 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     }
   };
 
+  const handleBoardArtworkDrop = async (files: File[], point: {x:number;y:number}) => {
+    const imageFiles = files.filter(file => {
+      const lower = file.name.toLowerCase();
+      return ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type) || lower.endsWith('.svg');
+    });
+    if (!imageFiles.length) {
+      setMessage('Drop PNG, JPG, WebP or SVG images onto the board');
+      return;
+    }
+    if (mediaUploadProgress?.active) return;
+
+    const dropScope = artworkScope;
+    const uploaded: LocalMediaAsset[] = [];
+    setMessage(`Adding ${imageFiles.length} image${imageFiles.length===1?'':'s'} to the board…`);
+    try {
+      for (let index=0; index<imageFiles.length; index++) {
+        const file=imageFiles[index];
+        setMediaUploadProgress({active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent:0,phase:'uploading'});
+        const imageDimensions=await readUploadDimensions(file);
+        const asset=await uploadMediaFile(file,imageDimensions,(percent,phase)=>{
+          setMediaUploadProgress({active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent,phase});
+        });
+        uploaded.push(asset);
+      }
+
+      setMediaAssets(current=>{
+        const merged=new Map(current.map(asset=>[asset.id,asset]));
+        for(const asset of uploaded) merged.set(asset.id,asset);
+        return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
+      });
+
+      const bounds=reverseTuckBounds(dimensions);
+      const created=uploaded.map((asset,index)=>{
+        const imageAspect=asset.width&&asset.height?asset.width/asset.height:1;
+        const base=createFullDielineTransform(imageAspect,bounds.width/bounds.height,35,0);
+        const offset=index*2;
+        const layerId=typeof crypto!=='undefined'&&'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `layer-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`;
+        return {
+          id:layerId,assetId:asset.id,name:asset.name,url:asset.url,aspectRatio:imageAspect,
+          transform:{...base,x:Math.max(-100,Math.min(200,point.x+offset)),y:Math.max(-100,Math.min(200,point.y+offset))},
+        } satisfies FullDielineArtworkLayer;
+      });
+
+      if (dropScope==='inside') {
+        setInsideDielineLayers(current=>[...current,...created]);
+        setSelectedInsideLayerId(created[created.length-1]?.id??null);
+        setSelectedOutsideLayerId(null);
+      } else {
+        setOutsideDielineLayers(current=>[...current,...created]);
+        setSelectedOutsideLayerId(created[created.length-1]?.id??null);
+        setSelectedInsideLayerId(null);
+      }
+      setMediaUploadProgress({active:false,fileName:uploaded[uploaded.length-1]?.name??'Artwork',fileIndex:imageFiles.length,totalFiles:imageFiles.length,percent:100,phase:'complete'});
+      window.setTimeout(()=>setMediaUploadProgress(null),900);
+      setTool('artwork');
+      setInspectorOpen(false);
+      setMessage(`${uploaded.length} image${uploaded.length===1?'':'s'} added where you dropped ${uploaded.length===1?'it':'them'}`);
+    } catch(error) {
+      setMediaUploadProgress(null);
+      setMessage(error instanceof Error?error.message:'Could not add dropped artwork.');
+    }
+  };
+
   const handleDielineFile = async (file?: File) => {
     if (!file) return;
     try {
@@ -1240,6 +1305,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
+          onDropArtworkFiles={handleBoardArtworkDrop}
           onApplyChanges={() => {
             setMode('3d');
             setInspectorOpen(false);
@@ -1906,6 +1972,7 @@ function DielinePrototype({
   canvasPan,
   setCanvasPan,
   onChooseFullLayout,
+  onDropArtworkFiles,
   onApplyChanges,
   pdfExportRequest,
   onClearImportedDieline,
@@ -1937,6 +2004,7 @@ function DielinePrototype({
   canvasPan:{x:number;y:number};
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
   onChooseFullLayout:()=>void;
+  onDropArtworkFiles:(files:File[],point:{x:number;y:number})=>void;
   onApplyChanges:()=>void;
   pdfExportRequest:number;
   onClearImportedDieline:()=>void;
@@ -1973,6 +2041,7 @@ function DielinePrototype({
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const draggingLayerId = useRef<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [boardFileDragActive,setBoardFileDragActive]=useState(false);
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
@@ -2280,7 +2349,7 @@ function DielinePrototype({
 
       <div
         ref={printBoardRef}
-        className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
+        className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}${boardFileDragActive ? ' is-file-drop-target' : ''}`}
         style={{
           width:`${visualWidth}px`,
           height:`${visualHeight}px`,
@@ -2291,6 +2360,33 @@ function DielinePrototype({
           transformOrigin:'center',
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
+        onDragEnter={(event)=>{
+          if(!event.dataTransfer.types.includes('Files')) return;
+          event.preventDefault();
+          setBoardFileDragActive(true);
+        }}
+        onDragOver={(event)=>{
+          if(!event.dataTransfer.types.includes('Files')) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect='copy';
+          setBoardFileDragActive(true);
+        }}
+        onDragLeave={(event)=>{
+          if(!event.dataTransfer.types.includes('Files')) return;
+          event.preventDefault();
+          if(!event.currentTarget.contains(event.relatedTarget as Node|null)) setBoardFileDragActive(false);
+        }}
+        onDrop={(event)=>{
+          if(!event.dataTransfer.files.length) return;
+          event.preventDefault();
+          event.stopPropagation();
+          setBoardFileDragActive(false);
+          const rect=event.currentTarget.getBoundingClientRect();
+          onDropArtworkFiles(Array.from(event.dataTransfer.files),{
+            x:(event.clientX-rect.left)/Math.max(1,rect.width)*100,
+            y:(event.clientY-rect.top)/Math.max(1,rect.height)*100,
+          });
+        }}
       >
         <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}</div>
         {layers.map((layer,index)=>{
