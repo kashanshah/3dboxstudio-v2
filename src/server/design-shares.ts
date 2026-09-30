@@ -21,32 +21,6 @@ export type PublicShare={id:string;name:string;state:StudioProjectState;legacy:b
 
 type LegacyShareRow={source:string;source_id:string;payload:unknown};
 
-function legacyAssetBaseUrl(){
- const value=process.env.LEGACY_ASSET_BASE_URL?.trim();
- if(!value)return undefined;
- try{
-  const url=new URL(value);
-  return url.protocol==='https:'?url.toString():undefined;
- }catch{return undefined;}
-}
-
-function legacyRowToPublicShare(row:LegacyShareRow):PublicShare|null{
- const converted=legacyDesignToStudioProject({
-  source:row.source,
-  sourceId:row.source_id,
-  payload:row.payload,
-  assetBaseUrl:legacyAssetBaseUrl(),
- });
- if(!converted||!validProjectState(converted.state))return null;
- return {
-  id:row.source_id,
-  name:converted.name,
-  state:converted.state,
-  legacy:true,
-  updatedAt:converted.updatedAt,
- };
-}
-
 export async function upsertDesignShare(userId:string,input:{projectId?:string|null;name:string;state:unknown}){
  await ensureV2Schema();
  if(!validProjectState(input.state))throw new Error('Invalid design state.');
@@ -135,10 +109,6 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
    ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
    row=fallback[0];
   }
-  if(!row&&legacy){
-   const direct=legacyRowToPublicShare(legacy);
-   if(direct)return direct;
-  }
  }
 
  if(!row||!validProjectState(row.studio_state))return null;
@@ -160,15 +130,7 @@ export async function getPreviewShare(previewToken:string):Promise<PublicShare|n
   return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
  }
 
- const legacyRows=await sql`
-  SELECT source,source_id,payload
-  FROM legacy_records
-  WHERE entity_type='shared_designs'
-    AND deleted_at IS NULL
-    AND payload->>'preview_token'=${previewToken}
-  LIMIT 1
- ` as LegacyShareRow[];
- return legacyRows[0]?legacyRowToPublicShare(legacyRows[0]):null;
+ return null;
 }
 
 export async function getMigratedShareAsset(id:string,faceId:string){
@@ -203,4 +165,19 @@ export async function getShareMedia(id:string,assetId:string){
   ...row.studio_state.insideArtworkLayers.map(item=>item.assetId).filter(Boolean),
  ]);
  return ids.has(assetId)?row:null;
+}
+
+
+export async function getLegacyDesignThumbnail(id:string){
+ await ensureV2Schema();
+ const rows=await getSql()`
+  SELECT payload->>'v2_og_image_key' AS storage_key
+  FROM legacy_records
+  WHERE source||':'||source_id=${id}
+    AND entity_type='shared_designs'
+    AND deleted_at IS NULL
+  LIMIT 1
+ ` as {storage_key:string|null}[];
+ const storageKey=rows[0]?.storage_key;
+ return storageKey?{storageKey}:null;
 }
