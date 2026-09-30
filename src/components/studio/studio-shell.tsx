@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
-import { scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
+import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -151,6 +151,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpeningValue] = useState(initial?.opening ?? 100);
   const [zoom, setZoom] = useState(82);
+  const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
   const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? DEFAULT_CARTON_DIMENSIONS);
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
@@ -166,6 +167,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [panEnabled, setPanEnabled] = useState(false);
   const [spacePanActive, setSpacePanActive] = useState(false);
   const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
+  const zoomRef=useRef(zoom);
+  const dielineZoomRef=useRef(dielineZoom);
+  const viewPan3dRef=useRef(viewPan3d);
+  const canvasPanRef=useRef(canvasPan);
   const [pdfExportRequest,setPdfExportRequest] = useState(0);
   const liveMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
@@ -355,6 +360,11 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setCameraMenuOpen(false);
   }, []);
 
+  useEffect(()=>{zoomRef.current=zoom;},[zoom]);
+  useEffect(()=>{dielineZoomRef.current=dielineZoom;},[dielineZoom]);
+  useEffect(()=>{viewPan3dRef.current=viewPan3d;},[viewPan3d]);
+  useEffect(()=>{canvasPanRef.current=canvasPan;},[canvasPan]);
+
   useEffect(() => {
     const onSpaceKeyDown = (event:KeyboardEvent) => {
       if (event.code !== 'Space' || event.repeat || mode !== 'dieline' || importedDieline || mediaLibraryOpen) return;
@@ -397,17 +407,44 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       );
     };
 
+    const viewportRect=()=>{
+      const selector=mode==='3d'?'.pro-3d-stage .carton-engine-canvas':'.pro-dieline-workspace';
+      return canvas.querySelector(selector)?.getBoundingClientRect() ?? canvas.getBoundingClientRect();
+    };
+
+    const applyAnchoredZoom=(nextZoom:number,clientX:number,clientY:number)=>{
+      const rect=viewportRect();
+      const point={
+        x:clientX-(rect.left+rect.width/2),
+        y:clientY-(rect.top+rect.height/2),
+      };
+
+      if(mode==='3d'){
+        const oldZoom=zoomRef.current;
+        const nextPan=panForAnchoredZoom(viewPan3dRef.current,oldZoom,nextZoom,point);
+        zoomRef.current=nextZoom;
+        viewPan3dRef.current=nextPan;
+        setViewPan3d(nextPan);
+        setZoom(nextZoom);
+      }else{
+        const oldZoom=dielineZoomRef.current;
+        const nextPan=panForAnchoredZoom(canvasPanRef.current,oldZoom,nextZoom,point);
+        dielineZoomRef.current=nextZoom;
+        canvasPanRef.current=nextPan;
+        setCanvasPan(nextPan);
+        setDielineZoom(nextZoom);
+      }
+    };
+
     const handleWheel=(event:WheelEvent)=>{
       if(!isBoardTarget(event.target))return;
 
       event.preventDefault();
       event.stopPropagation();
 
-      if(mode==='3d'){
-        setZoom(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
-      }else{
-        setDielineZoom(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
-      }
+      const current=mode==='3d'?zoomRef.current:dielineZoomRef.current;
+      const next=wheelStudioZoom(current,event.deltaY,event.deltaMode,event.ctrlKey);
+      applyAnchoredZoom(next,event.clientX,event.clientY);
     };
 
     // Safari sends trackpad pinch as GestureEvents instead of Ctrl+wheel.
@@ -421,12 +458,19 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     const handleGestureChange=(event:Event)=>{
       if(lastGestureScale===null)return;
       event.preventDefault();
-      const scale=(event as Event & {scale?:number}).scale;
+      const gesture=event as Event & {scale?:number;clientX?:number;clientY?:number};
+      const scale=gesture.scale;
       if(typeof scale!=='number' || !Number.isFinite(scale) || scale<=0)return;
       const factor=scale/lastGestureScale;
       lastGestureScale=scale;
-      if(mode==='3d')setZoom(value=>scaleStudioZoom(value,factor));
-      else setDielineZoom(value=>scaleStudioZoom(value,factor));
+      const current=mode==='3d'?zoomRef.current:dielineZoomRef.current;
+      const next=scaleStudioZoom(current,factor);
+      const rect=viewportRect();
+      applyAnchoredZoom(
+        next,
+        gesture.clientX ?? rect.left+rect.width/2,
+        gesture.clientY ?? rect.top+rect.height/2,
+      );
     };
     const handleGestureEnd=(event:Event)=>{
       if(lastGestureScale===null)return;
@@ -1115,6 +1159,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             artworkByPanel={resolvedArtworkByPanel}
             cameraPreset={camera}
             zoom={zoom}
+            viewPan={viewPan3d}
             onZoomChange={setZoom}
             onPanelSelect={(selectedPanel, point) => {
               const parsed = parseArtworkTarget(selectedPanel);
@@ -1288,9 +1333,14 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
               aria-label="Fit view"
               onClick={() => {
                 if (mode === '3d') {
+                  zoomRef.current=82;
+                  viewPan3dRef.current={x:0,y:0};
                   setZoom(82);
+                  setViewPan3d({x:0,y:0});
                   engineRef.current?.resetCamera();
                 } else {
+                  dielineZoomRef.current=100;
+                  canvasPanRef.current={x:0,y:0};
                   setDielineZoom(100);
                   setCanvasPan({ x: 0, y: 0 });
                 }

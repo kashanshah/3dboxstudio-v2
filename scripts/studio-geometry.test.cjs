@@ -68,7 +68,7 @@ test('raster canvas keeps the sheet aspect ratio for unusually wide and tall net
   }
 });
 
-const {scaleStudioZoom,wheelStudioZoom}=require('../src/lib/studio-zoom.ts');
+const {panForAnchoredZoom,scaleStudioZoom,wheelStudioZoom}=require('../src/lib/studio-zoom.ts');
 const {studioViewProjection}=require('../src/components/studio/carton-engine.tsx');
 test('zoom controls continue past previous limits and preserve positive scales',()=>{
   let zoom=82;
@@ -200,5 +200,34 @@ test('board thickness edges are single two-sided surfaces with no coplanar dupli
         signatures.add(signature);
       }
     }
+  }
+});
+
+
+test('cursor-anchored zoom keeps the same canvas point under the cursor',()=>{
+  const cases=[
+    {pan:{x:0,y:0},point:{x:240,y:-120},oldZoom:100,newZoom:200},
+    {pan:{x:75,y:-30},point:{x:-180,y:95},oldZoom:112,newZoom:73},
+    {pan:{x:-20,y:60},point:{x:0,y:0},oldZoom:82,newZoom:500},
+  ];
+  for(const item of cases){
+    const nextPan=panForAnchoredZoom(item.pan,item.oldZoom,item.newZoom,item.point);
+    const contentX=(item.point.x-item.pan.x)/item.oldZoom;
+    const contentY=(item.point.y-item.pan.y)/item.oldZoom;
+    near(nextPan.x+contentX*item.newZoom,item.point.x);
+    near(nextPan.y+contentY*item.newZoom,item.point.y);
+  }
+});
+
+test('3D screen-space projection offset translates NDC without changing depth',()=>{
+  const base=studioViewProjection(180,1.5,-.55,.28,82);
+  const ox=.35,oy=-.2;
+  const shifted=studioViewProjection(180,1.5,-.55,.28,82,ox,oy);
+  for(let column=0;column<4;column++){
+    const i=column*4;
+    near(shifted[i],base[i]+ox*base[i+3]);
+    near(shifted[i+1],base[i+1]+oy*base[i+3]);
+    near(shifted[i+2],base[i+2]);
+    near(shifted[i+3],base[i+3]);
   }
 });
