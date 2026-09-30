@@ -86,8 +86,10 @@ export function StudioShell() {
   useEffect(() => {
     const token = ++liveMapTokenRef.current;
     if (!fullDielineLayers.length) {
-      setMappedFullDielineArtwork({});
-      return;
+      const clearTimeoutId = window.setTimeout(() => {
+        if (liveMapTokenRef.current === token) setMappedFullDielineArtwork({});
+      }, 0);
+      return () => window.clearTimeout(clearTimeoutId);
     }
 
     const timeout = window.setTimeout(() => {
