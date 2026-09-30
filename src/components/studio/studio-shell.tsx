@@ -134,6 +134,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
   const [projectUpdatedAt,setProjectUpdatedAt] = useState(initialProject?.updatedAt);
   const [saving,setSaving] = useState(false);
+  const [saveFailed,setSaveFailed] = useState(false);
+  const saveInFlightRef = useRef(false);
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
   const [family, setFamily] = useState('Reverse Tuck End Carton');
@@ -1101,7 +1103,12 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   };
 
   const saveDesign = useCallback(async () => {
+    // React state updates are asynchronous, so `saving` alone cannot prevent
+    // two save events in the same tick from racing with the same updatedAt.
+    if (saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
     setSaving(true);
+    setSaveFailed(false);
     try {
       if(importedDieline) throw new Error('Saving imported dielines is not available yet.');
       const preview = engineRef.current?.thumbnail();
@@ -1134,12 +1141,25 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
       const response=await fetch(projectId?`/api/projects/${projectId}`:'/api/projects',{method:projectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
       const result=await response.json().catch(()=>({error:'The design service is unavailable. Please try again shortly.'}));
-      if(!response.ok) throw new Error(result.error || 'Could not save your design.');
+      if(!response.ok) {
+        if(response.status===409) throw new Error('SAVE_CONFLICT');
+        throw new Error(result.error || 'Could not save your design.');
+      }
       setProjectId(result.project.id);setProjectUpdatedAt(result.project.updated_at);
       if(!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
+      setSaveFailed(false);
       setMessage('Design saved');
-    } catch(error) {setMessage(error instanceof Error?error.message:'Could not save your design.');}
-    finally {setSaving(false);}
+    } catch(error) {
+      setSaveFailed(true);
+      const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
+      setMessage(conflict
+        ? 'Save failed — NOT SAVED. A newer saved version exists or this design is no longer available. Reloading may discard your current local changes.'
+        : `Save failed — NOT SAVED. ${error instanceof Error?error.message:'Could not save your design.'}`);
+    }
+    finally {
+      saveInFlightRef.current = false;
+      setSaving(false);
+    }
   }, [
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, measurementUnit,
@@ -1181,7 +1201,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         <div className="pro-project-copy"><input aria-label="Design name" value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">Your designs</Link></div>
       </div>
       <div className="pro-header-actions">
-        <button className="pro-secondary pro-save-design" disabled={saving} onClick={()=>void saveDesign()}>{saving?'Saving…':'Save'}</button>
+        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':''}`} disabled={saving} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':'Save'}</button>
         <AccountButton compact className="pro-secondary" />
         <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
       </div>
@@ -1434,7 +1454,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
 
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
-        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
+        <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
