@@ -20,7 +20,7 @@ type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export
 type Mode = '3d' | 'dieline';
 
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
-  { id: 'structure', label: 'Structure', icon: Box },
+  { id: 'structure', label: 'Box & Size', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
   { id: 'material', label: 'Finish', icon: Layers3 },
   { id: 'opening', label: 'Open / Close', icon: PackageOpen },
@@ -652,15 +652,19 @@ function Inspector(props: {
     const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
 
     return <div className="pro-inspector-content pro-structure-content">
-      <PanelIntro title="Choose your packaging" text="Browse a growing library of real packaging structures. Pick a template first, then set its size." />
+      <PanelIntro title="Choose your box" text="Pick the packaging style, then set the finished size of the box." />
 
       <div className="pro-structure-current">
-        <span>Current template</span>
+        <span>Current box</span>
         <div>
           <TemplateVisual template={selectedTemplate} compact />
           <div>
             <strong>{selectedTemplate.name}</strong>
             <small>{selectedTemplate.category} · Ready to edit</small>
+            <div className="pro-current-box-size">
+              <span>Finished size</span>
+              <b>{props.dimensions.width} × {props.dimensions.height} × {props.dimensions.depth} mm</b>
+            </div>
           </div>
         </div>
       </div>
@@ -714,7 +718,7 @@ function Inspector(props: {
       </div>
 
       <div className="pro-card-section pro-structure-size-card">
-        <SectionTitle title="Finished size" meta="Outside measurements" />
+        <SectionTitle title="Edit finished size" meta="Outside measurements" />
         <div className="pro-fields">
           <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
           <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
