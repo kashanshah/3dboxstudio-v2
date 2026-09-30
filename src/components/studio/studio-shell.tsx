@@ -1551,7 +1551,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </aside>
 
       <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''}`} aria-label="Box design canvas">
-        {!initialProject && <div className="pro-first-run-guide" aria-label="Getting started">
+        {!initialProject && <div className={`pro-first-run-guide is-${mode}`} aria-label="Getting started">
           <span>Start here</span>
           <ol>
             <li className={onboardingStep>=1?'is-active':''}><b>1</b> Choose your box</li>
