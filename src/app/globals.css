@@ -1687,28 +1687,18 @@ body{font-size:var(--type-body)}
 
 /* Accounts */
 .account-menu{position:relative;display:inline-flex;align-items:center}
+.button-secondary{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.button-secondary:hover{background:var(--panel);border-color:var(--accent-line)}
 .account-button{
-  height:38px;
   max-width:220px;
-  padding:0 12px;
-  border:1px solid var(--line)!important;
-  border-radius:8px!important;
-  background:#fff!important;
-  color:var(--ink)!important;
-  display:inline-flex!important;
+  display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:7px;
-  font:inherit;
-  font-size:12px;
-  font-weight:600;
   white-space:nowrap;
   cursor:pointer;
 }
 .account-button>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.account-button:hover{border-color:var(--accent-line)!important;background:var(--panel)!important}
-.account-button.is-compact{height:34px;padding:0 10px;font-size:11px}
-.account-button.is-loading{width:76px;background:var(--panel)!important;animation:accountPulse 1.2s ease-in-out infinite}
+.account-button.is-loading{width:76px;animation:accountPulse 1.2s ease-in-out infinite}
 @keyframes accountPulse{50%{opacity:.55}}
 .account-popover{
   position:absolute;
@@ -1833,7 +1823,7 @@ body{font-size:var(--type-body)}
 .auth-switch{margin:20px 0 0;text-align:center;color:var(--muted);font-size:11px}
 .auth-switch button{margin-left:5px;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700;cursor:pointer}
 .auth-legacy-note{margin:10px auto 0;max-width:320px;text-align:center;color:var(--muted);font-size:10px;line-height:1.45}
-.pro-studio .account-button{height:36px;max-width:180px;padding:0 10px;border:1px solid var(--line)!important;background:#fff!important;color:var(--ink)!important;flex-direction:row;font-size:11px}
+.pro-studio .account-button{max-width:180px;flex-direction:row}
 .pro-studio .account-popover>button{height:36px!important;padding:0 9px!important;flex-direction:row!important}
 @media(max-width:760px){
   .marketing-header-actions>.account-menu,.marketing-header-actions>.account-button{display:none}
@@ -1841,7 +1831,7 @@ body{font-size:var(--type-body)}
 }
 @media(max-width:640px){
   .pro-studio .account-button>span{display:none}
-  .pro-studio .account-button{width:36px;min-width:36px;padding:0}
+  .pro-studio .account-button{display:inline-flex;width:42px;min-width:42px;padding:0}
   .pro-studio .account-button svg:last-child{display:none}
 }
 
