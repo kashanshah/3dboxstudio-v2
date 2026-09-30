@@ -782,14 +782,16 @@ function DielinePrototype({
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   return <div className="pro-dieline-stage pro-2d-design-stage">
-    <div className="pro-2d-design-toolbar">
+    {artworkScope === 'outside' ? <div className="pro-2d-design-toolbar">
       <div>
         <span>Full layout artwork</span>
         <strong>{fullDielineArtwork ? fullDielineArtwork.name : 'No full-layout artwork yet'}</strong>
       </div>
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/>{fullDielineArtwork ? 'Change layout image' : 'Choose layout image'}</button>
       {fullDielineArtwork && <button className="pro-2d-remove-layout" onClick={onRemoveFullLayout}><Trash2 size={15}/> Remove</button>}
-    </div>
+    </div> : <div className="pro-2d-design-toolbar pro-2d-inside-note">
+      <div><span>Inside design</span><strong>Choose individual inside panels to place artwork.</strong></div>
+    </div>}
 
     <div className="pro-dieline pro-dieline-live" style={{ aspectRatio: `${bounds.width} / ${bounds.height}` }}>
       {cartonPanels.map(item => {
