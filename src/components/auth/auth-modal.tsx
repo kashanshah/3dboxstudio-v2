@@ -1,6 +1,7 @@
 'use client';
 
 import { useState,type FormEvent } from 'react';
+import Link from 'next/link';
 import { X } from 'lucide-react';
 import { useAuth,type AuthUser } from './auth-provider';
 
@@ -49,7 +50,7 @@ export function AuthModal(){
         <p>{signup?'Save projects, artwork, and continue from any device.':'Sign in to access your saved workspace.'}</p>
       </div>
 
-      <a className="auth-google-button" href="/api/auth/google"><span className="auth-google-g">G</span> Continue with Google</a>
+      <Link className="auth-google-button" href="/api/auth/google"><span className="auth-google-g">G</span> Continue with Google</Link>
       <div className="auth-divider"><span>or</span></div>
 
       <form onSubmit={submit}>
