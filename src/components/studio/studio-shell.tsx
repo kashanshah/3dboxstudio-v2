@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
@@ -15,7 +15,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
-import { createFullDielineTransform, rasterizeFullDielineLayers, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -74,6 +74,8 @@ export function StudioShell() {
   const [selectedInsideLayerId, setSelectedInsideLayerId] = useState<string | null>(null);
   const [mappedOutsideArtwork, setMappedOutsideArtwork] = useState<ArtworkByPanel>({});
   const [mappedInsideArtwork, setMappedInsideArtwork] = useState<ArtworkByPanel>({});
+  const [mappedPanelArtwork, setMappedPanelArtwork] = useState<ArtworkByPanel>({});
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [dielineZoom, setDielineZoom] = useState(112);
   const [panEnabled, setPanEnabled] = useState(false);
   const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
@@ -106,12 +108,18 @@ export function StudioShell() {
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
-    return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel };
-  }, [artworkByPanel, mappedOutsideArtwork, mappedInsideArtwork]);
+    return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel, ...mappedPanelArtwork };
+  }, [artworkByPanel, mappedOutsideArtwork, mappedInsideArtwork, mappedPanelArtwork]);
   const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
   const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
     ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
     : { scope: 'outside' as const, panel: target };
+
+  useEffect(() => {
+    let cancelled=false;
+    void rasterizePanelArtwork(artworkByPanel,dimensions).then(next=>{if(!cancelled)setMappedPanelArtwork(next);}).catch(()=>{if(!cancelled)setMessage('Artwork preview could not update. Try replacing the image.');});
+    return ()=>{cancelled=true;};
+  },[artworkByPanel,dimensions]);
 
   useEffect(() => {
     mediaAssetsRef.current = mediaAssets;
@@ -237,8 +245,10 @@ export function StudioShell() {
       return;
     }
 
+    const face=reverseTuckPanels(dimensions).find(item=>item.label.toLowerCase()===targetPanel.replace('Interior ','').toLowerCase());
     const placement = {
       ...defaultArtworkPlacement(asset.name, asset.url, asset.id),
+      transform:createFullDielineTransform(asset.width && asset.height ? asset.width/asset.height : 1,face ? face.width/face.height : 1,125),
       ...(options?.mode ? { mode: options.mode } : {}),
       ...(typeof options?.scale === 'number' ? { scale: options.scale } : {}),
       ...(typeof options?.rotation === 'number' ? { rotation: options.rotation } : {}),
@@ -251,6 +261,9 @@ export function StudioShell() {
     setArtworkScope(parsed.scope);
     setPanel(parsed.panel);
     setTool('artwork');
+    setMode('dieline');
+    setSelectedOutsideLayerId(null);
+    setSelectedInsideLayerId(null);
     setInspectorOpen(true);
     setMediaLibraryOpen(false);
     setMessage(`${asset.name} applied to ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
@@ -546,13 +559,17 @@ export function StudioShell() {
             cameraPreset={camera}
             zoom={zoom}
             onZoomChange={setZoom}
-            onPanelSelect={(selectedPanel, point) => {
+            onPanelSelect={(selectedPanel) => {
               const parsed = parseArtworkTarget(selectedPanel);
               setArtworkScope(parsed.scope);
               setPanel(parsed.panel);
               setTool('artwork');
               setInspectorOpen(true);
-              setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
+              setMode('dieline');
+              setPanEnabled(false);
+              setFaceAction(null);
+              setSelectedOutsideLayerId(null);
+              setSelectedInsideLayerId(null);
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} artwork selected`);
             }}
           />
@@ -599,6 +616,10 @@ export function StudioShell() {
           onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
           onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
           artworkScope={artworkScope}
+          selectedPanel={panel}
+          mediaAssets={mediaAssets}
+          onPanelSelect={(name)=>{setPanEnabled(false);setPanel(name);setTool('artwork');setInspectorOpen(true);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}
+          onUpdatePanelArtwork={(key,transform)=>setArtworkByPanel(current=>current[key]?{...current,[key]:{...current[key],transform}}:current)}
           onArtworkScopeChange={setArtworkScope}
           dimensions={dimensions}
           zoom={dielineZoom}
@@ -606,9 +627,14 @@ export function StudioShell() {
           panEnabled={panEnabled}
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
+          onChoosePanelArtwork={() => openMediaLibrary(artworkKey())}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />
+          <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
+            <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
+            {previewOpen && mode === 'dieline' && <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} opening={opening} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>}
+          </aside>
         </div>
           <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
             <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag canvas" aria-label="Drag canvas" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
@@ -909,44 +935,7 @@ function Inspector(props: {
           </button>
         </div>
 
-        <div className="pro-artwork-fit-section">
-          <div className="pro-artwork-fit-head">
-            <strong>Image fit</strong>
-            <span>{selectedArtwork?.mode === 'fill' ? 'Covers the whole side' : selectedArtwork?.mode === 'tile' ? 'Repeats as a pattern' : 'Shows the whole image'}</span>
-          </div>
-          <div className="pro-fit-options">{(['fill','fit','tile'] as ArtworkMode[]).map(mode => {
-            const copy = mode === 'fill'
-              ? { label: 'Cover', hint: 'Edge to edge' }
-              : mode === 'fit'
-                ? { label: 'Fit', hint: 'Show it all' }
-                : { label: 'Repeat', hint: 'Make a pattern' };
-            return <button
-              key={mode}
-              className={selectedArtwork?.mode === mode ? 'is-active' : ''}
-              disabled={!selectedArtwork}
-              onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, mode } } : current)}
-            ><b>{copy.label}</b><small>{copy.hint}</small></button>;
-          })}</div>
-        </div>
-
-        <details className="pro-advanced pro-placement-details" open={false}>
-          <summary>Adjust placement <ChevronDown size={16}/></summary>
-          <div className="pro-advanced-body">
-            <ControlRow label="Rotate" value={selectedArtwork ? `${selectedArtwork.rotation}°` : '—'} />
-            <input className="pro-range" type="range" min="-180" max="180" value={selectedArtwork?.rotation ?? 0} disabled={!selectedArtwork} onChange={e => {
-              const rotation = Number(e.target.value);
-              props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, rotation } } : current);
-            }}/>
-            <div className="pro-alignment">
-              <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: -1 } } : current)}>↤</button>
-              <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 0 } } : current)}>↔</button>
-              <button disabled={!selectedArtwork} className={selectedArtwork?.alignX === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignX: 1 } } : current)}>↦</button>
-              <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === -1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: -1 } } : current)}>↥</button>
-              <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 0 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 0 } } : current)}>↕</button>
-              <button disabled={!selectedArtwork} className={selectedArtwork?.alignY === 1 ? 'is-active' : ''} onClick={() => props.setArtworkByPanel(current => selectedArtwork ? { ...current, [selectedKey]: { ...selectedArtwork, alignY: 1 } } : current)}>↧</button>
-            </div>
-          </div>
-        </details>
+        <p className="pro-help">Drag the image on the board to move it. Use the handles to resize and rotate; hold Shift to resize freely.</p>
       </div>
     </div>;
   }
@@ -1230,6 +1219,10 @@ function DielinePrototype({
   onRemoveLayer,
   onMoveLayer,
   artworkScope,
+  selectedPanel,
+  mediaAssets,
+  onPanelSelect,
+  onUpdatePanelArtwork,
   onArtworkScopeChange,
   dimensions,
   zoom,
@@ -1237,6 +1230,7 @@ function DielinePrototype({
   panEnabled,
   canvasPan,
   setCanvasPan,
+  onChoosePanelArtwork,
   onChooseFullLayout,
   onClearImportedDieline,
 }:{
@@ -1252,6 +1246,10 @@ function DielinePrototype({
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
   artworkScope:'outside'|'inside';
+  selectedPanel:string;
+  mediaAssets:LocalMediaAsset[];
+  onPanelSelect:(panel:string)=>void;
+  onUpdatePanelArtwork:(key:string,transform:FullDielineTransform)=>void;
   onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
   zoom:number;
@@ -1259,9 +1257,11 @@ function DielinePrototype({
   panEnabled:boolean;
   canvasPan:{x:number;y:number};
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
+  onChoosePanelArtwork:()=>void;
   onChooseFullLayout:()=>void;
   onClearImportedDieline:()=>void;
 }) {
+  const printClipId=useId().replaceAll(':','');
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   // Size the 2D sheet from its real physical footprint instead of relying on
@@ -1271,6 +1271,7 @@ function DielinePrototype({
   const visualScale = visualMax / Math.max(bounds.width, bounds.height);
   const visualWidth = bounds.width * visualScale;
   const visualHeight = bounds.height * visualScale;
+  const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
@@ -1289,6 +1290,15 @@ function DielinePrototype({
     startAngle:number;
   } | null>(null);
 
+  const updateArtworkLayer=(id:string,transform:FullDielineTransform)=>{
+    if(id.startsWith('panel:')) onUpdatePanelArtwork(id.slice(6),transform);
+    else onUpdateLayer(id,transform);
+  };
+  const selectArtworkLayer=(id:string)=>{
+    if(id.startsWith('panel:')) onPanelSelect(id.slice(6).replace('Interior ',''));
+    else onSelectLayer(id);
+  };
+
   const beginLayerGesture = (
     event: React.PointerEvent<HTMLDivElement | HTMLButtonElement>,
     layer: FullDielineArtworkLayer,
@@ -1297,7 +1307,7 @@ function DielinePrototype({
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    onSelectLayer(layer.id);
+    selectArtworkLayer(layer.id);
     const element = event.currentTarget.closest('.pro-full-artwork-transform') as HTMLDivElement | null;
     const container = element?.parentElement;
     if (!element || !container) return;
@@ -1333,7 +1343,7 @@ function DielinePrototype({
     if (gesture.type === 'move') {
       const dx = (event.clientX - gesture.startX) / Math.max(1,rect.width) * 100;
       const dy = (event.clientY - gesture.startY) / Math.max(1,rect.height) * 100;
-      onUpdateLayer(gesture.layerId,{
+      updateArtworkLayer(gesture.layerId,{
         ...gesture.start,
         x:Math.max(-100,Math.min(200,gesture.start.x+dx)),
         y:Math.max(-100,Math.min(200,gesture.start.y+dy)),
@@ -1418,7 +1428,7 @@ function DielinePrototype({
       const nextCenterX = gesture.centerX + centerDx;
       const nextCenterY = gesture.centerY + centerDy;
 
-      onUpdateLayer(gesture.layerId,{
+      updateArtworkLayer(gesture.layerId,{
         ...gesture.start,
         x:(nextCenterX - rect.left) / Math.max(1,rect.width) * 100,
         y:(nextCenterY - rect.top) / Math.max(1,rect.height) * 100,
@@ -1430,7 +1440,7 @@ function DielinePrototype({
 
     const angle=Math.atan2(event.clientY-gesture.centerY,event.clientX-gesture.centerX);
     const delta=(angle-gesture.startAngle)*180/Math.PI;
-    onUpdateLayer(gesture.layerId,{...gesture.start,rotation:gesture.start.rotation+delta});
+    updateArtworkLayer(gesture.layerId,{...gesture.start,rotation:gesture.start.rotation+delta});
   };
 
   const endLayerGesture = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -1459,7 +1469,7 @@ function DielinePrototype({
         <span>{artworkScope === 'inside' ? 'Inside / reverse side' : 'Outside / front side'}</span>
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
-      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add artwork</button>
+      <button className="pro-secondary-button" onClick={onChoosePanelArtwork}><ImageIcon size={16}/> Add image to {selectedPanel}</button>
       {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
         selectedLayer.id,
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
@@ -1509,7 +1519,7 @@ function DielinePrototype({
     >
       <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
-          <div><span>Layers</span><strong>{layers.length}</strong></div>
+          <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
           <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
         </div>
         {layers.length ? <div className="pro-dieline-layer-list">
@@ -1527,7 +1537,9 @@ function DielinePrototype({
               <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
             </button>;
           })}
-        </div> : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>Add artwork to start composing.</span></div>}
+        </div> : sideArtwork.length ? null : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>Add artwork to start composing.</span></div>}
+
+        {sideArtwork.length>0 && <div className="pro-dieline-layer-list">{sideArtwork.map(([key,artwork])=><button key={key} type="button" className={selectedPanel===key.replace('Interior ','') && !selectedLayerId?'is-selected':''} onClick={()=>onPanelSelect(key.replace('Interior ',''))}><img src={artwork.url} alt=""/><span><strong>{artwork.name}</strong><small>{key}</small></span></button>)}</div>}
 
         {selectedLayer && <div className="pro-dieline-layer-actions">
           <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={14}/></button>
@@ -1550,6 +1562,8 @@ function DielinePrototype({
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
       >
+        <svg width="0" height="0" aria-hidden="true"><defs><clipPath id={printClipId} clipPathUnits="objectBoundingBox">{cartonPanels.map(item=><rect key={item.id} x={item.x/bounds.width} y={item.y/bounds.height} width={item.width/bounds.width} height={item.height/bounds.height}/>)}</clipPath></defs></svg>
+        <div className="pro-full-artwork-print-surface" style={{clipPath:`url(#${printClipId})`}}>{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><img src={layer.url} alt="" draggable={false}/></div>)}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
@@ -1568,7 +1582,7 @@ function DielinePrototype({
             onPointerUp={endLayerGesture}
             onPointerCancel={endLayerGesture}
           >
-            <img src={layer.url} alt={layer.name} draggable={false}/>
+            <span className="pro-artwork-transform-hit-area" aria-label={layer.name}/>
             {selected && <>
               <span className="pro-transform-box" aria-hidden="true"/>
               {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle => <button
@@ -1587,21 +1601,42 @@ function DielinePrototype({
           const panelName=item.label[0]+item.label.slice(1).toLowerCase();
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
-          return <div
+          return <button
             key={item.id}
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''}`}
-            style={{
-              left:`${item.x/bounds.width*100}%`,
-              top:`${item.y/bounds.height*100}%`,
-              width:`${item.width/bounds.width*100}%`,
-              height:`${item.height/bounds.height*100}%`,
-              overflow:'hidden',
-            }}
-            aria-hidden="true"
+            type="button"
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${selectedPanel===panelName?'is-selected':''}`}
+            style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden'}}
+            aria-label={`Select ${artworkScope} ${panelName} artwork`}
+            aria-pressed={selectedPanel===panelName}
+            onPointerDown={event=>event.stopPropagation()}
+            onClick={()=>onPanelSelect(panelName)}
           >
             {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
             <span className="dl-label">{item.label}</span>
-            {explicitArtwork && <b>OVERRIDE</b>}
+          </button>;
+        })}
+
+        {cartonPanels.filter(item=>!selectedLayerId && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
+          const key=artworkScope==='inside'?`Interior ${selectedPanel}`:selectedPanel;
+          const artwork=artworkByPanel[key];
+          if(!artwork) return null;
+          const asset=mediaAssets.find(asset=>asset.id===artwork.assetId);
+          const imageAspect=asset?.width && asset.height ? asset.width/asset.height : 1;
+          const faceAspect=item.width/item.height;
+          let width=100,height=100;
+          if(artwork.mode==='fill') {if(imageAspect>faceAspect)width=100*imageAspect/faceAspect;else height=100*faceAspect/imageAspect;}
+          else {if(imageAspect>faceAspect)height=100*faceAspect/imageAspect;else width=100*imageAspect/faceAspect;}
+          width*=artwork.scale/100;height*=artwork.scale/100;
+          const transform=artwork.transform ?? {x:50+(100-width)/2*artwork.alignX,y:50+(100-height)/2*artwork.alignY,width,height,rotation:artwork.rotation};
+          const layer:FullDielineArtworkLayer={id:`panel:${key}`,name:artwork.name,url:artwork.url,aspectRatio:imageAspect,transform};
+          return <div key={item.id} className="pro-side-artwork-transform-surface" style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`}}>
+            <div className="pro-full-artwork-transform pro-side-artwork-transform is-selected" style={{left:`${transform.x}%`,top:`${transform.y}%`,width:`${transform.width}%`,height:`${transform.height}%`,transform:`translate(-50%,-50%) rotate(${transform.rotation}deg)`}}
+              aria-label={`Move ${selectedPanel} artwork`}
+              onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture}>
+              <span className="pro-transform-box" aria-hidden="true"/>
+              {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} type="button" className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`} aria-label={`Resize ${selectedPanel} artwork from ${handle}`} onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}/>)}
+              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={`Rotate ${selectedPanel} artwork`} onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><span/></button>
+            </div>
           </div>;
         })}
       </div>
@@ -1659,16 +1694,9 @@ function MediaLibraryModal(props: {
   onClose: ()=>void;
 }) {
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
-  const existing = props.targetPanel === '__FULL_DIELINE__'
-    ? null
-    : props.artworkByPanel[props.targetPanel];
-  const selectedMatchesExisting = !!selected && existing?.assetId === selected.id;
-
   const [dragging, setDragging] = useState(false);
   const [search, setSearch] = useState('');
-  const [fitMode, setFitMode] = useState<ArtworkMode>(selectedMatchesExisting ? existing!.mode : 'fit');
-  const [scale, setScale] = useState(selectedMatchesExisting ? existing!.scale : 100);
-  const [rotation, setRotation] = useState(selectedMatchesExisting ? existing!.rotation : 0);
+  const fitMode:ArtworkMode='fit',scale=100,rotation=0;
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
   const targetLabel = props.targetPanel === '__FULL_DIELINE__'
     ? `${props.targetScope === 'inside' ? 'Inside' : 'Outside'} dieline`
@@ -1690,7 +1718,7 @@ function MediaLibraryModal(props: {
         <div>
           <span>Artwork</span>
           <h2>Add artwork</h2>
-          <p>Upload or choose an image, set its starting size, then refine placement directly on the 2D dieline.</p>
+          <p>Choose or upload an image, then position it directly on the 2D board.</p>
         </div>
         <button aria-label="Close add artwork dialog" onClick={props.onClose}><X size={20}/></button>
       </header>
@@ -1766,31 +1794,7 @@ function MediaLibraryModal(props: {
               </div>
             </div>
 
-            {props.targetPanel !== '__FULL_DIELINE__' && <div className="pro-media-editor-section">
-              <div className="pro-media-editor-row"><strong>Fit mode</strong><span>Panel placement</span></div>
-              <div className="pro-media-fit-switch">
-                {(['fit','fill','tile'] as ArtworkMode[]).map(mode => <button key={mode} type="button" className={fitMode===mode?'is-active':''} onClick={()=>setFitMode(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
-              </div>
-            </div>}
-
-            <div className="pro-media-editor-section">
-              <div className="pro-media-editor-row"><strong>Starting size</strong><span>{scale}%</span></div>
-              <input className="pro-range" type="range" min="40" max="180" step="5" value={scale} onChange={e=>setScale(Number(e.target.value))}/>
-              <div className="pro-media-size-presets">
-                {[75,100,125].map(value=><button key={value} type="button" className={scale===value?'is-active':''} onClick={()=>setScale(value)}>{value}%</button>)}
-              </div>
-            </div>
-
-            <div className="pro-media-editor-section">
-              <div className="pro-media-editor-row"><strong>Starting rotation</strong><span>{rotation}°</span></div>
-              <input className="pro-range" type="range" min="-180" max="180" step="5" value={rotation} onChange={e=>setRotation(Number(e.target.value))}/>
-              <button type="button" className="pro-media-reset-placement" onClick={()=>{setFitMode('fit');setScale(100);setRotation(0);}}>Reset</button>
-            </div>
-
-            {props.targetPanel === '__FULL_DIELINE__' && <div className="pro-media-canvas-handoff">
-              <Move size={16}/>
-              <p><strong>Fine-tune on the dieline</strong><span>After adding, drag the artwork freely and use the transform handles for precise resize and rotation.</span></p>
-            </div>}
+            <div className="pro-media-canvas-handoff"><Move size={16}/><p><strong>Place it on the board</strong><span>Drag, resize and rotate directly in 2D Design after adding.</span></p></div>
 
             <div className="pro-media-editor-meta">
               <span>{selected.mimeType.replace('image/','').toUpperCase()}</span>
@@ -1808,7 +1812,7 @@ function MediaLibraryModal(props: {
           </> : <div className="pro-media-editor-empty">
             <ImageIcon size={32}/>
             <h3>Choose or upload artwork</h3>
-            <p>Everything happens here. Select an existing image or upload a new one, then set its initial size before placing it on the dieline.</p>
+            <p>Everything happens here. Select an existing image or upload a new one, then place it on the board.</p>
             <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>}
         </aside>
@@ -1860,4 +1864,3 @@ function PanelIntro({title,text}:{title:string;text:string}) {
 }
 
 function SectionTitle({title,meta}:{title:string;meta?:string}) { return <div className="pro-section-title"><strong>{title}</strong>{meta&&<span>{meta}</span>}</div>; }
-function ControlRow({label,value}:{label:string;value:string}) { return <div className="pro-control-row"><span>{label}</span><strong>{value}</strong></div>; }

@@ -1,0 +1,69 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+const fs=require('node:fs');
+const path=require('node:path');
+const Module=require('node:module');
+const ts=require('typescript');
+const test=require('node:test');
+const assert=require('node:assert/strict');
+
+// Load the renderer's actual TypeScript geometry without a DOM or WebGL context.
+const resolve=Module._resolveFilename;
+Module._resolveFilename=function(request,...args){
+  return resolve.call(this,request.startsWith('@/')?path.resolve(__dirname,'../src',request.slice(2)):request,...args);
+};
+require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
+  module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,file);
+};
+const {buildMeshes}=require('../src/components/studio/carton-engine.tsx');
+const {reverseTuckPanels,reverseTuckBounds,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
+const {dielineRasterSize}=require('../src/lib/packaging/full-dieline-artwork.ts');
+const fixtures=[
+  {width:47.5*25.4,height:22.5*25.4,depth:25.5*25.4,thickness:.5},
+  {width:20,height:40,depth:10,thickness:.5},
+  {width:1500,height:80,depth:50,thickness:.5},
+];
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} differs from ${b}`);
+
+test('entered physical dimensions survive in both the net and all folded meshes',()=>{
+  for(const dimensions of fixtures){
+    assert.deepEqual(sanitizeCartonDimensions(dimensions),dimensions);
+    const panels=reverseTuckPanels(dimensions);
+    for(const closure of [0,6,50,100]){
+      const meshes=buildMeshes(dimensions,closure,[1,1,1],[1,1,1]);
+      for(const panel of panels){
+        const name=panel.label[0]+panel.label.slice(1).toLowerCase();
+        const mesh=meshes.find(item=>item.panel===name);
+        assert.ok(mesh,`${name} is missing from 3D`);
+        near(mesh.faceAspect,panel.width/panel.height);
+        const c=mesh.pickCorners;
+        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width);
+        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height);
+      }
+    }
+  }
+});
+
+test('fully open 3D corners match the complete 2D net, including the glue strip',()=>{
+  for(const dimensions of fixtures){
+    const panels=reverseTuckPanels(dimensions),front=panels.find(panel=>panel.id==='front');
+    const meshes=buildMeshes(dimensions,0,[1,1,1],[1,1,1]);
+    for(const panel of panels){
+      const name=panel.label[0]+panel.label.slice(1).toLowerCase();
+      const mesh=meshes.find(item=>item.panel===name);
+      const expected=[[panel.x,panel.y+panel.height],[panel.x+panel.width,panel.y+panel.height],[panel.x+panel.width,panel.y],[panel.x,panel.y]];
+      mesh.pickCorners.forEach((corner,i)=>{
+        near(corner[0],expected[i][0]-front.x-dimensions.width/2);
+        near(corner[1],dimensions.height/2-(expected[i][1]-front.y));
+        near(corner[2],dimensions.depth/2);
+      });
+    }
+  }
+});
+
+test('raster canvas keeps the sheet aspect ratio for unusually wide and tall nets',()=>{
+  for(const dimensions of [...fixtures,{width:30,height:4000,depth:15,thickness:.5}]){
+    const bounds=reverseTuckBounds(dimensions),size=dielineRasterSize(bounds);
+    assert.equal(Math.max(size.width,size.height),1800);
+    assert.ok(Math.abs(size.width/bounds.width-size.height/bounds.height)<=1/Math.min(bounds.width,bounds.height));
+  }
+});

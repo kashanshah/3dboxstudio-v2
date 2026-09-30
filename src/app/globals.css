@@ -1889,3 +1889,23 @@ body{font-size:var(--type-body)}
 .pro-dieline-workspace>.pro-dieline-live{
   flex:none;
 }
+.pro-dieline-live .dl-live{pointer-events:auto;cursor:pointer;padding:0}
+.pro-dieline-live .dl-live.has-explicit-artwork{z-index:20}
+.pro-side-artwork-transform-surface{position:absolute;z-index:25;pointer-events:none}
+.pro-side-artwork-transform{pointer-events:auto}
+.pro-artwork-live-preview{position:absolute;top:88px;right:16px;z-index:15;width:220px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-soft);overflow:hidden}
+.pro-artwork-live-preview>button{display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 12px;border:0;background:var(--surface);font-size:12px;font-weight:600}
+.pro-artwork-live-preview>button>svg:last-child{margin-left:auto}
+.pro-artwork-preview-canvas{position:relative;height:160px;background:var(--canvas)}
+@media(min-width:761px){
+  .pro-view-pane:has(.pro-artwork-live-preview.is-open) .pro-dieline-layers-panel{top:296px;bottom:104px;transform:none;min-height:120px;max-height:none}
+}
+@media(max-width:760px){
+  .pro-artwork-live-preview{top:152px;right:8px;width:150px}
+  .pro-artwork-preview-canvas{height:112px}
+}
+
+.pro-full-artwork-print-surface{position:absolute;inset:0;z-index:10;pointer-events:none}
+.pro-printed-artwork-layer{position:absolute;transform-origin:center}
+.pro-printed-artwork-layer img{display:block;width:100%;height:100%;object-fit:fill}
+.pro-artwork-transform-hit-area{position:absolute;inset:0}
