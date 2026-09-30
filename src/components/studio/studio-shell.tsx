@@ -179,15 +179,18 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     const canvas=studioCanvasRef.current;
     if(!canvas)return;
 
-    const handleWheel=(event:WheelEvent)=>{
-      const target=event.target;
-      if(!(target instanceof HTMLElement))return;
+    const isBoardTarget=(target:EventTarget|null)=>{
+      if(!(target instanceof Element))return false;
 
-      // UI chrome keeps its normal wheel behavior. Everywhere else in the
+      // UI chrome keeps its normal gestures. Everywhere else in the
       // central workspace belongs to the active design canvas.
-      if(target.closest(
+      return !target.closest(
         '.pro-canvas-top,.pro-canvas-control-bar,.pro-2d-side-panels,.pro-status-bar,.pro-face-action,button,input,select,textarea'
-      )) return;
+      );
+    };
+
+    const handleWheel=(event:WheelEvent)=>{
+      if(!isBoardTarget(event.target))return;
 
       event.preventDefault();
       event.stopPropagation();
@@ -199,8 +202,40 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       }
     };
 
+    // Safari sends trackpad pinch as GestureEvents instead of Ctrl+wheel.
+    // Its scale is measured from gesturestart, so use the ratio between events.
+    let lastGestureScale:number|null=null;
+    const handleGestureStart=(event:Event)=>{
+      if(!isBoardTarget(event.target))return;
+      event.preventDefault();
+      lastGestureScale=1;
+    };
+    const handleGestureChange=(event:Event)=>{
+      if(lastGestureScale===null)return;
+      event.preventDefault();
+      const scale=(event as Event & {scale?:number}).scale;
+      if(typeof scale!=='number' || !Number.isFinite(scale) || scale<=0)return;
+      const factor=scale/lastGestureScale;
+      lastGestureScale=scale;
+      if(mode==='3d')setZoom(value=>scaleStudioZoom(value,factor));
+      else setDielineZoom(value=>scaleStudioZoom(value,factor));
+    };
+    const handleGestureEnd=(event:Event)=>{
+      if(lastGestureScale===null)return;
+      event.preventDefault();
+      lastGestureScale=null;
+    };
+
     canvas.addEventListener('wheel',handleWheel,{passive:false,capture:true});
-    return ()=>canvas.removeEventListener('wheel',handleWheel,{capture:true});
+    canvas.addEventListener('gesturestart',handleGestureStart,{passive:false,capture:true});
+    canvas.addEventListener('gesturechange',handleGestureChange,{passive:false,capture:true});
+    canvas.addEventListener('gestureend',handleGestureEnd,{passive:false,capture:true});
+    return ()=>{
+      canvas.removeEventListener('wheel',handleWheel,{capture:true});
+      canvas.removeEventListener('gesturestart',handleGestureStart,{capture:true});
+      canvas.removeEventListener('gesturechange',handleGestureChange,{capture:true});
+      canvas.removeEventListener('gestureend',handleGestureEnd,{capture:true});
+    };
   },[mode]);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
