@@ -1355,7 +1355,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           <CartonEngine
             ref={engineRef}
             dimensions={dimensions}
+            templateId={selectedTemplateId}
             opening={opening}
+            openingMode={openingMode}
+            splitTopHingeSide={splitTopHingeSide}
             material={material}
             outsideColor={outsideColorMode === 'custom' ? outsideCustomColor : null}
             insideColor={insideColorMode === 'custom' ? insideCustomColor : null}
@@ -1371,7 +1374,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{selectedTemplateId==='reverse-tuck-carton'?`Assembled ${Math.round(opening)}%`:`Open ${Math.round(opening)}%`}</span></div>
 
           {faceAction && <div
             ref={faceActionRef}
@@ -1456,7 +1459,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
             <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
-              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} opening={opening} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
+              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
                 <div className="pro-artwork-preview-fold-head">
                   <span>Open / close</span>
