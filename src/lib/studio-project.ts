@@ -19,6 +19,7 @@ export type StudioProjectState={
  dimensions:CartonDimensions;
  material:string;
  opening:number;
+ formation?:number;
  openingMode?:LegacyOpeningMode;
  splitTopHingeSide?:'side_a'|'side_b';
  legacySourceId?:string;
@@ -51,6 +52,7 @@ export function validProjectState(value:unknown):value is StudioProjectState{
  if(!value||typeof value!=='object')return false;const s=value as StudioProjectState;
  if(s.version!==1||!TEMPLATE_IDS.has(s.templateId)||!s.dimensions||!['width','height','depth','thickness'].every(key=>typeof s.dimensions[key as keyof CartonDimensions]==='number'&&Number.isFinite(s.dimensions[key as keyof CartonDimensions])&&s.dimensions[key as keyof CartonDimensions]>0))return false;
  if(typeof s.material!=='string'||!['mm','in'].includes(s.measurementUnit)||!Number.isFinite(s.opening)||s.opening<0||s.opening>100)return false;
+ if(s.formation!==undefined&&(!Number.isFinite(s.formation)||s.formation<0||s.formation>100))return false;
  if(s.openingMode!==undefined&&!OPENING_MODES.has(s.openingMode))return false;
  if(s.splitTopHingeSide!==undefined&&!['side_a','side_b'].includes(s.splitTopHingeSide))return false;
  if(s.legacySourceId!==undefined&&(typeof s.legacySourceId!=='string'||s.legacySourceId.length>300))return false;
