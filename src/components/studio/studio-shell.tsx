@@ -2535,7 +2535,7 @@ function DielinePrototype({
     startHeightPx:number;
     startAngle:number;
   } | null>(null);
-  const [snapEnabled,setSnapEnabled]=useState(true);
+  const [snapEnabled,setSnapEnabled]=useState(false);
   const [snapGuides,setSnapGuides]=useState<{x?:number;y?:number}>({});
   const [transformFeedback,setTransformFeedback]=useState<string|null>(null);
 
@@ -2791,9 +2791,7 @@ function DielinePrototype({
     const delta=(angle-gesture.startAngle)*180/Math.PI;
     let rotation=gesture.start.rotation+delta;
     const snapTarget=Math.round(rotation/15)*15;
-    const canSnap=snapEnabled&&!event.altKey;
     if(event.shiftKey)rotation=snapTarget;
-    else if(canSnap&&Math.abs(rotation-snapTarget)<=3)rotation=snapTarget;
     rotation=normalizeAngle(rotation);
     setSnapGuides({});
     setTransformFeedback(`${Math.round(rotation*10)/10}°`);
@@ -2825,7 +2823,7 @@ function DielinePrototype({
         <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
       </div>
       <div className="pro-2d-toolbar-actions">
-      <button type="button" className={`pro-snap-toggle${snapEnabled?' is-active':''}`} aria-pressed={snapEnabled} title="Toggle magnetic snapping · hold Option/Alt to temporarily disable" onClick={()=>setSnapEnabled(value=>!value)}><Magnet size={16}/><span>Snap</span></button>
+      <button type="button" className={`pro-snap-toggle${snapEnabled?' is-active':''}`} aria-pressed={snapEnabled} title="Toggle magnetic snapping for move and resize · rotation stays free unless Shift is held" onClick={()=>setSnapEnabled(value=>!value)}><Magnet size={16}/><span>Snap</span></button>
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
       {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
         selectedLayer.id,
@@ -3025,7 +3023,7 @@ function DielinePrototype({
                 aria-label={`Resize selected artwork from ${handle}`}
                 onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}
               />)}
-              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate selected artwork" title="Rotate · snaps near 15° increments" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
+              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate selected artwork" title="Rotate freely · hold Shift to snap to 15° increments" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
               {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
             </>}
           </div>;
