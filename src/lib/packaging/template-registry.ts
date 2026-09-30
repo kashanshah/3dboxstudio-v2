@@ -335,6 +335,10 @@ export function getPackagingTemplate(id: string) {
   return templateMap.get(id) ?? null;
 }
 
+export function getDefaultPackagingTemplate() {
+  return templateMap.get('reverse-tuck-carton') ?? getReadyPackagingTemplates()[0] ?? null;
+}
+
 export function getReadyPackagingTemplates() {
   return PACKAGING_TEMPLATES.filter(template => template.status === 'ready');
 }
