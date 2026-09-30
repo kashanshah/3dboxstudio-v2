@@ -800,6 +800,135 @@ function Inspector(props: {
   </div>;
 }
 
+function ImportedDielineMapper({
+  dieline,
+  mapping,
+  setMapping,
+  onClear,
+}:{
+  dieline:ParsedDieline;
+  mapping:DielineMapping;
+  setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
+  onClear:()=>void;
+}) {
+  const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number | null>(null);
+  const candidates = panelCandidates(dieline);
+  const progress = mappingProgress(dieline, mapping);
+  const selectedPrimitive = selectedPrimitiveIndex == null ? null : dieline.primitives[selectedPrimitiveIndex];
+  const selectedPanelCandidate = selectedPrimitiveIndex == null ? null : candidates.find(candidate => candidate.primitiveIndex === selectedPrimitiveIndex) ?? null;
+
+  const setLineRole = (index:number, role:DielineLineRole) => {
+    setMapping(current => current ? { ...current, lineRoles: { ...current.lineRoles, [index]: role } } : current);
+  };
+  const setPanelName = (index:number, name:DielinePanelName | '') => {
+    setMapping(current => {
+      if (!current) return current;
+      const next = { ...current.panelNames };
+      if (name) next[index] = name;
+      else delete next[index];
+      return { ...current, panelNames: next };
+    });
+  };
+
+  return <div className="pro-dieline-stage pro-2d-design-stage pro-dieline-mapping-mode">
+    <div className="pro-2d-design-toolbar pro-mapping-toolbar">
+      <div>
+        <span>Dieline mapping</span>
+        <strong>{dieline.name}</strong>
+        <small>{progress.assignedPanels}/{progress.panelCandidates} panel regions assigned · {progress.unresolvedLines} unresolved vector element{progress.unresolvedLines===1?'':'s'}</small>
+      </div>
+      <div className="pro-mapping-toolbar-actions">
+        <span className={progress.readyFor3D ? 'pro-mapping-ready is-ready' : 'pro-mapping-ready'}>{progress.readyFor3D ? 'Ready for 3D mapping' : 'Mapping incomplete'}</span>
+        <button className="pro-2d-remove-layout" type="button" onClick={onClear}><Trash2 size={15}/> Clear dieline</button>
+      </div>
+    </div>
+
+    <div className="pro-dieline-mapper-layout">
+      <div className="pro-imported-dieline-wrap">
+        <svg className="pro-imported-dieline pro-imported-dieline-interactive" viewBox={dieline.viewBox} role="img" aria-label={`Imported dieline ${dieline.name}`}>
+          {dieline.primitives.map((item,index) => {
+            const role = mapping.lineRoles[index] ?? 'unknown';
+            const selected = selectedPrimitiveIndex === index;
+            const panelName = mapping.panelNames[index];
+            const common = {
+              className: `imported-dieline-line role-${role}${selected ? ' is-selected' : ''}`,
+              vectorEffect: 'non-scaling-stroke' as const,
+              onClick: () => setSelectedPrimitiveIndex(index),
+            };
+            if (item.kind === 'line') return <line key={index} x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} {...common} />;
+            if (item.kind === 'path') return <path key={index} d={item.d} fill="none" {...common} />;
+            const points = item.closed ? [...item.points,item.points[0]] : item.points;
+            return <g key={index}>
+              {item.closed ? <polygon
+                points={item.points.map(point => `${point.x},${point.y}`).join(' ')}
+                className={`imported-dieline-panel-hit${selected ? ' is-selected' : ''}${panelName ? ' is-assigned' : ''}`}
+                onClick={() => setSelectedPrimitiveIndex(index)}
+              /> : null}
+              <polyline points={points.map(point => `${point.x},${point.y}`).join(' ')} fill="none" {...common} />
+              {item.closed && panelName ? <text
+                x={item.points.reduce((sum,p)=>sum+p.x,0)/item.points.length}
+                y={item.points.reduce((sum,p)=>sum+p.y,0)/item.points.length}
+                className="imported-dieline-panel-label"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >{panelName}</text> : null}
+            </g>;
+          })}
+        </svg>
+      </div>
+
+      <aside className="pro-dieline-mapping-panel">
+        <div className="pro-mapping-summary">
+          <h3>Map this dieline</h3>
+          <p>Click a vector element or closed panel region, then classify it. Auto-detected roles are already prefilled where the file contained useful layer names.</p>
+          <div className="pro-mapping-progress"><span style={{width:`${progress.panelCandidates ? Math.round(progress.assignedPanels/progress.panelCandidates*100) : 0}%`}}/></div>
+        </div>
+
+        {selectedPrimitiveIndex == null || !selectedPrimitive ? <div className="pro-mapping-empty">
+          <Grid3X3 size={24}/>
+          <strong>Select geometry</strong>
+          <span>Choose a line or closed region in the preview to classify it.</span>
+        </div> : <div className="pro-mapping-editor">
+          <div><span>Selected</span><strong>{primitiveSummary(selectedPrimitive)} #{selectedPrimitiveIndex+1}</strong></div>
+
+          <fieldset>
+            <legend>Line role</legend>
+            <div className="pro-mapping-role-grid">
+              {(['cut','crease','ignore','unknown'] as DielineLineRole[]).map(role => <button
+                type="button"
+                key={role}
+                className={(mapping.lineRoles[selectedPrimitiveIndex]??'unknown')===role?'is-active':''}
+                onClick={()=>setLineRole(selectedPrimitiveIndex,role)}
+              >{role==='cut'?'Cut':role==='crease'?'Crease / fold':role==='ignore'?'Ignore':'Unclassified'}</button>)}
+            </div>
+          </fieldset>
+
+          {selectedPanelCandidate ? <label className="pro-mapping-panel-select">
+            <span>Panel assignment</span>
+            <select value={mapping.panelNames[selectedPrimitiveIndex]??''} onChange={e=>setPanelName(selectedPrimitiveIndex,e.target.value as DielinePanelName|'')}>
+              <option value="">Unassigned</option>
+              {(['Front','Back','Left','Right','Top','Bottom','Glue','Other'] as DielinePanelName[]).map(name=><option key={name} value={name}>{name}</option>)}
+            </select>
+            <small>Closed vector regions are treated as panel candidates in this first mapper.</small>
+          </label> : <p className="pro-mapping-note">This geometry is not a closed panel candidate. Classify it as Cut, Crease, Ignore, or leave it unresolved.</p>}
+        </div>}
+
+        <div className="pro-mapping-checklist">
+          <strong>Mapping checklist</strong>
+          <span className={progress.assignedPanels>=4?'is-done':''}><Check size={14}/> Assign at least 4 panel regions</span>
+          <span className={progress.unresolvedLines===0?'is-done':''}><Check size={14}/> Resolve all vector elements</span>
+          <span className={progress.readyFor3D?'is-done':''}><Check size={14}/> Structure ready for 3D conversion</span>
+        </div>
+
+        <button className="pro-primary pro-map-to-3d" type="button" disabled={!progress.readyFor3D} onClick={()=>{}}>
+          <Boxes size={16}/> Generate 3D structure
+        </button>
+        <p className="pro-mapping-note">3D generation is intentionally disabled until the mapping is complete. The actual arbitrary-geometry folding engine is the next implementation step.</p>
+      </aside>
+    </div>
+  </div>;
+}
+
 function DielinePrototype({
   panel,
   importedDieline,
