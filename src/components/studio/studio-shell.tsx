@@ -1528,7 +1528,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </div>
     </header>
 
-    <div className="pro-workflow-row">
+    <div className={`pro-workflow-row is-${workflowStep}${inspectorOpen?' has-inspector':''}`}>
       <nav className="pro-workflow-nav" aria-label="Box design workflow">
         {studioAreas.map((area,index)=>{
           const Icon=area.icon;
@@ -1563,7 +1563,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             >
               <Camera size={16} />
               <span>Camera Angle</span>
-              <small>{camera}</small>
+              <small>{camera==='LegacyPerspective'?'Perspective':camera}</small>
               <ChevronDown size={14} className={cameraMenuOpen ? 'is-open' : ''} />
             </button>
             {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label="Camera angles">
@@ -1787,7 +1787,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool||workflowStep==='design'}><Sparkles size={14} /> {workflowStep==='box'?'Box settings':workflowStep==='preview'?'Preview settings':'Design tools'}</button>
         {message !== 'Ready' && <div className={`pro-studio-toast${saveFailed?' is-error':''}`} role="status" aria-live="polite"><span className="pro-status-dot" /> <span>{message}</span></div>}
-        <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
+        <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span title="Finished size: width × height × depth">{family} · W {formatDimension(dimensions.width, measurementUnit)} × H {formatDimension(dimensions.height, measurementUnit)} × D {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
       <aside className={`pro-inspector is-workflow-${workflowStep} ${inspectorOpen ? 'is-open' : ''}`}>
