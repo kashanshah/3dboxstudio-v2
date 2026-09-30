@@ -21,6 +21,7 @@ export type StudioProjectState={
  opening:number;
  openingMode?:LegacyOpeningMode;
  splitTopHingeSide?:'side_a'|'side_b';
+ legacySourceId?:string;
  measurementUnit:'mm'|'in';
  artworkByPanel:ArtworkByPanel;
  outsideArtworkLayers:FullDielineArtworkLayer[];
@@ -48,6 +49,7 @@ export function validProjectState(value:unknown):value is StudioProjectState{
  if(typeof s.material!=='string'||!['mm','in'].includes(s.measurementUnit)||!Number.isFinite(s.opening)||s.opening<0||s.opening>100)return false;
  if(s.openingMode!==undefined&&!OPENING_MODES.has(s.openingMode))return false;
  if(s.splitTopHingeSide!==undefined&&!['side_a','side_b'].includes(s.splitTopHingeSide))return false;
+ if(s.legacySourceId!==undefined&&(typeof s.legacySourceId!=='string'||s.legacySourceId.length>300))return false;
  if(s.templateId==='split-top-box'&&s.openingMode!==undefined&&s.openingMode!=='top_split_meet_center')return false;
  if(!s.artworkByPanel||typeof s.artworkByPanel!=='object'||Array.isArray(s.artworkByPanel)||![s.outsideArtworkLayers,s.insideArtworkLayers,s.mediaAssets].every(list=>Array.isArray(list)&&list.length<=100))return false;
  const images=[...Object.values(s.artworkByPanel),...s.outsideArtworkLayers,...s.insideArtworkLayers,...s.mediaAssets];
