@@ -11,7 +11,9 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
   const initialFormation=state.formation ?? (state.templateId==='reverse-tuck-carton'?state.opening:100);
   const [opening,setOpening]=useState(state.templateId==='reverse-tuck-carton'&&state.formation===undefined?0:state.opening);
   const [formation,setFormation]=useState(initialFormation);
-  const [zoom,setZoom]=useState(82);
+  const legacyFraming=legacy||Boolean(state.legacySourceId);
+  const initialZoom=legacyFraming?57.34:82;
+  const [zoom,setZoom]=useState(initialZoom);
   const [viewPan,setViewPan]=useState({x:0,y:0});
   const [panEnabled,setPanEnabled]=useState(false);
   const [spacePanActive,setSpacePanActive]=useState(false);
@@ -110,7 +112,7 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
           outsideColor={state.outsideColorMode==='custom'?state.outsideCustomColor:null}
           insideColor={state.insideColorMode==='custom'?state.insideCustomColor:null}
           artworkByPanel={state.artworkByPanel}
-          cameraPreset="Perspective"
+          cameraPreset={legacyFraming?'LegacyPerspective':'Perspective'}
           zoom={zoom}
           viewPan={viewPan}
           panEnabled={panEnabled||spacePanActive}
@@ -121,7 +123,7 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
           <button type="button" onClick={()=>applyZoom(scaleStudioZoom(zoomRef.current,1/1.1))} title="Zoom out"><ZoomOut size={17}/></button>
           <span>{Number(zoom.toFixed(1))}%</span>
           <button type="button" onClick={()=>applyZoom(scaleStudioZoom(zoomRef.current,1.1))} title="Zoom in"><ZoomIn size={17}/></button>
-          <button type="button" onClick={()=>{zoomRef.current=82;panRef.current={x:0,y:0};setZoom(82);setViewPan({x:0,y:0});}} title="Fit view"><Maximize2 size={17}/></button>
+          <button type="button" onClick={()=>{zoomRef.current=initialZoom;panRef.current={x:0,y:0};setZoom(initialZoom);setViewPan({x:0,y:0});}} title="Fit view"><Maximize2 size={17}/></button>
         </div>
       </div>
       <aside className="shared-design-controls">
