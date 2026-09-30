@@ -164,6 +164,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [previewOpen, setPreviewOpen] = useState(true);
   const [dielineZoom, setDielineZoom] = useState(112);
   const [panEnabled, setPanEnabled] = useState(false);
+  const [spacePanActive, setSpacePanActive] = useState(false);
   const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
   const [pdfExportRequest,setPdfExportRequest] = useState(0);
   const liveMapTokenRef = useRef(0);
@@ -353,6 +354,34 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setFaceAction(null);
     setCameraMenuOpen(false);
   }, []);
+
+  useEffect(() => {
+    const onSpaceKeyDown = (event:KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat || mode !== 'dieline' || importedDieline || mediaLibraryOpen) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input,textarea,select,button,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
+      event.preventDefault();
+      setSpacePanActive(true);
+    };
+    const onSpaceKeyUp = (event:KeyboardEvent) => {
+      if (event.code !== 'Space') return;
+      setSpacePanActive(false);
+    };
+    const clearSpacePan = () => setSpacePanActive(false);
+
+    window.addEventListener('keydown', onSpaceKeyDown);
+    window.addEventListener('keyup', onSpaceKeyUp);
+    window.addEventListener('blur', clearSpacePan);
+    return () => {
+      window.removeEventListener('keydown', onSpaceKeyDown);
+      window.removeEventListener('keyup', onSpaceKeyUp);
+      window.removeEventListener('blur', clearSpacePan);
+    };
+  }, [mode, importedDieline, mediaLibraryOpen]);
+
+  useEffect(() => {
+    if (mode !== 'dieline' || importedDieline || mediaLibraryOpen) setSpacePanActive(false);
+  }, [mode, importedDieline, mediaLibraryOpen]);
 
   useEffect(() => {
     const canvas=studioCanvasRef.current;
@@ -1162,7 +1191,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           dimensions={dimensions}
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
-          panEnabled={panEnabled}
+          panEnabled={panEnabled || spacePanActive}
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
@@ -1214,7 +1243,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             <button className="pro-canvas-bar-icon" title="Undo (Ctrl/⌘+Z)" aria-label="Undo last change" disabled={!historyStatus.canUndo} onClick={undoStudioAction}><Undo2 size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo last change" disabled={!historyStatus.canRedo} onClick={redoStudioAction}><Redo2 size={18}/></button>
             <span className="pro-canvas-bar-divider" aria-hidden="true"/>
-            <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
+            <button className={`pro-canvas-bar-icon${(panEnabled || spacePanActive) && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board · hold Space for temporary hand tool" aria-label="Drag 2D board" aria-pressed={(panEnabled || spacePanActive) && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
             </button>
