@@ -139,6 +139,21 @@ export async function ensureV2Schema(): Promise<void> {
     `;
     await db`CREATE INDEX IF NOT EXISTS idx_scenes_workspace_project ON scenes(user_id,workspace_project_id,updated_at DESC)`;
     await db`
+      CREATE TABLE IF NOT EXISTS design_shares (
+        id TEXT PRIMARY KEY,
+        project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        studio_state JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        revoked_at TIMESTAMPTZ,
+        view_count BIGINT NOT NULL DEFAULT 0
+      )
+    `;
+    await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_project_active ON design_shares(project_id) WHERE project_id IS NOT NULL AND revoked_at IS NULL`;
+    await db`CREATE INDEX IF NOT EXISTS idx_design_shares_user_updated ON design_shares(user_id,updated_at DESC)`;
+    await db`
       CREATE TABLE IF NOT EXISTS media_assets (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
