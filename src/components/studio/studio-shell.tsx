@@ -1216,7 +1216,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId, workspaceProjectId,
+    projectName, projectRevision, projectId, workspaceProjectId, initial?.legacySourceId,
   ]);
 
   useEffect(() => {
@@ -2343,7 +2343,7 @@ function DielinePrototype({
     void printDielineLayout(board,exportBounds,layers)
       .catch(error=>setPrintError(error instanceof Error?error.message:'Could not prepare the PDF layout.'))
       .finally(()=>setPrinting(false));
-  },[pdfExportRequest,dimensions,layers]);
+  },[pdfExportRequest,dimensions,layers,selectedTemplateId,openingMode,splitTopHingeSide]);
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const draggingLayerId = useRef<string | null>(null);
