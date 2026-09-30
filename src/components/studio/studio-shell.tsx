@@ -1265,6 +1265,13 @@ function DielinePrototype({
 }) {
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
+  // Size the 2D sheet from its real physical footprint instead of relying on
+  // the old fixed .pro-dieline dimensions. This makes width/height/depth
+  // edits visibly reshape the dieline immediately.
+  const visualMax = 760;
+  const visualScale = visualMax / Math.max(bounds.width, bounds.height);
+  const visualWidth = bounds.width * visualScale;
+  const visualHeight = bounds.height * visualScale;
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
@@ -1534,7 +1541,11 @@ function DielinePrototype({
       <div
         className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
         style={{
-          aspectRatio:`${bounds.width} / ${bounds.height}`,
+          width:`${visualWidth}px`,
+          height:`${visualHeight}px`,
+          maxWidth:'none',
+          maxHeight:'none',
+          aspectRatio:'auto',
           transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100})`,
           transformOrigin:'center',
         }}
