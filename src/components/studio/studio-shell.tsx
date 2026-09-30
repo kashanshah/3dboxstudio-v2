@@ -2064,10 +2064,10 @@ function Inspector(props: {
       return <div className="pro-inspector-content">
         <PanelIntro title="Form your box" text="Move between the flat dieline and the fully assembled reverse-tuck carton." />
         <div className="pro-card-section pro-fold-card">
-          <div className="pro-fold-heading"><div><span>Formation</span><strong>{stage}</strong></div><b>{Math.round(props.opening)}%</b></div>
-          <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
-          <div className="pro-fold-endpoints"><span>Flat</span><span>Assembled</span></div>
-          <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Flatten box' : 'Assemble box'}</button>
+          <div className="pro-fold-heading"><div><span>Formation</span><strong>{stage}</strong></div><b>{Math.round(props.formation)}%</b></div>
+          <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.formation)} onChange={e=>props.setFormation(Number(e.target.value))}/>
+          <div className="pro-fold-endpoints"><span>Flat dieline</span><span>Assembled</span></div>
+          <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.formation >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.formation >= 50 ? 'Flatten box' : 'Assemble box'}</button>
         </div>
         <div className="pro-callout"><Sparkles size={16}/><span>Formation is different from opening a finished package.</span></div>
       </div>;
@@ -2076,12 +2076,17 @@ function Inspector(props: {
     const isSplit=props.selectedTemplateId==='split-top-box';
     const disabled=props.openingMode==='closed'&&!isSplit;
     return <div className="pro-inspector-content">
-      <PanelIntro title="Open or close your box" text="Choose which physical face is hinged, then control how far the assembled box is opened." />
+      <PanelIntro title="Form and open your box" text="First move between the flat dieline and the assembled box. Then control the lid or opening independently." />
+      <div className="pro-card-section pro-fold-card">
+        <div className="pro-fold-heading"><div><span>Formation</span><strong>{props.formation<=1?'Flat dieline':props.formation>=99?'Assembled box':'Forming box'}</strong></div><b>{Math.round(props.formation)}%</b></div>
+        <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.formation)} onChange={e=>props.setFormation(Number(e.target.value))}/>
+        <div className="pro-fold-endpoints"><span>Flat dieline</span><span>Assembled</span></div>
+      </div>
       <div className="pro-card-section">
         {isSplit ? <label className="pro-field"><span>Split direction</span><select value={props.splitTopHingeSide} onChange={e=>props.setSplitTopHingeSide(e.target.value as 'side_a'|'side_b')}>
           <option value="side_a">Left + right top panels</option>
           <option value="side_b">Front + back top panels</option>
-        </select></label> : <label className="pro-field"><span>Opening mechanism</span><select value={props.openingMode} onChange={e=>{const mode=e.target.value as LegacyOpeningMode;props.setOpeningMode(mode);if(mode==='closed')props.setOpening(0);else if(props.opening===0)props.setOpening(35);}}>
+        </select></label> : <label className="pro-field"><span>Opening mechanism</span><select value={props.openingMode} onChange={e=>{const mode=e.target.value as LegacyOpeningMode;props.setOpeningMode(mode);if(mode==='closed')props.setOpening(0);}}>
           <option value="closed">Closed / fixed</option>
           <option value="lid_from_back">Top lid · back hinge</option>
           <option value="lid_from_front">Top lid · front hinge</option>
@@ -2094,11 +2099,11 @@ function Inspector(props: {
       </div>
       <div className="pro-card-section pro-fold-card">
         <div className="pro-fold-heading"><div><span>Open / close</span><strong>{isSplit?'Split top':modeLabels[props.openingMode]}</strong></div><b>{Math.round(props.opening)}%</b></div>
-        <input className="pro-range pro-fold-range" aria-label="Open or close box" type="range" min="0" max="100" step="1" disabled={disabled} value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
+        <input className="pro-range pro-fold-range" aria-label="Open or close box" type="range" min="0" max="100" step="1" disabled={disabled||props.formation<99} value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
         <div className="pro-fold-endpoints"><span>Closed</span><span>Open</span></div>
-        <button className="pro-fold-play" disabled={disabled} onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Close box' : 'Open box'}</button>
+        <button className="pro-fold-play" disabled={disabled||props.formation<99} onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Close box' : 'Open box'}</button>
       </div>
-      <div className="pro-callout"><Sparkles size={16}/><span>The dieline only changes when panel topology changes. Hinge direction stays an option of the same Base Box.</span></div>
+      <div className="pro-callout"><Sparkles size={16}/><span>Opening is available once the box is fully assembled. Formation and package opening are separate states.</span></div>
     </div>;
   }
 
