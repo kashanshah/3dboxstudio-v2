@@ -62,6 +62,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 export async function rasterizeFullDielineLayers(
   layers: FullDielineArtworkLayer[],
   dimensions: CartonDimensions,
+  panelPrefix = '',
 ): Promise<ArtworkByPanel> {
   if (!layers.length) return {};
 
@@ -112,7 +113,7 @@ export async function rasterizeFullDielineLayers(
     panelCtx.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh);
 
     const panelName = item.label[0] + item.label.slice(1).toLowerCase();
-    result[panelName] = {
+    result[`${panelPrefix}${panelName}`] = {
       ...defaultArtworkPlacement(compositeName, panelCanvas.toDataURL('image/png')),
       mode: 'fill',
       scale: 100,
