@@ -6,7 +6,7 @@ Scene Studio is a composition/rendering workspace separate from Box Studio.
 
 - **Box Studio** owns package structure, dimensions, material, artwork, folding/opening and color-proofing.
 - **Scene Studio** owns composition: multiple package objects, transforms, props, backgrounds, authored lighting, shadows, cameras, environments and rendered outputs.
-- A scene references a saved Box Studio project by `sourceProjectId`. It does not duplicate the box project state.
+- A scene references a saved Box Studio design by `sourceDesignId`. It does not duplicate the box project state.
 
 This lets the same packaging design appear in many scenes and allows edits to the source package to remain reusable.
 
