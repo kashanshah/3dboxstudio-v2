@@ -3742,3 +3742,49 @@ body{font-size:var(--type-body)}
   .pro-header-actions .account-button span,
   .pro-header-actions .account-button svg:last-child{display:none}
 }
+
+
+/* Persistent document history controls in the Studio application bar. */
+.pro-header-history{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:3px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+}
+.pro-header-icon-action{
+  width:36px;
+  height:36px;
+  display:grid!important;
+  place-items:center;
+  padding:0!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  color:var(--muted)!important;
+}
+.pro-header-icon-action:hover:not(:disabled){
+  background:var(--panel)!important;
+  color:var(--ink)!important;
+}
+.pro-header-icon-action:disabled{
+  opacity:.32;
+  cursor:not-allowed;
+}
+@media(max-width:760px){
+  .pro-header-history{
+    gap:2px;
+    padding:2px;
+  }
+  .pro-header-icon-action{
+    width:38px;
+    height:38px;
+  }
+}
+@media(max-width:520px){
+  .pro-header-history{
+    display:none;
+  }
+}
