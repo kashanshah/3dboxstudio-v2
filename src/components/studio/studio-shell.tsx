@@ -1100,7 +1100,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = async () => {
+  const saveDesign = useCallback(async () => {
     setSaving(true);
     try {
       if(importedDieline) throw new Error('Saving imported dielines is not available yet.');
@@ -1140,7 +1140,23 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       setMessage('Design saved');
     } catch(error) {setMessage(error instanceof Error?error.message:'Could not save your design.');}
     finally {setSaving(false);}
-  };
+  }, [
+    importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
+    mediaAssets, selectedTemplateId, dimensions, material, opening, measurementUnit,
+    outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
+    projectName, projectUpdatedAt, projectId,
+  ]);
+
+  useEffect(() => {
+    const onSaveShortcut = (event:KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 's' || (!event.metaKey && !event.ctrlKey)) return;
+      event.preventDefault();
+      if (event.repeat || saving) return;
+      void saveDesign();
+    };
+    window.addEventListener('keydown', onSaveShortcut);
+    return () => window.removeEventListener('keydown', onSaveShortcut);
+  }, [saveDesign, saving]);
 
   const exportPng = () => {
     if (mode !== '3d') {
