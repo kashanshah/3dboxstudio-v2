@@ -8,7 +8,7 @@ import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
-  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Magnet, Maximize2, Move,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
@@ -2535,70 +2535,11 @@ function DielinePrototype({
     startHeightPx:number;
     startAngle:number;
   } | null>(null);
-  const [snapEnabled,setSnapEnabled]=useState(false);
-  const [snapGuides,setSnapGuides]=useState<{x?:number;y?:number}>({});
   const [transformFeedback,setTransformFeedback]=useState<string|null>(null);
 
   const normalizeAngle=(value:number)=>{
     const normalized=((value%360)+360)%360;
     return normalized>180?normalized-360:normalized;
-  };
-
-  const guidePositions=(excludeId:string)=>{
-    const x=[0,50,100];
-    const y=[0,50,100];
-    for(const item of cartonPanels){
-      const left=item.x/bounds.width*100;
-      const top=item.y/bounds.height*100;
-      const width=item.width/bounds.width*100;
-      const height=item.height/bounds.height*100;
-      x.push(left,left+width/2,left+width);
-      y.push(top,top+height/2,top+height);
-    }
-    for(const layer of layers){
-      if(layer.id===excludeId)continue;
-      const {x:cx,y:cy,width,height}=layer.transform;
-      x.push(cx-width/2,cx,cx+width/2);
-      y.push(cy-height/2,cy,cy+height/2);
-    }
-    return {x,y};
-  };
-
-  const snapAxis=(center:number,size:number,guides:number[],threshold:number,includeEdges:boolean)=>{
-    const anchors=includeEdges?[center-size/2,center,center+size/2]:[center];
-    let best: {distance:number;delta:number;guide:number}|null=null;
-    for(const anchor of anchors){
-      for(const guide of guides){
-        const delta=guide-anchor;
-        const distance=Math.abs(delta);
-        if(distance<=threshold&&(!best||distance<best.distance))best={distance,delta,guide};
-      }
-    }
-    return best?{center:center+best.delta,guide:best.guide}:{center,guide:undefined};
-  };
-
-  const snapDimensionPx=(value:number,axis:'x'|'y',rect:DOMRect,excludeId:string)=>{
-    const screenThreshold=5;
-    const boardPhysical=axis==='x'?bounds.width:bounds.height;
-    const boardPixels=axis==='x'?rect.width:rect.height;
-    const physical=value/Math.max(1,boardPixels)*boardPhysical;
-    const cleanPhysical=Math.round(physical/5)*5;
-    const candidatesPx:number[]=[cleanPhysical/boardPhysical*boardPixels];
-    for(const panel of cartonPanels){
-      const physicalSize=axis==='x'?panel.width:panel.height;
-      candidatesPx.push(physicalSize/boardPhysical*boardPixels);
-    }
-    for(const layer of layers){
-      if(layer.id===excludeId)continue;
-      const percent=axis==='x'?layer.transform.width:layer.transform.height;
-      candidatesPx.push(percent/100*boardPixels);
-    }
-    let best=value,bestDistance=Infinity;
-    for(const candidate of candidatesPx){
-      const distance=Math.abs(candidate-value);
-      if(distance<=screenThreshold&&distance<bestDistance){best=candidate;bestDistance=distance;}
-    }
-    return {value:best,snapped:bestDistance!==Infinity};
   };
 
   const toDisplayUnit=(millimetres:number)=>measurementUnit==='mm'?millimetres:millimetres/25.4;
@@ -2622,7 +2563,6 @@ function DielinePrototype({
   ) => {
     event.preventDefault();
     event.stopPropagation();
-    setSnapGuides({});
     setTransformFeedback(null);
     selectArtworkLayer(layer.id);
     const element = event.currentTarget.closest('.pro-full-artwork-transform') as HTMLDivElement | null;
@@ -2660,22 +2600,9 @@ function DielinePrototype({
     if (gesture.type === 'move') {
       const dx = (event.clientX - gesture.startX) / Math.max(1,rect.width) * 100;
       const dy = (event.clientY - gesture.startY) / Math.max(1,rect.height) * 100;
-      let nextX=Math.max(-100,Math.min(200,gesture.start.x+dx));
-      let nextY=Math.max(-100,Math.min(200,gesture.start.y+dy));
-      let guideX:number|undefined,guideY:number|undefined;
-
-      if(snapEnabled&&!event.altKey){
-        const guides=guidePositions(gesture.layerId);
-        const thresholdX=6/Math.max(1,rect.width)*100;
-        const thresholdY=6/Math.max(1,rect.height)*100;
-        const axisAligned=Math.abs(normalizeAngle(gesture.start.rotation)%90)<1;
-        const snappedX=snapAxis(nextX,gesture.start.width,guides.x,thresholdX,axisAligned);
-        const snappedY=snapAxis(nextY,gesture.start.height,guides.y,thresholdY,axisAligned);
-        nextX=snappedX.center;nextY=snappedY.center;
-        guideX=snappedX.guide;guideY=snappedY.guide;
-      }
-      setSnapGuides({x:guideX,y:guideY});
-      setTransformFeedback(guideX!==undefined||guideY!==undefined?'Aligned':null);
+      const nextX=Math.max(-100,Math.min(200,gesture.start.x+dx));
+      const nextY=Math.max(-100,Math.min(200,gesture.start.y+dy));
+      setTransformFeedback(null);
       updateArtworkLayer(gesture.layerId,{...gesture.start,x:nextX,y:nextY});
       return;
     }
@@ -2752,25 +2679,7 @@ function DielinePrototype({
         }
       }
 
-      if(snapEnabled&&!event.altKey){
-        const snappedWidth=snapDimensionPx(newWidth,'x',rect,gesture.layerId);
-        const snappedHeight=snapDimensionPx(newHeight,'y',rect,gesture.layerId);
-        if(!event.shiftKey&&isCorner){
-          const widthScale=snappedWidth.value/newWidth;
-          const heightScale=snappedHeight.value/newHeight;
-          const useWidth=snappedWidth.snapped&&(!snappedHeight.snapped||Math.abs(widthScale-1)<=Math.abs(heightScale-1));
-          const scale=useWidth?widthScale:snappedHeight.snapped?heightScale:1;
-          if(scale!==1){newWidth*=scale;newHeight*=scale;}
-        }else{
-          if(snappedWidth.snapped)newWidth=snappedWidth.value;
-          if(snappedHeight.snapped)newHeight=snappedHeight.value;
-        }
-        if(snappedWidth.snapped||snappedHeight.snapped){
-          const widthMm=newWidth/Math.max(1,rect.width)*bounds.width;
-          const heightMm=newHeight/Math.max(1,rect.height)*bounds.height;
-          setTransformFeedback(`${formatTransformValue(toDisplayUnit(widthMm))} × ${formatTransformValue(toDisplayUnit(heightMm))} ${measurementUnit}`);
-        }else setTransformFeedback(null);
-      }else setTransformFeedback(null);
+      setTransformFeedback(null);
 
       const centerDx = centerLocalX * cos - centerLocalY * sin;
       const centerDy = centerLocalX * sin + centerLocalY * cos;
@@ -2793,7 +2702,6 @@ function DielinePrototype({
     const snapTarget=Math.round(rotation/15)*15;
     if(event.shiftKey)rotation=snapTarget;
     rotation=normalizeAngle(rotation);
-    setSnapGuides({});
     setTransformFeedback(`${Math.round(rotation*10)/10}°`);
     updateArtworkLayer(gesture.layerId,{...gesture.start,rotation});
   };
@@ -2803,7 +2711,6 @@ function DielinePrototype({
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     gestureRef.current=null;
-    setSnapGuides({});
     setTransformFeedback(null);
   };
 
@@ -2823,7 +2730,6 @@ function DielinePrototype({
         <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
       </div>
       <div className="pro-2d-toolbar-actions">
-      <button type="button" className={`pro-snap-toggle${snapEnabled?' is-active':''}`} aria-pressed={snapEnabled} title="Toggle magnetic snapping for move and resize · rotation stays free unless Shift is held" onClick={()=>setSnapEnabled(value=>!value)}><Magnet size={16}/><span>Snap</span></button>
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
       {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
         selectedLayer.id,
@@ -2992,8 +2898,6 @@ function DielinePrototype({
           });
         }}
       >
-        {snapGuides.x!==undefined&&<span className="pro-snap-guide is-x" style={{left:`${snapGuides.x}%`}} aria-hidden="true"/>}
-        {snapGuides.y!==undefined&&<span className="pro-snap-guide is-y" style={{top:`${snapGuides.y}%`}} aria-hidden="true"/>}
         <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
