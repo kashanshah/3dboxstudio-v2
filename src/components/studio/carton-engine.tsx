@@ -528,7 +528,7 @@ function buildLegacyBoxMeshes(
   const d=sanitizeCartonDimensions(dimensions),w=d.width,h=d.height,depth=d.depth;
   const formationT=clamp(formation,0,100)/100;
   const x0=-w/2,x1=w/2,y0=-h/2,y1=h/2,z0=-depth/2,z1=depth/2;
-  const angle=clamp(opening,0,100)/100*(75*Math.PI/180);
+  const angle=clamp(opening,0,100)/100*(Math.PI/2);
   const rotateX=(p:number[],pivot:number[],theta:number)=>{
     const y=p[1]-pivot[1],z=p[2]-pivot[2],c=Math.cos(theta),si=Math.sin(theta);
     return [p[0],pivot[1]+y*c-z*si,pivot[2]+y*si+z*c];
@@ -586,6 +586,20 @@ function buildLegacyBoxMeshes(
   }));
   const blend=(flat:number[][],assembled:number[][])=>assembled.map((point,index)=>point.map((value,axis)=>flat[index][axis]+(value-flat[index][axis])*formationT));
   const result:Mesh[]=[];
+  if(formationT<.999){
+    const glueFlat=flatCornerMap.get('Glue');
+    if(glueFlat){
+      const seamX=x1;
+      const seam=[
+        [seamX-.001,y0,z0],[seamX,y0,z0],[seamX,y1,z0],[seamX-.001,y1,z0],
+      ];
+      const glueCorners=blend(glueFlat,seam);
+      result.push(quadFromCorners(glueCorners,color,true,'Glue'));
+      const glueNormal=faceNormal(glueCorners),offset=Math.max(0.02,Math.min(2,d.thickness));
+      const glueInner=glueCorners.map(p=>[p[0]-glueNormal[0]*offset,p[1]-glueNormal[1]*offset,p[2]-glueNormal[2]*offset]);
+      result.push(quadFromCorners([glueInner[3],glueInner[2],glueInner[1],glueInner[0]],interiorColor,true,'Interior Glue'));
+    }
+  }
   for(const panel of panels){
     const flat=flatCornerMap.get(panel.name)??panel.corners;
     const formedCorners=blend(flat,panel.corners);
