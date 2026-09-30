@@ -1,92 +1,26 @@
 import { createHash } from 'node:crypto';
-import { CopyObjectCommand, GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSql } from '@/server/db';
-import { headStoredObject, readStoredObject, type MediaAssetDto } from '@/server/media-assets';
+import { headStoredObject, type MediaAssetDto } from '@/server/media-assets';
 
 type JsonRecord=Record<string,unknown>;
 function record(value:unknown):JsonRecord{return value&&typeof value==='object'&&!Array.isArray(value)?value as JsonRecord:{};}
-function normalizePrefix(value:string|undefined,fallback=''){
- const trimmed=String(value||fallback).replace(/^\/+/, '');
- return trimmed&& !trimmed.endsWith('/')?trimmed+'/':trimmed;
-}
-function targetKey(sourceKey:string){
- const sourcePrefix=normalizePrefix(process.env.LEGACY_AWS_S3_PREFIX||process.env.AWS_S3_SHARE_PREFIX,'shares/');
- const targetPrefix=normalizePrefix(process.env.AWS_S3_PREFIX,'v2/uploads/');
- const sub=normalizePrefix(process.env.LEGACY_ASSET_TARGET_SUBPREFIX,'legacy/');
- if(!sourceKey.startsWith(sourcePrefix))throw new Error(`Legacy asset is outside configured prefix: ${sourceKey}`);
- return targetPrefix+sub+sourceKey.slice(sourcePrefix.length);
-}
-function sourceKey(entry:unknown){
+function migratedStorageKey(entry:unknown){
  const item=record(entry);
- return typeof item.s3Key==='string'?item.s3Key:typeof item.s3_key==='string'?item.s3_key:'';
+ return typeof item.v2StorageKey==='string'?item.v2StorageKey:'';
 }
 function stableId(userId:string,key:string){
  return 'legacy-'+createHash('sha256').update(userId+'\0'+key).digest('hex').slice(0,24);
 }
-function encodeCopySource(bucket:string,key:string){
- return `${bucket}/${key.split('/').map(encodeURIComponent).join('/')}`;
-}
-let client:S3Client|null=null;
-function legacyS3(){
- if(client)return client;
- const accessKeyId=process.env.AWS_ACCESS_KEY_ID?.trim();
- const secretAccessKey=process.env.AWS_SECRET_ACCESS_KEY?.trim();
- client=new S3Client({
-  region:process.env.AWS_REGION?.trim()||'us-east-1',
-  ...(accessKeyId&&secretAccessKey?{credentials:{accessKeyId,secretAccessKey}}:{}),
-  ...(process.env.AWS_S3_ENDPOINT?.trim()?{endpoint:process.env.AWS_S3_ENDPOINT.trim(),forcePathStyle:process.env.AWS_S3_FORCE_PATH_STYLE==='true'}:{}),
- });
- return client;
-}
-export async function readLegacyStoredObject(sourceStorageKey:string){
- // Public legacy previews should use the migrated V2 copy first. Production
- // credentials may intentionally be restricted to v2/uploads/* even though
- // the original application can still read shares/*.
- try{
-  const migratedKey=targetKey(sourceStorageKey);
-  const migrated=await readStoredObject(migratedKey);
-  if(migrated)return migrated;
- }catch(error){
-  console.warn('migrated legacy artwork read failed; falling back to source',{
-   sourceStorageKey,
-   error:error instanceof Error?error.message:String(error),
-  });
- }
 
- const sourceBucket=(process.env.LEGACY_AWS_S3_BUCKET||process.env.AWS_S3_BUCKET)?.trim();
- if(!sourceBucket)throw new Error('Legacy S3 bucket is not configured.');
- const object=await legacyS3().send(new GetObjectCommand({Bucket:sourceBucket,Key:sourceStorageKey}));
- if(!object.Body)return null;
- const bytes=await object.Body.transformToByteArray();
- return {bytes,contentType:object.ContentType||'application/octet-stream'};
-}
-
-async function ensureCopiedLegacyObject(sourceStorageKey:string,targetStorageKey:string){
- try{return await headStoredObject(targetStorageKey);}catch{}
- const sourceBucket=(process.env.LEGACY_AWS_S3_BUCKET||process.env.AWS_S3_BUCKET)?.trim();
- const targetBucket=process.env.AWS_S3_BUCKET?.trim();
- if(!sourceBucket||!targetBucket)throw new Error('Legacy or target S3 bucket is not configured.');
- const s3=legacyS3();
- const source=await s3.send(new HeadObjectCommand({Bucket:sourceBucket,Key:sourceStorageKey}));
- await s3.send(new CopyObjectCommand({
-  Bucket:targetBucket,
-  Key:targetStorageKey,
-  CopySource:encodeCopySource(sourceBucket,sourceStorageKey),
-  MetadataDirective:'COPY',
-  ...(source.ETag?{CopySourceIfMatch:source.ETag}:{}),
- }));
- return await headStoredObject(targetStorageKey);
-}
 export async function ensureLegacyMediaForDesign(userId:string,payloadValue:unknown):Promise<Record<string,MediaAssetDto>>{
  const payload=record(payloadValue),images=record(payload.images),config=record(payload.config),sourceMeta=record(config.sourceImageMeta);
  const sql=getSql(),out:Record<string,MediaAssetDto>={};
  for(const [faceId,entryValue] of Object.entries(images)){
-   const entry=record(entryValue),key=sourceKey(entry);if(!key)continue;
-   let storageKey;try{storageKey=targetKey(key);}catch{continue;}
+   const entry=record(entryValue),storageKey=migratedStorageKey(entry);if(!storageKey)continue;
    const id=stableId(userId,storageKey);
    let objectMeta;
-   try{objectMeta=await ensureCopiedLegacyObject(key,storageKey);}catch(error){
-     console.warn('legacy artwork link failed',{faceId,key,storageKey,error:error instanceof Error?error.message:String(error)});
+   try{objectMeta=await headStoredObject(storageKey);}catch(error){
+     console.warn('migrated artwork missing from V2 storage',{faceId,storageKey,error:error instanceof Error?error.message:String(error)});
      continue;
    }
    const name=typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`;
