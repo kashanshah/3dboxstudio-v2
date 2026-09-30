@@ -18,11 +18,12 @@ import { createFullDielineTransform, rasterizeFullDielineLayers, type FullDielin
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
+type MeasurementUnit = 'mm' | 'in';
 
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Box & Size', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
-  { id: 'material', label: 'Finish', icon: Layers3 },
+  { id: 'material', label: 'Material & Finish', icon: Layers3 },
   { id: 'opening', label: 'Open / Close', icon: PackageOpen },
   { id: 'scene', label: 'Scene', icon: Lightbulb },
   { id: 'export', label: 'Export', icon: Download },
@@ -46,6 +47,7 @@ export function StudioShell() {
   const [opening, setOpening] = useState(100);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
+  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
   const [insideDielineLayers, setInsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
@@ -615,7 +617,7 @@ export function StudioShell() {
         />}
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
-        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
+        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
@@ -628,7 +630,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -662,6 +664,7 @@ function Inspector(props: {
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
+  measurementUnit:MeasurementUnit; setMeasurementUnit:(unit:MeasurementUnit)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
@@ -690,8 +693,21 @@ function Inspector(props: {
             <strong>{selectedTemplate.name}</strong>
             <small>{selectedTemplate.category} · Ready to edit</small>
             <div className="pro-current-box-size">
-              <span>Finished size</span>
-              <b>{props.dimensions.width} × {props.dimensions.height} × {props.dimensions.depth} mm</b>
+              <div className="pro-current-box-size-head">
+                <span>Finished size</span>
+                <div className="pro-unit-switch" role="group" aria-label="Measurement unit">
+                  <button type="button" className={props.measurementUnit === 'mm' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('mm')}>mm</button>
+                  <button type="button" className={props.measurementUnit === 'in' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('in')}>in</button>
+                </div>
+              </div>
+              <div className="pro-current-box-size-fields" aria-label="Finished box size">
+                <label><small>W</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                <i>×</i>
+                <label><small>H</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                <i>×</i>
+                <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                <em>{props.measurementUnit}</em>
+              </div>
             </div>
           </div>
         </div>
@@ -745,22 +761,6 @@ function Inspector(props: {
         </div> : null}
       </div>
 
-      <div className="pro-card-section pro-structure-size-card">
-        <SectionTitle title="Edit finished size" meta="Outside measurements" />
-        <div className="pro-fields">
-          <Field label="Width" value={String(props.dimensions.width)} onChange={value=>props.setDimensions({...props.dimensions,width:value})}/>
-          <Field label="Height" value={String(props.dimensions.height)} onChange={value=>props.setDimensions({...props.dimensions,height:value})}/>
-          <Field label="Depth" value={String(props.dimensions.depth)} onChange={value=>props.setDimensions({...props.dimensions,depth:value})}/>
-        </div>
-        <p className="pro-help">Measure the finished package after it is folded and closed.</p>
-        <details className="pro-advanced">
-          <summary>Material thickness <ChevronDown size={17}/></summary>
-          <div className="pro-advanced-body">
-            <ControlRow label="Board thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
-            <input className="pro-range" type="range" min="3" max="20" value={Math.round(props.dimensions.thickness*10)} onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})} />
-          </div>
-        </details>
-      </div>
     </div>;
   }
 
@@ -853,8 +853,23 @@ function Inspector(props: {
   }
 
   if (tool === 'material') return <div className="pro-inspector-content">
-    <PanelIntro title="Choose a finish" text="Pick the surface that best matches how you want the package to feel." />
+    <PanelIntro title="Material & finish" text="Choose the board or surface treatment, then fine-tune the physical material settings." />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
+
+    <div className="pro-card-section pro-material-settings-card">
+      <SectionTitle title="Board thickness" meta="Material setting" />
+      <ControlRow label="Thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
+      <input
+        className="pro-range"
+        type="range"
+        min="3"
+        max="20"
+        value={Math.round(props.dimensions.thickness*10)}
+        onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})}
+      />
+      <p className="pro-help">Thickness affects the physical board used to build the package.</p>
+    </div>
+
     <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
   </div>;
 
@@ -1613,6 +1628,16 @@ function MediaLibraryModal(props: {
   </div>;
 }
 
+function formatDimension(valueMm: number, unit: MeasurementUnit) {
+  if (unit === 'mm') return Math.round(valueMm * 10) / 10;
+  return Math.round((valueMm / 25.4) * 100) / 100;
+}
+
+function parseDimension(value: number, unit: MeasurementUnit) {
+  if (!Number.isFinite(value)) return 0;
+  return unit === 'mm' ? value : value * 25.4;
+}
+
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
@@ -1625,4 +1650,3 @@ function PanelIntro({title,text}:{title:string;text:string}) {
 
 function SectionTitle({title,meta}:{title:string;meta?:string}) { return <div className="pro-section-title"><strong>{title}</strong>{meta&&<span>{meta}</span>}</div>; }
 function ControlRow({label,value}:{label:string;value:string}) { return <div className="pro-control-row"><span>{label}</span><strong>{value}</strong></div>; }
-function Field({label,value,onChange}:{label:string;value:string;onChange?:(value:number)=>void}) { return <label><span>{label}</span><input type="number" value={value} onChange={e=>onChange?.(Number(e.target.value))}/></label>; }
