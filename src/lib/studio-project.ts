@@ -2,7 +2,7 @@ import type { CartonDimensions } from './packaging/reverse-tuck';
 import type { ArtworkByPanel,LocalMediaAsset } from './packaging/artwork';
 import type { FullDielineArtworkLayer } from './packaging/full-dieline-artwork';
 export type StudioProjectState={version:1;templateId:string;dimensions:CartonDimensions;material:string;opening:number;measurementUnit:'mm'|'in';artworkByPanel:ArtworkByPanel;outsideArtworkLayers:FullDielineArtworkLayer[];insideArtworkLayers:FullDielineArtworkLayer[];mediaAssets:LocalMediaAsset[];outsideColorMode:'material'|'custom';insideColorMode:'material'|'custom';outsideCustomColor:string;insideCustomColor:string};
-export type SavedStudioProject={id:string;name:string;state:StudioProjectState;updatedAt:string};
+export type SavedStudioProject={id:string;name:string;state:StudioProjectState;updatedAt:string;favorite:boolean};
 export function validProjectState(value:unknown):value is StudioProjectState{
  if(!value||typeof value!=='object')return false;const s=value as StudioProjectState;
  if(s.version!==1||s.templateId!=='reverse-tuck-carton'||!s.dimensions||!['width','height','depth','thickness'].every(key=>typeof s.dimensions[key as keyof CartonDimensions]==='number'&&Number.isFinite(s.dimensions[key as keyof CartonDimensions])&&s.dimensions[key as keyof CartonDimensions]>0))return false;
