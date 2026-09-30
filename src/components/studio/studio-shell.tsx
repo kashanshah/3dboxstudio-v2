@@ -474,6 +474,7 @@ export function StudioShell() {
           </div>}
         </div> : <DielinePrototype
           panel={panel}
+          importedDieline={importedDieline}
           artworkByPanel={artworkByPanel}
           fullDielineArtwork={fullDielineArtwork}
           artworkScope={artworkScope}
