@@ -7,8 +7,10 @@ import {
 } from '@/lib/packaging/reverse-tuck';
 import { baseBoxBounds, baseBoxPanels, splitTopBoxBounds, splitTopBoxPanels, type DielinePanel } from '@/lib/packaging/box-structures';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
+import type { LegacyOpeningMode } from '@/lib/studio-project';
 
 export type TemplateGeometryOptions = {
+  openingMode?: LegacyOpeningMode;
   splitTopHingeSide?: 'side_a' | 'side_b';
 };
 
@@ -28,8 +30,8 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     structureKey: 'base-box-v1',
     rendererKey: 'base-box-v1',
     sanitizeParameters: sanitizeCartonDimensions,
-    getDielinePanels: dimensions => baseBoxPanels(dimensions),
-    getDielineBounds: dimensions => baseBoxBounds(dimensions),
+    getDielinePanels: (dimensions,options) => baseBoxPanels(dimensions,options?.openingMode ?? 'closed'),
+    getDielineBounds: (dimensions,options) => baseBoxBounds(dimensions,options?.openingMode ?? 'closed'),
   }],
   ['split-top-box', {
     templateId: 'split-top-box',
