@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { BoardArtworkImage } from './board-artwork-image';
 import { scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -1922,7 +1923,7 @@ function DielinePrototype({
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
       >
-        <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><img src={layer.url} alt="" draggable={false}/></div>)}</div>
+        <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
@@ -1966,7 +1967,7 @@ function DielinePrototype({
             style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden'}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
           >
-            {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
+            {explicitArtwork ? explicitArtwork.transform ? <span className="artwork-layer" style={{...artworkCss(explicitArtwork),backgroundImage:'none'}}><BoardArtworkImage url={explicitArtwork.url} aspectRatio={1} width={item.width*explicitArtwork.transform.width} height={item.height*explicitArtwork.transform.height}/></span> : <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
             <span className="dl-label">{item.label}</span>
           </div>;
         })}

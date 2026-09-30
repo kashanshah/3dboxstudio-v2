@@ -17,7 +17,8 @@
     "sync:legacy": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-legacy-users.mjs",
     "sync:legacy-assets": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-asset-sync.mjs",
     "test:geometry": "node --test scripts/studio-geometry.test.cjs",
-    "migrate:all": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-all.mjs"
+    "migrate:all": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-all.mjs",
+    "test:artwork-browser": "node scripts/artwork-crop.browser.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
@@ -35,6 +36,7 @@
     "@types/react-dom": "19.3.0",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.7",
+    "playwright-core": "^1.63.0",
     "typescript": "6.0.3"
   }
 }
