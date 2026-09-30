@@ -1160,7 +1160,6 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             cameraPreset={camera}
             zoom={zoom}
             viewPan={viewPan3d}
-            onZoomChange={setZoom}
             onPanelSelect={(selectedPanel, point) => {
               const parsed = parseArtworkTarget(selectedPanel);
               setArtworkScope(parsed.scope);
