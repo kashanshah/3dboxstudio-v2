@@ -5,7 +5,7 @@ import { SharedDesignViewer } from '@/components/studio/shared-design-viewer';
 
 export async function generateMetadata({params}:{params:Promise<{shareId:string}>}):Promise<Metadata>{
   const {shareId}=await params;
-  const share=await getPublicShare(shareId);
+  const share=await getPublicShare(shareId,false);
   if(!share)return {};
   return {
     title:{absolute:`${share.name} | 3D Box Studio`},
