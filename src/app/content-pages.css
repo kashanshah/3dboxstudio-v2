@@ -203,7 +203,11 @@
 .blog-filter-sidebar{min-width:0}
 .blog-filter-sticky{
   position:sticky;
-  top:88px;
+  top:84px;
+  max-height:calc(100dvh - 108px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
   padding:22px;
   border:1px solid var(--line);
   border-radius:12px;
@@ -357,3 +361,6 @@
   .blog-results .journal-feature h2{font-size:30px}
   .blog-results .feed-heading h2{font-size:34px}
 }
+
+.blog-filter-sticky::-webkit-scrollbar{width:6px}
+.blog-filter-sticky::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
