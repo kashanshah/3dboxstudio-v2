@@ -49,9 +49,13 @@ export function StudioShell() {
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
-  const [fullDielineLayers, setFullDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
-  const [selectedFullDielineLayerId, setSelectedFullDielineLayerId] = useState<string | null>(null);
-  const [mappedFullDielineArtwork, setMappedFullDielineArtwork] = useState<ArtworkByPanel>({});
+  const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
+  const [insideDielineLayers, setInsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
+  const [selectedOutsideLayerId, setSelectedOutsideLayerId] = useState<string | null>(null);
+  const [selectedInsideLayerId, setSelectedInsideLayerId] = useState<string | null>(null);
+  const [mappedOutsideArtwork, setMappedOutsideArtwork] = useState<ArtworkByPanel>({});
+  const [mappedInsideArtwork, setMappedInsideArtwork] = useState<ArtworkByPanel>({});
+  const [dielineZoom, setDielineZoom] = useState(112);
   const liveMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
@@ -74,8 +78,8 @@ export function StudioShell() {
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
-    return { ...mappedFullDielineArtwork, ...artworkByPanel };
-  }, [artworkByPanel, mappedFullDielineArtwork]);
+    return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel };
+  }, [artworkByPanel, mappedOutsideArtwork, mappedInsideArtwork]);
   const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
   const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
     ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
@@ -87,28 +91,27 @@ export function StudioShell() {
 
   useEffect(() => {
     const token = ++liveMapTokenRef.current;
-    if (!fullDielineLayers.length) {
-      const clearTimeoutId = window.setTimeout(() => {
-        if (liveMapTokenRef.current === token) setMappedFullDielineArtwork({});
-      }, 0);
-      return () => window.clearTimeout(clearTimeoutId);
-    }
-
     const timeout = window.setTimeout(() => {
-      void rasterizeFullDielineLayers(fullDielineLayers, dimensions)
-        .then(mapped => {
-          if (liveMapTokenRef.current !== token) return;
-          setMappedFullDielineArtwork(mapped);
-          setMessage('3D preview synced');
-        })
-        .catch(() => {
-          if (liveMapTokenRef.current !== token) return;
-          setMessage('Could not sync artwork to 3D');
-        });
+      void Promise.all([
+        outsideDielineLayers.length
+          ? rasterizeFullDielineLayers(outsideDielineLayers, dimensions)
+          : Promise.resolve({} as ArtworkByPanel),
+        insideDielineLayers.length
+          ? rasterizeFullDielineLayers(insideDielineLayers, dimensions, 'Interior ')
+          : Promise.resolve({} as ArtworkByPanel),
+      ]).then(([outsideMapped, insideMapped]) => {
+        if (liveMapTokenRef.current !== token) return;
+        setMappedOutsideArtwork(outsideMapped);
+        setMappedInsideArtwork(insideMapped);
+        setMessage('3D preview synced');
+      }).catch(() => {
+        if (liveMapTokenRef.current !== token) return;
+        setMessage('Could not sync artwork to 3D');
+      });
     }, 180);
 
     return () => window.clearTimeout(timeout);
-  }, [fullDielineLayers, dimensions]);
+  }, [outsideDielineLayers, insideDielineLayers, dimensions]);
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
@@ -164,6 +167,9 @@ export function StudioShell() {
     setInspectorOpen(true);
   };
 
+  const getDielineLayers = (scope: 'outside' | 'inside') => scope === 'inside' ? insideDielineLayers : outsideDielineLayers;
+  const getSelectedDielineLayerId = (scope: 'outside' | 'inside') => scope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
+
   const applyAssetToPanel = (
     asset: LocalMediaAsset,
     targetPanel = artworkKey(),
@@ -189,11 +195,17 @@ export function StudioShell() {
           options?.rotation ?? 0,
         ),
       };
-      setFullDielineLayers(current => [...current, layer]);
-      setSelectedFullDielineLayerId(layerId);
+
+      if (artworkScope === 'inside') {
+        setInsideDielineLayers(current => [...current, layer]);
+        setSelectedInsideLayerId(layerId);
+      } else {
+        setOutsideDielineLayers(current => [...current, layer]);
+        setSelectedOutsideLayerId(layerId);
+      }
       setMediaLibraryOpen(false);
       setMode('dieline');
-      setMessage(`${asset.name} added as a new 2D layer`);
+      setMessage(`${asset.name} added to the ${artworkScope} 2D design`);
       return;
     }
 
@@ -217,7 +229,8 @@ export function StudioShell() {
   };
 
   const openMediaLibrary = (targetPanel = artworkKey(), tab?: 'library' | 'upload') => {
-    const selectedLayer = fullDielineLayers.find(layer => layer.id === selectedFullDielineLayerId);
+    const activeLayers = getDielineLayers(artworkScope);
+    const selectedLayer = activeLayers.find(layer => layer.id === getSelectedDielineLayerId(artworkScope));
     const currentAssetId = targetPanel === '__FULL_DIELINE__'
       ? selectedLayer?.assetId ?? mediaAssets[0]?.id ?? null
       : artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
@@ -235,9 +248,12 @@ export function StudioShell() {
   };
 
   const handleArtworkFiles = (files: File[]) => {
-    const imageFiles = files.filter(file => ['image/png', 'image/jpeg', 'image/webp'].includes(file.type));
+    const imageFiles = files.filter(file => {
+      const lower = file.name.toLowerCase();
+      return ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type) || lower.endsWith('.svg');
+    });
     if (imageFiles.length === 0) {
-      setMessage('Use PNG, JPG or WebP artwork');
+      setMessage('Use PNG, JPG, WebP or SVG artwork');
       return;
     }
 
@@ -257,11 +273,12 @@ export function StudioShell() {
       const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const mimeType = file.type || (file.name.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : 'image/png');
       const asset: LocalMediaAsset = {
         id,
         name: file.name,
         url,
-        mimeType: file.type,
+        mimeType,
         byteSize: file.size,
         width: null,
         height: null,
@@ -275,7 +292,7 @@ export function StudioShell() {
       const image = new Image();
       image.onload = () => {
         setMediaAssets(current => current.map(item => item.id === id
-          ? { ...item, width: image.naturalWidth, height: image.naturalHeight }
+          ? { ...item, width: image.naturalWidth || 1000, height: image.naturalHeight || 1000 }
           : item));
       };
       image.src = url;
@@ -292,7 +309,6 @@ export function StudioShell() {
     setMediaLibraryTab('library');
     setMediaLibraryOpen(true);
   };
-
 
   const handleDielineFile = async (file?: File) => {
     if (!file) return;
@@ -327,9 +343,10 @@ export function StudioShell() {
   };
 
   const removeMediaAsset = (assetId: string) => {
-    const inUse = fullDielineLayers.some(layer => layer.assetId === assetId) || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
+    const inUse = [...outsideDielineLayers, ...insideDielineLayers].some(layer => layer.assetId === assetId)
+      || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
     if (inUse) {
-      setMessage('Remove this image from every panel before deleting it from the library');
+      setMessage('Remove this image from every layer or panel before deleting it from the library');
       return;
     }
     setMediaAssets(current => {
@@ -340,25 +357,31 @@ export function StudioShell() {
     setMessage('Image removed from your local library');
   };
 
-  const updateFullDielineLayer = (layerId: string, transform: FullDielineTransform) => {
-    setFullDielineLayers(current => current.map(layer => layer.id === layerId ? { ...layer, transform } : layer));
+  const updateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, transform: FullDielineTransform) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => current.map(layer => layer.id === layerId ? { ...layer, transform } : layer));
   };
 
-  const removeFullDielineLayer = (layerId: string) => {
-    setFullDielineLayers(current => {
+  const removeFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    const selectedId = scope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
+    const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
+    setter(current => {
       const index = current.findIndex(layer => layer.id === layerId);
       const next = current.filter(layer => layer.id !== layerId);
-      if (selectedFullDielineLayerId === layerId) {
+      if (selectedId === layerId) {
         const fallback = next[Math.min(index, Math.max(0, next.length - 1))] ?? next[next.length - 1] ?? null;
-        setSelectedFullDielineLayerId(fallback?.id ?? null);
+        setSelectedId(fallback?.id ?? null);
       }
       return next;
     });
     setMessage('Artwork layer removed');
   };
 
-  const duplicateFullDielineLayer = (layerId: string) => {
-    setFullDielineLayers(current => {
+  const duplicateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
+    setter(current => {
       const index = current.findIndex(layer => layer.id === layerId);
       if (index < 0) return current;
       const source = current[index];
@@ -377,14 +400,15 @@ export function StudioShell() {
       };
       const next = [...current];
       next.splice(index + 1, 0, duplicate);
-      setSelectedFullDielineLayerId(id);
+      setSelectedId(id);
       return next;
     });
     setMessage('Artwork layer duplicated');
   };
 
-  const moveFullDielineLayer = (layerId: string, direction: -1 | 1) => {
-    setFullDielineLayers(current => {
+  const moveFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, direction: -1 | 1) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => {
       const index = current.findIndex(layer => layer.id === layerId);
       const target = index + direction;
       if (index < 0 || target < 0 || target >= current.length) return current;
@@ -423,7 +447,7 @@ export function StudioShell() {
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -576,15 +600,18 @@ export function StudioShell() {
           mapping={dielineMapping}
           setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
-          layers={fullDielineLayers}
-          selectedLayerId={selectedFullDielineLayerId}
-          onSelectLayer={setSelectedFullDielineLayerId}
-          onUpdateLayer={updateFullDielineLayer}
-          onDuplicateLayer={duplicateFullDielineLayer}
-          onRemoveLayer={removeFullDielineLayer}
-          onMoveLayer={moveFullDielineLayer}
+          layers={artworkScope === 'inside' ? insideDielineLayers : outsideDielineLayers}
+          selectedLayerId={artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId}
+          onSelectLayer={artworkScope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId}
+          onUpdateLayer={(layerId, transform) => updateFullDielineLayer(artworkScope, layerId, transform)}
+          onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
+          onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
+          onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
           artworkScope={artworkScope}
+          onArtworkScopeChange={setArtworkScope}
           dimensions={dimensions}
+          zoom={dielineZoom}
+          onZoomChange={setDielineZoom}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />}
@@ -608,8 +635,9 @@ export function StudioShell() {
     </div>
 
     {mediaLibraryOpen && <MediaLibraryModal
-      key={`${mediaTargetPanel}:${selectedMediaAssetId ?? 'none'}`}
+      key={`${artworkScope}:${mediaTargetPanel}:${selectedMediaAssetId ?? 'none'}`}
       assets={mediaAssets}
+      targetScope={artworkScope}
       artworkByPanel={artworkByPanel}
       targetPanel={mediaTargetPanel}
       tab={mediaLibraryTab}
@@ -1053,7 +1081,10 @@ function DielinePrototype({
   onRemoveLayer,
   onMoveLayer,
   artworkScope,
+  onArtworkScopeChange,
   dimensions,
+  zoom,
+  onZoomChange,
   onChooseFullLayout,
   onClearImportedDieline,
 }:{
@@ -1069,7 +1100,10 @@ function DielinePrototype({
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
   artworkScope:'outside'|'inside';
+  onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
+  zoom:number;
+  onZoomChange:(zoom:number)=>void;
   onChooseFullLayout:()=>void;
   onClearImportedDieline:()=>void;
 }) {
@@ -1244,9 +1278,13 @@ function DielinePrototype({
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
-    {artworkScope === 'outside' ? <div className="pro-2d-design-toolbar">
-      <div>
-        <span>Artwork layers</span>
+    <div className="pro-2d-design-toolbar">
+      <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
+        <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
+        <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
+      </div>
+      <div className="pro-2d-toolbar-summary">
+        <span>{artworkScope === 'inside' ? 'Inside / reverse side' : 'Outside / front side'}</span>
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add artwork</button>
@@ -1255,12 +1293,17 @@ function DielinePrototype({
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
       )}><Maximize2 size={15}/> Reset selected</button>}
       <span className="pro-live-sync-badge"><span/> Live 3D</span>
-    </div> : <div className="pro-2d-design-toolbar pro-2d-inside-note">
-      <div><span>Inside design</span><strong>Inside panel overrides remain available from the Artwork inspector.</strong></div>
-    </div>}
+    </div>
 
-    <div className="pro-dieline-workspace">
-      {artworkScope === 'outside' && <aside className="pro-dieline-layers-panel" aria-label="Artwork layers">
+    <div
+      className="pro-dieline-workspace"
+      onWheel={(event)=>{
+        event.preventDefault();
+        const step = event.deltaY > 0 ? -8 : 8;
+        onZoomChange(Math.max(45,Math.min(200,zoom+step)));
+      }}
+    >
+      <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
           <div><span>Layers</span><strong>{layers.length}</strong></div>
           <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
@@ -1288,14 +1331,18 @@ function DielinePrototype({
           <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={14}/></button>
           <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={14}/></button>
         </div>}
-      </aside>}
+      </aside>
 
       <div
-        className={`pro-dieline pro-dieline-live${layers.length && artworkScope==='outside' ? ' has-full-layout-editor' : ''}`}
-        style={{aspectRatio:`${bounds.width} / ${bounds.height}`}}
+        className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
+        style={{
+          aspectRatio:`${bounds.width} / ${bounds.height}`,
+          transform:`scale(${zoom/100})`,
+          transformOrigin:'center',
+        }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
       >
-        {artworkScope==='outside' && layers.map((layer,index)=>{
+        {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
             key={layer.id}
@@ -1331,7 +1378,7 @@ function DielinePrototype({
         {cartonPanels.map(item => {
           const panelName=item.label[0]+item.label.slice(1).toLowerCase();
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
-          const hasArtwork=!!explicitArtwork || (layers.length>0 && artworkScope==='outside');
+          const hasArtwork=!!explicitArtwork || layers.length>0;
           return <div
             key={item.id}
             className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''}`}
@@ -1356,7 +1403,15 @@ function DielinePrototype({
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{layers.length ? 'Corners resize proportionally · side handles resize freely · hold Shift on a side handle to preserve proportions · 3D updates automatically' : 'Add multiple images and compose them directly on the dieline'}</strong>
+      <strong>{layers.length ? 'Corners resize proportionally · side handles resize freely · Shift preserves proportions · 3D updates automatically' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
+    </div>
+
+    <div className="pro-canvas-control-bar pro-2d-canvas-control-bar" aria-label="2D canvas zoom controls">
+      <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={()=>onZoomChange(Math.max(45,zoom-10))}><ZoomOut size={20}/></button>
+      <span className="pro-2d-zoom-value">{Math.round(zoom)}%</span>
+      <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={()=>onZoomChange(Math.min(200,zoom+10))}><ZoomIn size={20}/></button>
+      <span className="pro-canvas-bar-divider"/>
+      <button className="pro-canvas-bar-icon" title="Fit dieline" aria-label="Fit dieline" onClick={()=>onZoomChange(100)}><Maximize2 size={20}/></button>
     </div>
   </div>;
 }
@@ -1391,6 +1446,7 @@ function MediaLibraryModal(props: {
   assets: LocalMediaAsset[];
   artworkByPanel: ArtworkByPanel;
   targetPanel: string;
+  targetScope: 'outside' | 'inside';
   tab: 'library' | 'upload';
   setTab: (tab:'library'|'upload')=>void;
   selectedAssetId: string | null;
@@ -1413,7 +1469,9 @@ function MediaLibraryModal(props: {
   const [scale, setScale] = useState(selectedMatchesExisting ? existing!.scale : 100);
   const [rotation, setRotation] = useState(selectedMatchesExisting ? existing!.rotation : 0);
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
-  const targetLabel = props.targetPanel === '__FULL_DIELINE__' ? 'Full dieline' : props.targetPanel.replace('Interior ', 'Inside ');
+  const targetLabel = props.targetPanel === '__FULL_DIELINE__'
+    ? `${props.targetScope === 'inside' ? 'Inside' : 'Outside'} dieline`
+    : props.targetPanel.replace('Interior ', 'Inside ');
   const filteredAssets = props.assets.filter(asset => asset.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   const previewStyle = selected ? artworkCss({
@@ -1458,7 +1516,7 @@ function MediaLibraryModal(props: {
             }}
           >
             <Upload size={20}/>
-            <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG or WebP · any image dimensions</span></div>
+            <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG, WebP or SVG · any image dimensions</span></div>
             <button type="button" onClick={props.onUpload}>Browse</button>
           </div>
 
@@ -1556,7 +1614,9 @@ function MediaLibraryModal(props: {
       </div>
 
       <footer className="pro-media-modal-footer">
-        <span>{props.targetPanel === '__FULL_DIELINE__' ? 'You can continue moving and resizing the image directly on the 2D dieline.' : `Adding artwork to ${targetLabel}.`}</span>
+        <span>{props.targetPanel === '__FULL_DIELINE__'
+          ? `You can continue moving and resizing this artwork on the ${props.targetScope} 2D dieline.`
+          : `Adding artwork to ${targetLabel}.`}</span>
         <div>
           <button className="pro-secondary-button" onClick={props.onClose}>Cancel</button>
           <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected,{mode:fitMode,scale,rotation})}>
