@@ -332,6 +332,60 @@ export function StudioShell() {
     setMessage('Image removed from your local library');
   };
 
+  const updateFullDielineLayer = (layerId: string, transform: FullDielineTransform) => {
+    setFullDielineLayers(current => current.map(layer => layer.id === layerId ? { ...layer, transform } : layer));
+  };
+
+  const removeFullDielineLayer = (layerId: string) => {
+    setFullDielineLayers(current => {
+      const index = current.findIndex(layer => layer.id === layerId);
+      const next = current.filter(layer => layer.id !== layerId);
+      if (selectedFullDielineLayerId === layerId) {
+        const fallback = next[Math.min(index, Math.max(0, next.length - 1))] ?? next[next.length - 1] ?? null;
+        setSelectedFullDielineLayerId(fallback?.id ?? null);
+      }
+      return next;
+    });
+    setMessage('Artwork layer removed');
+  };
+
+  const duplicateFullDielineLayer = (layerId: string) => {
+    setFullDielineLayers(current => {
+      const index = current.findIndex(layer => layer.id === layerId);
+      if (index < 0) return current;
+      const source = current[index];
+      const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const duplicate: FullDielineArtworkLayer = {
+        ...source,
+        id,
+        name: `${source.name} copy`,
+        transform: {
+          ...source.transform,
+          x: source.transform.x + 3,
+          y: source.transform.y + 3,
+        },
+      };
+      const next = [...current];
+      next.splice(index + 1, 0, duplicate);
+      setSelectedFullDielineLayerId(id);
+      return next;
+    });
+    setMessage('Artwork layer duplicated');
+  };
+
+  const moveFullDielineLayer = (layerId: string, direction: -1 | 1) => {
+    setFullDielineLayers(current => {
+      const index = current.findIndex(layer => layer.id === layerId);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
   const animateFold = (target: 0 | 100) => {
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
     const start = opening;
@@ -508,38 +562,21 @@ export function StudioShell() {
             <button className="pro-face-action-close" aria-label="Dismiss face action" onClick={() => setFaceAction(null)}><X size={12}/></button>
           </div>}
         </div> : <DielinePrototype
-          panel={panel}
           importedDieline={importedDieline}
           mapping={dielineMapping}
           setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
-          fullDielineArtwork={fullDielineArtwork}
-          fullDielineTransform={fullDielineTransform}
-          onFullDielineTransformChange={setFullDielineTransform}
+          layers={fullDielineLayers}
+          selectedLayerId={selectedFullDielineLayerId}
+          onSelectLayer={setSelectedFullDielineLayerId}
+          onUpdateLayer={updateFullDielineLayer}
+          onDuplicateLayer={duplicateFullDielineLayer}
+          onRemoveLayer={removeFullDielineLayer}
+          onMoveLayer={moveFullDielineLayer}
           artworkScope={artworkScope}
           dimensions={dimensions}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
-          onRemoveFullLayout={() => {
-            setFullDielineArtwork(null);
-            setMappedFullDielineArtwork({});
-            setMessage('Full-layout artwork removed');
-          }}
-          onApplyFullLayoutTo3D={async () => {
-            if (!fullDielineArtwork) return;
-            try {
-              setMessage('Mapping 2D artwork to 3D panels…');
-              const mapped = await rasterizeFullDielineArtwork({
-                id: fullDielineArtwork.assetId,
-                name: fullDielineArtwork.name,
-                url: fullDielineArtwork.url,
-              }, fullDielineTransform, dimensions);
-              setMappedFullDielineArtwork(mapped);
-              setMessage('2D artwork mapped to the 3D package');
-            } catch (error) {
-              setMessage(error instanceof Error ? error.message : 'Could not map artwork to 3D');
-            }
-          }}
         />}
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
