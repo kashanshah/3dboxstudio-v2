@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ensureV2Schema, getSql } from '@/server/db';
 import { optionalEnv, requireEnv } from '@/server/env';
 
@@ -159,6 +159,44 @@ export async function readStoredObject(storageKey:string){
   if(!object.Body)return null;
   const bytes=await object.Body.transformToByteArray();
   return {bytes,contentType:object.ContentType||'application/octet-stream'};
+}
+
+function normalizePrefix(value:string){
+  const trimmed=value.replace(/^\/+/, '');
+  return trimmed&&!trimmed.endsWith('/') ? trimmed+'/' : trimmed;
+}
+
+function encodeCopySource(bucketName:string,key:string){
+  return bucketName+'/'+key.split('/').map(encodeURIComponent).join('/');
+}
+
+export async function ensureLegacyStoredObject(sourceKey:string){
+  const sourceBucket=optionalEnv('LEGACY_AWS_S3_BUCKET')||bucket();
+  const sourcePrefix=normalizePrefix(optionalEnv('LEGACY_AWS_S3_PREFIX')||optionalEnv('AWS_S3_SHARE_PREFIX')||'shares/');
+  const targetPrefix=normalizePrefix(optionalEnv('AWS_S3_PREFIX','v2/uploads/'));
+  const targetSubprefix=normalizePrefix(optionalEnv('LEGACY_ASSET_TARGET_SUBPREFIX','legacy/'));
+  if(!sourceKey.startsWith(sourcePrefix))throw new Error(`Legacy source key is outside configured prefix: ${sourceKey}`);
+  const relative=sourceKey.slice(sourcePrefix.length);
+  if(!relative)throw new Error('Legacy source key points at the prefix root.');
+  const storageKey=`${targetPrefix}${targetSubprefix}${relative}`;
+
+  try{
+    await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:storageKey}));
+    return storageKey;
+  }catch(error){
+    const status=(error as {$metadata?:{httpStatusCode?:number}})?.$metadata?.httpStatusCode;
+    const name=error instanceof Error?error.name:'';
+    if(status!==404&&name!=='NotFound'&&name!=='NoSuchKey')throw error;
+  }
+
+  await s3().send(new CopyObjectCommand({
+    Bucket:bucket(),
+    Key:storageKey,
+    CopySource:encodeCopySource(sourceBucket,sourceKey),
+    MetadataDirective:'COPY',
+  }));
+  await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:storageKey}));
+  return storageKey;
 }
 
 export async function deleteMediaAsset(userId:string,id:string){
