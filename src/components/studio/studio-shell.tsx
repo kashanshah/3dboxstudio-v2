@@ -25,6 +25,7 @@ import { printDielineLayout } from '@/lib/packaging/dieline-print';
 import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
+type StudioArea = 'box' | 'design' | 'preview';
 type Mode = '3d' | 'dieline';
 type MeasurementUnit = 'mm' | 'in';
 type BaseColorMode = 'material' | 'custom';
@@ -126,8 +127,19 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'material', label: 'Material & Finish', icon: Layers3 },
   { id: 'opening', label: 'Open / Close', icon: PackageOpen },
   { id: 'scene', label: 'Scene', icon: Lightbulb },
-  { id: 'export', label: 'Export', icon: Download },
+  { id: 'export', label: 'Download', icon: Download },
 ];
+
+const studioAreas: { id: StudioArea; label: string; helper: string; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
+  { id: 'box', label: 'Box', helper: 'Type, size & finish', icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
+  { id: 'design', label: 'Design', helper: 'Artwork & placement', icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
+  { id: 'preview', label: 'Preview', helper: 'Open, scene & download', icon: Sparkles, defaultTool: 'opening', tools: ['opening','scene','export'] },
+];
+
+function areaForTool(tool: Tool | null): StudioArea | null {
+  if (!tool) return null;
+  return studioAreas.find(area => area.tools.includes(tool))?.id ?? null;
+}
 
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
@@ -521,6 +533,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   },[mode]);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
+  const activeArea = areaForTool(tool);
+  const activeAreaConfig = studioAreas.find(area => area.id === activeArea) ?? null;
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
     return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel, ...mappedPanelArtwork };
@@ -642,14 +656,29 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setMessage(`${template.name} selected`);
   };
 
+  const selectTool = (id: Tool) => {
+    setTool(id);
+    setInspectorOpen(true);
+  };
+
   const chooseTool = (id: Tool) => {
     if (tool === id && inspectorOpen) {
       setInspectorOpen(false);
       setTool(null);
       return;
     }
-    setTool(id);
-    setInspectorOpen(true);
+    selectTool(id);
+  };
+
+  const chooseArea = (id: StudioArea) => {
+    const area = studioAreas.find(item => item.id === id);
+    if (!area) return;
+    if (activeArea === id && inspectorOpen) {
+      setInspectorOpen(false);
+      setTool(null);
+      return;
+    }
+    selectTool(activeArea === id && tool ? tool : area.defaultTool);
   };
 
   const getDielineLayers = (scope: 'outside' | 'inside') => scope === 'inside' ? insideDielineLayers : outsideDielineLayers;
@@ -1372,9 +1401,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     </header>
 
     <div className="pro-studio-body">
-      <aside className="pro-tool-rail" aria-label="Studio tools">
-        {tools.map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)} aria-pressed={tool === id} title={label}>
-          <Icon size={18} strokeWidth={1.7} /><span>{label}</span>
+      <aside className="pro-tool-rail pro-task-rail" aria-label="Studio tools">
+        {studioAreas.map(({ id, label, helper, icon: Icon }) => <button key={id} className={activeArea === id ? 'is-active' : ''} onClick={() => chooseArea(id)} aria-pressed={activeArea === id} title={helper}>
+          <Icon size={20} strokeWidth={1.7} />
+          <span><strong>{label}</strong><small>{helper}</small></span>
         </button>)}
       </aside>
 
@@ -1631,7 +1661,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
-        <div className="pro-inspector-title"><div><span>Inspector</span><h2>{activeLabel}</h2></div><button
+        <div className="pro-inspector-title"><div><span>{activeAreaConfig?.label ?? 'Inspector'}</span><h2>{activeLabel}</h2></div><button
   className="pro-inspector-close"
   aria-label="Close tool panel"
   title="Close"
@@ -1640,6 +1670,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setTool(null);
   }}
 ><X size={18} /></button></div>
+        {activeAreaConfig && activeAreaConfig.tools.length > 1 && <nav className="pro-inspector-subnav" aria-label={`${activeAreaConfig.label} tools`}>
+          {activeAreaConfig.tools.map(toolId => {
+            const item=tools.find(candidate=>candidate.id===toolId)!;
+            const Icon=item.icon;
+            return <button key={toolId} type="button" className={tool===toolId?'is-active':''} aria-pressed={tool===toolId} onClick={()=>selectTool(toolId)}><Icon size={15}/><span>{item.label}</span></button>;
+          })}
+        </nav>}
         {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
@@ -1662,8 +1699,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       onClose={() => setMediaLibraryOpen(false)}
     />}
 
-    <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
-      {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
+    <nav className="pro-mobile-dock pro-mobile-task-dock" aria-label="Mobile studio tools">
+      {studioAreas.map(({ id, label, icon: Icon }) => <button key={id} className={activeArea === id ? 'is-active' : ''} onClick={() => chooseArea(id)} aria-pressed={activeArea===id}><Icon size={20} /><span>{label}</span></button>)}
     </nav>
     {projectTransferMode && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!transferBusy)setProjectTransferMode(null);}}>
       <section className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
