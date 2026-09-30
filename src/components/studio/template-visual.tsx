@@ -1,5 +1,6 @@
 import type { PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
-import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
 
 export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
   const visualClass = template.family === 'bottle'
@@ -21,13 +22,15 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
                   : 'is-carton';
 
   const size = dimensions ?? template.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS;
-  const bounds = reverseTuckBounds(size);
-  const hasRealDieline = template.id === 'reverse-tuck-carton';
+  const runtime = getTemplateRuntime(template.id);
+  const geometry = runtime ? getTemplateGeometry(template.id,size) : null;
+  const bounds = geometry?.bounds;
+  const hasRealDieline = !!geometry;
 
   return <span className={`pro-template-visual is-combined ${visualClass} ${compact ? 'is-compact' : ''}`} aria-hidden="true">
     <span className="pro-template-flat" data-preview="Dieline">
-      {hasRealDieline ? <svg viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="xMidYMid meet">
-        {reverseTuckPanels(size).map(panel => <rect
+      {hasRealDieline && bounds && geometry ? <svg viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="xMidYMid meet">
+        {geometry.panels.map(panel => <rect
           key={panel.id}
           x={panel.x} y={panel.y} width={panel.width} height={panel.height}
           className={panel.kind === 'glue' ? 'is-glue' : ''}
