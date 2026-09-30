@@ -182,6 +182,10 @@ test('board thickness edges are single two-sided surfaces with no coplanar dupli
     for(const closure of [0,50,100]){
       const meshes=buildMeshes(dimensions,closure,[1,1,1],[.8,.8,.8]);
       const edges=meshes.filter(mesh=>!mesh.panel);
+      if(closure===100){
+        assert.equal(edges.length,0,'fully closed cartons should not draw hidden thickness walls over panel joins');
+        continue;
+      }
       assert.ok(edges.length>0 && edges.length<=7*4,'coincident hinge edges should be deduplicated');
       assert.ok(edges.every(mesh=>mesh.doubleSided===true),'physical edge meshes must be rendered two-sided');
 

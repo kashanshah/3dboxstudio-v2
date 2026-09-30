@@ -594,6 +594,12 @@ export function buildMeshes(
   const exteriorMeshes: Mesh[] = [];
   const interiorMeshes: Mesh[] = [];
   const edgeMeshes: Mesh[] = [];
+  // At a fully closed fold the exterior panels meet each other and cover the
+  // board thickness. Drawing a thickness wall around every panel in that state
+  // stacks tiny perpendicular strips at each carton corner, which shows up as
+  // the dark/hatched seams seen on closed previews. Keep thickness geometry for
+  // open/intermediate folds, where a cut board edge is genuinely exposed.
+  const showExposedBoardEdges = opening < 99.5;
   const edgeGeometryKeys=new Set<string>();
 
   const edgeGeometryKey=(corners:number[][])=>corners
@@ -623,6 +629,8 @@ export function buildMeshes(
       Math.max(0, Math.min(1, panel.surfaceColor[1] * 0.72)),
       Math.max(0, Math.min(1, panel.surfaceColor[2] * 0.72)),
     ];
+
+    if (!showExposedBoardEdges) continue;
 
     for (let index = 0; index < 4; index += 1) {
       const nextIndex = (index + 1) % 4;
