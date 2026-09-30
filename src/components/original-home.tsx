@@ -4,6 +4,7 @@ import { ArrowRight, Box, CirclePlay, Download, Layers3, MoveUpRight, PackageChe
 import { BrandMark } from "./original-brand-mark";
 import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
+import { DielineWorkflowSection } from "./dieline-workflow-section";
 import { MarketingStickyHeader } from "./site-shell";
 
 
@@ -42,6 +43,8 @@ export function OriginalHome() {
       ["02","Map to 3D","Apply that exact 2D composition to the package so each panel carries the correct portion of the artwork."],
       ["03","Review & refine","Fold, rotate, inspect openings and materials, then return to the dieline whenever placement needs another pass."],
     ].map(([n,t,d])=><article key={n}><span>{n}</span><h3>{t}</h3><p>{d}</p><MoveUpRight/></article>)}</div></section>
+
+    <DielineWorkflowSection />
 
     <section id="showcase" className="showcase-section"><div className="showcase-image"><Image src="/images/lovable-original-still-life.jpg" alt="A white carton, charcoal mailer, and kraft paper box" width={1600} height={1000} sizes="(max-width: 700px) 100vw, 600px"/><span className="image-caption">Materials that feel real, before they are.</span></div><div className="showcase-copy"><p className="eyebrow">Make better calls, earlier</p><h2>See the package—not just the dieline.</h2><p>Move naturally between the flat dieline and the folded package. Position artwork once in 2D, then review how that same composition lands across the finished 3D structure.</p><ul><li><span>01</span>Free-transform artwork on the dieline</li><li><span>02</span>Exact 2D composition mapped to 3D faces</li><li><span>03</span>Materials and opening motion for final review</li></ul><Button variant="outline" asChild><Link href="/studio">Explore the Studio <ArrowRight/></Link></Button></div></section>
 
