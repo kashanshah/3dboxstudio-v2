@@ -58,12 +58,15 @@ export function legacyDesignToStudioProject(args:{source:string;sourceId:string;
    const placementRotation=Number(placement.rotation);
    const textureRotation=Number(rotations[faceId]);
    const rotation=Number.isFinite(placementRotation)?placementRotation:Number.isFinite(textureRotation)?textureRotation:0;
+   const crop=cropOf(placement);
    const artwork:ArtworkPlacement={
      ...(media?{assetId:media.id}:{}),
      name:media?.name??imageName(entry,`${label} artwork`),
      url:media?.url??assetUrl(args.assetBaseUrl!,key),
+     // V1 crops are already final UV rectangles. Prevent V2 from applying
+     // another fill/cover transform before the persisted crop.
+     ...(crop?{panelTexture:true,crop}:{}),
      mode:'fill',scale:100,rotation,alignX:0,alignY:0,
-     ...(cropOf(placement)?{crop:cropOf(placement)}:{}),
    };
    artworkByPanel[label]=artwork;
  }
