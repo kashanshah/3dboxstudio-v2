@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { ChevronDown,LogOut,UserRound } from 'lucide-react';
 import { useAuth } from './auth-provider';
@@ -20,6 +21,8 @@ export function AccountButton({compact=false,className='button button-secondary 
     </button>
     {open&&<div className="account-popover">
       <div><strong>{auth.user.name||'3D Box Studio user'}</strong><span>{auth.user.email}</span></div>
+      <Link href="/accounts" onClick={()=>setOpen(false)}><UserRound size={15}/> Account settings</Link>
+      <Link href="/studio" onClick={()=>setOpen(false)}>Your designs</Link>
       <button type="button" onClick={async()=>{setOpen(false);await auth.signOut();}}><LogOut size={15}/> Sign out</button>
     </div>}
   </div>;

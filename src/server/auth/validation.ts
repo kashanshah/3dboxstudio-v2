@@ -1,9 +1,9 @@
 export function isValidEmail(value:unknown):value is string{
-  return typeof value==='string' && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.trim()) && value.length<=320;
+  return typeof value==='string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) && value.length<=320;
 }
 export function cleanName(value:unknown){
   if(typeof value!=='string') return null;
-  const name=value.trim().replace(/\\s+/g,' ');
+  const name=value.trim().replace(/\s+/g,' ');
   return name?name.slice(0,120):null;
 }
 export function passwordError(value:unknown){
