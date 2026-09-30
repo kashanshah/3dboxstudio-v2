@@ -152,6 +152,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const [workspaceProjectId,setWorkspaceProjectId] = useState(initialWorkspaceProjectId ?? initialProject?.workspaceProjectId ?? null);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
+  const [hasUnsavedChanges,setHasUnsavedChanges] = useState(false);
   const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
   const [fileMenuOpen,setFileMenuOpen] = useState(false);
   const [deleteModalOpen,setDeleteModalOpen] = useState(false);
@@ -164,6 +165,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const [transferError,setTransferError] = useState('');
   const [transferLoading,setTransferLoading] = useState(false);
   const saveInFlightRef = useRef(false);
+  const autosaveTimerRef = useRef<number | null>(null);
+  const autosaveBlockedFingerprintRef = useRef<string | null>(null);
   const projectNameRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<Tool | null>(initialProject ? null : 'structure');
@@ -262,6 +265,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     insideDielineLayers,
   ]);
   const historySerialized = useMemo(() => JSON.stringify(historySnapshot), [historySnapshot]);
+  const saveFingerprint = useMemo(() => JSON.stringify({name:projectName,state:historySerialized}), [projectName,historySerialized]);
+  const lastSavedFingerprintRef = useRef(saveFingerprint);
   const historySnapshotRef = useRef(historySnapshot);
   const historySerializedRef = useRef(historySerialized);
   const historyPastRef = useRef<StudioHistorySnapshot[]>([]);
@@ -1171,7 +1176,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false) => {
+  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false, quiet=false) => {
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
     if (saveInFlightRef.current) return false;
@@ -1226,10 +1231,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       }
       setSaveFailed(false);
       setSaveConflictOpen(false);
-      setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
+      if(!saveAsCopy||!keepOriginalOpen){
+        lastSavedFingerprintRef.current=JSON.stringify({name:targetName,state:historySerialized});
+        autosaveBlockedFingerprintRef.current=null;
+        setHasUnsavedChanges(false);
+      }
+      if(!quiet)setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
       return true;
     } catch(error) {
       setSaveFailed(true);
+      if(quiet)autosaveBlockedFingerprintRef.current=saveFingerprint;
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
       if(conflict){
         setSaveConflictOpen(true);
@@ -1247,8 +1258,43 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId, workspaceProjectId, initial?.legacySourceId,
+    projectName, projectRevision, projectId, workspaceProjectId, initial?.legacySourceId, historySerialized, saveFingerprint,
   ]);
+
+  useEffect(() => {
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
+    const dirty = saveFingerprint !== lastSavedFingerprintRef.current;
+    setHasUnsavedChanges(dirty);
+
+    // Do not create new designs automatically. Autosave begins only after the
+    // user has intentionally saved the design once.
+    if (!projectId || !dirty || importedDieline || saving || saveConflictOpen) return;
+
+    // A failed autosave stays visible and waits for either a new edit or an
+    // explicit user retry instead of repeatedly hitting the API.
+    if (autosaveBlockedFingerprintRef.current === saveFingerprint) return;
+    if (autosaveBlockedFingerprintRef.current && autosaveBlockedFingerprintRef.current !== saveFingerprint) {
+      autosaveBlockedFingerprintRef.current = null;
+      setSaveFailed(false);
+    }
+
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      if (saveInFlightRef.current) return;
+      void saveDesign(false,false,undefined,false,true);
+    }, 2500);
+
+    return () => {
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [saveFingerprint, projectId, importedDieline, saving, saveConflictOpen, saveDesign]);
 
   useEffect(() => {
     if(!fileMenuOpen)return;
@@ -1396,7 +1442,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
         </div>
       </div>
       <div className="pro-header-actions">
-        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':''}`} disabled={saving} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':'Save'}</button>
+        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?'Autosave is on. Click to save now.':'Save this design'} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':!projectId?'Save':hasUnsavedChanges?'Unsaved changes':'Saved'}</button>
         <AccountButton compact className="pro-secondary" />
         <button className="pro-primary" title="Download your design" onClick={() => chooseTool('export')}><Download size={16} /> <span>Download</span></button>
       </div>
