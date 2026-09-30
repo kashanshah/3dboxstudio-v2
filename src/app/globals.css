@@ -4246,3 +4246,30 @@ body{font-size:var(--type-body)}
     transform:translateY(0) scale(1)!important;
   }
 }
+
+
+/* Canonical 3D Box Studio brand sizing.
+   All desktop surfaces use the same horizontal wordmark dimensions. */
+.brand.brand-vector{
+  display:inline-flex;
+  align-items:center;
+  flex:0 0 auto;
+}
+.brand.brand-vector .brand-vector-logo,
+.pro-project .brand-vector-logo,
+.marketing-header .brand-vector-logo,
+.marketing-footer .brand-vector-logo,
+.shared-design-header .brand-vector-logo{
+  width:154px!important;
+  height:auto!important;
+  max-width:none;
+}
+@media(max-width:760px){
+  .brand.brand-vector .brand-vector-logo,
+  .pro-project .brand-vector-logo,
+  .marketing-header .brand-vector-logo,
+  .marketing-footer .brand-vector-logo{
+    width:140px!important;
+    height:auto!important;
+  }
+}
