@@ -166,7 +166,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const saveInFlightRef = useRef(false);
   const projectNameRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
-  const [tool, setTool] = useState<Tool | null>(null);
+  const [tool, setTool] = useState<Tool | null>(initialProject ? null : 'structure');
   const [mode, setMode] = useState<Mode>('3d');
   const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId) ?? PACKAGING_TEMPLATES.find(template => template.id === 'reverse-tuck-carton')!;
   const [family, setFamily] = useState(initialTemplate.name);
@@ -215,7 +215,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const [mediaLibraryTab, setMediaLibraryTab] = useState<'library' | 'upload'>('library');
   const [selectedMediaAssetId, setSelectedMediaAssetId] = useState<string | null>(null);
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
-  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(!initialProject);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
   const [importedDieline, setImportedDieline] = useState<ParsedDieline | null>(null);
@@ -533,6 +533,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   },[mode]);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
+  const hasArtwork = outsideDielineLayers.length > 0 || insideDielineLayers.length > 0 || Object.keys(artworkByPanel).length > 0;
+  const onboardingStep = hasArtwork ? 3 : selectedTemplateId ? 2 : 1;
   const activeArea = areaForTool(tool);
   const activeAreaConfig = studioAreas.find(area => area.id === activeArea) ?? null;
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
@@ -1408,7 +1410,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
         </button>)}
       </aside>
 
-      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''}`} aria-label="Packaging workspace">
+      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''}`} aria-label="Box design canvas">
+        {!initialProject && <div className="pro-first-run-guide" aria-label="Getting started">
+          <span>Start here</span>
+          <ol>
+            <li className={onboardingStep>=1?'is-active':''}><b>1</b> Choose your box</li>
+            <li className={onboardingStep>=2?'is-active':''}><b>2</b> Add your design</li>
+            <li className={onboardingStep>=3?'is-active':''}><b>3</b> Preview & download</li>
+          </ol>
+        </div>}
         {mode === '3d' && <div className="pro-canvas-top">
           {viewSwitch}
           <div className="pro-camera-menu" ref={cameraMenuRef}>
@@ -1919,6 +1929,11 @@ function Inspector(props: {
         />
         <p className="pro-help">Controls the visible board edge and the distance between the outside and inside surfaces.</p>
       </div>
+
+      <button className="pro-next-step-button" type="button" onClick={()=>props.onOpenMediaLibrary(undefined,'upload')}>
+        <span><strong>Next: add your design</strong><small>Upload artwork and place it on your box.</small></span>
+        <ImageIcon size={18}/>
+      </button>
 
       <div className="pro-card-section pro-dieline-import-card">
         <SectionTitle title="Import dieline" meta="SVG / DXF" />
