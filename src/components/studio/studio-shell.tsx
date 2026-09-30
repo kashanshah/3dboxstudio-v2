@@ -232,8 +232,11 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const historyApplyingSerializedRef = useRef<string | null>(null);
   const historyTimerRef = useRef<number | null>(null);
   const [historyStatus,setHistoryStatus] = useState({canUndo:false,canRedo:false});
-  historySnapshotRef.current = historySnapshot;
-  historySerializedRef.current = historySerialized;
+
+  useEffect(() => {
+    historySnapshotRef.current = historySnapshot;
+    historySerializedRef.current = historySerialized;
+  }, [historySnapshot, historySerialized]);
 
   const applyHistorySnapshot = useCallback((snapshot:StudioHistorySnapshot, messageText:string) => {
     if (historyTimerRef.current !== null) {
@@ -389,9 +392,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     };
   }, [mode, importedDieline, mediaLibraryOpen]);
 
-  useEffect(() => {
-    if (mode !== 'dieline' || importedDieline || mediaLibraryOpen) setSpacePanActive(false);
-  }, [mode, importedDieline, mediaLibraryOpen]);
+  const temporarySpacePanActive = spacePanActive && mode === 'dieline' && !importedDieline && !mediaLibraryOpen;
 
   useEffect(() => {
     const canvas=studioCanvasRef.current;
@@ -1235,7 +1236,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           dimensions={dimensions}
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
-          panEnabled={panEnabled || spacePanActive}
+          panEnabled={panEnabled || temporarySpacePanActive}
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
@@ -1287,7 +1288,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             <button className="pro-canvas-bar-icon" title="Undo (Ctrl/⌘+Z)" aria-label="Undo last change" disabled={!historyStatus.canUndo} onClick={undoStudioAction}><Undo2 size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo last change" disabled={!historyStatus.canRedo} onClick={redoStudioAction}><Redo2 size={18}/></button>
             <span className="pro-canvas-bar-divider" aria-hidden="true"/>
-            <button className={`pro-canvas-bar-icon${(panEnabled || spacePanActive) && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board · hold Space for temporary hand tool" aria-label="Drag 2D board" aria-pressed={(panEnabled || spacePanActive) && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
+            <button className={`pro-canvas-bar-icon${(panEnabled || temporarySpacePanActive) && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board · hold Space for temporary hand tool" aria-label="Drag 2D board" aria-pressed={(panEnabled || temporarySpacePanActive) && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
             </button>

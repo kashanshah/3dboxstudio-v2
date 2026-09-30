@@ -220,14 +220,21 @@ test('cursor-anchored zoom keeps the same canvas point under the cursor',()=>{
 });
 
 test('3D screen-space projection offset translates NDC without changing depth',()=>{
+  // studioViewProjection returns Float32Array values. Compare projected terms
+  // with a relative tolerance so normal Float32 rounding at larger matrix
+  // magnitudes does not turn a correct projection into a flaky CI failure.
+  const nearProjection=(a,b)=>assert.ok(
+    Math.abs(a-b)<Math.max(1,Math.abs(a),Math.abs(b))*1e-6,
+    `${a} differs from ${b}`,
+  );
   const base=studioViewProjection(180,1.5,-.55,.28,82);
   const ox=.35,oy=-.2;
   const shifted=studioViewProjection(180,1.5,-.55,.28,82,ox,oy);
   for(let column=0;column<4;column++){
     const i=column*4;
-    near(shifted[i],base[i]+ox*base[i+3]);
-    near(shifted[i+1],base[i+1]+oy*base[i+3]);
-    near(shifted[i+2],base[i+2]);
-    near(shifted[i+3],base[i+3]);
+    nearProjection(shifted[i],base[i]+ox*base[i+3]);
+    nearProjection(shifted[i+1],base[i+1]+oy*base[i+3]);
+    nearProjection(shifted[i+2],base[i+2]);
+    nearProjection(shifted[i+3],base[i+3]);
   }
 });
