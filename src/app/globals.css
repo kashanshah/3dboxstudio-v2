@@ -4415,3 +4415,24 @@ body{font-size:var(--type-body)}
     padding:4px 8px!important;
   }
 }
+
+
+/* Keep the primary step inspector in one predictable place across the workflow. */
+.pro-inspector.is-workflow-preview{
+  left:12px!important;
+  right:auto!important;
+  transform:translateX(-16px) scale(.985)!important;
+}
+.pro-inspector.is-workflow-preview.is-open{
+  transform:translateX(0) scale(1)!important;
+}
+@media(max-width:760px){
+  .pro-inspector.is-workflow-preview{
+    left:8px!important;
+    right:8px!important;
+    transform:translateY(18px) scale(.985)!important;
+  }
+  .pro-inspector.is-workflow-preview.is-open{
+    transform:translateY(0) scale(1)!important;
+  }
+}
