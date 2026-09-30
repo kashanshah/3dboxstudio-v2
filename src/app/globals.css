@@ -2149,3 +2149,42 @@ body{font-size:var(--type-body)}
 
 /* Dieline panels are guides; artwork layers provide the editing hit targets. */
 .pro-dieline-panel-guide{pointer-events:none;cursor:default}
+
+
+/* Compact upload CTAs for empty states inside the Artwork / My Images modal. */
+.pro-media-empty-action{
+  width:auto!important;
+  min-width:132px;
+  height:40px!important;
+  padding:0 15px!important;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border:1px solid var(--accent)!important;
+  border-radius:8px!important;
+  background:var(--accent)!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  line-height:1!important;
+  box-shadow:none!important;
+  flex:none;
+}
+.pro-media-empty-action svg{
+  width:15px;
+  height:15px;
+  margin:0!important;
+  flex:0 0 auto;
+}
+.pro-media-empty-action:hover{
+  filter:brightness(.97);
+}
+.pro-media-empty-action:focus-visible{
+  outline:2px solid var(--accent-line);
+  outline-offset:2px;
+}
+.pro-media-empty .pro-media-empty-action,
+.pro-media-editor-empty .pro-media-empty-action{
+  margin-top:4px;
+}
