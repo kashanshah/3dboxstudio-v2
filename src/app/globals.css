@@ -2466,3 +2466,24 @@ body{font-size:var(--type-body)}
     display:inline;
   }
 }
+
+
+.blog-share-brand{
+  width:15px;
+  height:15px;
+  display:grid;
+  place-items:center;
+  border-radius:3px;
+  background:currentColor;
+  color:#fff;
+  font-size:9px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-.03em;
+}
+.blog-share-brand.is-facebook{
+  font-family:Arial,sans-serif;
+  font-size:12px;
+  font-weight:700;
+  padding-top:2px;
+}
