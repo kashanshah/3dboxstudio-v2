@@ -1384,3 +1384,26 @@ body{font-size:var(--type-body)}
     font-size: 16px !important;
   }
 }
+
+.pro-current-box-size{
+  margin-top:9px;
+  padding-top:9px;
+  border-top:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.pro-current-box-size span{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.pro-current-box-size b{
+  color:var(--ink);
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+}
