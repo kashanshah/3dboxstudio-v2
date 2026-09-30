@@ -977,3 +977,182 @@ body{font-size:var(--type-body)}
   .pro-2d-design-toolbar>div{flex-basis:100%}
   .pro-dieline-live{width:92%}
 }
+
+
+/* Shared marketing header/footer used by content pages */
+.marketing-header{
+  position:relative;
+  z-index:50;
+  width:100%;
+  background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(18px);
+}
+.marketing-header-inner{
+  width:min(1240px,calc(100% - 64px));
+  min-height:82px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  gap:30px;
+}
+.marketing-header-inner>.brand{flex:0 0 auto}
+.marketing-nav-links{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:30px;
+  color:var(--muted);
+  font-size:15px;
+  font-weight:650;
+}
+.marketing-nav-links a{
+  position:relative;
+  padding:13px 0;
+  white-space:nowrap;
+  transition:color .18s ease;
+}
+.marketing-nav-links a:hover,
+.marketing-nav-links a.is-active{color:var(--ink)}
+.marketing-nav-links a.is-active:after{
+  content:'';
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:6px;
+  height:2px;
+  border-radius:999px;
+  background:var(--accent);
+}
+.marketing-header-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:0 0 auto;
+}
+.marketing-header-cta{
+  min-height:44px;
+  padding-inline:18px;
+  gap:9px;
+}
+.marketing-menu-button{
+  display:none;
+  width:42px;
+  height:42px;
+  border:1px solid var(--line)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:var(--ink);
+  place-items:center;
+}
+.marketing-mobile-menu{display:none}
+.marketing-sticky-header{
+  position:fixed;
+  top:12px;
+  left:0;
+  right:0;
+  z-index:55;
+  pointer-events:none;
+  opacity:0;
+  transform:translateY(-18px);
+  transition:opacity .2s ease,transform .2s ease;
+}
+.marketing-sticky-header.is-visible{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+.marketing-sticky-header .marketing-header-inner{
+  width:min(1060px,calc(100% - 40px));
+  min-height:58px;
+  padding:0 10px 0 14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.96);
+  box-shadow:var(--shadow-lift);
+  backdrop-filter:blur(18px);
+}
+.marketing-sticky-header .brand{font-size:16px}
+.marketing-sticky-header .brand-icon{width:30px;height:30px}
+.marketing-sticky-header .marketing-nav-links{gap:22px;font-size:13px}
+.marketing-sticky-header .marketing-header-cta{min-height:38px;padding-inline:14px;font-size:13px}
+
+.marketing-footer{
+  width:min(1240px,calc(100% - 64px));
+  margin:80px auto 0;
+  padding:48px 0 30px;
+  border-top:1px solid var(--line);
+}
+.marketing-footer-main{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:48px;
+}
+.marketing-footer-main>div:first-child>p{
+  margin-top:14px;
+  color:var(--muted);
+  font-size:14px;
+}
+.marketing-footer-links{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(130px,1fr));
+  gap:48px;
+}
+.marketing-footer-links>div{display:flex;flex-direction:column;gap:10px}
+.marketing-footer-links b{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.marketing-footer-links a{font-size:14px}
+.marketing-footer-links a:hover{color:var(--accent)}
+.marketing-footer-base{
+  margin-top:42px;
+  padding-top:20px;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+@media(max-width:920px){
+  .marketing-header-inner{width:calc(100% - 40px);gap:18px}
+  .marketing-nav-links{gap:18px;font-size:13px}
+  .marketing-header-cta{padding-inline:14px}
+}
+@media(max-width:760px){
+  .marketing-header-inner{width:calc(100% - 28px);min-height:68px}
+  .marketing-header .marketing-nav-links,
+  .marketing-header .marketing-header-cta{display:none}
+  .marketing-menu-button{display:grid}
+  .marketing-mobile-menu{
+    display:flex;
+    position:absolute;
+    left:14px;
+    right:14px;
+    top:calc(100% + 8px);
+    padding:10px;
+    flex-direction:column;
+    gap:2px;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    box-shadow:var(--shadow-lift);
+  }
+  .marketing-mobile-menu a{
+    min-height:46px;
+    padding:0 12px;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-size:14px;
+    font-weight:650;
+  }
+  .marketing-mobile-menu a:hover{background:var(--panel)}
+  .marketing-mobile-menu>a:last-child{margin-top:4px;background:var(--accent);color:#fff}
+  .marketing-sticky-header{display:none}
+  .marketing-footer{width:calc(100% - 32px);margin-top:56px}
+  .marketing-footer-main{flex-direction:column}
+  .marketing-footer-links{width:100%;gap:24px}
+  .marketing-footer-base{flex-direction:column;gap:6px}
+}
