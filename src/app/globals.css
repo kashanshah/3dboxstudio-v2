@@ -1576,3 +1576,12 @@ body{font-size:var(--type-body)}
     font-size:10px;
   }
 }
+
+
+/* Align dividers inside compact 2D control bar */
+.pro-2d-canvas-control-bar .pro-canvas-bar-divider{
+  align-self:center;
+  justify-self:center;
+  height:20px;
+  margin:0;
+}
