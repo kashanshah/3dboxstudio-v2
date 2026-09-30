@@ -8,6 +8,14 @@ export type FullDielineTransform = {
   rotation: number;
 };
 
+export type FullDielineArtworkLayer = {
+  id: string;
+  assetId?: string;
+  name: string;
+  url: string;
+  transform: FullDielineTransform;
+};
+
 export const DEFAULT_FULL_DIELINE_TRANSFORM: FullDielineTransform = {
   x: 50,
   y: 50,
@@ -24,12 +32,17 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function rasterizeFullDielineArtwork(
-  asset: { id?: string; name: string; url: string },
-  transform: FullDielineTransform,
+export async function rasterizeFullDielineLayers(
+  layers: FullDielineArtworkLayer[],
   dimensions: CartonDimensions,
 ): Promise<ArtworkByPanel> {
-  const image = await loadImage(asset.url);
+  if (!layers.length) return {};
+
+  const loaded = await Promise.all(layers.map(async layer => ({
+    layer,
+    image: await loadImage(layer.url),
+  })));
+
   const bounds = reverseTuckBounds(dimensions);
   const maxCanvas = 1800;
   const canvasWidth = Math.max(800, Math.min(maxCanvas, Math.round(maxCanvas * Math.min(1, bounds.width / bounds.height))));
@@ -41,19 +54,23 @@ export async function rasterizeFullDielineArtwork(
   if (!ctx) throw new Error('Canvas is not available.');
 
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-  const targetWidth = canvasWidth * transform.width / 100;
-  const aspect = (image.naturalWidth || image.width || 1) / (image.naturalHeight || image.height || 1);
-  const targetHeight = targetWidth / Math.max(aspect, 0.0001);
-  const cx = canvasWidth * transform.x / 100;
-  const cy = canvasHeight * transform.y / 100;
 
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(transform.rotation * Math.PI / 180);
-  ctx.drawImage(image, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
-  ctx.restore();
+  for (const { layer, image } of loaded) {
+    const targetWidth = canvasWidth * layer.transform.width / 100;
+    const aspect = (image.naturalWidth || image.width || 1) / (image.naturalHeight || image.height || 1);
+    const targetHeight = targetWidth / Math.max(aspect, 0.0001);
+    const cx = canvasWidth * layer.transform.x / 100;
+    const cy = canvasHeight * layer.transform.y / 100;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(layer.transform.rotation * Math.PI / 180);
+    ctx.drawImage(image, -targetWidth / 2, -targetHeight / 2, targetWidth, targetHeight);
+    ctx.restore();
+  }
 
   const result: ArtworkByPanel = {};
+  const compositeName = layers.length === 1 ? layers[0].name : `${layers.length} layer composition`;
   for (const item of reverseTuckPanels(dimensions)) {
     if (item.id === 'glue') continue;
     const sx = Math.round(item.x / bounds.width * canvasWidth);
@@ -70,7 +87,7 @@ export async function rasterizeFullDielineArtwork(
 
     const panelName = item.label[0] + item.label.slice(1).toLowerCase();
     result[panelName] = {
-      ...defaultArtworkPlacement(asset.name, panelCanvas.toDataURL('image/png'), asset.id),
+      ...defaultArtworkPlacement(compositeName, panelCanvas.toDataURL('image/png')),
       mode: 'fill',
       scale: 100,
       rotation: 0,
