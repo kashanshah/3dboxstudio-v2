@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
-  PackageOpen, Redo2, RotateCcw, Search, Share2, Sparkles, Undo2, ZoomIn, ZoomOut,
+  FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -135,7 +135,11 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [projectUpdatedAt,setProjectUpdatedAt] = useState(initialProject?.updatedAt);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
+  const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
+  const [fileMenuOpen,setFileMenuOpen] = useState(false);
   const saveInFlightRef = useRef(false);
+  const projectNameRef = useRef<HTMLInputElement>(null);
+  const fileMenuRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
   const [family, setFamily] = useState('Reverse Tuck End Carton');
@@ -1102,7 +1106,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = useCallback(async () => {
+  const saveDesign = useCallback(async (saveAsCopy=false) => {
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
     if (saveInFlightRef.current) return;
@@ -1137,18 +1141,21 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         }
         return value;
       }
-      const body = JSON.stringify({name:projectName,state:await persist(state),preview,updatedAt:projectUpdatedAt});
+      const targetName=saveAsCopy?`${projectName} copy`:projectName;
+      const body = JSON.stringify({name:targetName,state:await persist(state),preview,updatedAt:saveAsCopy?undefined:projectUpdatedAt});
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
-      const response=await fetch(projectId?`/api/projects/${projectId}`:'/api/projects',{method:projectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
+      const targetProjectId=saveAsCopy?undefined:projectId;
+      const response=await fetch(targetProjectId?`/api/projects/${targetProjectId}`:'/api/projects',{method:targetProjectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
       const result=await response.json().catch(()=>({error:'The design service is unavailable. Please try again shortly.'}));
       if(!response.ok) {
         if(response.status===409) throw new Error('SAVE_CONFLICT');
         throw new Error(result.error || 'Could not save your design.');
       }
       setProjectId(result.project.id);setProjectUpdatedAt(result.project.updated_at);
-      if(!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
+      if(saveAsCopy){setProjectName(targetName);setFavorite(false);}
+      if(saveAsCopy||!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
       setSaveFailed(false);
-      setMessage('Design saved');
+      setMessage(saveAsCopy?'Copy saved — you are now editing the copy':'Design saved');
     } catch(error) {
       setSaveFailed(true);
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
@@ -1166,6 +1173,39 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
     projectName, projectUpdatedAt, projectId,
   ]);
+
+  useEffect(() => {
+    if(!fileMenuOpen)return;
+    const close=(event:PointerEvent)=>{if(!fileMenuRef.current?.contains(event.target as Node))setFileMenuOpen(false);};
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setFileMenuOpen(false);};
+    document.addEventListener('pointerdown',close);
+    document.addEventListener('keydown',escape);
+    return ()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
+  },[fileMenuOpen]);
+
+  const toggleFavorite = async () => {
+    if(!projectId){setMessage('Save the design before adding it to favourites');return;}
+    const next=!favorite;
+    try{
+      const response=await fetch(`/api/projects/${projectId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({favorite:next})});
+      const result=await response.json().catch(()=>({error:'Could not update favourite.'}));
+      if(!response.ok)throw new Error(result.error||'Could not update favourite.');
+      setFavorite(next);
+      setMessage(next?'Added to favourites':'Removed from favourites');
+    }catch(error){setMessage(error instanceof Error?error.message:'Could not update favourite.');}
+    finally{setFileMenuOpen(false);}
+  };
+
+  const deleteDesign = async () => {
+    if(!projectId)return;
+    if(!window.confirm(`Delete “${projectName}”? This cannot be undone.`))return;
+    try{
+      const response=await fetch(`/api/projects/${projectId}`,{method:'DELETE'});
+      const result=await response.json().catch(()=>({error:'Could not delete this design.'}));
+      if(!response.ok)throw new Error(result.error||'Could not delete this design.');
+      window.location.assign('/studio');
+    }catch(error){setMessage(error instanceof Error?error.message:'Could not delete this design.');setFileMenuOpen(false);}
+  };
 
   useEffect(() => {
     const onSaveShortcut = (event:KeyboardEvent) => {
@@ -1198,7 +1238,18 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><input aria-label="Design name" value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">Your designs</Link></div>
+        <div className="pro-project-copy"><input ref={projectNameRef} aria-label="Design name" value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">Your designs</Link></div>
+        <div className="pro-file-menu" ref={fileMenuRef}>
+          <button type="button" className="pro-file-menu-trigger" aria-label="File actions" aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
+          {fileMenuOpen&&<div className="pro-file-menu-popover" role="menu">
+            <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign();}}><Download size={15}/><span><strong>Save</strong><small>⌘/Ctrl + S</small></span></button>
+            <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>Save a copy</strong><small>Create an independent design</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?'Remove from favourites':'Add to favourites'}</strong><small>{projectId?'Keep important files handy':'Save this design first'}</small></span></button>
+            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>Rename</strong><small>Edit the file name</small></span></button>
+            <span className="pro-file-menu-separator" aria-hidden="true"/>
+            <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>void deleteDesign()}><Trash2 size={15}/><span><strong>Delete</strong><small>{projectId?'Permanently delete this design':'Nothing saved yet'}</small></span></button>
+          </div>}
+        </div>
       </div>
       <div className="pro-header-actions">
         <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':''}`} disabled={saving} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':'Save'}</button>
