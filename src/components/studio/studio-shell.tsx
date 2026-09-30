@@ -3024,7 +3024,7 @@ function DielinePrototype({
                 onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}
               />)}
               <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate selected artwork" title="Rotate · snaps near 15° increments" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
-              {transformFeedback&&gestureRef.current?.layerId===layer.id&&<span className="pro-transform-feedback">{transformFeedback}</span>}
+              {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
             </>}
           </div>;
         })}
@@ -3064,7 +3064,7 @@ function DielinePrototype({
               <span className="pro-transform-box" aria-hidden="true"/>
               {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} type="button" className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`} aria-label={`Resize ${selectedPanel} artwork from ${handle}`} onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}/>)}
               <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={`Rotate ${selectedPanel} artwork`} title="Rotate · snaps near 15° increments" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
-              {transformFeedback&&gestureRef.current?.layerId===layer.id&&<span className="pro-transform-feedback">{transformFeedback}</span>}
+              {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
             </div>
           </div>;
         })}
