@@ -606,9 +606,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   useEffect(() => {
     let cancelled=false;
-    void rasterizePanelArtwork(artworkByPanel,dimensions).then(next=>{if(!cancelled)setMappedPanelArtwork(next);}).catch(()=>{if(!cancelled)setMessage('Artwork preview could not update. Try replacing the image.');});
+    void rasterizePanelArtwork(
+      artworkByPanel,
+      dimensions,
+      selectedTemplateId,
+      {openingMode,splitTopHingeSide},
+    ).then(next=>{if(!cancelled)setMappedPanelArtwork(next);}).catch(()=>{if(!cancelled)setMessage('Artwork preview could not update. Try replacing the image.');});
     return ()=>{cancelled=true;};
-  },[artworkByPanel,dimensions]);
+  },[artworkByPanel,dimensions,selectedTemplateId,openingMode,splitTopHingeSide]);
 
   useEffect(() => {
     mediaAssetsRef.current = mediaAssets;
