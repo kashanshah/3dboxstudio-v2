@@ -14,6 +14,7 @@ import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 
 export type CartonEngineHandle = {
+  thumbnail: () => string | null;
   exportPng: (filename?: string) => boolean;
   resetCamera: () => void;
 };
@@ -100,6 +101,18 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   }, [cameraPreset, animateCameraTo]);
 
   useImperativeHandle(ref, () => ({
+    thumbnail() {
+      const source = canvasRef.current;
+      if (!source || !source.width || !source.height) return null;
+      rendererRef.current?.render();
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = Math.max(1, Math.round(320 * source.height / source.width));
+      const context = canvas.getContext('2d');
+      if (!context) return null;
+      context.drawImage(source, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/png');
+    },
     exportPng(filename = '3d-box-studio-carton.png') {
       const canvas = canvasRef.current;
       if (!canvas) return false;

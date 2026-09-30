@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { StudioShell } from '@/components/studio/studio-shell';
-import { site } from '@/lib/site';
+import { StudioHome,StudioGate } from '@/components/auth/studio-home';
+import { getCurrentUser } from '@/server/auth/session';
+import { getWorkspaceDesigns } from '@/server/projects';
 
 const title='Free 3D Box Maker & Packaging Mockup Generator | 3D Box Studio';
 const description='Design cartons and mailer boxes in a free online 3D box maker and packaging simulator. Set custom dimensions, upload artwork, preview openings and materials, then export PNG mockups or share your design.';
@@ -13,7 +14,9 @@ export const metadata: Metadata = {
   openGraph:{title,description,type:'website',url:'/studio'},
 };
 
-export default function Studio() {
-  const schema={'@context':'https://schema.org','@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description,url:new URL('/studio',site.url).toString(),featureList:['Custom box dimensions','Packaging materials','Opening simulation','Per-face artwork upload','Interactive 3D preview','PNG export']};
-  return <><StudioShell/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+export default async function Studio({searchParams}:{searchParams:Promise<{q?:string;sort?:string;page?:string}>}) {
+ const user=await getCurrentUser();if(!user)return <StudioGate/>;
+ const p=await searchParams,search=(p.q??'').slice(0,80),sort=p.sort==='name'?'name':'recent',page=Math.max(1,Math.min(10000,Number.parseInt(p.page??'1',10)||1));
+ const result=await getWorkspaceDesigns(user.id,search,sort,page);
+ return <StudioHome user={user} {...result} search={search} sort={sort} page={page}/>;
 }

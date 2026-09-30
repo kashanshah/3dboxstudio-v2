@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter,usePathname } from 'next/navigation';
 import { createContext,useCallback,useContext,useEffect,useMemo,useState,type ReactNode } from 'react';
 
 export type AuthUser={
@@ -16,10 +17,7 @@ type AuthMode='signin'|'signup';
 type AuthContextValue={
   user:AuthUser|null;
   loading:boolean;
-  modalOpen:boolean;
-  mode:AuthMode;
   openAuth:(mode?:AuthMode)=>void;
-  closeAuth:()=>void;
   refresh:()=>Promise<void>;
   setUser:(user:AuthUser|null)=>void;
   signOut:()=>Promise<void>;
@@ -30,8 +28,7 @@ const AuthContext=createContext<AuthContextValue|null>(null);
 export function AuthProvider({children}:{children:ReactNode}){
   const [user,setUser]=useState<AuthUser|null>(null);
   const [loading,setLoading]=useState(true);
-  const [modalOpen,setModalOpen]=useState(false);
-  const [mode,setMode]=useState<AuthMode>('signin');
+  const router=useRouter(),pathname=usePathname();
 
   const refresh=useCallback(async()=>{
     try{
@@ -55,19 +52,14 @@ export function AuthProvider({children}:{children:ReactNode}){
     return ()=>{cancelled=true;};
   },[]);
 
-  const openAuth=useCallback((nextMode:AuthMode='signin')=>{
-    setMode(nextMode);
-    setModalOpen(true);
-  },[]);
-
-  const closeAuth=useCallback(()=>setModalOpen(false),[]);
+  const openAuth=useCallback((nextMode:AuthMode='signin')=>{router.push(`${nextMode==='signup'?'/signup':'/login'}?next=${encodeURIComponent(pathname)}`);},[router,pathname]);
 
   const signOut=useCallback(async()=>{
     await fetch('/api/auth/logout',{method:'POST'});
-    setUser(null);
-  },[]);
+    setUser(null);router.push('/login');router.refresh();
+  },[router]);
 
-  const value=useMemo(()=>({user,loading,modalOpen,mode,openAuth,closeAuth,refresh,setUser,signOut}),[user,loading,modalOpen,mode,openAuth,closeAuth,refresh,signOut]);
+  const value=useMemo(()=>({user,loading,openAuth,refresh,setUser,signOut}),[user,loading,openAuth,refresh,signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
