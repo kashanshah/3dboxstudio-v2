@@ -4546,3 +4546,328 @@ body{font-size:var(--type-body)}
 .pro-canvas.is-workflow-design{
   background:#e9edf2;
 }
+
+
+/* Persistent Canva-style Studio tool rail.
+   One navigation model across Box, Design, and Preview. */
+.pro-studio{
+  --studio-tool-rail:92px;
+}
+.pro-studio-body{
+  position:relative;
+  display:grid!important;
+  grid-template-columns:var(--studio-tool-rail) minmax(0,1fr)!important;
+}
+.pro-studio-tool-rail{
+  grid-column:1;
+  grid-row:1;
+  min-width:0;
+  padding:12px 8px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:6px;
+  border-right:1px solid var(--line);
+  background:rgba(255,255,255,.96);
+  z-index:30;
+}
+.pro-studio-tool-rail button{
+  min-height:72px;
+  padding:8px 5px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border:1px solid transparent!important;
+  border-radius:12px!important;
+  color:#5d6d81!important;
+  background:transparent!important;
+  font-size:11px!important;
+  font-weight:700!important;
+  line-height:1.15;
+  text-align:center;
+}
+.pro-studio-tool-rail button span{
+  max-width:76px;
+}
+.pro-studio-tool-rail button:hover{
+  color:var(--ink)!important;
+  background:#f5f7fa!important;
+}
+.pro-studio-tool-rail button.is-active{
+  color:var(--accent)!important;
+  border-color:var(--accent-line)!important;
+  background:var(--accent-soft)!important;
+}
+.pro-studio-tool-rail button.is-active svg{
+  stroke-width:2.2;
+}
+.pro-canvas{
+  grid-column:2!important;
+  grid-row:1;
+}
+.pro-inspector{
+  left:calc(var(--studio-tool-rail) + 12px)!important;
+  right:auto!important;
+  width:min(384px,calc(100vw - var(--studio-tool-rail) - 36px))!important;
+  transform:translateX(-16px) scale(.985)!important;
+}
+.pro-inspector.is-open{
+  transform:translateX(0) scale(1)!important;
+}
+.pro-inspector.is-workflow-box,
+.pro-inspector.is-workflow-preview{
+  left:calc(var(--studio-tool-rail) + 12px)!important;
+  right:auto!important;
+}
+.pro-design-inspector-shell{
+  left:12px!important;
+  width:min(384px,calc(100vw - var(--studio-tool-rail) - 36px))!important;
+}
+.pro-canvas.is-workflow-design .pro-dieline-legend{
+  left:calc(var(--studio-tool-rail) + 412px);
+}
+
+/* The Design panel is for artwork tools; Layers are contextual document state on the right. */
+.pro-design-context-stack{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  bottom:84px;
+  width:320px;
+  overflow:auto;
+  overscroll-behavior:contain;
+}
+.pro-design-context-stack>.pro-artwork-live-preview{
+  position:relative!important;
+  inset:auto!important;
+  width:100%!important;
+  flex:0 0 auto;
+}
+.pro-design-context-stack>.pro-dieline-layers-panel{
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  width:100%!important;
+  min-height:220px!important;
+  max-height:none!important;
+  flex:1 1 260px;
+  box-shadow:var(--shadow-soft);
+}
+.pro-design-inspector-content .pro-dieline-surface-switch{
+  margin-bottom:2px;
+}
+.pro-design-inspector-content .pro-design-output{
+  margin-top:auto;
+}
+
+/* Template selection is preview-first so clicking a template never immediately replaces the box. */
+.pro-template-preview-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:120;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(16,23,32,.42);
+  backdrop-filter:blur(8px);
+}
+.pro-template-preview-modal{
+  width:min(780px,calc(100vw - 32px));
+  max-height:min(780px,calc(100dvh - 32px));
+  overflow:hidden;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:var(--shadow-lift);
+}
+.pro-template-preview-modal>header{
+  padding:18px 20px;
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:flex-start;
+  border-bottom:1px solid var(--line);
+}
+.pro-template-preview-modal>header>div{
+  display:grid;
+  gap:3px;
+}
+.pro-template-preview-modal>header span{
+  color:var(--accent);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.pro-template-preview-modal>header h2{
+  font-size:24px;
+  line-height:1.15;
+  letter-spacing:-.03em;
+}
+.pro-template-preview-modal>header p{
+  color:var(--muted);
+  font-size:13px;
+}
+.pro-template-preview-modal>header button{
+  width:38px;height:38px;
+  display:grid;place-items:center;
+  border-radius:9px!important;
+  color:var(--muted);
+}
+.pro-template-preview-modal>header button:hover{
+  background:var(--panel)!important;
+  color:var(--ink);
+}
+.pro-template-preview-body{
+  min-height:0;
+  overflow:auto;
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(240px,.75fr);
+}
+.pro-template-preview-art{
+  min-height:420px;
+  display:grid;
+  place-items:center;
+  padding:34px;
+  background:#eef2f6;
+  border-right:1px solid var(--line);
+}
+.pro-template-preview-art .template-visual{
+  width:min(100%,430px);
+}
+.pro-template-preview-details{
+  padding:28px 24px;
+  align-content:start;
+  display:grid;
+  gap:10px;
+}
+.pro-template-preview-details>span{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.pro-template-preview-details>strong{
+  font-size:19px;
+}
+.pro-template-preview-details>p{
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.55;
+}
+.pro-template-preview-details dl{
+  margin-top:10px;
+  display:grid;
+  gap:8px;
+}
+.pro-template-preview-details dl>div{
+  min-height:42px;
+  padding:0 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fafbfd;
+  font-size:13px;
+}
+.pro-template-preview-details dt{color:var(--muted)}
+.pro-template-preview-details dd{font-weight:700}
+.pro-template-preview-modal>footer{
+  padding:14px 20px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  border-top:1px solid var(--line);
+}
+.pro-template-preview-modal>footer .pro-primary{
+  min-height:44px;
+  padding:0 18px;
+  border-radius:9px;
+  font-size:14px;
+  font-weight:750;
+}
+.pro-template-preview-modal>footer .pro-primary:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+
+/* Rail replaces the old secondary tab strip for Box and Preview. */
+.pro-inspector-subnav{
+  display:none!important;
+}
+
+@media(max-width:1100px){
+  .pro-studio{--studio-tool-rail:78px}
+  .pro-studio-tool-rail{padding-inline:6px}
+  .pro-studio-tool-rail button{min-height:66px;font-size:10px}
+  .pro-studio-tool-rail button svg{width:20px;height:20px}
+  .pro-inspector{
+    left:calc(var(--studio-tool-rail) + 10px)!important;
+    width:min(384px,calc(100vw - var(--studio-tool-rail) - 20px))!important;
+  }
+  .pro-inspector.is-workflow-box,
+  .pro-inspector.is-workflow-preview{
+    left:calc(var(--studio-tool-rail) + 10px)!important;
+  }
+  .pro-design-context-stack{width:280px}
+}
+@media(max-width:760px){
+  .pro-studio{--studio-tool-rail:0px}
+  .pro-studio-body{grid-template-columns:1fr!important}
+  .pro-studio-tool-rail{
+    position:absolute;
+    left:8px;right:8px;bottom:8px;
+    height:64px;
+    padding:5px;
+    flex-direction:row;
+    gap:4px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow-lift);
+  }
+  .pro-studio-tool-rail button{
+    flex:1 1 0;
+    min-width:0;
+    min-height:52px;
+    height:52px;
+    padding:4px 3px;
+    gap:3px;
+    font-size:9px!important;
+  }
+  .pro-studio-tool-rail button span{max-width:none}
+  .pro-studio-tool-rail button svg{width:18px;height:18px}
+  .pro-canvas{grid-column:1!important}
+  .pro-inspector,
+  .pro-inspector.is-workflow-box,
+  .pro-inspector.is-workflow-preview{
+    left:8px!important;
+    right:8px!important;
+    bottom:80px!important;
+    width:auto!important;
+  }
+  .pro-design-inspector-shell{
+    left:8px!important;
+    right:8px!important;
+    bottom:80px!important;
+    width:auto!important;
+  }
+  .pro-design-context-stack{
+    top:62px;
+    right:8px;
+    bottom:82px;
+    width:min(220px,calc(100vw - 16px));
+  }
+  .pro-template-preview-backdrop{padding:8px}
+  .pro-template-preview-body{grid-template-columns:1fr}
+  .pro-template-preview-art{
+    min-height:260px;
+    border-right:0;
+    border-bottom:1px solid var(--line);
+  }
+}
