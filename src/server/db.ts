@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { requireEnv } from './env';
+import { LEGACY_SYNC_SCHEMA } from './legacy-schema';
 
 let sql: ReturnType<typeof neon> | null = null;
 let schemaPromise: Promise<void> | null = null;
@@ -13,6 +14,7 @@ export async function ensureV2Schema(): Promise<void> {
   if (schemaPromise) return schemaPromise;
   schemaPromise = (async () => {
     const db = getSql();
+    for (const statement of LEGACY_SYNC_SCHEMA.split(';').filter(part => part.trim())) await db.query(statement);
     await db`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,

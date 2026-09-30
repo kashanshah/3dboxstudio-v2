@@ -66,6 +66,7 @@ export async function createEmailUser(input:{email:string;password:string;name:s
 }
 
 export async function findOrCreateGoogleUser(profile:{sub:string;email:string;name:string|null;emailVerified:boolean}){
+  if(!profile.emailVerified) throw new Error('Google email must be verified before sign-in or account linking');
   const sql=getSql();
   const linked=await sql`
     SELECT u.id,u.email,u.name,u.password_hash,u.email_verified_at,u.created_at,u.signup_method
@@ -101,7 +102,9 @@ export async function findOrCreateGoogleUser(profile:{sub:string;email:string;na
     INSERT INTO oauth_accounts(provider,provider_account_id,user_id)
     VALUES('google',${profile.sub},${user.id})
     ON CONFLICT(provider,provider_account_id)
-    DO UPDATE SET user_id=EXCLUDED.user_id
+    DO NOTHING
   `;
+  const identity=await sql`SELECT user_id FROM oauth_accounts WHERE provider='google' AND provider_account_id=${profile.sub}` as {user_id:string}[];
+  if(identity[0]?.user_id!==user.id) throw new Error('Google identity is already linked to another account');
   return {user,isNew};
 }
