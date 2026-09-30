@@ -194,14 +194,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [insideColorMode, setInsideColorMode] = useState<BaseColorMode>(initial?.insideColorMode ?? 'material');
   const [outsideCustomColor, setOutsideCustomColor] = useState(initial?.outsideCustomColor ?? '#C7D4DE');
   const [insideCustomColor, setInsideCustomColor] = useState(initial?.insideCustomColor ?? '#D7E0E7');
-  const [camera, setCamera] = useState('Perspective');
+  const [camera, setCamera] = useState(initial?.legacySourceId ? 'LegacyPerspective' : 'Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const legacyFormation = initial?.formation ?? (initial?.templateId==='reverse-tuck-carton' ? initial?.opening : undefined);
   const [formation,setFormationValue] = useState(legacyFormation ?? 100);
   const [opening, setOpeningValue] = useState(initial?.templateId==='reverse-tuck-carton' && initial?.formation===undefined ? 0 : (initial?.opening ?? 0));
   const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? (initialTemplate.id==='split-top-box'?'top_split_meet_center':'closed'));
   const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
-  const [zoom, setZoom] = useState(82);
+  const [zoom, setZoom] = useState(initial?.legacySourceId ? 57.34 : 82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
   const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? initialTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS);
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
