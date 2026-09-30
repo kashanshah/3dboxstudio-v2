@@ -46,6 +46,7 @@ type StudioHistorySnapshot = {
   outsideCustomColor:string;
   insideCustomColor:string;
   opening:number;
+  formation:number;
   openingMode:LegacyOpeningMode;
   splitTopHingeSide:'side_a'|'side_b';
   dimensions:CartonDimensions;
@@ -170,7 +171,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const [insideCustomColor, setInsideCustomColor] = useState(initial?.insideCustomColor ?? '#D7E0E7');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const [opening, setOpeningValue] = useState(initial?.opening ?? 100);
+  const legacyFormation = initial?.formation ?? (initial?.templateId==='reverse-tuck-carton' ? initial?.opening : undefined);
+  const [formation,setFormationValue] = useState(legacyFormation ?? 100);
+  const [opening, setOpeningValue] = useState(initial?.templateId==='reverse-tuck-carton' && initial?.formation===undefined ? 0 : (initial?.opening ?? 0));
   const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? 'closed');
   const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(82);
@@ -225,6 +228,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     outsideCustomColor,
     insideCustomColor,
     opening,
+    formation,
     openingMode,
     splitTopHingeSide,
     dimensions,
@@ -241,6 +245,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     outsideCustomColor,
     insideCustomColor,
     opening,
+    formation,
     openingMode,
     splitTopHingeSide,
     dimensions,
@@ -279,6 +284,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setOutsideCustomColor(snapshot.outsideCustomColor);
     setInsideCustomColor(snapshot.insideCustomColor);
     setOpeningValue(snapshot.opening);
+    setFormationValue(snapshot.formation);
     setOpeningMode(snapshot.openingMode);
     setSplitTopHingeSide(snapshot.splitTopHingeSide);
     setDimensions(snapshot.dimensions);
@@ -391,6 +397,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setFaceAction(null);
     setCameraMenuOpen(false);
   }, []);
+  const setFormation = useCallback((value:number)=>{
+    const next=Math.max(0,Math.min(100,value));
+    setFormationValue(next);
+    setFaceAction(null);
+    setCameraMenuOpen(false);
+  },[]);
 
   useEffect(()=>{zoomRef.current=zoom;},[zoom]);
   useEffect(()=>{dielineZoomRef.current=dielineZoom;},[dielineZoom]);
@@ -636,8 +648,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     }
     setSelectedTemplateId(template.id);
     setFamily(template.name);
-    if (template.id === 'split-top-box') { setOpeningMode('top_split_meet_center'); setSplitTopHingeSide('side_a'); setOpeningValue(35); }
-    else if (template.id === 'base-box' && openingMode === 'top_split_meet_center') { setOpeningMode('closed'); setOpeningValue(0); }
+    setFormation(100);
+    if (template.id === 'split-top-box') { setOpeningMode('top_split_meet_center'); setSplitTopHingeSide('side_a'); setOpeningValue(0); }
+    else if (template.id === 'base-box') { if(openingMode === 'top_split_meet_center') setOpeningMode('closed'); setOpeningValue(0); }
+    else { setOpeningValue(0); }
     if (template.defaultDimensions) setDimensions(template.defaultDimensions);
     setMessage(`${template.name} selected`);
   };
@@ -1123,7 +1137,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
 
   const animateFold = (target: 0 | 100) => {
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-    const start = opening;
+    const start = selectedTemplateId==='reverse-tuck-carton'?formation:opening;
     const startedAt = performance.now();
     const duration = 1500;
 
@@ -1132,7 +1146,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       const eased = progress < 0.5
         ? 4 * progress * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      setOpening(start + (target - start) * eased);
+      if(selectedTemplateId==='reverse-tuck-carton')setFormation(start + (target - start) * eased);
+      else setOpening(start + (target - start) * eased);
       if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
       else foldAnimationRef.current = null;
     };
@@ -1155,7 +1170,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
       for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
       const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,formation,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -1216,7 +1231,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId, workspaceProjectId, initial?.legacySourceId,
+    projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId,
   ]);
 
   useEffect(() => {
@@ -1420,6 +1435,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
             dimensions={dimensions}
             templateId={selectedTemplateId}
             opening={opening}
+            formation={formation}
             openingMode={openingMode}
             splitTopHingeSide={splitTopHingeSide}
             material={material}
@@ -1523,7 +1539,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
             <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
-              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
+              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
                 <div className="pro-artwork-preview-fold-head">
                   <span>Open / close</span>
@@ -1638,7 +1654,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1742,6 +1758,7 @@ function Inspector(props: {
   outsideCustomColor:string; setOutsideCustomColor:(v:string)=>void;
   insideCustomColor:string; setInsideCustomColor:(v:string)=>void;
   opening:number; setOpening:(v:number)=>void;
+  formation:number; setFormation:(v:number)=>void;
   openingMode:LegacyOpeningMode; setOpeningMode:(v:LegacyOpeningMode)=>void;
   splitTopHingeSide:'side_a'|'side_b'; setSplitTopHingeSide:(v:'side_a'|'side_b')=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
