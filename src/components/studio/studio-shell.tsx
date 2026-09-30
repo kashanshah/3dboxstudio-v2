@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
+  ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   PackageOpen, Search, Share2, Sparkles, ZoomIn, ZoomOut,
   Trash2, Upload, X
@@ -14,7 +14,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
-import { DEFAULT_FULL_DIELINE_TRANSFORM, rasterizeFullDielineArtwork, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { DEFAULT_FULL_DIELINE_TRANSFORM, rasterizeFullDielineLayers, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -47,9 +47,10 @@ export function StudioShell() {
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
-  const [fullDielineArtwork, setFullDielineArtwork] = useState<ArtworkPlacement | null>(null);
-  const [fullDielineTransform, setFullDielineTransform] = useState<FullDielineTransform>(DEFAULT_FULL_DIELINE_TRANSFORM);
+  const [fullDielineLayers, setFullDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
+  const [selectedFullDielineLayerId, setSelectedFullDielineLayerId] = useState<string | null>(null);
   const [mappedFullDielineArtwork, setMappedFullDielineArtwork] = useState<ArtworkByPanel>({});
+  const liveMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -81,6 +82,29 @@ export function StudioShell() {
   useEffect(() => {
     mediaAssetsRef.current = mediaAssets;
   }, [mediaAssets]);
+
+  useEffect(() => {
+    const token = ++liveMapTokenRef.current;
+    if (!fullDielineLayers.length) {
+      setMappedFullDielineArtwork({});
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void rasterizeFullDielineLayers(fullDielineLayers, dimensions)
+        .then(mapped => {
+          if (liveMapTokenRef.current !== token) return;
+          setMappedFullDielineArtwork(mapped);
+          setMessage('3D preview synced');
+        })
+        .catch(() => {
+          if (liveMapTokenRef.current !== token) return;
+          setMessage('Could not sync artwork to 3D');
+        });
+    }, 180);
+
+    return () => window.clearTimeout(timeout);
+  }, [fullDielineLayers, dimensions]);
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
@@ -142,17 +166,26 @@ export function StudioShell() {
     options?: { mode?: ArtworkMode; scale?: number; rotation?: number },
   ) => {
     if (targetPanel === '__FULL_DIELINE__') {
-      setFullDielineArtwork(defaultArtworkPlacement(asset.name, asset.url, asset.id));
       const scale = options?.scale ?? 100;
-      setFullDielineTransform({
-        ...DEFAULT_FULL_DIELINE_TRANSFORM,
-        width: DEFAULT_FULL_DIELINE_TRANSFORM.width * scale / 100,
-        rotation: options?.rotation ?? 0,
-      });
-      setMappedFullDielineArtwork({});
+      const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const layer: FullDielineArtworkLayer = {
+        id: layerId,
+        assetId: asset.id,
+        name: asset.name,
+        url: asset.url,
+        transform: {
+          ...DEFAULT_FULL_DIELINE_TRANSFORM,
+          width: DEFAULT_FULL_DIELINE_TRANSFORM.width * scale / 100,
+          rotation: options?.rotation ?? 0,
+        },
+      };
+      setFullDielineLayers(current => [...current, layer]);
+      setSelectedFullDielineLayerId(layerId);
       setMediaLibraryOpen(false);
       setMode('dieline');
-      setMessage(`${asset.name} applied across the full 2D layout`);
+      setMessage(`${asset.name} added as a new 2D layer`);
       return;
     }
 
@@ -176,8 +209,9 @@ export function StudioShell() {
   };
 
   const openMediaLibrary = (targetPanel = artworkKey(), tab?: 'library' | 'upload') => {
+    const selectedLayer = fullDielineLayers.find(layer => layer.id === selectedFullDielineLayerId);
     const currentAssetId = targetPanel === '__FULL_DIELINE__'
-      ? fullDielineArtwork?.assetId ?? mediaAssets[0]?.id ?? null
+      ? selectedLayer?.assetId ?? mediaAssets[0]?.id ?? null
       : artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
     const initialTab = tab ?? (mediaAssets.length > 0 ? 'library' : 'upload');
 
@@ -285,7 +319,7 @@ export function StudioShell() {
   };
 
   const removeMediaAsset = (assetId: string) => {
-    const inUse = fullDielineArtwork?.assetId === assetId || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
+    const inUse = fullDielineLayers.some(layer => layer.assetId === assetId) || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
     if (inUse) {
       setMessage('Remove this image from every panel before deleting it from the library');
       return;
