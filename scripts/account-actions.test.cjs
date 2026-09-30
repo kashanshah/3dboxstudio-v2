@@ -41,16 +41,16 @@ const {saveProject}=require('../src/server/project-save.ts');
 const {getStudioProject,getWorkspaceDesigns}=require('../src/server/projects.ts');
 test('project saves/opening/library enforce ownership and prevent stale overwrites',async()=>{
  projectDb=new PGlite();try{
- await projectDb.exec(`CREATE TABLE projects(id text primary key,user_id text,name text,studio_state jsonb,preview_image_key text,created_at timestamptz default now(),updated_at timestamptz default now());CREATE TABLE legacy_records(source text,entity_type text,source_id text,payload jsonb,deleted_at timestamptz);`);
+ await projectDb.exec(`CREATE TABLE projects(id text primary key,user_id text,name text,studio_state jsonb,preview_image_key text,is_favorite boolean not null default false,created_at timestamptz default now(),updated_at timestamptz default now());CREATE TABLE legacy_records(source text,entity_type text,source_id text,payload jsonb,deleted_at timestamptz);`);
  const state={version:1,templateId:'reverse-tuck-carton',dimensions:{width:120,height:180,depth:55,thickness:.5},material:'Kraft',opening:100,measurementUnit:'mm',artworkByPanel:{},outsideArtworkLayers:[],insideArtworkLayers:[],mediaAssets:[],outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'#ffffff',insideCustomColor:'#ffffff'};
  const request=(body)=>new Request('https://app.example/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
  const body={name:'My box',state,preview:'data:image/png;base64,abc'};
  currentUser='owner';const first=await saveProject(request(body));assert.equal(first.status,200);const {project}=await first.json();
- assert.equal((await getStudioProject('owner',project.id)).state.dimensions.width,120);assert.equal(await getStudioProject('stranger',project.id),null);
+ const opened=await getStudioProject('owner',project.id);assert.equal(opened.state.dimensions.width,120);assert.equal(opened.favorite,false);assert.equal(await getStudioProject('stranger',project.id),null);
  currentUser='stranger';assert.equal((await saveProject(request({...body,updatedAt:project.updated_at}),project.id)).status,409);assert.equal((await getWorkspaceDesigns('stranger')).total,0);
  currentUser='owner';const changed=await saveProject(request({...body,name:'Updated box',updatedAt:project.updated_at}),project.id);assert.equal(changed.status,200);
  assert.equal((await saveProject(request({...body,updatedAt:project.updated_at}),project.id)).status,409);
- assert.equal((await getWorkspaceDesigns('owner')).designs[0].name,'Updated box');
+ const library=(await getWorkspaceDesigns('owner')).designs[0];assert.equal(library.name,'Updated box');assert.equal(library.favorite,false);
  currentUser=null;assert.equal((await saveProject(request(body))).status,401);
  }finally{await projectDb.close();currentUser='owner';}
 });
