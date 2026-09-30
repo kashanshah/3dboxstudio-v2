@@ -42,6 +42,7 @@ type Mesh = {
   panel?: string;
   pickCorners?: number[][];
   faceAspect?: number;
+  doubleSided?: boolean;
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
@@ -327,6 +328,11 @@ function createRenderer(canvas: HTMLCanvasElement) {
     gl.uniform1i(textureLocation, 0);
 
     for (const mesh of meshes) {
+      if(mesh.doubleSided) gl.disable(gl.CULL_FACE);
+      else {
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.BACK);
+      }
       gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
       gl.uniformMatrix4fv(modelLocation, false, mesh.model ?? identity4());
       gl.uniform3fv(colorLocation, mesh.color);
@@ -368,7 +374,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
   };
 
   const resize = () => {
-    const ratio = Math.min(2, window.devicePixelRatio || 1);
+    const ratio = Math.min(3, window.devicePixelRatio || 1);
     const width = Math.max(1, Math.floor(canvas.clientWidth * ratio));
     const height = Math.max(1, Math.floor(canvas.clientHeight * ratio));
     if (canvas.width !== width || canvas.height !== height) {
@@ -616,16 +622,12 @@ export function buildMeshes(
         insideCorners[index],
       ];
 
-      // Board edges are visible from both the outside and the inside.
-      // WebGL back-face culling would otherwise hide half of these thin walls
-      // at different fold/camera angles and make the board look hollow.
-      edgeMeshes.push(quadFromCorners(edgeCorners, edgeColor, false));
-      edgeMeshes.push(quadFromCorners([
-        edgeCorners[3],
-        edgeCorners[2],
-        edgeCorners[1],
-        edgeCorners[0],
-      ], edgeColor, false));
+      // A board edge is one physical surface. Rendering a second reversed
+      // quad in exactly the same plane causes depth-buffer contention and
+      // flickering/fuzzy seams. Draw one mesh with culling disabled instead.
+      const edgeMesh=quadFromCorners(edgeCorners, edgeColor, false);
+      edgeMesh.doubleSided=true;
+      edgeMeshes.push(edgeMesh);
     }
   }
 
@@ -740,7 +742,7 @@ void main() {
 `;
 
 const FRAGMENT_SHADER = `
-precision mediump float;
+precision highp float;
 varying vec3 vNormal;
 varying vec2 vUv;
 uniform vec3 uColor;
@@ -785,7 +787,7 @@ void main() {
   shaded = mix(shaded, uOverlayColor, uOverlayAlpha);
 
   float edgeDistance = min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y));
-  float edge = 1.0 - smoothstep(0.0, 0.028, edgeDistance);
+  float edge = 1.0 - smoothstep(0.002, 0.012, edgeDistance);
   shaded = mix(shaded, uOverlayColor, edge * uOutlineAlpha);
 
   gl_FragColor = vec4(shaded, base.a);
