@@ -992,50 +992,6 @@ function Inspector(props: {
       })}
     </div>
 
-    <div className="pro-card-section pro-material-settings-card">
-      <SectionTitle title="Board thickness" meta="Material setting" />
-      <div className="pro-thickness-control">
-        <label className="pro-thickness-input">
-          <span>Thickness</span>
-          <div>
-            <input
-              type="number"
-              min={props.measurementUnit === 'mm' ? 0.3 : 0.01}
-              max={props.measurementUnit === 'mm' ? 2 : 0.08}
-              step={props.measurementUnit === 'mm' ? 0.05 : 0.001}
-              value={formatThickness(props.dimensions.thickness,props.measurementUnit)}
-              onChange={e=>{
-                const mm=props.measurementUnit === 'mm' ? Number(e.target.value) : Number(e.target.value)*25.4;
-                props.setDimensions({...props.dimensions,thickness:clampThickness(mm)});
-              }}
-            />
-            <em>{props.measurementUnit}</em>
-          </div>
-        </label>
-
-        <input
-          className="pro-range pro-thickness-range"
-          aria-label="Board thickness"
-          type="range"
-          min="0.3"
-          max="2"
-          step="0.05"
-          value={clampThickness(props.dimensions.thickness)}
-          onChange={e=>props.setDimensions({...props.dimensions,thickness:clampThickness(Number(e.target.value))})}
-        />
-
-        <div className="pro-thickness-presets" aria-label="Common board thicknesses">
-          {[0.3,0.5,0.7,1].map(value=><button
-            key={value}
-            type="button"
-            className={Math.abs(props.dimensions.thickness-value)<0.001?'is-active':''}
-            onClick={()=>props.setDimensions({...props.dimensions,thickness:value})}
-          >{props.measurementUnit === 'mm' ? `${value.toFixed(value<1?1:0)} mm` : `${(value/25.4).toFixed(3)} in`}</button>)}
-        </div>
-      </div>
-      <p className="pro-help">Typical folding carton board is around 0.3–0.7 mm. Heavier rigid stock can be thicker.</p>
-    </div>
-
     <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
   </div>;
 
