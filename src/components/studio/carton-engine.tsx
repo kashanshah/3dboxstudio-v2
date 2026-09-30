@@ -593,11 +593,22 @@ function buildMeshes(
 
     for (let index = 0; index < 4; index += 1) {
       const nextIndex = (index + 1) % 4;
-      edgeMeshes.push(quadFromCorners([
+      const edgeCorners = [
         panel.corners[index],
         panel.corners[nextIndex],
         insideCorners[nextIndex],
         insideCorners[index],
+      ];
+
+      // Board edges are visible from both the outside and the inside.
+      // WebGL back-face culling would otherwise hide half of these thin walls
+      // at different fold/camera angles and make the board look hollow.
+      edgeMeshes.push(quadFromCorners(edgeCorners, edgeColor, false));
+      edgeMeshes.push(quadFromCorners([
+        edgeCorners[3],
+        edgeCorners[2],
+        edgeCorners[1],
+        edgeCorners[0],
       ], edgeColor, false));
     }
   }
