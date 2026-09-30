@@ -560,30 +560,30 @@ function buildLegacyBoxMeshes(
     {name:'Bottom',corners:[[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]]},
   ];
   if(splitTop){
-    if(splitTopHingeSide==='side_b'){
-      const back=[[x0,y1,z0],[x1,y1,z0],[x1,y1,0],[x0,y1,0]].map(p=>rotateX(p,[0,y1,z0],-angle));
-      const front=[[x0,y1,0],[x1,y1,0],[x1,y1,z1],[x0,y1,z1]].map(p=>rotateX(p,[0,y1,z1],angle));
-      panels.push({name:'Top Left',corners:back},{name:'Top Right',corners:front});
-    }else{
-      const left=[[x0,y1,z1],[0,y1,z1],[0,y1,z0],[x0,y1,z0]].map(p=>rotateZ(p,[x0,y1,0],angle));
-      const right=[[0,y1,z1],[x1,y1,z1],[x1,y1,z0],[0,y1,z0]].map(p=>rotateZ(p,[x1,y1,0],-angle));
-      panels.push({name:'Top Left',corners:left},{name:'Top Right',corners:right});
-    }
+    // A real split-top/RSC closure is two opposing major-panel flaps.
+    // They hinge from the front and back edges and meet at the centre.
+    const back=[[x0,y1,z0],[x1,y1,z0],[x1,y1,0],[x0,y1,0]].map(p=>rotateX(p,[0,y1,z0],-angle));
+    const front=[[x0,y1,0],[x1,y1,0],[x1,y1,z1],[x0,y1,z1]].map(p=>rotateX(p,[0,y1,z1],angle));
+    panels.push({name:'Top Left',corners:front},{name:'Top Right',corners:back});
   }else{
     panels.push({name:'Top',corners:transform([[x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0]],'top')});
   }
   const flatPanels=(splitTop?splitTopBoxPanels(d,splitTopHingeSide):baseBoxPanels(d,openingMode));
   const frontFlat=flatPanels.find(panel=>panel.id==='front')!;
-  const flatCornerMap=new Map(flatPanels.map(panel=>{
+  const flatCornerMap=new Map<string,number[][]>();
+  for(const panel of flatPanels){
     const name=panel.label.toLowerCase().split(' ').map(part=>part[0].toUpperCase()+part.slice(1)).join(' ');
-    const corners=[
+    // The production split-top net contains two physical bottom flaps but V1
+    // has one finished Bottom artwork surface. Use the front bottom flap as
+    // the formation anchor for that finished face.
+    if(name==='Bottom'&&flatCornerMap.has(name))continue;
+    flatCornerMap.set(name,[
       [panel.x-frontFlat.x-w/2,h/2-(panel.y+panel.height-frontFlat.y),depth/2],
       [panel.x+panel.width-frontFlat.x-w/2,h/2-(panel.y+panel.height-frontFlat.y),depth/2],
       [panel.x+panel.width-frontFlat.x-w/2,h/2-(panel.y-frontFlat.y),depth/2],
       [panel.x-frontFlat.x-w/2,h/2-(panel.y-frontFlat.y),depth/2],
-    ];
-    return [name,corners] as const;
-  }));
+    ]);
+  }
   const blend=(flat:number[][],assembled:number[][])=>assembled.map((point,index)=>point.map((value,axis)=>flat[index][axis]+(value-flat[index][axis])*formationT));
   const result:Mesh[]=[];
   if(formationT<.999){
