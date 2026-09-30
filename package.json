@@ -15,6 +15,7 @@
     "migrate:legacy-users": "node scripts/migrate-legacy-users.mjs",
     "test": "node --test scripts/*.test.mjs scripts/admin-dashboard.test.cjs scripts/account-actions.test.cjs scripts/email-templates.test.cjs",
     "sync:legacy": "node scripts/migrate-legacy-users.mjs",
+    "sync:legacy-assets": "node scripts/legacy-asset-sync.mjs",
     "test:geometry": "node --test scripts/studio-geometry.test.cjs"
   },
   "dependencies": {
