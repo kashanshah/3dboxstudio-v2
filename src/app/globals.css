@@ -2335,3 +2335,9 @@ body{font-size:var(--type-body)}
   .pro-2d-design-stage>.pro-dieline-legend>strong{display:none}
   .pro-2d-side-panels{top:180px}
 }
+
+
+/* The entire central Studio workspace owns wheel gestures for zoom. */
+.pro-canvas{
+  overscroll-behavior:none;
+}
