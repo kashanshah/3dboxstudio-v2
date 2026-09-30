@@ -7,6 +7,7 @@ import '@fontsource/manrope/700.css';
 import '@fontsource/manrope/800.css';
 import './globals.css';
 import './content-pages.css';
+import './contact-form.css';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
