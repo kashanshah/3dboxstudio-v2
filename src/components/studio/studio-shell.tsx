@@ -137,6 +137,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [saveFailed,setSaveFailed] = useState(false);
   const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
   const [fileMenuOpen,setFileMenuOpen] = useState(false);
+  const [deleteModalOpen,setDeleteModalOpen] = useState(false);
+  const [deleting,setDeleting] = useState(false);
   const saveInFlightRef = useRef(false);
   const projectNameRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
@@ -1206,14 +1208,18 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   };
 
   const deleteDesign = async () => {
-    if(!projectId)return;
-    if(!window.confirm(`Delete “${projectName}”? This cannot be undone.`))return;
+    if(!projectId||deleting)return;
+    setDeleting(true);
     try{
       const response=await fetch(`/api/projects/${projectId}`,{method:'DELETE'});
       const result=await response.json().catch(()=>({error:'Could not delete this design.'}));
       if(!response.ok)throw new Error(result.error||'Could not delete this design.');
       window.location.assign('/studio');
-    }catch(error){setMessage(error instanceof Error?error.message:'Could not delete this design.');setFileMenuOpen(false);}
+    }catch(error){
+      setMessage(error instanceof Error?error.message:'Could not delete this design.');
+      setDeleting(false);
+      setDeleteModalOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -1256,7 +1262,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?'Remove from favourites':'Add to favourites'}</strong><small>{projectId?'Keep important files handy':'Save this design first'}</small></span></button>
             <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>Rename</strong><small>Edit the file name</small></span></button>
             <span className="pro-file-menu-separator" aria-hidden="true"/>
-            <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>void deleteDesign()}><Trash2 size={15}/><span><strong>Delete</strong><small>{projectId?'Permanently delete this design':'Nothing saved yet'}</small></span></button>
+            <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>{setFileMenuOpen(false);setDeleteModalOpen(true);}}><Trash2 size={18}/><span><strong>Delete</strong><small>{projectId?'Permanently delete this design':'Nothing saved yet'}</small></span></button>
           </div>}
         </div>
       </div>
@@ -1553,6 +1559,20 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
       {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
     </nav>
+    {deleteModalOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!deleting)setDeleteModalOpen(false);}}>
+      <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title" aria-describedby="delete-design-copy">
+        <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
+        <div className="pro-confirm-copy">
+          <span>Delete design</span>
+          <h2 id="delete-design-title">Delete “{projectName}”?</h2>
+          <p id="delete-design-copy">This design will be permanently deleted from your workspace. This action cannot be undone.</p>
+        </div>
+        <div className="pro-confirm-actions">
+          <button type="button" className="pro-secondary-button" disabled={deleting} onClick={()=>setDeleteModalOpen(false)}>Cancel</button>
+          <button type="button" className="pro-danger-button" disabled={deleting} onClick={()=>void deleteDesign()}>{deleting?'Deleting…':'Delete design'}</button>
+        </div>
+      </section>
+    </div>}
   </main></>;
 }
 
