@@ -835,7 +835,6 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           setPanEnabled={setPanEnabled}
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
-          onChoosePanelArtwork={() => openMediaLibrary(artworkKey())}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onApplyChanges={() => {
             setMode('3d');
@@ -844,8 +843,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             setPanEnabled(false);
             setMessage('Artwork changes applied to 3D preview');
           }}
-          onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
-        />
+          livePreview={
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
             <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
@@ -875,6 +873,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
               </div>
             </>}
           </aside>
+          }
+          onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
+        />
+
         </div>
           <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
             <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
@@ -1478,10 +1480,10 @@ function DielinePrototype({
   setPanEnabled,
   canvasPan,
   setCanvasPan,
-  onChoosePanelArtwork,
   onChooseFullLayout,
   onApplyChanges,
   onClearImportedDieline,
+  livePreview,
 }:{
   importedDieline:ParsedDieline|null;
   mapping:DielineMapping|null;
@@ -1507,10 +1509,10 @@ function DielinePrototype({
   setPanEnabled:(enabled:boolean)=>void;
   canvasPan:{x:number;y:number};
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
-  onChoosePanelArtwork:()=>void;
   onChooseFullLayout:()=>void;
   onApplyChanges:()=>void;
   onClearImportedDieline:()=>void;
+  livePreview:React.ReactNode;
 }) {
   const printClipId=useId().replaceAll(':','');
   const cartonPanels = reverseTuckPanels(dimensions);
@@ -1702,12 +1704,12 @@ function DielinePrototype({
   };
 
   if (importedDieline) {
-    return <ImportedDielineMapper
+    return <><ImportedDielineMapper
       dieline={importedDieline}
       mapping={mapping ?? createInitialDielineMapping(importedDieline)}
       setMapping={setMapping}
       onClear={onClearImportedDieline}
-    />;
+    /><div className="pro-2d-side-panels pro-2d-preview-only">{livePreview}</div></>;
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
@@ -1720,7 +1722,7 @@ function DielinePrototype({
         <span>{artworkScope === 'inside' ? 'Inside / reverse side' : 'Outside / front side'}</span>
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
-      <button className="pro-secondary-button" onClick={onChoosePanelArtwork}><ImageIcon size={16}/> Add image to {selectedPanel}</button>
+      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
       <button
         type="button"
         className={`pro-secondary-button pro-drag-board-button${panEnabled?' is-active':''}`}
@@ -1738,13 +1740,14 @@ function DielinePrototype({
     <div
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
       onWheel={(event)=>{
+        if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
         event.preventDefault();
         const step = event.deltaY > 0 ? -8 : 8;
         onZoomChange(Math.max(45,Math.min(200,zoom+step)));
       }}
       onPointerDownCapture={(event)=>{
         if (!panEnabled) return;
-        if ((event.target as HTMLElement).closest('.pro-dieline-layers-panel')) return;
+        if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
         event.preventDefault();
         event.stopPropagation();
         panGestureRef.current = {
@@ -1775,6 +1778,8 @@ function DielinePrototype({
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
     >
+      <div className="pro-2d-side-panels">
+        {livePreview}
       <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
           <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
@@ -1806,6 +1811,7 @@ function DielinePrototype({
           <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={14}/></button>
         </div>}
       </aside>
+      </div>
 
       <div
         className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
@@ -1859,19 +1865,15 @@ function DielinePrototype({
           const panelName=item.label[0]+item.label.slice(1).toLowerCase();
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
-          return <button
+          return <div
             key={item.id}
-            type="button"
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${selectedPanel===panelName?'is-selected':''}`}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} pro-dieline-panel-guide`}
             style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden'}}
-            aria-label={`Select ${artworkScope} ${panelName} artwork`}
-            aria-pressed={selectedPanel===panelName}
-            onPointerDown={event=>event.stopPropagation()}
-            onClick={()=>onPanelSelect(panelName)}
+            aria-label={`${artworkScope} ${panelName} panel guide`}
           >
             {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
             <span className="dl-label">{item.label}</span>
-          </button>;
+          </div>;
         })}
 
         {cartonPanels.filter(item=>!selectedLayerId && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
