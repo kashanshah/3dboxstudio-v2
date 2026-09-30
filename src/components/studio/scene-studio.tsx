@@ -24,7 +24,7 @@ const tools:Array<{id:SceneTool;label:string;icon:typeof Box}>=[
   {id:'export',label:'Export',icon:Download},
 ];
 
-export function SceneStudio({designs,user}:{designs:WorkspaceDesign[];user:{name?:string|null;email:string}}){
+export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
   const [tool,setTool]=useState<SceneTool>('objects');
   const [scene,setScene]=useState<SceneProjectState>(()=>createEmptySceneProject());
   const [selectedId,setSelectedId]=useState<string|null>(null);
@@ -61,7 +61,7 @@ export function SceneStudio({designs,user}:{designs:WorkspaceDesign[];user:{name
       </div>
       <div className="scene-topbar-actions">
         <button type="button" className="scene-ghost-button"><Sparkles size={16}/> Render</button>
-        <AccountButton user={user}/>
+        <AccountButton compact className="scene-account-button"/>
       </div>
     </header>
 
