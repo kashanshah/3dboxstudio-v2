@@ -1542,25 +1542,27 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
               <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
                 <div className="pro-artwork-preview-fold-head">
-                  <span>Open / close</span>
-                  <strong>{Math.round(opening)}%</strong>
+                  <span>{selectedTemplateId==='reverse-tuck-carton'?'Formation':'Open / close'}</span>
+                  <strong>{Math.round(selectedTemplateId==='reverse-tuck-carton'?formation:opening)}%</strong>
                 </div>
                 <div className="pro-artwork-preview-fold-row">
-                  <span>Open</span>
+                  <span>{selectedTemplateId==='reverse-tuck-carton'?'Flat':'Closed'}</span>
                   <input
                     type="range"
                     min="0"
                     max="100"
                     step="1"
-                    value={Math.round(opening)}
-                    aria-label="Open or close box in 3D preview"
+                    value={Math.round(selectedTemplateId==='reverse-tuck-carton'?formation:opening)}
+                    disabled={selectedTemplateId!=='reverse-tuck-carton'&&formation<99}
+                    aria-label={selectedTemplateId==='reverse-tuck-carton'?'Box formation':'Open or close box in 3D preview'}
                     onChange={e=>{
                       if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
                       foldAnimationRef.current=null;
-                      setOpening(Number(e.target.value));
+                      if(selectedTemplateId==='reverse-tuck-carton')setFormation(Number(e.target.value));
+                      else setOpening(Number(e.target.value));
                     }}
                   />
-                  <span>Closed</span>
+                  <span>{selectedTemplateId==='reverse-tuck-carton'?'Assembled':'Open'}</span>
                 </div>
               </div>
             </>}
@@ -1591,28 +1593,37 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
               <span className="pro-canvas-bar-divider" />
               <button
                 className="pro-canvas-bar-play"
-                aria-label={opening >= 50 ? 'Open box' : 'Close box'}
-                title={opening >= 50 ? 'Open box' : 'Close box'}
-                onClick={() => animateFold(opening >= 50 ? 0 : 100)}
+                aria-label={selectedTemplateId==='reverse-tuck-carton'
+                  ? (formation>=50?'Flatten box':'Assemble box')
+                  : (opening>=50?'Close box':'Open box')}
+                title={selectedTemplateId==='reverse-tuck-carton'
+                  ? (formation>=50?'Flatten box':'Assemble box')
+                  : (opening>=50?'Close box':'Open box')}
+                disabled={selectedTemplateId!=='reverse-tuck-carton'&&formation<99}
+                onClick={() => animateFold((selectedTemplateId==='reverse-tuck-carton'?formation:opening) >= 50 ? 0 : 100)}
               >
-                {opening >= 50 ? <PackageOpen size={19}/> : <Box size={19}/>}
+                {selectedTemplateId==='reverse-tuck-carton'
+                  ? (formation>=50?<Grid3X3 size={19}/>:<Box size={19}/>)
+                  : (opening>=50?<Box size={19}/>:<PackageOpen size={19}/>)}
               </button>
-              <span className="pro-canvas-bar-label">Open</span>
+              <span className="pro-canvas-bar-label">{selectedTemplateId==='reverse-tuck-carton'?'Flat':'Closed'}</span>
               <input
                 className="pro-canvas-bar-range"
                 type="range"
                 min="0"
                 max="100"
                 step="1"
-                value={Math.round(opening)}
-                aria-label="Open or close box"
+                disabled={selectedTemplateId!=='reverse-tuck-carton'&&formation<99}
+                value={Math.round(selectedTemplateId==='reverse-tuck-carton'?formation:opening)}
+                aria-label={selectedTemplateId==='reverse-tuck-carton'?'Box formation':'Open or close box'}
                 onChange={e => {
                   if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
                   foldAnimationRef.current = null;
-                  setOpening(Number(e.target.value));
+                  if(selectedTemplateId==='reverse-tuck-carton')setFormation(Number(e.target.value));
+                  else setOpening(Number(e.target.value));
                 }}
               />
-              <span className="pro-canvas-bar-label">Closed</span>
+              <span className="pro-canvas-bar-label">{selectedTemplateId==='reverse-tuck-carton'?'Assembled':'Open'}</span>
               <span className="pro-canvas-bar-divider" />
             </>}
             <button
@@ -2050,15 +2061,15 @@ function Inspector(props: {
       double_doors:'Double side doors',
     };
     if(isFormation){
-      const stage = props.opening <= 4
+      const stage = props.formation <= 4
         ? 'Flat dieline'
-        : props.opening < 52
+        : props.formation < 52
           ? 'Raising the walls'
-          : props.opening < 68
+          : props.formation < 68
             ? 'Wrapping the back'
-            : props.opening < 84
+            : props.formation < 84
               ? 'Closing the bottom'
-              : props.opening < 99
+              : props.formation < 99
                 ? 'Closing the top'
                 : 'Assembled box';
       return <div className="pro-inspector-content">
