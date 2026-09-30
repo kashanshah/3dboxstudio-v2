@@ -55,10 +55,12 @@ export const DEFAULT_CARTON_DIMENSIONS: CartonDimensions = {
 
 export function sanitizeCartonDimensions(value: CartonDimensions): CartonDimensions {
   return {
-    width: clamp(value.width, 30, 400),
-    height: clamp(value.height, 40, 500),
-    depth: clamp(value.depth, 15, 250),
-    thickness: clamp(value.thickness, 0.3, 2),
+    // Keep the entered physical size. The former UI-era maxima changed only
+    // the dieline, while the renderer retained the original dimensions.
+    width: Number.isFinite(value.width) ? Math.max(1,value.width) : DEFAULT_CARTON_DIMENSIONS.width,
+    height: Number.isFinite(value.height) ? Math.max(1,value.height) : DEFAULT_CARTON_DIMENSIONS.height,
+    depth: Number.isFinite(value.depth) ? Math.max(1,value.depth) : DEFAULT_CARTON_DIMENSIONS.depth,
+    thickness: Number.isFinite(value.thickness) ? clamp(value.thickness, 0.3, 2) : DEFAULT_CARTON_DIMENSIONS.thickness,
   };
 }
 
