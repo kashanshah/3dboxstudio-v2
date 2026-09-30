@@ -4920,3 +4920,96 @@ body{font-size:var(--type-body)}
     flex:1 1 0;
   }
 }
+
+
+/* Studio dropdowns replace browser-native selects in primary inspectors. */
+.pro-studio-dropdown-field{
+  position:relative;
+  display:grid;
+  gap:8px;
+}
+.pro-studio-dropdown-field>span{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+.pro-studio-dropdown-trigger{
+  width:100%;
+  min-height:48px;
+  padding:0 14px;
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border:1px solid var(--line)!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:var(--ink)!important;
+  box-shadow:0 1px 2px rgba(16,23,32,.03);
+  transition:border-color .15s ease,box-shadow .15s ease,background .15s ease;
+}
+.pro-studio-dropdown-trigger strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:14px;
+  font-weight:700;
+}
+.pro-studio-dropdown-trigger svg{
+  flex:0 0 auto;
+  color:var(--muted);
+  transition:transform .15s ease;
+}
+.pro-studio-dropdown-trigger:hover{
+  border-color:#bcc7d4!important;
+  background:#fbfcfe!important;
+}
+.pro-studio-dropdown-trigger:focus-visible,
+.pro-studio-dropdown-trigger.is-open{
+  outline:none;
+  border-color:var(--accent)!important;
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.pro-studio-dropdown-trigger.is-open svg{
+  transform:rotate(180deg);
+}
+.pro-studio-dropdown-menu{
+  position:absolute;
+  z-index:60;
+  top:calc(100% + 8px);
+  left:0;
+  right:0;
+  padding:6px;
+  display:grid;
+  gap:3px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:var(--shadow-lift);
+}
+.pro-studio-dropdown-menu button{
+  width:100%;
+  min-height:42px;
+  padding:0 10px!important;
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border-radius:8px!important;
+  color:var(--ink)!important;
+  font-size:13px!important;
+  text-align:left;
+}
+.pro-studio-dropdown-menu button:hover{
+  background:var(--panel)!important;
+}
+.pro-studio-dropdown-menu button.is-selected{
+  background:var(--accent-soft)!important;
+  color:var(--accent)!important;
+  font-weight:700;
+}
+.pro-studio-dropdown-menu button svg{
+  flex:0 0 auto;
+}

@@ -2257,19 +2257,29 @@ function Inspector(props: {
     return <div className="pro-inspector-content">
       <PanelIntro title="Assemble your box" text="Use one control from the flat dieline through assembly and, where the package opens, all the way to fully closed." />
       {props.selectedTemplateId!=='reverse-tuck-carton' && <div className="pro-card-section">
-        {isSplit ? <label className="pro-field"><span>Split direction</span><select value={props.splitTopHingeSide} onChange={e=>props.setSplitTopHingeSide(e.target.value as 'side_a'|'side_b')}>
-          <option value="side_a">Left + right top panels</option>
-          <option value="side_b">Front + back top panels</option>
-        </select></label> : <label className="pro-field"><span>Opening mechanism</span><select value={props.openingMode} onChange={e=>{const mode=e.target.value as LegacyOpeningMode;props.setOpeningMode(mode);if(mode==='closed')props.setOpening(0);}}>
-          <option value="closed">Closed / fixed</option>
-          <option value="lid_from_back">Top lid · back hinge</option>
-          <option value="lid_from_front">Top lid · front hinge</option>
-          <option value="lid_from_left">Top lid · left hinge</option>
-          <option value="lid_from_right">Top lid · right hinge</option>
-          <option value="door_left">Left side door</option>
-          <option value="door_right">Right side door</option>
-          <option value="double_doors">Double side doors</option>
-        </select></label>}
+        {isSplit ? <StudioDropdown
+          label="Split direction"
+          value={props.splitTopHingeSide}
+          options={[
+            {value:'side_a',label:'Left + right top panels'},
+            {value:'side_b',label:'Front + back top panels'},
+          ]}
+          onChange={value=>props.setSplitTopHingeSide(value as 'side_a'|'side_b')}
+        /> : <StudioDropdown
+          label="Opening mechanism"
+          value={props.openingMode}
+          options={[
+            {value:'closed',label:'Closed / fixed'},
+            {value:'lid_from_back',label:'Top lid · back hinge'},
+            {value:'lid_from_front',label:'Top lid · front hinge'},
+            {value:'lid_from_left',label:'Top lid · left hinge'},
+            {value:'lid_from_right',label:'Top lid · right hinge'},
+            {value:'door_left',label:'Left side door'},
+            {value:'door_right',label:'Right side door'},
+            {value:'double_doors',label:'Double side doors'},
+          ]}
+          onChange={value=>{const mode=value as LegacyOpeningMode;props.setOpeningMode(mode);if(mode==='closed')props.setOpening(0);}}
+        />}
       </div>}
       <div className="pro-card-section pro-fold-card">
         <div className="pro-fold-heading"><div><span>Assembly</span><strong>{props.assemblyStage}</strong></div><b>{Math.round(props.assemblyProgress)}%</b></div>
@@ -3264,6 +3274,53 @@ function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function StudioDropdown({label,value,options,onChange}:{label:string;value:string;options:Array<{value:string;label:string}>;onChange:(value:string)=>void}) {
+  const [open,setOpen]=useState(false);
+  const ref=useRef<HTMLDivElement>(null);
+  const selected=options.find(option=>option.value===value) ?? options[0];
+
+  useEffect(()=>{
+    if(!open)return;
+    const close=(event:MouseEvent)=>{
+      if(!ref.current?.contains(event.target as Node))setOpen(false);
+    };
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false);};
+    document.addEventListener('mousedown',close);
+    document.addEventListener('keydown',escape);
+    return ()=>{
+      document.removeEventListener('mousedown',close);
+      document.removeEventListener('keydown',escape);
+    };
+  },[open]);
+
+  return <div className="pro-studio-dropdown-field" ref={ref}>
+    <span>{label}</span>
+    <button
+      type="button"
+      className={`pro-studio-dropdown-trigger${open?' is-open':''}`}
+      aria-haspopup="listbox"
+      aria-expanded={open}
+      onClick={()=>setOpen(current=>!current)}
+    >
+      <strong>{selected?.label ?? 'Choose an option'}</strong>
+      <ChevronDown size={17}/>
+    </button>
+    {open&&<div className="pro-studio-dropdown-menu" role="listbox" aria-label={label}>
+      {options.map(option=><button
+        key={option.value}
+        type="button"
+        role="option"
+        aria-selected={option.value===value}
+        className={option.value===value?'is-selected':''}
+        onClick={()=>{onChange(option.value);setOpen(false);}}
+      >
+        <span>{option.label}</span>
+        {option.value===value&&<Check size={16}/>}
+      </button>)}
+    </div>}
+  </div>;
 }
 
 function PanelIntro({title,text}:{title:string;text:string}) {
