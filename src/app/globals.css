@@ -2389,3 +2389,117 @@ body{font-size:var(--type-body)}
   margin-top:8px;
   font-weight:600;
 }
+
+
+/* Compact article sharing controls */
+.blog-share{
+  width:min(100%,980px);
+  margin:0 auto 22px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.blog-share-label{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.blog-share-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.blog-share-actions>a,
+.blog-share-actions>button{
+  min-height:34px;
+  padding:0 10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+  font-size:11px;
+  font-weight:600;
+  text-decoration:none;
+  cursor:pointer;
+  transition:border-color .15s,background .15s,color .15s;
+}
+.blog-share-actions>a:hover,
+.blog-share-actions>button:hover{
+  border-color:var(--accent-line);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.blog-share-actions svg{flex:0 0 auto}
+.blog-share-x{
+  width:15px;
+  height:15px;
+  display:grid;
+  place-items:center;
+  font-size:14px;
+  line-height:1;
+}
+@media(min-width:761px){
+  .blog-share-native{display:none!important}
+}
+@media(max-width:760px){
+  .blog-share{
+    width:calc(100% - 32px);
+    margin-bottom:18px;
+    align-items:flex-start;
+    flex-direction:column;
+    gap:9px;
+  }
+  .blog-share-actions{
+    width:100%;
+    justify-content:flex-start;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    padding-bottom:3px;
+    scrollbar-width:none;
+  }
+  .blog-share-actions::-webkit-scrollbar{display:none}
+  .blog-share-actions>a,
+  .blog-share-actions>button{
+    flex:0 0 auto;
+    min-height:38px;
+  }
+  .blog-share-actions>a>span:last-child,
+  .blog-share-actions>button>span:last-child{
+    display:none;
+  }
+  .blog-share-actions .blog-share-native>span:last-child{
+    display:inline;
+  }
+}
+
+
+.blog-share-brand{
+  width:15px;
+  height:15px;
+  display:grid;
+  place-items:center;
+  border-radius:3px;
+  background:currentColor;
+  color:#fff;
+  font-size:9px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:-.03em;
+}
+.blog-share-brand.is-facebook{
+  font-family:Arial,sans-serif;
+  font-size:12px;
+  font-weight:700;
+  padding-top:2px;
+}
