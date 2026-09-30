@@ -4820,3 +4820,103 @@ body{font-size:var(--type-body)}
     transform:translateY(0) scale(1);
   }
 }
+
+
+/* Media-library destructive action confirmation and usage blockers. */
+.pro-media-delete-confirm-backdrop{
+  position:absolute;
+  inset:0;
+  z-index:40;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(16,23,32,.36);
+  backdrop-filter:blur(6px);
+}
+.pro-media-delete-confirm{
+  width:min(500px,calc(100% - 24px));
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:14px 16px;
+  padding:20px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#fff;
+  box-shadow:var(--shadow-lift);
+}
+.pro-media-delete-confirm-copy{
+  min-width:0;
+}
+.pro-media-delete-confirm-copy>span{
+  color:#b42318;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.pro-media-delete-confirm-copy h3{
+  margin:4px 0 8px;
+  font-size:19px;
+  line-height:1.25;
+  letter-spacing:-.02em;
+}
+.pro-media-delete-confirm-copy p{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+.pro-media-delete-confirm-copy ul{
+  margin:10px 0;
+  padding:8px 10px;
+  display:grid;
+  gap:6px;
+  list-style:none;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--panel);
+}
+.pro-media-delete-confirm-copy li{
+  min-width:0;
+  font-size:13px;
+}
+.pro-media-delete-confirm-copy li strong{
+  overflow-wrap:anywhere;
+}
+.pro-media-delete-error{
+  margin-top:10px;
+  padding:9px 10px;
+  border:1px solid #f1b8b3;
+  border-radius:8px;
+  background:#fff2f0;
+  color:#9f241b;
+  font-size:12px;
+  line-height:1.45;
+}
+.pro-media-delete-confirm-actions{
+  grid-column:1/-1;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  padding-top:4px;
+}
+.pro-media-delete-confirm-actions .pro-danger-button{
+  min-height:42px;
+  padding:0 16px;
+  border-radius:9px!important;
+}
+@media(max-width:600px){
+  .pro-media-delete-confirm{
+    grid-template-columns:1fr;
+    padding:16px;
+  }
+  .pro-media-delete-confirm .pro-confirm-icon{
+    display:none;
+  }
+  .pro-media-delete-confirm-actions{
+    grid-column:1;
+  }
+  .pro-media-delete-confirm-actions>button{
+    flex:1 1 0;
+  }
+}
