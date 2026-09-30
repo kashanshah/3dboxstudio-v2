@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { AccountButton } from '@/components/auth/account-button';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const navLinks = [
@@ -20,67 +20,36 @@ export function Brand() {
   return <Link href="/" className="brand brand-vector" aria-label="3D Box Studio home"><BrandLogo className="brand-vector-logo" priority /></Link>;
 }
 
-function NavigationLinks({ onNavigate, compact = false }: { onNavigate?: () => void; compact?: boolean }) {
+function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return <>
     {navLinks.map((item) => {
       const active = !('homeHash' in item) && (pathname === item.href || pathname.startsWith(item.href + '/'));
       // Native anchors wait for the destination document's sections to exist.
-      if ('homeHash' in item) return <a key={item.href} href={item.href} onClick={onNavigate} tabIndex={compact ? 0 : undefined}>{item.label}</a>;
-      return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={onNavigate} tabIndex={compact ? 0 : undefined}>{item.label}</Link>;
+      if ('homeHash' in item) return <a key={item.href} href={item.href} onClick={onNavigate}>{item.label}</a>;
+      return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={onNavigate}>{item.label}</Link>;
     })}
   </>;
-}
-
-export function MarketingStickyHeader() {
-  const [revealed, setRevealed] = useState(false);
-
-  useEffect(() => {
-    const update = () => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      const revealPoint = Math.min(window.innerHeight * 0.75, Math.max(0, maxScroll - 1));
-      setRevealed(maxScroll > window.innerHeight * 0.5 && window.scrollY >= revealPoint);
-    };
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
-    return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
-
-  return <header className={`marketing-sticky-header${revealed ? ' is-visible' : ''}`} aria-hidden={!revealed}>
-    <div className="marketing-header-inner is-compact">
-      <Brand />
-      <nav className="marketing-nav-links" aria-label="Sticky navigation"><NavigationLinks compact /></nav>
-      <div className="marketing-header-actions">
-        <AccountButton compact />
-        <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
-      </div>
-    </div>
-  </header>;
 }
 
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const headerContents = (compact = false) => <div className={compact ? 'marketing-header-inner is-compact' : 'marketing-header-inner'}>
+  const headerContents = <div className="marketing-header-inner">
     <Brand />
-    <nav className="marketing-nav-links" aria-label={compact ? 'Sticky navigation' : 'Main navigation'}><NavigationLinks compact={compact} /></nav>
+    <nav className="marketing-nav-links" aria-label="Main navigation"><NavigationLinks /></nav>
     <div className="marketing-header-actions">
-      <AccountButton compact={compact} />
+      <AccountButton compact />
       <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
-      {!compact ? <button className="marketing-menu-button" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? 'Close menu' : 'Open menu'} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button> : null}
+      <button className="marketing-menu-button" type="button" aria-expanded={menuOpen} aria-controls="marketing-mobile-menu" aria-label={menuOpen ? 'Close menu' : 'Open menu'} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button>
     </div>
   </div>;
 
   return <>
     <a className="skip-link" href="#main">Skip to content</a>
-    <header className="marketing-header">{headerContents(false)}
-      {menuOpen ? <nav className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /></nav> : null}
+    <header className="marketing-header">{headerContents}
+      {menuOpen ? <nav id="marketing-mobile-menu" className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /></nav> : null}
     </header>
-    <MarketingStickyHeader />
   </>;
 }
 
