@@ -23,3 +23,17 @@ export async function listContactSubmissions(limit=100): Promise<ContactSubmissi
   const rows=await db`SELECT id,name,email,topic,subject,message,status,created_at,page_path FROM contact_submissions ORDER BY created_at DESC LIMIT ${limit}` as {id:string;name:string|null;email:string;topic:string|null;subject:string|null;message:string|null;status:string;created_at:string;page_path:string|null}[];
   return rows.map(r=>({...r,createdAt:r.created_at,pagePath:r.page_path}));
 }
+
+export async function getContactSubmissionStats(): Promise<{ total:number; newCount:number; last7Days:number }> {
+  await ensureV2Schema();
+  const db=getSql();
+  const rows=await db`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE status='new')::int AS new_count,
+      COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int AS last_7_days
+    FROM contact_submissions
+  ` as {total:number;new_count:number;last_7_days:number}[];
+  const row=rows[0] ?? {total:0,new_count:0,last_7_days:0};
+  return { total:row.total, newCount:row.new_count, last7Days:row.last_7_days };
+}
