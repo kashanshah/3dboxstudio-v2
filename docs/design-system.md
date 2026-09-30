@@ -23,7 +23,7 @@ The primary action shade is slightly darker than the prototype's bright blue to 
 
 ## Typography
 
-Match the original Lovable prototype's effective typography from commit `f4c3c7d52aec7b7bc171173a94b7d497d75b2649`. That prototype declares `Manrope, Avenir Next, sans-serif` but does not load Manrope, so on macOS it resolves to Avenir Next. V2 therefore prefers `Avenir Next` for visual parity and self-hosts standard static `Manrope` through `@fontsource/manrope` as the cross-platform fallback. Do not use `Manrope Variable` here.
+Match the original Lovable prototype's effective typography from commit `f4c3c7d52aec7b7bc171173a94b7d497d75b2649`. That prototype declares `Manrope, Avenir Next, sans-serif` but does not load Manrope, so on macOS it resolves to Avenir Next. V2 now uses the loaded static `Manrope` face as the canonical cross-platform UI font, with `Avenir Next` only as a local fallback. This prevents the Studio from feeling materially different across macOS and Windows. Do not use `Manrope Variable` here.
 
 | Token | Original reference |
 | --- | --- |
@@ -58,3 +58,21 @@ Expand this foundation with reusable page sections and component variants while 
 ## Imagery and studio fidelity
 
 See [studio capabilities](studio-capabilities.md). The restored hero and still-life are the original visual concept. As the real engine ships, replace concept imagery with reproducible studio renders using versioned templates, artwork, materials, lighting and camera presets while preserving the chosen composition. Review product copy against shipped capabilities before launch.
+
+
+## Studio typography and density — P0 UX foundation
+
+The Studio intentionally avoids the tiny typography associated with legacy CAD and production software. Precision does not require small text.
+
+- Normal Studio UI/body: 16px.
+- Buttons and navigation: 14px, weight 600–650.
+- Field labels and control rows: 14px.
+- Metadata/help/status: 12–13px. Do not use 10–11px for actionable information.
+- Inspector titles: 23–25px.
+- Inspector section introductions: 21px heading with 14–15px supporting copy.
+- Text inputs: 16px on mobile and generally 16px in the Studio.
+- Regular controls target 42–46px height; touch-oriented controls target at least 44px.
+- Icon-only actions require an accessible label and a visible tooltip/title where the meaning is not universally obvious.
+- Primary user-facing output terminology is **Download**. Technical format/export terminology may remain inside the Download flow.
+
+This P0 pass is deliberately presentation-only. Geometry, artwork mapping, save/revision logic, undo/redo, zoom/pan, project persistence, scene state, and output generation must not be changed merely to achieve the new visual density.
