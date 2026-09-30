@@ -3175,3 +3175,25 @@ body{font-size:var(--type-body)}
   .pro-first-run-guide ol{min-width:max-content}
   .pro-first-run-guide li{min-height:36px;font-size:12px}
 }
+
+
+/* Save confidence states for revision-safe autosave. */
+.pro-save-design.is-saved{
+  color:var(--success);
+  border-color:color-mix(in srgb,var(--success) 24%,var(--line))!important;
+  background:color-mix(in srgb,var(--success) 5%,#fff)!important;
+}
+.pro-save-design.is-unsaved{
+  color:var(--ink);
+  border-color:var(--line)!important;
+  background:#fff!important;
+}
+.pro-save-design.is-unsaved:before,
+.pro-save-design.is-saved:before{
+  content:'';
+  width:7px;height:7px;
+  border-radius:999px;
+  background:currentColor;
+  opacity:.78;
+  margin-right:1px;
+}
