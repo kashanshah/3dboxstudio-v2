@@ -92,6 +92,52 @@ export async function ensureV2Schema(): Promise<void> {
     await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS revision INTEGER NOT NULL DEFAULT 1`;
     await db`CREATE INDEX IF NOT EXISTS idx_projects_user_updated ON projects(user_id,updated_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_projects_user_favorite ON projects(user_id,is_favorite,updated_at DESC)`;
+
+    await db`
+      CREATE TABLE IF NOT EXISTS workspace_projects (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        is_default BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await db`CREATE INDEX IF NOT EXISTS idx_workspace_projects_user_updated ON workspace_projects(user_id,updated_at DESC)`;
+    await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_projects_one_default ON workspace_projects(user_id) WHERE is_default=TRUE`;
+    await db`
+      INSERT INTO workspace_projects(id,user_id,name,is_default)
+      SELECT 'default_' || substr(md5(id),1,24), id, 'My Project', TRUE
+      FROM users u
+      WHERE NOT EXISTS (
+        SELECT 1 FROM workspace_projects wp WHERE wp.user_id=u.id AND wp.is_default=TRUE
+      )
+    `;
+    await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS workspace_project_id TEXT REFERENCES workspace_projects(id) ON DELETE SET NULL`;
+    await db`CREATE INDEX IF NOT EXISTS idx_projects_workspace_project ON projects(user_id,workspace_project_id,updated_at DESC)`;
+    await db`
+      UPDATE projects p
+      SET workspace_project_id=wp.id
+      FROM workspace_projects wp
+      WHERE p.workspace_project_id IS NULL
+        AND wp.user_id=p.user_id
+        AND wp.is_default=TRUE
+    `;
+    await db`
+      CREATE TABLE IF NOT EXISTS scenes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        workspace_project_id TEXT NOT NULL REFERENCES workspace_projects(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        scene_state JSONB NOT NULL DEFAULT '{}'::jsonb,
+        preview_image_key TEXT,
+        is_favorite BOOLEAN NOT NULL DEFAULT FALSE,
+        revision INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await db`CREATE INDEX IF NOT EXISTS idx_scenes_workspace_project ON scenes(user_id,workspace_project_id,updated_at DESC)`;
     await db`
       CREATE TABLE IF NOT EXISTS media_assets (
         id TEXT PRIMARY KEY,
