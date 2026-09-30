@@ -185,6 +185,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [importedDieline, setImportedDieline] = useState<ParsedDieline | null>(null);
   const [dielineMapping, setDielineMapping] = useState<DielineMapping | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -512,6 +513,14 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   useEffect(() => {
     mediaAssetsRef.current = mediaAssets;
   }, [mediaAssets]);
+
+  useEffect(() => {
+    if (!message || message === 'Ready') return;
+    setToastMessage(message);
+    const timeout = window.setTimeout(() => setToastMessage(current => current === message ? null : current), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
+
 
   useEffect(() => {
     let cancelled=false;
@@ -1454,6 +1463,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
 
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
+        {toastMessage && <div className={`pro-studio-toast${saveFailed?' is-error':''}`} role="status" aria-live="polite"><span className="pro-status-dot" /> <span>{toastMessage}</span></div>}
         <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
