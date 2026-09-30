@@ -133,7 +133,7 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
-export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string} = {}) {
+export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string} = {}) {
   const initial = initialProject?.state;
   const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
@@ -157,9 +157,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
-  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId) ?? PACKAGING_TEMPLATES.find(template => template.id === 'reverse-tuck-carton')!;
+  const requestedTemplate = !initialProject && initialTemplateId
+    ? PACKAGING_TEMPLATES.find(template => template.id === initialTemplateId && template.status === 'ready')
+    : null;
+  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId)
+    ?? requestedTemplate
+    ?? PACKAGING_TEMPLATES.find(template => template.id === 'reverse-tuck-carton')!;
   const [family, setFamily] = useState(initialTemplate.name);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(initial?.templateId ?? 'reverse-tuck-carton');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate.id);
   const [templateSearch, setTemplateSearch] = useState('');
   const [templateCategory, setTemplateCategory] = useState('All');
   const [panel, setPanel] = useState('Front');
@@ -174,11 +179,11 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const legacyFormation = initial?.formation ?? (initial?.templateId==='reverse-tuck-carton' ? initial?.opening : undefined);
   const [formation,setFormationValue] = useState(legacyFormation ?? 100);
   const [opening, setOpeningValue] = useState(initial?.templateId==='reverse-tuck-carton' && initial?.formation===undefined ? 0 : (initial?.opening ?? 0));
-  const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? 'closed');
+  const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? (initialTemplate.id==='split-top-box'?'top_split_meet_center':'closed'));
   const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
-  const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? DEFAULT_CARTON_DIMENSIONS);
+  const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? initialTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS);
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
   const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.outsideArtworkLayers ?? []);
