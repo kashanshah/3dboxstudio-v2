@@ -76,7 +76,7 @@ export function SiteHeader() {
   return <>
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="marketing-header">{headerContents(false)}
-      {menuOpen ? <nav className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /><Link href="/studio" onClick={() => setMenuOpen(false)}>Open Studio <ArrowUpRight size={16}/></Link></nav> : null}
+      {menuOpen ? <nav className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /><AccountButton/><Link href="/studio" onClick={() => setMenuOpen(false)}>Open Studio <ArrowUpRight size={16}/></Link></nav> : null}
     </header>
     <MarketingStickyHeader />
   </>;
