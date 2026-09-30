@@ -5,6 +5,7 @@ import { BrandMark } from "./original-brand-mark";
 import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
 import { MarketingStickyHeader } from "./site-shell";
+import { AccountButton } from "./auth/account-button";
 
 
 export function OriginalHome() {
@@ -12,7 +13,7 @@ export function OriginalHome() {
     <nav className="site-nav">
       <BrandMark />
       <div className="original-nav-links"><a href="#workflow">Workflow</a><a href="#showcase">Examples</a><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link></div>
-      <Button asChild size="sm"><Link href="/studio">Open Studio <ArrowRight /></Link></Button>
+      <div className="original-nav-actions"><AccountButton compact/><Button asChild size="sm"><Link href="/studio">Open Studio <ArrowRight /></Link></Button></div>
     </nav>
 
     <section className="home-hero">
