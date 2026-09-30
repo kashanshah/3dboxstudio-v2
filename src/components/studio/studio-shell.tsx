@@ -633,8 +633,9 @@ export function StudioShell() {
     </div>
 
     {mediaLibraryOpen && <MediaLibraryModal
-      key={`${mediaTargetPanel}:${selectedMediaAssetId ?? 'none'}`}
+      key={`${artworkScope}:${mediaTargetPanel}:${selectedMediaAssetId ?? 'none'}`}
       assets={mediaAssets}
+      targetScope={artworkScope}
       artworkByPanel={artworkByPanel}
       targetPanel={mediaTargetPanel}
       tab={mediaLibraryTab}
@@ -1430,6 +1431,7 @@ function MediaLibraryModal(props: {
   assets: LocalMediaAsset[];
   artworkByPanel: ArtworkByPanel;
   targetPanel: string;
+  targetScope: 'outside' | 'inside';
   tab: 'library' | 'upload';
   setTab: (tab:'library'|'upload')=>void;
   selectedAssetId: string | null;
@@ -1452,7 +1454,9 @@ function MediaLibraryModal(props: {
   const [scale, setScale] = useState(selectedMatchesExisting ? existing!.scale : 100);
   const [rotation, setRotation] = useState(selectedMatchesExisting ? existing!.rotation : 0);
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
-  const targetLabel = props.targetPanel === '__FULL_DIELINE__' ? 'Full dieline' : props.targetPanel.replace('Interior ', 'Inside ');
+  const targetLabel = props.targetPanel === '__FULL_DIELINE__'
+    ? `${props.targetScope === 'inside' ? 'Inside' : 'Outside'} dieline`
+    : props.targetPanel.replace('Interior ', 'Inside ');
   const filteredAssets = props.assets.filter(asset => asset.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   const previewStyle = selected ? artworkCss({
@@ -1595,7 +1599,9 @@ function MediaLibraryModal(props: {
       </div>
 
       <footer className="pro-media-modal-footer">
-        <span>{props.targetPanel === '__FULL_DIELINE__' ? 'You can continue moving and resizing the image directly on the 2D dieline.' : `Adding artwork to ${targetLabel}.`}</span>
+        <span>{props.targetPanel === '__FULL_DIELINE__'
+          ? `You can continue moving and resizing this artwork on the ${props.targetScope} 2D dieline.`
+          : `Adding artwork to ${targetLabel}.`}</span>
         <div>
           <button className="pro-secondary-button" onClick={props.onClose}>Cancel</button>
           <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected,{mode:fitMode,scale,rotation})}>
