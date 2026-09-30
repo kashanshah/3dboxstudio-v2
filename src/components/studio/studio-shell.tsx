@@ -658,7 +658,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).bounds;
+      const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
       const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
       const layer: FullDielineArtworkLayer = {
         id: layerId,
@@ -688,13 +688,13 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     }
 
     const parsed = parseArtworkTarget(targetPanel);
-    const face=getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).panels.find(item=>item.label.toLowerCase()===parsed.panel.toLowerCase());
+    const face=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels.find(item=>item.label.toLowerCase()===parsed.panel.toLowerCase());
     if (!face) {
       setMessage('Could not find that box side in the 2D layout');
       return;
     }
 
-    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).bounds;
+    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
     const faceTransform = createFullDielineTransform(
       imageAspect,
@@ -860,7 +860,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
       });
 
-      const bounds=getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).bounds;
+      const bounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
       const created=uploaded.map((asset,index)=>{
         const imageAspect=asset.width&&asset.height?asset.width/asset.height:1;
         const base=createFullDielineTransform(imageAspect,bounds.width/bounds.height,35,0);
@@ -919,10 +919,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     if (!artwork) return null;
 
     const parsed = parseArtworkTarget(targetPanel);
-    const face = getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).panels.find(item => item.label.toLowerCase() === parsed.panel.toLowerCase());
+    const face = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels.find(item => item.label.toLowerCase() === parsed.panel.toLowerCase());
     if (!face) return null;
 
-    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).bounds;
+    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     const asset = mediaAssets.find(item => item.id === artwork.assetId);
     const imageAspect = asset?.width && asset.height ? asset.width / asset.height : 1;
 
@@ -1440,6 +1440,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           onArtworkScopeChange={setArtworkScope}
           dimensions={dimensions}
           selectedTemplateId={selectedTemplateId}
+          openingMode={openingMode}
           splitTopHingeSide={splitTopHingeSide}
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
@@ -2167,6 +2168,7 @@ function DielinePrototype({
   onArtworkScopeChange,
   dimensions,
   selectedTemplateId,
+  openingMode,
   splitTopHingeSide,
   zoom,
   onZoomChange,
@@ -2201,6 +2203,7 @@ function DielinePrototype({
   onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
   selectedTemplateId:string;
+  openingMode:LegacyOpeningMode;
   splitTopHingeSide:'side_a'|'side_b';
   zoom:number;
   onZoomChange:React.Dispatch<React.SetStateAction<number>>;
@@ -2218,8 +2221,8 @@ function DielinePrototype({
   const printBoardRef=useRef<HTMLDivElement>(null);
   const [printError,setPrintError]=useState('');
   const [printing,setPrinting]=useState(false);
-  const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).panels;
-  const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).bounds;
+  const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels;
+  const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
@@ -2234,7 +2237,7 @@ function DielinePrototype({
     lastPdfExportRequest.current=pdfExportRequest;
     const board=printBoardRef.current;
     if(!board)return;
-    const exportBounds=getTemplateGeometry(selectedTemplateId,dimensions,{splitTopHingeSide}).bounds;
+    const exportBounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     setPrintError('');
     setPrinting(true);
     void printDielineLayout(board,exportBounds,layers)
