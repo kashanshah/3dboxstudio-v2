@@ -1959,3 +1959,40 @@ body{font-size:var(--type-body)}
 @media(max-width:760px){
   .pro-apply-artwork-button{height:34px;padding:0 12px;font-size:11px}
 }
+
+
+/* Folding control lives with the live 3D preview while editing in 2D. */
+.pro-artwork-preview-fold{
+  display:grid;
+  gap:8px;
+  padding:10px 12px 12px;
+  border-top:1px solid var(--line);
+  background:var(--surface);
+}
+.pro-artwork-preview-fold-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:10px;
+}
+.pro-artwork-preview-fold-head span{color:var(--muted)}
+.pro-artwork-preview-fold-head strong{font-size:11px;font-weight:600}
+.pro-artwork-preview-fold-row{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:7px;
+}
+.pro-artwork-preview-fold-row>span{
+  color:var(--muted);
+  font-size:9px;
+}
+.pro-artwork-preview-fold-row input[type="range"]{
+  width:100%;
+  accent-color:var(--accent);
+}
+@media(max-width:760px){
+  .pro-artwork-preview-fold{padding:8px 9px 10px}
+  .pro-artwork-preview-fold-row>span{font-size:8px}
+}
