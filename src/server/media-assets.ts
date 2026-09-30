@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ensureV2Schema, getSql } from '@/server/db';
 import { optionalEnv, requireEnv } from '@/server/env';
 
@@ -147,6 +147,11 @@ export async function readMediaAsset(userId:string,id:string){
   const object=await readStoredObject(row.storage_key);
   if(!object)return null;
   return {row,bytes:object.bytes};
+}
+
+export async function headStoredObject(storageKey:string){
+  const object=await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:storageKey}));
+  return {byteSize:Number(object.ContentLength||0),contentType:object.ContentType||null};
 }
 
 export async function readStoredObject(storageKey:string){
