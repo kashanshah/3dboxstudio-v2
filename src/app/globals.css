@@ -14,7 +14,7 @@
   --canvas: #e8edf3;
   --success: #278352;
   --focus: #0075c4;
-  --font-ui: 'Avenir Next', 'Manrope', Arial, sans-serif;
+  --font-ui: 'Manrope', 'Avenir Next', Arial, sans-serif;
   --font-display: var(--font-ui);
   /* Original Lovable typography, f4c3c7d, inherited by V2. */
   --type-display: clamp(62px, 7vw, 108px);
@@ -26,9 +26,9 @@
   --tracking-heading: -.05em;
   --type-lead: 17px;
   --leading-body: 1.7;
-  --type-body: 14px;
-  --type-nav: 13px;
-  --type-eyebrow: 10px;
+  --type-body: 16px;
+  --type-nav: 14px;
+  --type-eyebrow: 12px;
   --shadow-soft: 0 1px 2px #1017200a, 0 8px 24px #1017200a;
   --shadow-lift: 0 24px 70px #15243918, 0 2px 8px #15243910;
   --radius: 12px;
@@ -2769,4 +2769,103 @@ body{font-size:var(--type-body)}
   .pro-transfer-mode{grid-template-columns:1fr 1fr}
   .pro-transfer-project-list{max-height:38dvh}
   .pro-project-transfer-modal .pro-confirm-actions{position:sticky;bottom:0;margin:0 -2px -2px;padding-top:10px;background:linear-gradient(transparent,var(--surface) 24%)}
+}
+
+
+/* P0 UX foundation — modern, comfortably-sized Studio UI.
+   These are presentation-only overrides: editor behavior/state remains unchanged. */
+.pro-studio{
+  --studio-ui:16px;
+  --studio-label:14px;
+  --studio-meta:12px;
+  --studio-control:44px;
+  --studio-control-compact:40px;
+  font-size:var(--studio-ui);
+}
+.pro-studio-header{height:76px;padding-inline:18px}
+.pro-studio-body{height:calc(100dvh - 76px)}
+.pro-project .brand{font-size:16px}
+.pro-project .brand-icon{width:32px;height:32px}
+.pro-project-copy input{font-size:16px;font-weight:700;line-height:1.25}
+.pro-project-copy a,.pro-project-copy span{font-size:12px;line-height:1.35}
+.pro-header-actions{gap:10px}
+.pro-header-actions button,.pro-header-actions a{min-height:42px;font-size:14px}
+.pro-primary,.pro-secondary,.pro-secondary-button{min-height:42px;font-size:14px;font-weight:650}
+.pro-file-menu-trigger{width:40px!important;height:40px!important;border-radius:9px!important}
+.pro-file-menu-popover{min-width:270px}
+.pro-file-menu-popover button{min-height:48px;padding:8px 10px;gap:10px}
+.pro-file-menu-popover button strong{font-size:14px}
+.pro-file-menu-popover button small{font-size:12px;line-height:1.35}
+
+.pro-tool-rail{padding:14px 10px;gap:10px}
+.pro-tool-rail button{
+  min-height:78px;
+  border-radius:12px;
+  font-size:13px;
+  line-height:1.2;
+  gap:8px;
+  padding:8px 6px;
+}
+.pro-tool-rail button svg{width:23px;height:23px}
+.pro-tool-rail button span{max-width:78px}
+
+.pro-inspector-title{min-height:92px;height:auto;padding:18px 22px}
+.pro-inspector-title span{font-size:12px}
+.pro-inspector-title h2{font-size:25px;line-height:1.12;letter-spacing:-.025em}
+.pro-inspector-content{padding:22px 22px 40px}
+.pro-panel-intro h3{font-size:21px;line-height:1.2}
+.pro-panel-intro p{font-size:15px;line-height:1.55;max-width:38ch}
+.pro-section-title strong{font-size:15px}
+.pro-section-title span,.pro-help{font-size:13px}
+.pro-fields label,.pro-control-row{font-size:14px}
+.pro-fields input,.pro-current-box-size-fields input,.pro-current-box-thickness input{
+  min-height:44px;
+  font-size:16px;
+}
+.pro-chip-grid button,.pro-panel-grid button,.pro-segmented button,.pro-structure-categories button{
+  font-size:14px;
+  min-height:44px;
+}
+.pro-wide-button,.pro-library-upload,.pro-secondary-button{min-height:46px;font-size:14px}
+.pro-artwork-source-primary{min-height:58px}
+.pro-artwork-source-primary b,.pro-current-artwork-copy b{font-size:14px}
+.pro-artwork-source-primary small,.pro-current-artwork-copy small{font-size:12px}
+.pro-template-card-copy strong{font-size:14px}
+.pro-template-card-copy span,.pro-template-card>small{font-size:12px}
+
+.pro-mode-switch button{height:44px;font-size:14px;padding-inline:17px}
+.pro-camera-menu>button{height:46px;font-size:14px}
+.pro-stage-badge{font-size:13px;padding:9px 12px}
+.pro-stage-meta{font-size:12px}
+.pro-face-action{font-size:13px}
+.pro-face-action>button:not(.pro-face-action-close){min-height:38px;font-size:13px}
+.pro-status-bar{min-height:38px;height:auto;font-size:12px}
+
+.pro-media-modal-header h2{font-size:24px}
+.pro-media-modal-header span{font-size:12px}
+.pro-media-tabs button{font-size:14px}
+.pro-media-dropzone h3{font-size:24px}
+.pro-media-dropzone p{font-size:15px}
+.pro-media-dropzone>span{font-size:12px}
+.pro-media-details h3{font-size:15px}
+.pro-media-details dl>div{font-size:12px}
+.pro-media-modal-footer>span{font-size:13px}
+
+@media(max-width:1050px){
+  .pro-studio-header{height:72px}
+  .pro-studio-body{height:calc(100dvh - 72px)}
+}
+@media(max-width:640px){
+  .pro-studio{--studio-ui:16px;--studio-label:14px;--studio-meta:12px}
+  .pro-studio-header{height:64px}
+  .pro-studio-body{height:calc(100dvh - 64px)}
+  .pro-canvas{inset:64px 0 74px}
+  .pro-mobile-dock{height:74px}
+  .pro-mobile-dock button{font-size:12px;min-width:44px}
+  .pro-mode-switch button{height:42px;font-size:13px}
+  .pro-inspector-title{min-height:82px}
+  .pro-inspector-title h2{font-size:23px}
+  .pro-inspector-content{padding:18px 16px 30px}
+  .pro-panel-intro p{font-size:14px}
+  .pro-fields input,.pro-current-box-size-fields input,.pro-current-box-thickness input{font-size:16px}
 }
