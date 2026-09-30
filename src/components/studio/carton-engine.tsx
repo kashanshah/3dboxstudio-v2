@@ -548,6 +548,7 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
 
   const exteriorMeshes: Mesh[] = [];
   const interiorMeshes: Mesh[] = [];
+  const edgeMeshes: Mesh[] = [];
 
   for (const panel of panels) {
     const exterior = quadFromCorners(panel.corners, panel.surfaceColor, true, panel.name);
@@ -564,9 +565,25 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
     const inside = quadFromCorners(reversed, interior, true, `Interior ${panel.name}`);
     inside.faceAspect = panel.aspect;
     interiorMeshes.push(inside);
+
+    const edgeColor: [number, number, number] = [
+      Math.max(0, Math.min(1, panel.surfaceColor[0] * 0.72)),
+      Math.max(0, Math.min(1, panel.surfaceColor[1] * 0.72)),
+      Math.max(0, Math.min(1, panel.surfaceColor[2] * 0.72)),
+    ];
+
+    for (let index = 0; index < 4; index += 1) {
+      const nextIndex = (index + 1) % 4;
+      edgeMeshes.push(quadFromCorners([
+        panel.corners[index],
+        panel.corners[nextIndex],
+        insideCorners[nextIndex],
+        insideCorners[index],
+      ], edgeColor, false));
+    }
   }
 
-  return [...exteriorMeshes, ...interiorMeshes];
+  return [...exteriorMeshes, ...interiorMeshes, ...edgeMeshes];
 }
 
 function quadFromCorners(
