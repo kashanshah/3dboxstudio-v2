@@ -34,6 +34,8 @@ type Props = {
   cameraPreset: string;
   zoom: number;
   viewPan?: {x:number;y:number};
+  panEnabled?: boolean;
+  onViewPanChange?: (pan:{x:number;y:number})=>void;
   onZoomChange?: React.Dispatch<React.SetStateAction<number>>;
   lightIntensity?: number;
   onPanelSelect?: (panel: string, point: { x: number; y: number }) => void;
@@ -51,7 +53,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId = 'reverse-tuck-carton', opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0, onPanelSelect },
+  { dimensions, templateId = 'reverse-tuck-carton', opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,7 +64,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   const yawRef = useRef(-0.55);
   const pitchRef = useRef(0.28);
   const cameraAnimationRef = useRef<number | null>(null);
-  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; moved: boolean } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; yaw: number; pitch: number; panX:number; panY:number; mode:'rotate'|'pan'; moved: boolean } | null>(null);
 
   const cancelCameraAnimation = useCallback(() => {
     if (cameraAnimationRef.current !== null) {
@@ -183,7 +185,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { x: event.clientX, y: event.clientY, yaw: yawRef.current, pitch: pitchRef.current, moved: false };
+    dragRef.current = { x: event.clientX, y: event.clientY, yaw: yawRef.current, pitch: pitchRef.current, panX:viewPan.x, panY:viewPan.y, mode:panEnabled?'pan':'rotate', moved: false };
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -192,12 +194,16 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
       if (Math.hypot(dx, dy) > 4) drag.moved = true;
-      const nextYaw = drag.yaw - dx * 0.008;
-      const nextPitch = clamp(drag.pitch + dy * 0.006, -1.15, 1.15);
-      yawRef.current = nextYaw;
-      pitchRef.current = nextPitch;
-      setYaw(nextYaw);
-      setPitch(nextPitch);
+      if(drag.mode==='pan'){
+        onViewPanChange?.({x:drag.panX+dx,y:drag.panY+dy});
+      }else{
+        const nextYaw = drag.yaw - dx * 0.008;
+        const nextPitch = clamp(drag.pitch + dy * 0.006, -1.15, 1.15);
+        yawRef.current = nextYaw;
+        pitchRef.current = nextPitch;
+        setYaw(nextYaw);
+        setPitch(nextPitch);
+      }
       return;
     }
 
@@ -224,7 +230,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
   return <canvas
     ref={canvasRef}
-    className="carton-engine-canvas"
+    className={`carton-engine-canvas${panEnabled?' is-pan-enabled':''}`}
     aria-label="Interactive WebGL reverse-tuck carton"
     onPointerDown={onPointerDown}
     onPointerMove={onPointerMove}
