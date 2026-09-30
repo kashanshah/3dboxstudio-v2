@@ -2276,3 +2276,16 @@ body{font-size:var(--type-body)}
 .pro-full-artwork-print-surface{clip-path:none}
 .pro-dieline-live .pro-dieline-panel-guide{pointer-events:none;cursor:default}
 .pro-dieline-print-error{position:absolute;top:140px;left:16px;z-index:20;max-width:420px;padding:8px 12px;background:#fff;color:#b42318;border:1px solid #fda29b;border-radius:8px;font-size:12px}
+
+
+/* The 2D canvas owns wheel gestures for zoom; never chain them to page scroll. */
+.pro-2d-design-stage,
+.pro-dieline-workspace{
+  overscroll-behavior:none;
+}
+.pro-dieline-workspace{
+  touch-action:pan-x pan-y;
+}
+.pro-2d-side-panels{
+  overscroll-behavior:contain;
+}
