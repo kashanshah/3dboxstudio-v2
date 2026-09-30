@@ -2818,100 +2818,116 @@ function DielinePrototype({
           <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label="Close Design tools" title="Close" onClick={onCloseTools}><X size={18}/></button>
         </div>
         <div className="pro-design-inspector-content">
-        <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
-          <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
-          <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
-        </div>
-        <div className="pro-2d-left-actions">
-          <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/> Add artwork</button>
-          {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
-            selectedLayer.id,
-            createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
-          )}><Maximize2 size={16}/> Reset selected</button>}
-        </div>
-        <div className="pro-design-output">
-          <span>Print output</span>
-          <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
-            if (!printBoardRef.current) return;
-            setPrintError('');setPrinting(true);
-            try { await printDielineLayout(printBoardRef.current,bounds,layers); }
-            catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
-            finally { setPrinting(false); }
-          }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
-        </div>
+          <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
+            <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
+            <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
+          </div>
+
+          <div className="pro-2d-left-actions">
+            <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/> Add artwork</button>
+          </div>
+
+          <aside className="pro-dieline-layers-panel pro-design-left-layers" aria-label={`${artworkScope} artwork layers`}>
+            <div className="pro-dieline-layers-heading">
+              <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
+              <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
+            </div>
+
+            {layers.length ? <div className="pro-dieline-layer-list">
+              {[...layers].reverse().map((layer,reverseIndex) => {
+                const realIndex=layers.length-1-reverseIndex;
+                const selected=layer.id===selectedLayerId;
+                return <button
+                  type="button"
+                  key={layer.id}
+                  className={`${selected?'is-selected':''}${dropTargetId===layer.id?' is-drop-target':''}`}
+                  onClick={()=>onSelectLayer(layer.id)}
+                  title="Drag to change layer order"
+                  draggable
+                  onDragStart={event=>{
+                    draggingLayerId.current=layer.id;
+                    event.dataTransfer.effectAllowed='move';
+                    event.dataTransfer.setData('text/plain',layer.id);
+                    onSelectLayer(layer.id);
+                  }}
+                  onDragOver={event=>{
+                    if (!draggingLayerId.current || draggingLayerId.current===layer.id) return;
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect='move';
+                    if (dropTargetId!==layer.id) setDropTargetId(layer.id);
+                  }}
+                  onDragLeave={event=>{
+                    if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetId(null);
+                  }}
+                  onDrop={event=>{
+                    event.preventDefault();
+                    if (draggingLayerId.current && draggingLayerId.current!==layer.id) onReorderLayer(draggingLayerId.current,layer.id);
+                    draggingLayerId.current=null;
+                    setDropTargetId(null);
+                  }}
+                  onDragEnd={()=>{draggingLayerId.current=null;setDropTargetId(null);}}
+                >
+                  <img src={layer.url} alt="" draggable={false}/>
+                  <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
+                  <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
+                </button>;
+              })}
+            </div> : sideArtwork.length ? null : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>Add artwork to start composing.</span></div>}
+
+            {sideArtwork.length>0 && <div className="pro-dieline-layer-list">{sideArtwork.map(([key,artwork])=><button key={key} type="button" className={selectedPanel===key.replace('Interior ','') && !selectedLayerId?'is-selected':''} onClick={()=>onPanelSelect(key.replace('Interior ',''))}><img src={artwork.url} alt=""/><span><strong>{artwork.name}</strong><small>{key}</small></span></button>)}</div>}
+
+            {selectedLayer && <div className="pro-dieline-layer-actions">
+              <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={16}/></button>
+              <button type="button" title="Send backward" aria-label="Send selected layer backward" disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={16}/></button>
+              <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={16}/></button>
+              <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={16}/></button>
+            </div>}
+          </aside>
+
+          <div className="pro-design-output">
+            <span>Print output</span>
+            <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
+              if (!printBoardRef.current) return;
+              setPrintError('');setPrinting(true);
+              try { await printDielineLayout(printBoardRef.current,bounds,layers); }
+              catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
+              finally { setPrinting(false); }
+            }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
+          </div>
         </div>
       </aside>}
+
       <div className="pro-2d-right-preview pro-design-context-stack">
         {livePreview}
-        <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
-        <div className="pro-dieline-layers-heading">
-          <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
-          <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
-        </div>
-        {layers.length ? <div className="pro-dieline-layer-list">
-          {[...layers].reverse().map((layer,reverseIndex) => {
-            const realIndex=layers.length-1-reverseIndex;
-            const selected=layer.id===selectedLayerId;
-            return <button
-              type="button"
-              key={layer.id}
-              className={`${selected?'is-selected':''}${dropTargetId===layer.id?' is-drop-target':''}`}
-              onClick={()=>onSelectLayer(layer.id)}
-              title="Drag to change layer order"
-              draggable
-              onDragStart={event=>{
-                draggingLayerId.current=layer.id;
-                event.dataTransfer.effectAllowed='move';
-                event.dataTransfer.setData('text/plain',layer.id);
-                onSelectLayer(layer.id);
-              }}
-              onDragOver={event=>{
-                if (!draggingLayerId.current || draggingLayerId.current===layer.id) return;
-                event.preventDefault();
-                event.dataTransfer.dropEffect='move';
-                if (dropTargetId!==layer.id) setDropTargetId(layer.id);
-              }}
-              onDragLeave={event=>{
-                if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetId(null);
-              }}
-              onDrop={event=>{
-                event.preventDefault();
-                if (draggingLayerId.current && draggingLayerId.current!==layer.id) onReorderLayer(draggingLayerId.current,layer.id);
-                draggingLayerId.current=null;
-                setDropTargetId(null);
-              }}
-              onDragEnd={()=>{draggingLayerId.current=null;setDropTargetId(null);}}
-            >
-              <img src={layer.url} alt="" draggable={false}/>
-              <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
-              <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
-            </button>;
-          })}
-        </div> : sideArtwork.length ? null : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>Add artwork to start composing.</span></div>}
+        <aside className={`pro-design-transform-panel${selectedLayer?' has-selection':''}`} aria-label="Artwork properties">
+          {selectedLayer ? <>
+            <div className="pro-design-transform-panel-head">
+              <div><span>Transform</span><strong>Exact placement</strong></div>
+              <button type="button" className="pro-secondary-button" onClick={() => onUpdateLayer(
+                selectedLayer.id,
+                createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
+              )}><Maximize2 size={15}/> Reset</button>
+            </div>
 
-        {sideArtwork.length>0 && <div className="pro-dieline-layer-list">{sideArtwork.map(([key,artwork])=><button key={key} type="button" className={selectedPanel===key.replace('Interior ','') && !selectedLayerId?'is-selected':''} onClick={()=>onPanelSelect(key.replace('Interior ',''))}><img src={artwork.url} alt=""/><span><strong>{artwork.name}</strong><small>{key}</small></span></button>)}</div>}
-
-        {selectedLayer && <section className="pro-precision-transform" aria-label="Selected artwork transform">
-          <div className="pro-precision-transform-head">
-            <div><span>Transform</span><strong>Exact placement</strong></div>
-            <span>Free movement</span>
-          </div>
-          <div className="pro-precision-transform-grid">
-            <label><span>X</span><input key={`x-${selectedLayer.id}-${Math.round(selectedLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,x:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
-            <label><span>Y</span><input key={`y-${selectedLayer.id}-${Math.round(selectedLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.height*selectedLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,y:fromDisplayUnit(value)/bounds.height*100});}}/><small>{measurementUnit}</small></label>
-            <label><span>W</span><input key={`w-${selectedLayer.id}-${Math.round(selectedLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,width:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
-            <label><span>H</span><input key={`h-${selectedLayer.id}-${Math.round(selectedLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.height*selectedLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,height:fromDisplayUnit(value)/bounds.height*100});}}/><small>{measurementUnit}</small></label>
-            <label className="is-rotation"><span><RotateCw size={13}/> Rotation</span><input key={`r-${selectedLayer.id}-${Math.round(selectedLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(selectedLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
-          </div>
-          <p>Drag freely. Snapping engages only near guides. Hold <kbd>Option/Alt</kbd> to bypass snapping; hold <kbd>Shift</kbd> while rotating for 15° steps.</p>
-        </section>}
-
-        {selectedLayer && <div className="pro-dieline-layer-actions">
-          <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={16}/></button>
-          <button type="button" title="Send backward" aria-label="Send selected layer backward" disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={16}/></button>
-          <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={16}/></button>
-          <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={16}/></button>
-        </div>}
+            <section className="pro-precision-transform" aria-label="Selected artwork transform">
+              <div className="pro-precision-transform-head">
+                <span>Selected artwork</span>
+                <span>Free movement</span>
+              </div>
+              <div className="pro-precision-transform-grid">
+                <label><span>X</span><input key={`x-${selectedLayer.id}-${Math.round(selectedLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,x:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>Y</span><input key={`y-${selectedLayer.id}-${Math.round(selectedLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.height*selectedLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,y:fromDisplayUnit(value)/bounds.height*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>W</span><input key={`w-${selectedLayer.id}-${Math.round(selectedLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,width:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>H</span><input key={`h-${selectedLayer.id}-${Math.round(selectedLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.height*selectedLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,height:fromDisplayUnit(value)/bounds.height*100});}}/><small>{measurementUnit}</small></label>
+                <label className="is-rotation"><span><RotateCw size={13}/> Rotation</span><input key={`r-${selectedLayer.id}-${Math.round(selectedLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(selectedLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
+              </div>
+              <p>Drag freely. Hold <kbd>Shift</kbd> while rotating for 15° steps.</p>
+            </section>
+          </> : <div className="pro-design-transform-empty">
+            <Move size={22}/>
+            <strong>Select an artwork layer</strong>
+            <span>Choose a layer on the left or directly on the dieline to edit its position, size, and rotation.</span>
+          </div>}
         </aside>
       </div>
 
