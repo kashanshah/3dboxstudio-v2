@@ -12,6 +12,7 @@ import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carto
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { artworkCropCss, artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
+import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -54,7 +55,9 @@ export function StudioShell() {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
+  const [importedDieline, setImportedDieline] = useState<ParsedDieline | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dielineFileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
@@ -249,6 +252,25 @@ export function StudioShell() {
   };
 
 
+  const handleDielineFile = async (file?: File) => {
+    if (!file) return;
+    try {
+      const parsed = await parseDielineFile(file);
+      if (!parsed.primitives.length) {
+        setMessage(`${file.name}: no supported vector geometry found`);
+        return;
+      }
+      setImportedDieline(parsed);
+      setMode('dieline');
+      setTool('structure');
+      setInspectorOpen(true);
+      const known = parsed.primitives.filter(item => item.role !== 'unknown').length;
+      setMessage(`${file.name} imported · ${parsed.primitives.length} vector element${parsed.primitives.length === 1 ? '' : 's'}${known ? ` · ${known} classified cut/crease` : ''}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not import dieline');
+    }
+  };
+
   const removeArtwork = (targetPanel: string) => {
     setArtworkByPanel(current => {
       const artwork = current[targetPanel];
@@ -304,7 +326,7 @@ export function StudioShell() {
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -452,11 +474,13 @@ export function StudioShell() {
           </div>}
         </div> : <DielinePrototype
           panel={panel}
+          importedDieline={importedDieline}
           artworkByPanel={artworkByPanel}
           fullDielineArtwork={fullDielineArtwork}
           artworkScope={artworkScope}
           dimensions={dimensions}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
+          onClearImportedDieline={() => { setImportedDieline(null); setMessage('Imported dieline cleared'); }}
           onRemoveFullLayout={() => {
             setFullDielineArtwork(null);
             setMessage('Full-layout artwork removed');
@@ -481,7 +505,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -508,7 +532,7 @@ export function StudioShell() {
 
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void;
-  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void;
+  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onImportDieline:()=>void; importedDieline:ParsedDieline|null;
   panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
@@ -580,6 +604,17 @@ function Inspector(props: {
         <strong>No templates found</strong>
         <span>Try another search or category.</span>
       </div>}
+
+      <div className="pro-card-section pro-dieline-import-card">
+        <SectionTitle title="Import dieline" meta="SVG / DXF" />
+        <p className="pro-help">Use SVG or ASCII DXF for vector dielines. AI, EPS and PDF are not directly supported yet.</p>
+        <button className="pro-wide-button" type="button" onClick={props.onImportDieline}><Upload size={16}/> Import SVG or DXF</button>
+        {props.importedDieline ? <div className="pro-dieline-import-status">
+          <strong>{props.importedDieline.name}</strong>
+          <span>{props.importedDieline.format.toUpperCase()} · {props.importedDieline.primitives.length} vector elements · {Math.round(props.importedDieline.width)} × {Math.round(props.importedDieline.height)}</span>
+          {props.importedDieline.warnings.map(warning => <small key={warning}>{warning}</small>)}
+        </div> : null}
+      </div>
 
       <div className="pro-card-section pro-structure-size-card">
         <SectionTitle title="Finished size" meta="Outside measurements" />
@@ -762,25 +797,50 @@ function Inspector(props: {
 
 function DielinePrototype({
   panel,
+  importedDieline,
   artworkByPanel,
   fullDielineArtwork,
   artworkScope,
   dimensions,
   onChooseFullLayout,
   onRemoveFullLayout,
+  onClearImportedDieline,
   onPanelSelect,
 }:{
   panel:string;
+  importedDieline:ParsedDieline|null;
   artworkByPanel:ArtworkByPanel;
   fullDielineArtwork:ArtworkPlacement | null;
   artworkScope:'outside'|'inside';
   dimensions:CartonDimensions;
   onChooseFullLayout:()=>void;
   onRemoveFullLayout:()=>void;
+  onClearImportedDieline:()=>void;
   onPanelSelect:(panel:string)=>void;
 }) {
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
+
+  if (importedDieline) {
+    return <div className="pro-dieline-stage pro-2d-design-stage">
+      <div className="pro-2d-design-toolbar">
+        <div><span>Imported dieline</span><strong>{importedDieline.name}</strong></div>
+        <button className="pro-2d-remove-layout" type="button" onClick={onClearImportedDieline}><Trash2 size={15}/> Clear dieline</button>
+      </div>
+      <div className="pro-imported-dieline-wrap">
+        <svg className="pro-imported-dieline" viewBox={importedDieline.viewBox} role="img" aria-label={`Imported dieline ${importedDieline.name}`}>
+          {importedDieline.primitives.map((item,index) => {
+            if (item.kind === 'line') return <line key={index} x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} className={`imported-dieline-line role-${item.role}`} vectorEffect="non-scaling-stroke" />;
+            if (item.kind === 'path') return <path key={index} d={item.d} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" />;
+            const points = item.closed ? [...item.points,item.points[0]] : item.points;
+            return <polyline key={index} points={points.map(point => `${point.x},${point.y}`).join(' ')} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" />;
+          })}
+        </svg>
+      </div>
+      <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="unknown"/>Unclassified</span><strong>Imported geometry preview · panel/fold mapping to 3D comes next</strong></div>
+    </div>;
+  }
+
   return <div className="pro-dieline-stage pro-2d-design-stage">
     {artworkScope === 'outside' ? <div className="pro-2d-design-toolbar">
       <div>

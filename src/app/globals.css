@@ -1156,3 +1156,18 @@ body{font-size:var(--type-body)}
   .marketing-footer-links{width:100%;gap:24px}
   .marketing-footer-base{flex-direction:column;gap:6px}
 }
+
+
+/* Imported dieline geometry */
+.pro-dieline-import-card{display:grid;gap:12px}
+.pro-dieline-import-card .pro-wide-button{justify-content:center}
+.pro-dieline-import-status{display:grid;gap:4px;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--paper)}
+.pro-dieline-import-status strong{font-size:13px}
+.pro-dieline-import-status span,.pro-dieline-import-status small{color:var(--muted);font-size:11px;line-height:1.45}
+.pro-imported-dieline-wrap{display:grid;place-items:center;min-height:420px;padding:26px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#fff,#f8fafc);overflow:auto}
+.pro-imported-dieline{display:block;width:min(100%,980px);height:auto;max-height:70vh;overflow:visible}
+.imported-dieline-line{stroke:#64748b;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.imported-dieline-line.role-cut{stroke:#e5484d}
+.imported-dieline-line.role-crease{stroke:#177ddc;stroke-dasharray:6 5}
+.pro-dieline-legend .unknown{display:inline-block;width:18px;height:2px;background:#64748b}
+@media(max-width:700px){.pro-imported-dieline-wrap{min-height:300px;padding:14px}.pro-imported-dieline{max-height:58vh}}
