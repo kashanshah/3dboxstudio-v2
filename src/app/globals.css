@@ -1466,9 +1466,6 @@ body{font-size:var(--type-body)}
 .pro-dieline-surface-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 .pro-dieline-surface-switch button{min-width:78px;height:30px;padding:0 12px;border-radius:6px!important;color:var(--muted);font-size:10px;font-weight:600}
 .pro-dieline-surface-switch button.is-active{background:#fff!important;color:var(--ink);box-shadow:var(--shadow-soft)}
-.pro-2d-toolbar-summary{display:grid;gap:2px;min-width:150px}
-.pro-2d-toolbar-summary>span{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.pro-2d-toolbar-summary>strong{font-size:11px;font-weight:600}
 .pro-dieline-workspace{grid-template-columns:minmax(0,1fr) 280px;width:min(1120px,92vw);gap:24px;align-items:center}
 .pro-dieline-workspace>.pro-dieline-live{grid-column:1;grid-row:1;width:min(760px,100%);max-width:none;justify-self:center;transition:transform .12s ease}
 .pro-dieline-workspace>.pro-dieline-layers-panel{grid-column:2;grid-row:1;min-height:390px;max-height:68vh;width:280px}
@@ -2290,28 +2287,37 @@ body{font-size:var(--type-body)}
   overscroll-behavior:contain;
 }
 
-/* Give the two 2D toolbar rows explicit layouts instead of inheriting a generic
-   column layout for every child div. Leave the Preview/Layers column clear. */
+/* Keep editing actions in one row and stack view controls above the right rail. */
+.pro-canvas{
+  --pro-side-panel-width:320px;
+  --pro-side-panel-right:16px;
+}
+.pro-canvas>.pro-canvas-top{
+  top:16px;left:16px;right:var(--pro-side-panel-right);
+  flex-direction:row-reverse;align-items:flex-start;z-index:18;
+}
+.pro-canvas-top>.pro-mode-switch{
+  width:var(--pro-side-panel-width);flex:none;flex-direction:column;gap:3px;
+}
+.pro-canvas-top>.pro-mode-switch>button{justify-content:center}
+.pro-canvas-top .pro-camera-popover{left:0;right:auto}
 .pro-2d-design-stage>.pro-2d-design-toolbar{
-  top:64px;left:16px;right:calc(var(--pro-side-panel-width,320px) + 32px);
-  width:auto;transform:none;display:grid;grid-template-columns:auto minmax(0,1fr);
-  gap:10px 14px;align-items:center;padding:10px 12px;z-index:18;
+  top:16px;left:16px;right:calc(var(--pro-side-panel-width) + var(--pro-side-panel-right) + 16px);
+  width:auto;transform:none;display:flex;flex-wrap:nowrap;
+  gap:8px;align-items:center;padding:8px;z-index:18;
+  overflow-x:auto;overscroll-behavior:contain;
 }
 .pro-2d-design-toolbar>.pro-dieline-surface-switch{
-  display:flex;flex-direction:row;flex-basis:auto;gap:3px;margin:0;align-items:center;
+  display:flex;flex-direction:row;flex:0 0 auto;gap:3px;margin:0;align-items:center;
 }
-.pro-2d-design-toolbar>.pro-2d-toolbar-summary{
-  display:flex;flex-direction:column;flex-basis:auto;gap:4px;margin:0;min-width:0;
-}
-.pro-2d-design-toolbar>.pro-2d-toolbar-summary>span,
-.pro-2d-design-toolbar>.pro-2d-toolbar-summary>strong{
-  display:block;line-height:1.35;white-space:normal;letter-spacing:normal;
-}
-.pro-2d-design-toolbar>.pro-2d-toolbar-summary>span{font-size:10px;text-transform:none}
-.pro-2d-design-toolbar>.pro-2d-toolbar-summary>strong{font-size:11px;font-weight:600}
 .pro-2d-design-toolbar>.pro-2d-toolbar-actions{
-  grid-column:1/-1;display:flex;flex-direction:row;flex-basis:auto;margin:0;
-  gap:6px;align-items:center;overflow-x:auto;overscroll-behavior:contain;padding-bottom:2px;
+  display:flex;flex-direction:row;flex:0 0 auto;margin:0;
+  gap:6px;align-items:center;
+}
+.pro-2d-side-panels{top:100px}
+.pro-dieline-print-error{top:78px}
+@media(max-width:1100px) and (min-width:761px){
+  .pro-canvas{--pro-side-panel-width:280px;--pro-side-panel-right:10px}
 }
 .pro-2d-toolbar-actions>.pro-secondary-button,
 .pro-2d-toolbar-actions>.pro-apply-artwork-button{
@@ -2330,10 +2336,14 @@ body{font-size:var(--type-body)}
   flex-wrap:wrap;gap:6px 12px;line-height:1.4;pointer-events:none;z-index:18;
 }
 @media(max-width:760px){
-  .pro-2d-design-stage>.pro-2d-design-toolbar{top:52px;left:8px;right:8px;gap:8px 10px;padding:8px}
+  .pro-canvas{--pro-side-panel-width:min(260px,calc(100vw - 16px));--pro-side-panel-right:8px}
+  .pro-canvas>.pro-canvas-top{top:8px;left:8px}
+  .pro-canvas.is-2d-mode>.pro-canvas-top{top:70px}
+  .pro-2d-design-stage>.pro-2d-design-toolbar{top:8px;left:8px;right:8px;gap:8px;padding:8px}
+  .pro-dieline-print-error{top:70px;max-width:calc(100% - 32px)}
   .pro-2d-design-stage>.pro-dieline-legend{bottom:94px;left:8px;right:8px}
   .pro-2d-design-stage>.pro-dieline-legend>strong{display:none}
-  .pro-2d-side-panels{top:180px}
+  .pro-2d-side-panels{top:154px}
 }
 
 
