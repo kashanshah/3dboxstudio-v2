@@ -13,6 +13,7 @@ import type { WorkspaceDesign } from '@/server/projects';
 import './scene-studio.css';
 
 type SceneTool='objects'|'background'|'lighting'|'shadows'|'camera'|'environment'|'export';
+type SceneArea='objects'|'setup';
 
 const tools:Array<{id:SceneTool;label:string;icon:typeof Box}>=[
   {id:'objects',label:'Objects',icon:Layers3},
@@ -21,11 +22,23 @@ const tools:Array<{id:SceneTool;label:string;icon:typeof Box}>=[
   {id:'shadows',label:'Shadows',icon:Moon},
   {id:'camera',label:'Camera',icon:Camera},
   {id:'environment',label:'Environment',icon:Sun},
-  {id:'export',label:'Export',icon:Download},
+  {id:'export',label:'Download',icon:Download},
 ];
+
+const sceneAreas:Array<{id:SceneArea;label:string;helper:string;icon:typeof Box;defaultTool:SceneTool;tools:SceneTool[]}>=[
+  {id:'objects',label:'Objects',helper:'Boxes & props',icon:Layers3,defaultTool:'objects',tools:['objects']},
+  {id:'setup',label:'Scene setup',helper:'Background, light & camera',icon:Sparkles,defaultTool:'background',tools:['background','lighting','shadows','camera','environment']},
+];
+
+function areaForSceneTool(tool:SceneTool):SceneArea|null{
+  if(tool==='export')return null;
+  return sceneAreas.find(area=>area.tools.includes(tool))?.id??null;
+}
 
 export function SceneStudio({designs,workspaceProjectId}:{designs:WorkspaceDesign[];workspaceProjectId?:string|null}){
   const [tool,setTool]=useState<SceneTool>('objects');
+  const activeArea=areaForSceneTool(tool);
+  const activeAreaConfig=sceneAreas.find(area=>area.id===activeArea)??null;
   const [scene,setScene]=useState<SceneProjectState>(()=>createEmptySceneProject());
   const [selectedId,setSelectedId]=useState<string|null>(null);
   const nextObjectIdRef=useRef(0);
@@ -62,22 +75,29 @@ export function SceneStudio({designs,workspaceProjectId}:{designs:WorkspaceDesig
         <span>{scene.objects.length ? `${scene.objects.length} object${scene.objects.length===1?'':'s'}` : 'Empty scene'}</span>
       </div>
       <div className="scene-topbar-actions">
-        <button type="button" className="scene-ghost-button"><Sparkles size={16}/> Render</button>
+        <button type="button" className="scene-primary-action" onClick={()=>setTool('export')}><Download size={16}/> Download</button>
         <AccountButton compact className="scene-account-button"/>
       </div>
     </header>
 
     <section className="scene-workspace">
-      <nav className="scene-toolbar" aria-label="Scene tools">
-        {tools.map(item=>{
-          const Icon=item.icon;
-          return <button key={item.id} type="button" className={tool===item.id?'is-active':''} onClick={()=>setTool(item.id)}>
-            <Icon size={19}/><span>{item.label}</span>
+      <nav className="scene-toolbar scene-task-toolbar" aria-label="Scene tools">
+        {sceneAreas.map(area=>{
+          const Icon=area.icon;
+          return <button key={area.id} type="button" className={activeArea===area.id?'is-active':''} aria-pressed={activeArea===area.id} title={area.helper} onClick={()=>setTool(activeArea===area.id?tool:area.defaultTool)}>
+            <Icon size={20}/><span><strong>{area.label}</strong><small>{area.helper}</small></span>
           </button>;
         })}
       </nav>
 
       <aside className="scene-panel">
+        {activeAreaConfig?.tools.length && activeAreaConfig.tools.length>1 ? <nav className="scene-panel-tabs" aria-label={`${activeAreaConfig.label} tools`}>
+          {activeAreaConfig.tools.map(toolId=>{
+            const item=tools.find(candidate=>candidate.id===toolId)!;
+            const Icon=item.icon;
+            return <button key={toolId} type="button" className={tool===toolId?'is-active':''} aria-pressed={tool===toolId} onClick={()=>setTool(toolId)}><Icon size={15}/><span>{item.label}</span></button>;
+          })}
+        </nav>:null}
         {tool==='objects' && <div className="scene-panel-content">
           <div className="scene-panel-heading"><div><span>Scene</span><h2>Objects</h2></div><button type="button" title="Add object"><CirclePlus size={18}/></button></div>
           <p className="scene-panel-copy">Add packaging from Box Studio now. Props, bottles, jars and imported 3D assets can use the same object system later.</p>
@@ -99,7 +119,7 @@ export function SceneStudio({designs,workspaceProjectId}:{designs:WorkspaceDesig
         {tool==='shadows' && <ToolPlaceholder icon={Moon} title="Shadows" text="Scene shadows are independent from Box Studio's true-color proofing view. Control contact shadows, softness, opacity and floor receiving here."/>}
         {tool==='camera' && <ToolPlaceholder icon={Camera} title="Camera" text="Compose product shots with camera position, focal length, perspective, aspect ratio, depth of field and saved camera angles."/>}
         {tool==='environment' && <ToolPlaceholder icon={Sun} title="Environment" text="Use HDRI/studio environments for reflections and ambient light, with independent intensity and rotation."/>}
-        {tool==='export' && <ToolPlaceholder icon={Download} title="Render & export" text="Render the scene as transparent PNG, JPG/WebP, high-resolution product imagery, animation and reusable share links."/>}
+        {tool==='export' && <ToolPlaceholder icon={Download} title="Download" text="Download scene outputs here as rendering formats become available. Scene composition remains separate from the source box design."/>}
       </aside>
 
       <div className="scene-stage-wrap">
@@ -107,8 +127,8 @@ export function SceneStudio({designs,workspaceProjectId}:{designs:WorkspaceDesig
           <div className="scene-stage-grid"/>
           {!scene.objects.length ? <div className="scene-empty-state">
             <span className="scene-empty-icon"><Box size={34}/></span>
-            <h1>Start with an empty scene</h1>
-            <p>Add a saved box when you are ready, then build the shot around it. Background, lighting and shadows belong to the scene—not to the package artwork.</p>
+            <h1>Create your product shot</h1>
+            <p>Start by adding one of your saved box designs. Then shape the scene with background, lighting and camera controls without changing the source packaging artwork.</p>
             <div><button type="button" onClick={()=>setTool('objects')}><PackagePlus size={17}/> Add a box</button><Link href={workspaceProjectId?`/studio/editor?workspace=${encodeURIComponent(workspaceProjectId)}`:'/studio/editor'}>Create a new box</Link></div>
           </div> : <div className="scene-object-board">
             {scene.objects.map((object,index)=><button
@@ -126,8 +146,8 @@ export function SceneStudio({designs,workspaceProjectId}:{designs:WorkspaceDesig
       </div>
 
       <aside className="scene-properties">
-        <div className="scene-properties-head"><span>Properties</span>{selected && <strong>{selected.name}</strong>}</div>
-        {!selected ? <div className="scene-properties-empty"><Layers3 size={22}/><p>Select an object in the scene to edit its transform and appearance.</p></div> : <div className="scene-properties-content">
+        <div className="scene-properties-head"><span>{selected?'Selected object':'Scene'}</span>{selected ? <strong>{selected.name}</strong> : <strong>Properties</strong>}</div>
+        {!selected ? <div className="scene-properties-empty"><Layers3 size={22}/><p>Select an object to edit its position and appearance. With nothing selected, use Scene setup for background, lighting and camera.</p></div> : <div className="scene-properties-content">
           <label>Name<input value={selected.name} onChange={event=>setScene(current=>({...current,objects:current.objects.map(item=>item.id===selected.id?{...item,name:event.target.value}:item)}))}/></label>
           <TransformGroup title="Position" value={selected.position}/>
           <TransformGroup title="Rotation" value={selected.rotation}/>
