@@ -26,7 +26,8 @@ export default function PrivacyPage() {
       <nav className="legal-toc" aria-label="Privacy policy sections"><b>On this page</b>{grouped.map((group) => <a key={group.id} href={`#${group.id}`}>{group.title}</a>)}</nav>
       <article className="legal-body">{grouped.map((group) => <section id={group.id} key={group.id}><h2>{group.title}</h2>{group.sections.map((section,index) => {
         if(section.type==='p') return <p key={index}>{section.text}</p>;
-        return <ul key={index}>{section.items.map((item)=><li key={item}>{item}</li>)}</ul>;
+        if(section.type==='ul') return <ul key={index}>{section.items.map((item:string)=><li key={item}>{item}</li>)}</ul>;
+        return null;
       })}</section>)}</article>
     </div>
   </ContentPageShell>;
