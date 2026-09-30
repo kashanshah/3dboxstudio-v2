@@ -1,12 +1,14 @@
 export type DielinePrimitive =
   | { kind:'line'; x1:number; y1:number; x2:number; y2:number; role:'cut'|'crease'|'unknown' }
-  | { kind:'polyline'; points:{x:number;y:number}[]; closed:boolean; role:'cut'|'crease'|'unknown' };
+  | { kind:'polyline'; points:{x:number;y:number}[]; closed:boolean; role:'cut'|'crease'|'unknown' }
+  | { kind:'path'; d:string; role:'cut'|'crease'|'unknown' };
 
 export type ParsedDieline = {
   name:string;
   format:'svg'|'dxf';
   width:number;
   height:number;
+  viewBox:string;
   primitives:DielinePrimitive[];
   warnings:string[];
   sourceText:string;
@@ -55,8 +57,12 @@ export function parseSvgDieline(name:string,text:string): ParsedDieline {
     const x=Number(el.getAttribute('x')||0),y=Number(el.getAttribute('y')||0),w=Number(el.getAttribute('width')||0),h=Number(el.getAttribute('height')||0);
     if([x,y,w,h].every(Number.isFinite)&&w>0&&h>0){const pts=[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h}];primitives.push({kind:'polyline',points:pts,closed:true,role:inferRole(el)});allPoints.push(...pts);}
   });
-  const unsupported=svg.querySelectorAll('path,circle,ellipse').length;
-  if(unsupported) warnings.push(`${unsupported} path/circle/ellipse element${unsupported===1?' was':'s were'} not converted in this first importer.`);
+  svg.querySelectorAll('path').forEach(el=>{
+    const d=el.getAttribute('d')?.trim();
+    if(d) primitives.push({kind:'path',d,role:inferRole(el)});
+  });
+  const unsupported=svg.querySelectorAll('circle,ellipse').length;
+  if(unsupported) warnings.push(`${unsupported} circle/ellipse element${unsupported===1?' was':'s were'} not converted in this first importer.`);
 
   let width=Number.parseFloat(svg.getAttribute('width')||'');
   let height=Number.parseFloat(svg.getAttribute('height')||'');
@@ -64,8 +70,9 @@ export function parseSvgDieline(name:string,text:string): ParsedDieline {
   if((!Number.isFinite(width)||!Number.isFinite(height))&&vb.length===4&&vb.every(Number.isFinite)){width=vb[2];height=vb[3];}
   if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0){const b=boundsFromPoints(allPoints);width=Math.max(1,b.maxX-b.minX);height=Math.max(1,b.maxY-b.minY);}
 
-  if(!primitives.length) warnings.push('No supported line, polyline, polygon, or rectangle geometry was found.');
-  return {name,format:'svg',width,height,primitives,warnings,sourceText:text};
+  if(!primitives.length) warnings.push('No supported path, line, polyline, polygon, or rectangle geometry was found.');
+  const viewBox = vb.length===4&&vb.every(Number.isFinite) ? vb.join(' ') : `0 0 ${width} ${height}`;
+  return {name,format:'svg',width,height,viewBox,primitives,warnings,sourceText:text};
 }
 
 export function parseDxfDieline(name:string,text:string): ParsedDieline {
@@ -92,7 +99,7 @@ export function parseDxfDieline(name:string,text:string): ParsedDieline {
   const b=boundsFromPoints(allPoints);
   const width=Math.max(1,b.maxX-b.minX),height=Math.max(1,b.maxY-b.minY);
   if(!primitives.length) warnings.push('No LINE or LWPOLYLINE entities were found. Binary DXF and advanced entities are not supported yet.');
-  return {name,format:'dxf',width,height,primitives,warnings,sourceText:text};
+  return {name,format:'dxf',width,height,viewBox:`${b.minX} ${b.minY} ${width} ${height}`,primitives,warnings,sourceText:text};
 }
 
 export async function parseDielineFile(file:File):Promise<ParsedDieline>{
