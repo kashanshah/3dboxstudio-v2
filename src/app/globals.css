@@ -1407,3 +1407,35 @@ body{font-size:var(--type-body)}
   font-weight:700;
   white-space:nowrap;
 }
+
+
+/* 2D sheet sides, larger right-side layers panel, and dedicated zoom controls */
+.pro-dieline-surface-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.pro-dieline-surface-switch button{min-width:78px;height:30px;padding:0 12px;border-radius:6px!important;color:var(--muted);font-size:10px;font-weight:600}
+.pro-dieline-surface-switch button.is-active{background:#fff!important;color:var(--ink);box-shadow:var(--shadow-soft)}
+.pro-2d-toolbar-summary{display:grid;gap:2px;min-width:150px}
+.pro-2d-toolbar-summary>span{font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.pro-2d-toolbar-summary>strong{font-size:11px;font-weight:600}
+.pro-dieline-workspace{grid-template-columns:minmax(0,1fr) 280px;width:min(1120px,92vw);gap:24px;align-items:center}
+.pro-dieline-workspace>.pro-dieline-live{grid-column:1;grid-row:1;width:min(760px,100%);max-width:none;justify-self:center;transition:transform .12s ease}
+.pro-dieline-workspace>.pro-dieline-layers-panel{grid-column:2;grid-row:1;min-height:390px;max-height:68vh;width:280px}
+.pro-dieline-layers-heading{padding:12px}
+.pro-dieline-layer-list{padding:9px;gap:7px}
+.pro-dieline-layer-list>button{height:58px;grid-template-columns:44px minmax(0,1fr) auto;padding:6px}
+.pro-dieline-layer-list img{width:44px;height:44px}
+.pro-2d-canvas-control-bar{bottom:42px;z-index:10}
+.pro-2d-zoom-value{min-width:48px;text-align:center;font-size:10px;font-weight:600;color:var(--ink)}
+.pro-2d-design-stage{overscroll-behavior:contain}
+.pro-dieline-workspace{overscroll-behavior:contain}
+@media(max-width:1050px){
+  .pro-dieline-workspace{grid-template-columns:minmax(0,1fr) 230px;width:95vw;gap:12px}
+  .pro-dieline-workspace>.pro-dieline-layers-panel{width:230px}
+}
+@media(max-width:760px){
+  .pro-2d-design-toolbar{gap:6px;flex-wrap:wrap}
+  .pro-dieline-surface-switch button{min-width:64px}
+  .pro-dieline-workspace{display:block;width:94vw}
+  .pro-dieline-workspace>.pro-dieline-layers-panel{position:absolute;left:auto;right:8px;bottom:76px;width:min(300px,calc(100vw - 16px));max-height:180px;min-height:0;z-index:12}
+  .pro-dieline-workspace>.pro-dieline-live{width:100%}
+  .pro-2d-canvas-control-bar{bottom:40px}
+}
