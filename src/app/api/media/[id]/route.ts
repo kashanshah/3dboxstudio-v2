@@ -46,6 +46,12 @@ export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>})
       error:'This image is still used by saved designs. Remove or replace it there before deleting it from My Images.',
       usages:result.projects,
     },{status:409});
+    if(result.reason==='storage_error')return NextResponse.json({
+      error:result.storageError==='access_denied'
+        ? 'The image could not be deleted from storage because the server does not have permission to delete this object.'
+        : 'The image record was found, but its stored file could not be deleted. Please try again.',
+      code:result.storageError,
+    },{status:result.storageError==='access_denied'?403:502});
     return NextResponse.json({error:'Image not found.'},{status:404});
   }catch(error){
     console.error('media delete failed',error);
