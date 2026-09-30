@@ -643,7 +643,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setter(current => current.map(layer => layer.id === layerId ? { ...layer, transform } : layer));
   };
 
-  const removeFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
+  const removeFullDielineLayer = useCallback((scope: 'outside' | 'inside', layerId: string) => {
     const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
     const selectedId = scope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
     const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
@@ -657,7 +657,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       return next;
     });
     setMessage('Artwork layer removed');
-  };
+  }, [selectedOutsideLayerId, selectedInsideLayerId]);
 
   const duplicateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
     const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
@@ -698,6 +698,34 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       return next;
     });
   };
+
+  const reorderFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, targetId: string) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => {
+      const from = current.findIndex(layer => layer.id === layerId);
+      const to = current.findIndex(layer => layer.id === targetId);
+      if (from < 0 || to < 0 || from === to) return current;
+      const next = [...current];
+      const [layer] = next.splice(from, 1);
+      next.splice(to, 0, layer);
+      return next;
+    });
+    setMessage('Artwork layer order updated');
+  };
+
+  useEffect(() => {
+    const selectedId = artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
+    if (mode !== 'dieline' || importedDieline || mediaLibraryOpen || !selectedId) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.key !== 'Delete' && event.key !== 'Backspace') || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
+      event.preventDefault();
+      removeFullDielineLayer(artworkScope, selectedId);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, importedDieline, mediaLibraryOpen, removeFullDielineLayer]);
 
   const animateFold = (target: 0 | 100) => {
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
@@ -770,6 +798,11 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
+  const viewSwitch = <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
+    <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> 2D Design</button>
+    <button className={mode === '3d' ? 'is-active' : ''} onClick={() => { setMode('3d'); setFaceAction(null); }}><Boxes size={14} /> 3D Preview</button>
+  </div>;
+
   return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
@@ -792,12 +825,9 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       </aside>
 
       <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''}`} aria-label="Packaging workspace">
-        <div className="pro-canvas-top">
-          <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
-            <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> 2D Design</button>
-            <button className={mode === '3d' ? 'is-active' : ''} onClick={() => { setMode('3d'); setFaceAction(null); }}><Boxes size={14} /> 3D Preview</button>
-          </div>
-          {mode === '3d' && <div className="pro-camera-menu" ref={cameraMenuRef}>
+        {mode === '3d' && <div className="pro-canvas-top">
+          {viewSwitch}
+          <div className="pro-camera-menu" ref={cameraMenuRef}>
             <button
               type="button"
               aria-haspopup="menu"
@@ -825,8 +855,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
                 <b>{item}</b>
               </button>)}
             </div>}
-          </div>}
-        </div>
+          </div>
+        </div>}
 
         <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
           <div className="pro-grid-floor" />
@@ -907,6 +937,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
           onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
           onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
+          onReorderLayer={(layerId, targetId) => reorderFullDielineLayer(artworkScope, layerId, targetId)}
           artworkScope={artworkScope}
           selectedPanel={panel}
           mediaAssets={mediaAssets}
@@ -958,6 +989,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             </>}
           </aside>
           }
+          viewSwitch={viewSwitch}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />
 
@@ -1099,7 +1131,7 @@ function Inspector(props: {
       <div className="pro-structure-current">
         <span>Current box</span>
         <div>
-          <TemplateVisual template={selectedTemplate} compact />
+          <TemplateVisual template={selectedTemplate} dimensions={props.dimensions} compact />
           <div>
             <strong>{selectedTemplate.name}</strong>
             <small>{selectedTemplate.category} · Ready to edit</small>
@@ -1556,6 +1588,7 @@ function DielinePrototype({
   onDuplicateLayer,
   onRemoveLayer,
   onMoveLayer,
+  onReorderLayer,
   artworkScope,
   selectedPanel,
   mediaAssets,
@@ -1572,6 +1605,7 @@ function DielinePrototype({
   onApplyChanges,
   onClearImportedDieline,
   livePreview,
+  viewSwitch,
 }:{
   importedDieline:ParsedDieline|null;
   mapping:DielineMapping|null;
@@ -1584,6 +1618,7 @@ function DielinePrototype({
   onDuplicateLayer:(id:string)=>void;
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
+  onReorderLayer:(id:string,targetId:string)=>void;
   artworkScope:'outside'|'inside';
   selectedPanel:string;
   mediaAssets:LocalMediaAsset[];
@@ -1600,6 +1635,7 @@ function DielinePrototype({
   onApplyChanges:()=>void;
   onClearImportedDieline:()=>void;
   livePreview:React.ReactNode;
+  viewSwitch:React.ReactNode;
 }) {
   const printBoardRef=useRef<HTMLDivElement>(null);
   const [printError,setPrintError]=useState('');
@@ -1615,6 +1651,8 @@ function DielinePrototype({
   const visualHeight = bounds.height * visualScale;
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
+  const draggingLayerId = useRef<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
@@ -1798,7 +1836,7 @@ function DielinePrototype({
       mapping={mapping ?? createInitialDielineMapping(importedDieline)}
       setMapping={setMapping}
       onClear={onClearImportedDieline}
-    /><div className="pro-2d-side-panels pro-2d-preview-only">{livePreview}</div></>;
+    /><div className="pro-2d-side-panels pro-2d-preview-only">{viewSwitch}{livePreview}</div></>;
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
@@ -1861,6 +1899,7 @@ function DielinePrototype({
       }}
     >
       <div className="pro-2d-side-panels">
+        {viewSwitch}
         {livePreview}
       <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
@@ -1874,10 +1913,34 @@ function DielinePrototype({
             return <button
               type="button"
               key={layer.id}
-              className={selected?'is-selected':''}
+              className={`${selected?'is-selected':''}${dropTargetId===layer.id?' is-drop-target':''}`}
               onClick={()=>onSelectLayer(layer.id)}
+              title="Drag to change layer order"
+              draggable
+              onDragStart={event=>{
+                draggingLayerId.current=layer.id;
+                event.dataTransfer.effectAllowed='move';
+                event.dataTransfer.setData('text/plain',layer.id);
+                onSelectLayer(layer.id);
+              }}
+              onDragOver={event=>{
+                if (!draggingLayerId.current || draggingLayerId.current===layer.id) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect='move';
+                if (dropTargetId!==layer.id) setDropTargetId(layer.id);
+              }}
+              onDragLeave={event=>{
+                if (!event.currentTarget.contains(event.relatedTarget as Node)) setDropTargetId(null);
+              }}
+              onDrop={event=>{
+                event.preventDefault();
+                if (draggingLayerId.current && draggingLayerId.current!==layer.id) onReorderLayer(draggingLayerId.current,layer.id);
+                draggingLayerId.current=null;
+                setDropTargetId(null);
+              }}
+              onDragEnd={()=>{draggingLayerId.current=null;setDropTargetId(null);}}
             >
-              <img src={layer.url} alt="" />
+              <img src={layer.url} alt="" draggable={false}/>
               <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
               <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
             </button>;
@@ -1994,7 +2057,20 @@ function DielinePrototype({
   </div>;
 }
 
-function TemplateVisual({template,compact=false}:{template:PackagingTemplateDefinition;compact?:boolean}) {
+function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
+  if (template.id === 'reverse-tuck-carton') {
+    const size = dimensions ?? template.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS;
+    const bounds = reverseTuckBounds(size);
+    return <span className={`pro-template-visual is-dieline ${compact ? 'is-compact' : ''}`} aria-hidden="true">
+      <svg viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="xMidYMid meet">
+        {reverseTuckPanels(size).map(panel => <rect
+          key={panel.id}
+          x={panel.x} y={panel.y} width={panel.width} height={panel.height}
+          className={panel.kind === 'glue' ? 'is-glue' : ''}
+        />)}
+      </svg>
+    </span>;
+  }
   const visualClass = template.family === 'bottle'
     ? 'is-bottle'
     : template.family === 'jar'
