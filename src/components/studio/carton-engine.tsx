@@ -1050,6 +1050,7 @@ function cameraForPreset(preset: string) {
     case 'Left': return { yaw: -Math.PI / 2, pitch: 0 };
     case 'Right': return { yaw: Math.PI / 2, pitch: 0 };
     case 'Top': return { yaw: -0.15, pitch: 1.12 };
+    case 'LegacyPerspective': return { yaw: 0.7568345056, pitch: 0.4180918584 };
     default: return { yaw: -0.55, pitch: 0.28 };
   }
 }
