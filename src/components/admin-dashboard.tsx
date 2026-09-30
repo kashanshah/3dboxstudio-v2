@@ -1,14 +1,30 @@
 'use client';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { DashboardData, DashboardPeriod, CountSeries, Breakdown } from '@/server/admin/dashboard';
 function bytes(value:number){return value>=1073741824?`${(value/1073741824).toFixed(2)} GB`:value>=1048576?`${(value/1048576).toFixed(1)} MB`:`${(value/1024).toFixed(1)} KB`;}
 function Chart({title,data,spine,secondary}:{title:string;data:CountSeries[];spine:DashboardData['spine'];secondary?:{label:string;data:CountSeries[]}}){
  const values=spine.map(day=>Number(data.find(row=>row.date===day.date)?.count??0)),max=Math.max(1,...values);
+ const tipRef=useRef<HTMLDivElement>(null);
+ const [tip,setTip]=useState<{label:string;x:number;y:number}|null>(null);
+ useLayoutEffect(()=>{
+  const node=tipRef.current;
+  if(!tip||!node)return;
+  const {width,height}=node.getBoundingClientRect();
+  const margin=8;
+  const left=Math.max(margin,Math.min(tip.x-width/2,window.innerWidth-width-margin));
+  node.style.left=`${left}px`;
+  node.style.top=`${Math.max(margin,tip.y-height-8)}px`;
+  node.style.visibility='visible';
+ },[tip]);
+ const show=(target:HTMLElement,label:string)=>{const rect=target.getBoundingClientRect();setTip({label,x:rect.left+rect.width/2,y:rect.top});};
  return <section className="admin-panel"><div className="admin-panel-header"><h2>{title}</h2></div><div className="admin-panel-body">
  {secondary&&<p className="admin-muted">Blue: total · Green: {secondary.label}</p>}
- <div className="admin-dashboard-chart" aria-label={title}>{spine.map((day,i)=>{const sub=Number(secondary?.data.find(row=>row.date===day.date)?.count??0);const label=`${day.label}: ${values[i]}${secondary?`, ${secondary.label}: ${sub}`:''}`;return <div key={day.date} className="admin-chart-column" tabIndex={0} aria-label={label} title={label}><span style={{height:`${values[i]/max*100}%`}}/>{secondary&&<i style={{height:`${sub/max*100}%`}}/>}<small>{label}</small></div>;})}</div>
+ <div className="admin-dashboard-chart" aria-label={title} onMouseLeave={()=>setTip(null)}>{spine.map((day,i)=>{const sub=Number(secondary?.data.find(row=>row.date===day.date)?.count??0);const label=`${day.label}: ${values[i]}${secondary?`, ${secondary.label}: ${sub}`:''}`;return <div key={day.date} className="admin-chart-column" tabIndex={0} aria-label={label} onMouseEnter={event=>show(event.currentTarget,label)} onFocus={event=>show(event.currentTarget,label)} onBlur={()=>setTip(null)}><span style={{height:`${values[i]/max*100}%`}}/>{secondary&&<i style={{height:`${sub/max*100}%`}}/>}</div>;})}</div>
  <div className="admin-chart-dates"><span>{spine[0]?.label}</span><span>{spine.at(-1)?.label}</span></div>
  {!values.some(Boolean)&&<p className="admin-muted">No activity in this period.</p>}
+ {tip&&createPortal(<div ref={tipRef} className="admin-chart-tooltip" style={{visibility:'hidden',left:tip.x,top:tip.y}} role="tooltip">{tip.label}</div>,document.querySelector('.admin-root')??document.body)}
  </div></section>;
 }
 function BreakdownPanel({title,rows}:{title:string;rows:Breakdown[]}){return <section className="admin-panel"><div className="admin-panel-header"><h2>{title} (30d)</h2></div><div className="admin-panel-body">{rows.length?<ul className="admin-breakdown">{rows.map(row=><li key={row.label}><span>{row.label}</span><strong>{Number(row.count).toLocaleString()}</strong></li>)}</ul>:<p className="admin-muted">No signups in the last 30 days.</p>}</div></section>;}
