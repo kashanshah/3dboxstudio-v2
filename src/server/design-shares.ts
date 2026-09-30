@@ -72,12 +72,12 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
  const rows=countView
   ? await sql`
       UPDATE design_shares SET view_count=view_count+1
-      WHERE id=${id} AND revoked_at IS NULL
+      WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())
       RETURNING id,name,studio_state,legacy_source,updated_at
     `
   : await sql`
       SELECT id,name,studio_state,legacy_source,updated_at
-      FROM design_shares WHERE id=${id} AND revoked_at IS NULL LIMIT 1
+      FROM design_shares WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) LIMIT 1
     `;
  const row=(rows as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[])[0];
  if(!row||!validProjectState(row.studio_state))return null;
@@ -90,7 +90,7 @@ export async function getPreviewShare(previewToken:string):Promise<PublicShare|n
  const rows=await getSql()`
   SELECT id,name,studio_state,legacy_source,updated_at
   FROM design_shares
-  WHERE preview_token=${previewToken} AND revoked_at IS NULL
+  WHERE preview_token=${previewToken} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())
   LIMIT 1
  ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
  const row=rows[0];
@@ -103,7 +103,7 @@ export async function getMigratedShareAsset(id:string,faceId:string){
  await ensureV2Schema();
  const rows=await getSql()`
   SELECT legacy_assets FROM design_shares
-  WHERE id=${id} AND revoked_at IS NULL AND legacy_source=TRUE
+  WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) AND legacy_source=TRUE
   LIMIT 1
  ` as {legacy_assets:Record<string,{storageKey?:string;mime?:string;name?:string}>}[];
  const entry=rows[0]?.legacy_assets?.[faceId];
