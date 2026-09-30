@@ -44,6 +44,9 @@ function enrichPayload(payloadValue){
   if(key)item.v2StorageKey=mapStorageKey(key);
   return [faceId,item];
  }));
+ if(typeof payload.og_image_key==='string'&&payload.og_image_key){
+  payload.v2_og_image_key=mapStorageKey(payload.og_image_key);
+ }
  return payload;
 }
 
