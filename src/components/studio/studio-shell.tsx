@@ -534,7 +534,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const hasArtwork = outsideDielineLayers.length > 0 || insideDielineLayers.length > 0 || Object.keys(artworkByPanel).length > 0;
-  const onboardingStep = hasArtwork ? 3 : selectedTemplateId ? 2 : 1;
+  const onboardingStep = hasArtwork ? 3 : mediaLibraryOpen || tool === 'artwork' ? 2 : 1;
   const activeArea = areaForTool(tool);
   const activeAreaConfig = studioAreas.find(area => area.id === activeArea) ?? null;
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
