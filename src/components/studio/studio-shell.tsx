@@ -1524,7 +1524,7 @@ function MediaLibraryModal(props: {
             <ImageIcon size={30}/>
             <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
             <p>{props.assets.length ? 'Try another search.' : 'Your image will appear here immediately and can be positioned on the dieline.'}</p>
-            {!props.assets.length && <button className="pro-primary" onClick={props.onUpload}>Choose image</button>}
+            {!props.assets.length && <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Choose image</button>}
           </div> : <div className="pro-media-grid pro-media-unified-grid">
             {filteredAssets.map(asset => {
               const used = Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === asset.id).length;
@@ -1608,7 +1608,7 @@ function MediaLibraryModal(props: {
             <ImageIcon size={32}/>
             <h3>Choose or upload artwork</h3>
             <p>Everything happens here. Select an existing image or upload a new one, then set its initial size before placing it on the dieline.</p>
-            <button className="pro-primary" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
+            <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>}
         </aside>
       </div>
