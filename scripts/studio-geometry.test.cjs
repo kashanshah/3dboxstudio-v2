@@ -16,7 +16,7 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
 };
 const {buildMeshes}=require('../src/components/studio/carton-engine.tsx');
 const {reverseTuckPanels,reverseTuckBounds,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
-const {dielineRasterSize}=require('../src/lib/packaging/full-dieline-artwork.ts');
+const {dielineRasterSize,panelRasterSize,sheetTransformToPhysical}=require('../src/lib/packaging/full-dieline-artwork.ts');
 const fixtures=[
   {width:47.5*25.4,height:22.5*25.4,depth:25.5*25.4,thickness:.5},
   {width:20,height:40,depth:10,thickness:.5},
@@ -65,5 +65,48 @@ test('raster canvas keeps the sheet aspect ratio for unusually wide and tall net
     const bounds=reverseTuckBounds(dimensions),size=dielineRasterSize(bounds);
     assert.equal(Math.max(size.width,size.height),1800);
     assert.ok(Math.abs(size.width/bounds.width-size.height/bounds.height)<=1/Math.min(bounds.width,bounds.height));
+  }
+});
+
+
+test('finished dimensions define exact 2D panel sizes used for 3D texture crops',()=>{
+  for(const dimensions of fixtures){
+    const panels=reverseTuckPanels(dimensions);
+    const front=panels.find(panel=>panel.id==='front');
+    const left=panels.find(panel=>panel.id==='left');
+    const right=panels.find(panel=>panel.id==='right');
+    const top=panels.find(panel=>panel.id==='top');
+    const bottom=panels.find(panel=>panel.id==='bottom');
+
+    near(front.width,dimensions.width);
+    near(front.height,dimensions.height);
+    near(left.width,dimensions.depth);
+    near(left.height,dimensions.height);
+    near(right.width,dimensions.depth);
+    near(right.height,dimensions.height);
+    near(top.width,dimensions.width);
+    near(top.height,dimensions.depth);
+    near(bottom.width,dimensions.width);
+    near(bottom.height,dimensions.depth);
+
+    for(const panel of [front,left,right,top,bottom]){
+      const raster=panelRasterSize(panel);
+      assert.ok(
+        Math.abs(raster.width/raster.height-panel.width/panel.height) <= 1/Math.min(raster.width,raster.height),
+        `Raster aspect drifted for ${panel.id}`,
+      );
+    }
+  }
+});
+
+test('sheet artwork transforms convert to physical millimetres before panel cropping',()=>{
+  for(const dimensions of fixtures){
+    const bounds=reverseTuckBounds(dimensions);
+    const physical=sheetTransformToPhysical({x:25,y:60,width:30,height:40,rotation:17},bounds);
+    near(physical.centerX,bounds.width*.25);
+    near(physical.centerY,bounds.height*.60);
+    near(physical.width,bounds.width*.30);
+    near(physical.height,bounds.height*.40);
+    near(physical.rotation,17);
   }
 });
