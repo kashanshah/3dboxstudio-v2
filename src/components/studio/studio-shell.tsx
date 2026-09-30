@@ -445,7 +445,7 @@ export function StudioShell() {
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden multiple type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -598,15 +598,18 @@ export function StudioShell() {
           mapping={dielineMapping}
           setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
-          layers={fullDielineLayers}
-          selectedLayerId={selectedFullDielineLayerId}
-          onSelectLayer={setSelectedFullDielineLayerId}
-          onUpdateLayer={updateFullDielineLayer}
-          onDuplicateLayer={duplicateFullDielineLayer}
-          onRemoveLayer={removeFullDielineLayer}
-          onMoveLayer={moveFullDielineLayer}
+          layers={artworkScope === 'inside' ? insideDielineLayers : outsideDielineLayers}
+          selectedLayerId={artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId}
+          onSelectLayer={artworkScope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId}
+          onUpdateLayer={(layerId, transform) => updateFullDielineLayer(artworkScope, layerId, transform)}
+          onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
+          onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
+          onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
           artworkScope={artworkScope}
+          onArtworkScopeChange={setArtworkScope}
           dimensions={dimensions}
+          zoom={dielineZoom}
+          onZoomChange={setDielineZoom}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />}
@@ -1467,7 +1470,7 @@ function MediaLibraryModal(props: {
             }}
           >
             <Upload size={20}/>
-            <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG or WebP · any image dimensions</span></div>
+            <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG, WebP or SVG · any image dimensions</span></div>
             <button type="button" onClick={props.onUpload}>Browse</button>
           </div>
 
