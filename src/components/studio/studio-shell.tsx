@@ -831,13 +831,9 @@ function DielinePrototype({
   const bounds = reverseTuckBounds(dimensions);
 
   if (importedDieline) {
-    const currentMapping = mapping ?? createInitialDielineMapping(importedDieline);
-    const progress = mappingProgress(importedDieline, currentMapping);
-    const candidates = panelCandidates(importedDieline);
-    const [selectedPrimitive, setSelectedPrimitive] = [null, () => {}] as const;
     return <ImportedDielineMapper
       dieline={importedDieline}
-      mapping={currentMapping}
+      mapping={mapping ?? createInitialDielineMapping(importedDieline)}
       setMapping={setMapping}
       onClear={onClearImportedDieline}
     />;
