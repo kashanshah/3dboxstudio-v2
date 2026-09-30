@@ -2978,3 +2978,23 @@ body{font-size:var(--type-body)}
     max-height:calc(100% - 131px);
   }
 }
+
+
+/* Post-launch Scene placeholder inside Box Studio. */
+.pro-coming-soon-panel{
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:linear-gradient(180deg,#fff,color-mix(in srgb,var(--panel) 56%,#fff));
+}
+.pro-coming-soon-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:28px;
+  padding:0 9px;
+  margin-bottom:10px;
+  border-radius:999px;
+  background:var(--panel);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+}
