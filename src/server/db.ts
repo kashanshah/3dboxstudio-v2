@@ -148,6 +148,7 @@ export async function ensureV2Schema(): Promise<void> {
         preview_token TEXT,
         legacy_assets JSONB NOT NULL DEFAULT '{}'::jsonb,
         legacy_source BOOLEAN NOT NULL DEFAULT FALSE,
+        expires_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         revoked_at TIMESTAMPTZ,
@@ -158,6 +159,7 @@ export async function ensureV2Schema(): Promise<void> {
     await db`ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS preview_token TEXT`;
     await db`ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS legacy_assets JSONB NOT NULL DEFAULT '{}'::jsonb`;
     await db`ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS legacy_source BOOLEAN NOT NULL DEFAULT FALSE`;
+    await db`ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`;
     await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_preview_token ON design_shares(preview_token) WHERE preview_token IS NOT NULL`;
     await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_project_active ON design_shares(project_id) WHERE project_id IS NOT NULL AND revoked_at IS NULL`;
     await db`CREATE INDEX IF NOT EXISTS idx_design_shares_user_updated ON design_shares(user_id,updated_at DESC)`;
