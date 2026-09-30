@@ -2197,3 +2197,75 @@ body{font-size:var(--type-body)}
   stroke:currentColor!important;
   margin:0!important;
 }
+
+
+/* Real upload progress for persistent My Images uploads. */
+.pro-media-upload-progress{
+  padding:12px 18px 13px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#f8fbff,#fff);
+}
+.pro-media-upload-progress-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:8px;
+}
+.pro-media-upload-progress-head>div:first-child{
+  min-width:0;
+  display:grid;
+  gap:2px;
+}
+.pro-media-upload-progress-head strong{
+  font-size:12px;
+  font-weight:600;
+  color:var(--ink);
+}
+.pro-media-upload-progress-head span{
+  font-size:10px;
+  color:var(--muted);
+}
+.pro-media-upload-progress-head>div:first-child span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  max-width:54vw;
+}
+.pro-media-upload-progress-track{
+  height:6px;
+  overflow:hidden;
+  border-radius:999px;
+  background:var(--panel);
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+.pro-media-upload-progress-track>span{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:var(--accent);
+  transition:width .16s ease;
+}
+.pro-media-upload-progress.is-processing .pro-media-upload-progress-track>span{
+  animation:pro-media-processing 1.1s ease-in-out infinite alternate;
+}
+.pro-media-upload-progress.is-complete .pro-media-upload-progress-track>span{
+  background:var(--success);
+}
+@keyframes pro-media-processing{
+  from{opacity:.62}
+  to{opacity:1}
+}
+.pro-media-modal button:disabled{
+  cursor:not-allowed;
+}
+.pro-media-browser-toolbar .pro-secondary-button:disabled,
+.pro-media-inline-dropzone button:disabled,
+.pro-media-empty-action:disabled{
+  opacity:.55;
+}
+@media(max-width:600px){
+  .pro-media-upload-progress{padding:10px 12px 11px}
+  .pro-media-upload-progress-head{gap:10px}
+  .pro-media-upload-progress-head>div:first-child span{max-width:58vw}
+}
