@@ -19,7 +19,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
       status:200,
       headers:{
         'Content-Type':media.row.mime_type,
-        'Content-Length':String(media.row.byte_size),
+        'Content-Length':String(media.bytes.byteLength),
         'Cache-Control':'private, max-age=3600, must-revalidate',
         'Content-Disposition':`inline; filename="${media.row.name.replace(/["\\]/g,'_')}"`,
         'X-Content-Type-Options':'nosniff',

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
-import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
+import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
@@ -15,7 +15,8 @@ import {
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
-import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { getTemplateGeometry } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
@@ -45,6 +46,8 @@ type StudioHistorySnapshot = {
   outsideCustomColor:string;
   insideCustomColor:string;
   opening:number;
+  openingMode:LegacyOpeningMode;
+  splitTopHingeSide:'side_a'|'side_b';
   dimensions:CartonDimensions;
   measurementUnit:MeasurementUnit;
   artworkByPanel:ArtworkByPanel;
@@ -131,7 +134,7 @@ const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
 export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string} = {}) {
   const initial = initialProject?.state;
-  const [projectId,setProjectId] = useState(initialProject?.id);
+  const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
   const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
   const [workspaceProjectId,setWorkspaceProjectId] = useState(initialWorkspaceProjectId ?? initialProject?.workspaceProjectId ?? null);
@@ -153,8 +156,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
-  const [family, setFamily] = useState('Reverse Tuck End Carton');
-  const [selectedTemplateId, setSelectedTemplateId] = useState('reverse-tuck-carton');
+  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId) ?? PACKAGING_TEMPLATES.find(template => template.id === 'reverse-tuck-carton')!;
+  const [family, setFamily] = useState(initialTemplate.name);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initial?.templateId ?? 'reverse-tuck-carton');
   const [templateSearch, setTemplateSearch] = useState('');
   const [templateCategory, setTemplateCategory] = useState('All');
   const [panel, setPanel] = useState('Front');
@@ -167,6 +171,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpeningValue] = useState(initial?.opening ?? 100);
+  const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? 'closed');
+  const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
   const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? DEFAULT_CARTON_DIMENSIONS);
@@ -219,6 +225,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     outsideCustomColor,
     insideCustomColor,
     opening,
+    openingMode,
+    splitTopHingeSide,
     dimensions,
     measurementUnit,
     artworkByPanel,
@@ -233,6 +241,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     outsideCustomColor,
     insideCustomColor,
     opening,
+    openingMode,
+    splitTopHingeSide,
     dimensions,
     measurementUnit,
     artworkByPanel,
@@ -269,6 +279,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setOutsideCustomColor(snapshot.outsideCustomColor);
     setInsideCustomColor(snapshot.insideCustomColor);
     setOpeningValue(snapshot.opening);
+    setOpeningMode(snapshot.openingMode);
+    setSplitTopHingeSide(snapshot.splitTopHingeSide);
     setDimensions(snapshot.dimensions);
     setMeasurementUnit(snapshot.measurementUnit);
     setArtworkByPanel(snapshot.artworkByPanel);
@@ -624,6 +636,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     }
     setSelectedTemplateId(template.id);
     setFamily(template.name);
+    if (template.id === 'split-top-box') { setOpeningMode('top_split_meet_center'); setSplitTopHingeSide('side_a'); setOpeningValue(35); }
+    else if (template.id === 'base-box' && openingMode === 'top_split_meet_center') { setOpeningMode('closed'); setOpeningValue(0); }
     if (template.defaultDimensions) setDimensions(template.defaultDimensions);
     setMessage(`${template.name} selected`);
   };
@@ -651,7 +665,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const bounds = reverseTuckBounds(dimensions);
+      const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
       const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
       const layer: FullDielineArtworkLayer = {
         id: layerId,
@@ -681,13 +695,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     }
 
     const parsed = parseArtworkTarget(targetPanel);
-    const face=reverseTuckPanels(dimensions).find(item=>item.label.toLowerCase()===parsed.panel.toLowerCase());
+    const face=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels.find(item=>item.label.toLowerCase()===parsed.panel.toLowerCase());
     if (!face) {
       setMessage('Could not find that box side in the 2D layout');
       return;
     }
 
-    const bounds = reverseTuckBounds(dimensions);
+    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
     const faceTransform = createFullDielineTransform(
       imageAspect,
@@ -853,7 +867,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
         return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
       });
 
-      const bounds=reverseTuckBounds(dimensions);
+      const bounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
       const created=uploaded.map((asset,index)=>{
         const imageAspect=asset.width&&asset.height?asset.width/asset.height:1;
         const base=createFullDielineTransform(imageAspect,bounds.width/bounds.height,35,0);
@@ -912,10 +926,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     if (!artwork) return null;
 
     const parsed = parseArtworkTarget(targetPanel);
-    const face = reverseTuckPanels(dimensions).find(item => item.label.toLowerCase() === parsed.panel.toLowerCase());
+    const face = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels.find(item => item.label.toLowerCase() === parsed.panel.toLowerCase());
     if (!face) return null;
 
-    const bounds = reverseTuckBounds(dimensions);
+    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     const asset = mediaAssets.find(item => item.id === artwork.assetId);
     const imageAspect = asset?.width && asset.height ? asset.width / asset.height : 1;
 
@@ -1141,7 +1155,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
       for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
       const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -1200,9 +1214,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     }
   }, [
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
-    mediaAssets, selectedTemplateId, dimensions, material, opening, measurementUnit,
+    mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId, workspaceProjectId,
+    projectName, projectRevision, projectId, workspaceProjectId, initial?.legacySourceId,
   ]);
 
   useEffect(() => {
@@ -1404,7 +1418,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
           <CartonEngine
             ref={engineRef}
             dimensions={dimensions}
+            templateId={selectedTemplateId}
             opening={opening}
+            openingMode={openingMode}
+            splitTopHingeSide={splitTopHingeSide}
             material={material}
             outsideColor={outsideColorMode === 'custom' ? outsideCustomColor : null}
             insideColor={insideColorMode === 'custom' ? insideCustomColor : null}
@@ -1420,7 +1437,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{selectedTemplateId==='reverse-tuck-carton'?`Assembled ${Math.round(opening)}%`:`Open ${Math.round(opening)}%`}</span></div>
 
           {faceAction && <div
             ref={faceActionRef}
@@ -1485,6 +1502,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
           onUpdatePanelArtwork={(key,transform)=>setArtworkByPanel(current=>current[key]?{...current,[key]:{...current[key],transform}}:current)}
           onArtworkScopeChange={setArtworkScope}
           dimensions={dimensions}
+          selectedTemplateId={selectedTemplateId}
+          openingMode={openingMode}
+          splitTopHingeSide={splitTopHingeSide}
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
           panEnabled={panEnabled || temporarySpacePanActive}
@@ -1503,7 +1523,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
             <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
-              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} opening={opening} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
+              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
                 <div className="pro-artwork-preview-fold-head">
                   <span>Open / close</span>
@@ -1618,7 +1638,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1722,6 +1742,8 @@ function Inspector(props: {
   outsideCustomColor:string; setOutsideCustomColor:(v:string)=>void;
   insideCustomColor:string; setInsideCustomColor:(v:string)=>void;
   opening:number; setOpening:(v:number)=>void;
+  openingMode:LegacyOpeningMode; setOpeningMode:(v:LegacyOpeningMode)=>void;
+  splitTopHingeSide:'side_a'|'side_b'; setSplitTopHingeSide:(v:'side_a'|'side_b')=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   measurementUnit:MeasurementUnit; setMeasurementUnit:(unit:MeasurementUnit)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
@@ -1998,42 +2020,68 @@ function Inspector(props: {
   </div>;
 
   if (tool === 'opening') {
-    const stage = props.opening <= 4
-      ? 'Flat dieline'
-      : props.opening < 52
-        ? 'Raising the walls'
-        : props.opening < 68
-          ? 'Wrapping the back'
-          : props.opening < 84
-            ? 'Closing the bottom'
-            : props.opening < 99
-              ? 'Closing the top'
-              : 'Assembled box';
-
-    return <div className="pro-inspector-content">
-      <PanelIntro title="Open or close your box" text="Drag the slider to move smoothly between the fully open structure and the finished closed package." />
-      <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading">
-          <div><span>Open / close</span><strong>{stage}</strong></div>
-          <b>{Math.round(props.opening)}%</b>
+    const isFormation=props.selectedTemplateId==='reverse-tuck-carton';
+    const modeLabels:Record<LegacyOpeningMode,string>={
+      closed:'Closed / fixed',
+      lid_from_back:'Top lid · back hinge',
+      lid_from_front:'Top lid · front hinge',
+      lid_from_left:'Top lid · left hinge',
+      lid_from_right:'Top lid · right hinge',
+      top_split_meet_center:'Split top',
+      door_left:'Left side door',
+      door_right:'Right side door',
+      double_doors:'Double side doors',
+    };
+    if(isFormation){
+      const stage = props.opening <= 4
+        ? 'Flat dieline'
+        : props.opening < 52
+          ? 'Raising the walls'
+          : props.opening < 68
+            ? 'Wrapping the back'
+            : props.opening < 84
+              ? 'Closing the bottom'
+              : props.opening < 99
+                ? 'Closing the top'
+                : 'Assembled box';
+      return <div className="pro-inspector-content">
+        <PanelIntro title="Form your box" text="Move between the flat dieline and the fully assembled reverse-tuck carton." />
+        <div className="pro-card-section pro-fold-card">
+          <div className="pro-fold-heading"><div><span>Formation</span><strong>{stage}</strong></div><b>{Math.round(props.opening)}%</b></div>
+          <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
+          <div className="pro-fold-endpoints"><span>Flat</span><span>Assembled</span></div>
+          <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Flatten box' : 'Assemble box'}</button>
         </div>
-        <input
-          className="pro-range pro-fold-range"
-          aria-label="Open or close box"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          value={Math.round(props.opening)}
-          onChange={e=>props.setOpening(Number(e.target.value))}
-        />
-        <div className="pro-fold-endpoints"><span>Open</span><span>Closed</span></div>
-        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}>
-          <CirclePlay size={20}/>
-          {props.opening >= 50 ? 'Open box' : 'Close box'}
-        </button>
+        <div className="pro-callout"><Sparkles size={16}/><span>Formation is different from opening a finished package.</span></div>
+      </div>;
+    }
+
+    const isSplit=props.selectedTemplateId==='split-top-box';
+    const disabled=props.openingMode==='closed'&&!isSplit;
+    return <div className="pro-inspector-content">
+      <PanelIntro title="Open or close your box" text="Choose which physical face is hinged, then control how far the assembled box is opened." />
+      <div className="pro-card-section">
+        {isSplit ? <label className="pro-field"><span>Split direction</span><select value={props.splitTopHingeSide} onChange={e=>props.setSplitTopHingeSide(e.target.value as 'side_a'|'side_b')}>
+          <option value="side_a">Left + right top panels</option>
+          <option value="side_b">Front + back top panels</option>
+        </select></label> : <label className="pro-field"><span>Opening mechanism</span><select value={props.openingMode} onChange={e=>{const mode=e.target.value as LegacyOpeningMode;props.setOpeningMode(mode);if(mode==='closed')props.setOpening(0);else if(props.opening===0)props.setOpening(35);}}>
+          <option value="closed">Closed / fixed</option>
+          <option value="lid_from_back">Top lid · back hinge</option>
+          <option value="lid_from_front">Top lid · front hinge</option>
+          <option value="lid_from_left">Top lid · left hinge</option>
+          <option value="lid_from_right">Top lid · right hinge</option>
+          <option value="door_left">Left side door</option>
+          <option value="door_right">Right side door</option>
+          <option value="double_doors">Double side doors</option>
+        </select></label>}
       </div>
-      <div className="pro-callout"><Sparkles size={16}/><span>Artwork stays attached to each surface throughout the fold.</span></div>
+      <div className="pro-card-section pro-fold-card">
+        <div className="pro-fold-heading"><div><span>Open / close</span><strong>{isSplit?'Split top':modeLabels[props.openingMode]}</strong></div><b>{Math.round(props.opening)}%</b></div>
+        <input className="pro-range pro-fold-range" aria-label="Open or close box" type="range" min="0" max="100" step="1" disabled={disabled} value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
+        <div className="pro-fold-endpoints"><span>Closed</span><span>Open</span></div>
+        <button className="pro-fold-play" disabled={disabled} onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Close box' : 'Open box'}</button>
+      </div>
+      <div className="pro-callout"><Sparkles size={16}/><span>The dieline only changes when panel topology changes. Hinge direction stays an option of the same Base Box.</span></div>
     </div>;
   }
 
@@ -2219,6 +2267,9 @@ function DielinePrototype({
   onUpdatePanelArtwork,
   onArtworkScopeChange,
   dimensions,
+  selectedTemplateId,
+  openingMode,
+  splitTopHingeSide,
   zoom,
   onZoomChange,
   panEnabled,
@@ -2251,6 +2302,9 @@ function DielinePrototype({
   onUpdatePanelArtwork:(key:string,transform:FullDielineTransform)=>void;
   onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
+  selectedTemplateId:string;
+  openingMode:LegacyOpeningMode;
+  splitTopHingeSide:'side_a'|'side_b';
   zoom:number;
   onZoomChange:React.Dispatch<React.SetStateAction<number>>;
   panEnabled:boolean;
@@ -2267,8 +2321,8 @@ function DielinePrototype({
   const printBoardRef=useRef<HTMLDivElement>(null);
   const [printError,setPrintError]=useState('');
   const [printing,setPrinting]=useState(false);
-  const cartonPanels = reverseTuckPanels(dimensions);
-  const bounds = reverseTuckBounds(dimensions);
+  const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels;
+  const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
@@ -2283,13 +2337,13 @@ function DielinePrototype({
     lastPdfExportRequest.current=pdfExportRequest;
     const board=printBoardRef.current;
     if(!board)return;
-    const exportBounds=reverseTuckBounds(dimensions);
+    const exportBounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     setPrintError('');
     setPrinting(true);
     void printDielineLayout(board,exportBounds,layers)
       .catch(error=>setPrintError(error instanceof Error?error.message:'Could not prepare the PDF layout.'))
       .finally(()=>setPrinting(false));
-  },[pdfExportRequest,dimensions,layers]);
+  },[pdfExportRequest,dimensions,layers,selectedTemplateId,openingMode,splitTopHingeSide]);
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const draggingLayerId = useRef<string | null>(null);
@@ -2676,7 +2730,7 @@ function DielinePrototype({
         })}
 
         {cartonPanels.map(item => {
-          const panelName=item.label[0]+item.label.slice(1).toLowerCase();
+          const panelName=item.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
           return <div

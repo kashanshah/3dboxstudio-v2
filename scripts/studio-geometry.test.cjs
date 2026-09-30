@@ -244,3 +244,64 @@ test('3D screen-space projection offset translates NDC without changing depth',(
     nearProjection(shifted[i+3],base[i+3]);
   }
 });
+
+
+const {baseBoxPanels,splitTopBoxPanels,baseBoxBounds,splitTopBoxBounds}=require('../src/lib/packaging/box-structures.ts');
+
+test('base box and split-top nets preserve finished face dimensions',()=>{
+  const dimensions={width:240,height:100,depth:160,thickness:.5};
+  const base=baseBoxPanels(dimensions);
+  const splitA=splitTopBoxPanels(dimensions,'side_a');
+  const splitB=splitTopBoxPanels(dimensions,'side_b');
+  assert.equal(base.find(panel=>panel.id==='front').width,240);
+  assert.equal(base.find(panel=>panel.id==='left').width,160);
+  assert.equal(base.find(panel=>panel.id==='top').height,160);
+  assert.equal(splitA.filter(panel=>panel.id.startsWith('top')).length,2);
+  assert.equal(splitA.find(panel=>panel.id==='topLeft').width,160);
+  assert.equal(splitA.find(panel=>panel.id==='topLeft').height,120);
+  assert.equal(splitA.find(panel=>panel.id==='topRight').width,160);
+  assert.equal(splitA.find(panel=>panel.id==='topRight').height,120);
+  assert.equal(splitB.find(panel=>panel.id==='topLeft').width,240);
+  assert.equal(splitB.find(panel=>panel.id==='topLeft').height,80);
+  assert.equal(splitB.find(panel=>panel.id==='topRight').width,240);
+  assert.equal(splitB.find(panel=>panel.id==='topRight').height,80);
+  assert.ok(baseBoxBounds(dimensions).width>dimensions.width);
+  assert.ok(splitTopBoxBounds(dimensions,'side_a').height>dimensions.height);
+});
+
+test('legacy base-box opening modes articulate existing faces without changing topology',()=>{
+  const dimensions={width:240,height:100,depth:160,thickness:.5};
+  const closed=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
+  const open=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
+  assert.deepEqual(new Set(closed.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel)),new Set(['Front','Back','Left','Right','Top','Bottom']));
+  const closedTop=closed.find(mesh=>mesh.panel==='Top').pickCorners;
+  const openTop=open.find(mesh=>mesh.panel==='Top').pickCorners;
+  assert.ok(openTop.some((point,index)=>Math.abs(point[1]-closedTop[index][1])>1),'hinged lid must move in 3D');
+  for(const mode of ['door_left','door_right','double_doors']){
+    const meshes=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:mode});
+    assert.equal(meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length,6);
+  }
+});
+
+test('split-top template always exposes two separately textured top panels',()=>{
+  const dimensions={width:400,height:300,depth:300,thickness:.5};
+  for(const splitTopHingeSide of ['side_a','side_b']){
+    const meshes=buildMeshes(dimensions,35,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',openingMode:'top_split_meet_center',splitTopHingeSide});
+    const exterior=meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel);
+    assert.ok(exterior.includes('Top Left'));
+    assert.ok(exterior.includes('Top Right'));
+    assert.ok(!exterior.includes('Top'));
+  }
+});
+
+
+test('base-box lid variants attach the top face to the matching body panel',()=>{
+ const d={width:240,height:100,depth:160,thickness:.5};
+ const modes=[['lid_from_front','front'],['lid_from_back','back'],['lid_from_left','left'],['lid_from_right','right']];
+ for(const [mode,bodyId] of modes){
+  const panels=baseBoxPanels(d,mode),body=panels.find(panel=>panel.id===bodyId),top=panels.find(panel=>panel.id==='top');
+  assert.equal(top.x,body.x,mode+' top x should align to hinge wall');
+  assert.equal(top.width,body.width,mode+' top hinge edge should equal wall top edge');
+  assert.equal(top.y+top.height,body.y,mode+' top should touch the selected wall');
+ }
+});
