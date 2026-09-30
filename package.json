@@ -18,7 +18,8 @@
     "sync:legacy-assets": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-asset-sync.mjs",
     "test:geometry": "node --test scripts/studio-geometry.test.cjs",
     "migrate:all": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-all.mjs",
-    "test:artwork-browser": "node scripts/artwork-crop.browser.cjs"
+    "test:artwork-browser": "node scripts/artwork-crop.browser.cjs",
+    "audit:legacy-designs": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-design-audit.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
