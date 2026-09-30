@@ -1129,7 +1129,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false) => {
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
-    if (saveInFlightRef.current) return;
+    if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
     setSaving(true);
     setSaveFailed(false);
@@ -1181,7 +1181,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       }
       setSaveFailed(false);
       setSaveConflictOpen(false);
-      setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?'Copy saved — you are now editing the copy':'Design saved');
+      setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
+      return true;
     } catch(error) {
       setSaveFailed(true);
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
@@ -1191,6 +1192,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
       }else{
         setMessage(`Save failed — NOT SAVED. ${error instanceof Error?error.message:'Could not save your design.'}`);
       }
+      return false;
     }
     finally {
       saveInFlightRef.current = false;
@@ -1239,7 +1241,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
     try{
       if(projectTransferMode==='move'){
         const saved=await saveDesign(false);
-        if(saveFailed&&!saved)return;
+        if(!saved)throw new Error('Save the latest changes before moving this design.');
         const response=await fetch(`/api/projects/${projectId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspaceProjectId:transferProjectId})});
         const result=await response.json().catch(()=>({error:'Could not move this design.'}));
         if(!response.ok)throw new Error(result.error||'Could not move this design.');
@@ -1247,7 +1249,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
         setProjectTransferMode(null);
         setMessage(`Moved to ${projectOptions.find(project=>project.id===transferProjectId)?.name??'project'}`);
       }else{
-        await saveDesign(true,false,transferProjectId,true);
+        const copied=await saveDesign(true,false,transferProjectId,true);
+        if(!copied)throw new Error('Could not create the copy.');
         setProjectTransferMode(null);
         setMessage(`Copy created in ${projectOptions.find(project=>project.id===transferProjectId)?.name??'project'}`);
       }
