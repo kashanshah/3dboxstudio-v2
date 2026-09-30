@@ -146,6 +146,11 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [deleteModalOpen,setDeleteModalOpen] = useState(false);
   const [deleting,setDeleting] = useState(false);
   const [saveConflictOpen,setSaveConflictOpen] = useState(false);
+  const [shareOpen,setShareOpen] = useState(false);
+  const [shareBusy,setShareBusy] = useState(false);
+  const [shareUrl,setShareUrl] = useState('');
+  const [shareId,setShareId] = useState('');
+  const [shareError,setShareError] = useState('');
   const [projectTransferMode,setProjectTransferMode] = useState<'move'|'copy'|null>(null);
   const [projectOptions,setProjectOptions] = useState<Array<{id:string;name:string;isDefault:boolean;designCount:number;sceneCount:number}>>([]);
   const [transferProjectId,setTransferProjectId] = useState('');
@@ -1308,6 +1313,38 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     finally{setFileMenuOpen(false);}
   };
 
+  const shareDesign = async () => {
+    if(!projectId){setMessage('Save the design before sharing it');return;}
+    if(shareBusy)return;
+    setShareBusy(true);setShareError('');
+    try{
+      const saved=await saveDesign(false);
+      if(!saved)throw new Error('Save the latest changes before sharing.');
+      const response=await fetch('/api/shares',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId})});
+      const result=await response.json().catch(()=>({error:'Could not create share link.'}));
+      if(!response.ok)throw new Error(result.error||'Could not create share link.');
+      const url=new URL(result.share.path,window.location.origin).toString();
+      setShareId(result.share.id);setShareUrl(url);setShareOpen(true);
+      try{await navigator.clipboard.writeText(url);setMessage('Share link copied');}
+      catch{setMessage('Share link ready');}
+    }catch(error){
+      setShareError(error instanceof Error?error.message:'Could not create share link.');
+      setShareOpen(true);
+    }finally{setShareBusy(false);setFileMenuOpen(false);}
+  };
+
+  const revokeShare = async () => {
+    if(!shareId||shareBusy)return;
+    setShareBusy(true);setShareError('');
+    try{
+      const response=await fetch(`/api/shares/${encodeURIComponent(shareId)}`,{method:'DELETE'});
+      const result=await response.json().catch(()=>({error:'Could not disable share link.'}));
+      if(!response.ok)throw new Error(result.error||'Could not disable share link.');
+      setShareId('');setShareUrl('');setShareOpen(false);setMessage('Share link disabled');
+    }catch(error){setShareError(error instanceof Error?error.message:'Could not disable share link.');}
+    finally{setShareBusy(false);}
+  };
+
   const deleteDesign = async () => {
     if(!projectId||deleting)return;
     setDeleting(true);
@@ -1377,6 +1414,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>Save a copy</strong><small>Create an independent design</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('move')}><Move size={15}/><span><strong>Move to Project…</strong><small>Keep this design, change its project</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('copy')}><Copy size={15}/><span><strong>Copy to Project…</strong><small>Create an independent copy elsewhere</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId||saving||shareBusy} onClick={()=>void shareDesign()}><Share2 size={15}/><span><strong>Share link…</strong><small>{projectId?'Create a view-only review link':'Save this design first'}</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?'Remove from favourites':'Add to favourites'}</strong><small>{projectId?'Keep important files handy':'Save this design first'}</small></span></button>
             <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>Rename</strong><small>Edit the file name</small></span></button>
             <span className="pro-file-menu-separator" aria-hidden="true"/>
@@ -1670,7 +1708,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1695,6 +1733,21 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
       {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
     </nav>
+    {shareOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!shareBusy)setShareOpen(false);}}>
+      <section className="pro-confirm-modal pro-share-modal" role="dialog" aria-modal="true" aria-labelledby="share-design-title">
+        <div className="pro-confirm-copy">
+          <span>Share design</span>
+          <h2 id="share-design-title">{shareUrl?'Interactive review link':'Could not create link'}</h2>
+          <p>{shareUrl?'Anyone with this link can view and rotate the shared design. They cannot edit your saved file.':'The share link was not created.'}</p>
+        </div>
+        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label="Share link"/><button type="button" className="pro-secondary-button" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>Copy</button></div>}
+        {shareError&&<p className="pro-transfer-error" role="alert">{shareError}</p>}
+        <div className="pro-confirm-actions">
+          {shareUrl&&<button type="button" className="pro-secondary-button is-danger-text" disabled={shareBusy} onClick={()=>void revokeShare()}>Disable link</button>}
+          <button type="button" className="pro-primary" disabled={shareBusy} onClick={()=>setShareOpen(false)}>Done</button>
+        </div>
+      </section>
+    </div>}
     {projectTransferMode && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!transferBusy)setProjectTransferMode(null);}}>
       <section className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
         <div className="pro-confirm-copy">
@@ -1782,7 +1835,7 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; onExportPdf:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
   if (tool === 'structure') {
@@ -2147,10 +2200,15 @@ function Inspector(props: {
     </div>
     <button className="pro-secondary-button pro-export-button pro-export-pdf-button" onClick={props.onExportPdf}><Download size={16}/> Print / Save PDF</button>
 
+    <div className="pro-export-ready">
+      <Share2 size={22}/>
+      <div><strong>Share link</strong><span>Send a view-only interactive 3D review link.</span></div>
+    </div>
+    <button className="pro-secondary-button pro-export-button" disabled={!props.canShare||props.shareBusy} onClick={props.onShare}><Share2 size={16}/> {props.shareBusy?'Preparing link…':props.canShare?'Copy share link':'Save design to share'}</button>
+
     <div className="pro-export-coming">
       <span>Coming soon</span>
       <div><CirclePlay size={18}/><p><strong>Animation</strong><small>Turntable and open / close video</small></p></div>
-      <div><Share2 size={18}/><p><strong>Share link</strong><small>Send an interactive review link</small></p></div>
       <div><Grid3X3 size={18}/><p><strong>Vector dieline</strong><small>SVG and DXF export</small></p></div>
     </div>
   </div>;
