@@ -14,5 +14,5 @@ export default async function SceneStudioPage(){
   const user=await getCurrentUser();
   if(!user) redirect('/login?next=/scene-studio');
   const {designs}=await getWorkspaceDesigns(user.id,'','recent',1);
-  return <SceneStudio designs={designs} user={{name:user.name,email:user.email}}/>;
+  return <SceneStudio designs={designs}/>;
 }
