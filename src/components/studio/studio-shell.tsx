@@ -18,6 +18,7 @@ import { createFullDielineTransform, rasterizeFullDielineLayers, type FullDielin
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
+type MeasurementUnit = 'mm' | 'in';
 
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Box & Size', icon: Box },
@@ -46,6 +47,7 @@ export function StudioShell() {
   const [opening, setOpening] = useState(100);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
+  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [fullDielineLayers, setFullDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
   const [selectedFullDielineLayerId, setSelectedFullDielineLayerId] = useState<string | null>(null);
@@ -588,7 +590,7 @@ export function StudioShell() {
         />}
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
-        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {dimensions.width} × {dimensions.height} × {dimensions.depth} mm</span></div>
+        <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
       <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
@@ -601,7 +603,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -634,6 +636,7 @@ function Inspector(props: {
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
+  measurementUnit:MeasurementUnit; setMeasurementUnit:(unit:MeasurementUnit)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
@@ -662,14 +665,20 @@ function Inspector(props: {
             <strong>{selectedTemplate.name}</strong>
             <small>{selectedTemplate.category} · Ready to edit</small>
             <div className="pro-current-box-size">
-              <span>Finished size</span>
+              <div className="pro-current-box-size-head">
+                <span>Finished size</span>
+                <div className="pro-unit-switch" role="group" aria-label="Measurement unit">
+                  <button type="button" className={props.measurementUnit === 'mm' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('mm')}>mm</button>
+                  <button type="button" className={props.measurementUnit === 'in' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('in')}>in</button>
+                </div>
+              </div>
               <div className="pro-current-box-size-fields" aria-label="Finished box size">
-                <label><small>W</small><input type="number" min="1" value={props.dimensions.width} onChange={e=>props.setDimensions({...props.dimensions,width:Number(e.target.value)})}/></label>
+                <label><small>W</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <i>×</i>
-                <label><small>H</small><input type="number" min="1" value={props.dimensions.height} onChange={e=>props.setDimensions({...props.dimensions,height:Number(e.target.value)})}/></label>
+                <label><small>H</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <i>×</i>
-                <label><small>D</small><input type="number" min="1" value={props.dimensions.depth} onChange={e=>props.setDimensions({...props.dimensions,depth:Number(e.target.value)})}/></label>
-                <em>mm</em>
+                <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                <em>{props.measurementUnit}</em>
               </div>
             </div>
           </div>
@@ -1557,6 +1566,16 @@ function MediaLibraryModal(props: {
       </footer>
     </section>
   </div>;
+}
+
+function formatDimension(valueMm: number, unit: MeasurementUnit) {
+  if (unit === 'mm') return Math.round(valueMm * 10) / 10;
+  return Math.round((valueMm / 25.4) * 100) / 100;
+}
+
+function parseDimension(value: number, unit: MeasurementUnit) {
+  if (!Number.isFinite(value)) return 0;
+  return unit === 'mm' ? value : value * 25.4;
 }
 
 function formatBytes(bytes: number) {
