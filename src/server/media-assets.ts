@@ -215,7 +215,25 @@ export async function deleteMediaAsset(userId:string,id:string){
   ` as {id:string;name:string}[];
   if(usages.length)return {deleted:false,reason:'in_use' as const,projects:usages};
 
-  await s3().send(new DeleteObjectCommand({Bucket:bucket(),Key:row.storage_key}));
+  try{
+    await s3().send(new DeleteObjectCommand({Bucket:bucket(),Key:row.storage_key}));
+  }catch(error){
+    const status=(error as {$metadata?:{httpStatusCode?:number}})?.$metadata?.httpStatusCode;
+    const name=error instanceof Error?error.name:'';
+    const message=error instanceof Error?error.message:String(error);
+
+    // Deleting a media-library entry should still succeed if the physical object
+    // is already gone. Treat a missing object as an already-completed storage delete.
+    if(status!==404&&name!=='NotFound'&&name!=='NoSuchKey'){
+      console.error('media object delete failed',{id,storageKey:row.storage_key,status,name,message});
+      return {
+        deleted:false,
+        reason:'storage_error' as const,
+        storageError:status===403||name==='AccessDenied'?'access_denied' as const:'delete_failed' as const,
+      };
+    }
+  }
+
   await getSql()`DELETE FROM media_assets WHERE id=${id} AND user_id=${userId}`;
   return {deleted:true as const};
 }
