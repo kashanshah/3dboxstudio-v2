@@ -85,6 +85,7 @@ export function legacyDesignToStudioProject(args:{source:string;sourceId:string;
    opening:openingMode==='closed'?0:clamp(Number.isFinite(openT)?openT*100:35,0,100),
    openingMode,
    splitTopHingeSide:openingMode==='top_split_meet_center'&&config.splitTopHingeSide==='side_b'?'side_b':'side_a',
+   legacySourceId:`${args.source}:${args.sourceId}`,
    measurementUnit:unit==='in'?'in':'mm',
    artworkByPanel,
    outsideArtworkLayers:[],
