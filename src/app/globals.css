@@ -3788,3 +3788,461 @@ body{font-size:var(--type-body)}
     display:none;
   }
 }
+
+
+/* Workspace hierarchy pass — stronger workflow nav, left-side creation controls. */
+.pro-studio-header{
+  height:64px;
+  grid-template-columns:minmax(300px,1fr) auto;
+  gap:18px;
+  padding:0 18px;
+}
+.pro-project{min-width:0}
+.pro-header-actions{justify-self:end}
+.pro-workflow-row{
+  position:relative;
+  z-index:24;
+  height:68px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 18px;
+  background:#fff;
+  border-bottom:1px solid var(--line);
+}
+.pro-workflow-row .pro-workflow-nav{
+  width:min(760px,calc(100vw - 48px));
+  height:52px;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px;
+  padding:4px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#f7f9fc;
+  box-shadow:0 4px 18px rgba(16,23,32,.05);
+}
+.pro-workflow-row .pro-workflow-step{
+  height:44px;
+  grid-template-columns:24px 34px minmax(0,1fr);
+  gap:9px;
+  padding:0 13px!important;
+  border-radius:10px!important;
+}
+.pro-workflow-row .pro-workflow-step-number{
+  width:24px;height:24px;
+  display:grid;place-items:center;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#fff;
+  color:var(--muted);
+  font-size:12px;
+}
+.pro-workflow-row .pro-workflow-step.is-active .pro-workflow-step-number{
+  border-color:var(--accent);
+  background:var(--accent);
+  color:#fff;
+}
+.pro-workflow-row .pro-workflow-step-icon{
+  width:34px;height:34px;
+  border-radius:9px;
+}
+.pro-workflow-row .pro-workflow-step-copy b{
+  font-size:15px;
+  font-weight:750;
+}
+.pro-workflow-row .pro-workflow-step-copy small{
+  margin-top:1px;
+  font-size:11px;
+}
+.pro-studio-body{
+  height:calc(100dvh - 132px);
+}
+
+/* Creation settings belong on the left; outcome settings stay on the right. */
+.pro-inspector.is-workflow-box{
+  left:12px!important;
+  right:auto!important;
+  transform:translateX(-16px) scale(.985)!important;
+}
+.pro-inspector.is-workflow-box.is-open{
+  transform:translateX(0) scale(1)!important;
+}
+.pro-inspector.is-workflow-preview{
+  left:auto!important;
+  right:12px!important;
+  transform:translateX(16px) scale(.985)!important;
+}
+.pro-inspector.is-workflow-preview.is-open{
+  transform:translateX(0) scale(1)!important;
+}
+
+/* Design: minimal top canvas action, editing controls left, live preview right. */
+.pro-2d-design-toolbar{
+  top:12px;
+  width:auto;
+  min-height:46px;
+  padding:5px 6px 5px 12px;
+  gap:14px;
+}
+.pro-2d-design-toolbar>span{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+}
+.pro-2d-design-toolbar .pro-apply-artwork-button{
+  min-width:132px;
+  height:36px;
+  font-size:13px;
+}
+
+.pro-2d-left-panel{
+  position:absolute;
+  z-index:16;
+  top:72px;
+  left:16px;
+  bottom:72px;
+  width:310px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:14px;
+  overflow:auto;
+  overscroll-behavior:contain;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+.pro-2d-left-panel-head{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.pro-2d-left-panel-head>span{
+  color:var(--accent);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+.pro-2d-left-panel-head>strong{
+  font-size:18px;
+  line-height:1.2;
+  letter-spacing:-.02em;
+}
+.pro-2d-left-panel .pro-dieline-surface-switch{
+  gap:5px;
+  padding:4px;
+  border-radius:11px;
+}
+.pro-2d-left-panel .pro-dieline-surface-switch button{
+  min-width:0;
+  height:42px;
+  font-size:14px;
+  font-weight:700;
+}
+.pro-2d-left-panel .pro-dieline-surface-switch button.is-active{
+  color:var(--accent);
+  box-shadow:0 2px 8px rgba(16,23,32,.08),inset 0 -2px 0 var(--accent);
+}
+.pro-2d-left-actions{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+.pro-design-add-artwork{
+  width:100%;
+  min-height:44px;
+  display:flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-radius:10px!important;
+  font-size:14px!important;
+  font-weight:750!important;
+}
+.pro-2d-left-actions .pro-secondary-button{
+  width:100%;
+  height:42px;
+  font-size:13px;
+}
+.pro-2d-left-panel>.pro-dieline-layers-panel{
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+  width:100%!important;
+  min-height:260px!important;
+  max-height:none!important;
+  flex:1 1 280px;
+  box-shadow:none;
+  border-radius:11px;
+}
+.pro-2d-left-panel .pro-dieline-layers-heading{
+  min-height:50px;
+  padding:10px 12px;
+}
+.pro-2d-left-panel .pro-dieline-layers-heading span{
+  font-size:12px;
+  font-weight:800;
+}
+.pro-2d-left-panel .pro-dieline-layers-heading strong{
+  min-width:24px;height:24px;
+  font-size:11px;
+}
+.pro-2d-left-panel .pro-dieline-layers-heading>button{
+  height:34px;
+  padding:0 10px;
+  font-size:12px;
+}
+.pro-2d-left-panel .pro-dieline-layer-list{
+  padding:9px;
+  gap:7px;
+}
+.pro-2d-left-panel .pro-dieline-layer-list>button{
+  height:62px;
+  grid-template-columns:46px minmax(0,1fr) auto;
+  gap:9px;
+  padding:7px;
+  border-radius:9px;
+}
+.pro-2d-left-panel .pro-dieline-layer-list img{
+  width:46px;height:46px;
+}
+.pro-2d-left-panel .pro-dieline-layer-list strong{
+  font-size:13px;
+  font-weight:700;
+}
+.pro-2d-left-panel .pro-dieline-layer-list small,
+.pro-2d-left-panel .pro-dieline-layer-list i{
+  font-size:11px;
+}
+.pro-2d-left-panel .pro-dieline-layers-empty{
+  min-height:150px;
+  font-size:13px;
+  line-height:1.5;
+}
+.pro-2d-left-panel .pro-dieline-layer-actions{
+  gap:6px;
+  padding:8px;
+}
+.pro-2d-left-panel .pro-dieline-layer-actions button{
+  height:38px;
+  border-radius:8px;
+}
+.pro-2d-left-panel .pro-precision-transform{
+  margin-top:0;
+  padding:14px 10px 12px;
+}
+.pro-2d-left-panel .pro-precision-transform-head>div>span{
+  font-size:12px;
+}
+.pro-2d-left-panel .pro-precision-transform-head strong{
+  font-size:15px;
+}
+.pro-2d-left-panel .pro-precision-transform-head>span{
+  min-height:30px;
+  font-size:12px;
+}
+.pro-2d-left-panel .pro-precision-transform-grid input{
+  height:44px;
+  font-size:14px;
+}
+.pro-2d-left-panel .pro-precision-transform-grid label>span{
+  font-size:12px;
+}
+.pro-2d-left-panel .pro-precision-transform-grid label>small{
+  font-size:11px;
+}
+.pro-2d-left-panel .pro-precision-transform>p{
+  font-size:12px;
+  line-height:1.5;
+}
+.pro-design-output{
+  padding-top:2px;
+}
+.pro-design-output>span{
+  display:block;
+  margin-bottom:7px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:750;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.pro-design-output .pro-secondary-button{
+  width:100%;
+  height:42px;
+  font-size:13px;
+}
+
+/* Right side is preview-only, visually distinct from editing controls. */
+.pro-2d-right-preview{
+  position:absolute;
+  z-index:15;
+  top:72px;
+  right:16px;
+  width:280px;
+}
+.pro-2d-right-preview>.pro-artwork-live-preview{
+  position:relative;
+  inset:auto;
+  width:100%;
+  border-radius:14px;
+}
+.pro-2d-right-preview .pro-artwork-live-preview>button{
+  height:44px;
+  padding:0 14px;
+  font-size:14px;
+  font-weight:700;
+}
+.pro-2d-right-preview .pro-artwork-preview-canvas{
+  height:190px;
+}
+.pro-2d-right-preview .pro-artwork-preview-fold{
+  padding:12px 14px;
+}
+.pro-2d-right-preview .pro-artwork-preview-fold-head,
+.pro-2d-right-preview .pro-artwork-preview-fold-row{
+  font-size:12px;
+}
+
+/* Leave canvas room for both creation and preview sidecars. */
+@media(min-width:1181px){
+  .pro-canvas.is-workflow-design .pro-dieline-live{
+    max-width:720px;
+  }
+}
+.pro-canvas.is-workflow-design .pro-dieline-legend{
+  left:342px;
+  right:312px;
+}
+
+/* Preview typography is the reference floor; bring Design up to it. */
+.pro-canvas.is-workflow-design .pro-secondary-button,
+.pro-canvas.is-workflow-design button{
+  font-size:max(13px,1em);
+}
+.pro-canvas.is-workflow-design .dl-label{
+  font-size:11px;
+  font-weight:650;
+}
+.pro-canvas.is-workflow-design .pro-dieline-legend{
+  font-size:12px;
+}
+.pro-canvas.is-workflow-design .pro-dieline-legend strong{
+  font-size:12px;
+}
+
+/* Imported dieline uses preview-only right sidecar; mapper stays central. */
+.pro-2d-right-preview.pro-2d-preview-only{
+  bottom:auto;
+}
+
+@media(max-width:1180px) and (min-width:761px){
+  .pro-2d-left-panel{left:10px;width:280px}
+  .pro-2d-right-preview{right:10px;width:240px}
+  .pro-2d-right-preview .pro-artwork-preview-canvas{height:160px}
+  .pro-canvas.is-workflow-design .pro-dieline-legend{left:300px;right:260px}
+}
+@media(max-width:1100px){
+  .pro-studio-header{
+    height:64px;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:64px;
+    padding:0 12px;
+  }
+  .pro-workflow-row{
+    height:62px;
+    padding:6px 12px;
+  }
+  .pro-workflow-row .pro-workflow-nav{
+    width:100%;
+    height:50px;
+  }
+  .pro-workflow-row .pro-workflow-step{
+    height:42px;
+    grid-template-columns:22px 30px minmax(0,1fr);
+    padding:0 10px!important;
+  }
+  .pro-workflow-row .pro-workflow-step-icon{width:30px;height:30px}
+  .pro-workflow-row .pro-workflow-step-copy b{font-size:14px}
+  .pro-studio-body{height:calc(100dvh - 126px)}
+}
+@media(max-width:900px) and (min-width:761px){
+  .pro-2d-left-panel{width:250px}
+  .pro-2d-right-preview{width:210px}
+  .pro-canvas.is-workflow-design .pro-dieline-live{max-width:58vw}
+  .pro-canvas.is-workflow-design .pro-dieline-legend{left:270px;right:230px}
+}
+@media(max-width:760px){
+  .pro-studio-header{
+    height:60px;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-rows:60px;
+    padding:0 10px;
+  }
+  .pro-workflow-row{
+    height:56px;
+    padding:4px 8px;
+  }
+  .pro-workflow-row .pro-workflow-nav{
+    height:48px;
+    width:100%;
+    gap:3px;
+    padding:3px;
+  }
+  .pro-workflow-row .pro-workflow-step{
+    height:40px;
+    grid-template-columns:20px minmax(0,1fr);
+    gap:5px;
+    padding:0 7px!important;
+  }
+  .pro-workflow-row .pro-workflow-step-number{
+    width:20px;height:20px;
+    font-size:10px;
+  }
+  .pro-workflow-row .pro-workflow-step-icon{display:none}
+  .pro-workflow-row .pro-workflow-step-copy b{font-size:12px}
+  .pro-workflow-row .pro-workflow-step-copy small{display:none}
+  .pro-studio-body{height:calc(100dvh - 116px)}
+  .pro-2d-design-toolbar{
+    top:8px;
+    min-height:44px;
+  }
+  .pro-2d-left-panel{
+    top:auto;
+    left:8px;
+    right:8px;
+    bottom:72px;
+    width:auto;
+    max-height:48dvh;
+    padding:10px;
+    border-radius:14px;
+  }
+  .pro-2d-left-panel-head{display:none}
+  .pro-2d-left-panel>.pro-dieline-layers-panel{
+    min-height:120px!important;
+    max-height:220px!important;
+  }
+  .pro-2d-right-preview{
+    top:60px;
+    right:8px;
+    width:180px;
+  }
+  .pro-2d-right-preview .pro-artwork-preview-canvas{height:120px}
+  .pro-canvas.is-workflow-design .pro-dieline-legend{
+    left:8px;right:8px;bottom:58px;
+  }
+  .pro-inspector.is-workflow-box,
+  .pro-inspector.is-workflow-preview{
+    left:8px!important;
+    right:8px!important;
+    bottom:12px!important;
+    width:auto!important;
+    transform:translateY(18px) scale(.985)!important;
+  }
+  .pro-inspector.is-workflow-box.is-open,
+  .pro-inspector.is-workflow-preview.is-open{
+    transform:translateY(0) scale(1)!important;
+  }
+}
