@@ -96,6 +96,18 @@ test('3D projection keeps magnifying past old limits without moving the camera t
   }
 });
 
+test('3D depth range separates thin board surfaces at every zoom',()=>{
+  for(const dimensions of fixtures){
+    const maxDimension=Math.max(dimensions.width,dimensions.height,dimensions.depth);
+    for(const zoom of [20,82,500]){
+      const matrix=studioViewProjection(maxDimension,1,0,0,zoom);
+      const depthTerm=matrix[10];
+      const farToNear=(depthTerm-1)/(depthTerm+1);
+      assert.ok(farToNear<100,`Depth range ${farToNear} loses board-edge precision`);
+    }
+  }
+});
+
 test('finished dimensions define exact 2D panel sizes used for 3D texture crops',()=>{
   for(const dimensions of fixtures){
     const panels=reverseTuckPanels(dimensions);

@@ -1011,6 +1011,8 @@ function clamp(value:number,min:number,max:number){ return Math.min(max,Math.max
 export function studioViewProjection(maxDimension: number, aspect: number, yaw: number, pitch: number, zoom: number) {
   const eye = orbitEye(maxDimension * 2.462, yaw, pitch);
   const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
-  const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20, zoom / 82);
+  // Keep the depth range close to the actual carton. A near plane at 1% of
+  // its size loses enough precision to make 0.3–2 mm board edges flicker.
+  const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.2), maxDimension * 12, zoom / 82);
   return multiply4(projection, view);
 }
