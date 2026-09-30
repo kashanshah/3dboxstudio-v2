@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
-import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
+import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
@@ -15,7 +15,8 @@ import {
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
-import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { getTemplateGeometry } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
@@ -45,6 +46,8 @@ type StudioHistorySnapshot = {
   outsideCustomColor:string;
   insideCustomColor:string;
   opening:number;
+  openingMode:LegacyOpeningMode;
+  splitTopHingeSide:'side_a'|'side_b';
   dimensions:CartonDimensions;
   measurementUnit:MeasurementUnit;
   artworkByPanel:ArtworkByPanel;
@@ -131,7 +134,7 @@ const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
 export function StudioShell({initialProject}:{initialProject?:SavedStudioProject} = {}) {
   const initial = initialProject?.state;
-  const [projectId,setProjectId] = useState(initialProject?.id);
+  const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
   const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
   const [saving,setSaving] = useState(false);
@@ -146,8 +149,9 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const fileMenuRef = useRef<HTMLDivElement>(null);
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
-  const [family, setFamily] = useState('Reverse Tuck End Carton');
-  const [selectedTemplateId, setSelectedTemplateId] = useState('reverse-tuck-carton');
+  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId) ?? PACKAGING_TEMPLATES.find(template => template.id === 'reverse-tuck-carton')!;
+  const [family, setFamily] = useState(initialTemplate.name);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initial?.templateId ?? 'reverse-tuck-carton');
   const [templateSearch, setTemplateSearch] = useState('');
   const [templateCategory, setTemplateCategory] = useState('All');
   const [panel, setPanel] = useState('Front');
@@ -160,6 +164,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpeningValue] = useState(initial?.opening ?? 100);
+  const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? 'closed');
+  const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
   const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? DEFAULT_CARTON_DIMENSIONS);
@@ -212,6 +218,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     outsideCustomColor,
     insideCustomColor,
     opening,
+    openingMode,
+    splitTopHingeSide,
     dimensions,
     measurementUnit,
     artworkByPanel,
@@ -226,6 +234,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     outsideCustomColor,
     insideCustomColor,
     opening,
+    openingMode,
+    splitTopHingeSide,
     dimensions,
     measurementUnit,
     artworkByPanel,
@@ -262,6 +272,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setOutsideCustomColor(snapshot.outsideCustomColor);
     setInsideCustomColor(snapshot.insideCustomColor);
     setOpeningValue(snapshot.opening);
+    setOpeningMode(snapshot.openingMode);
+    setSplitTopHingeSide(snapshot.splitTopHingeSide);
     setDimensions(snapshot.dimensions);
     setMeasurementUnit(snapshot.measurementUnit);
     setArtworkByPanel(snapshot.artworkByPanel);
@@ -617,6 +629,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     }
     setSelectedTemplateId(template.id);
     setFamily(template.name);
+    if (template.id === 'split-top-box') { setOpeningMode('top_split_meet_center'); setSplitTopHingeSide('side_a'); setOpeningValue(35); }
+    else if (template.id === 'base-box' && openingMode === 'top_split_meet_center') { setOpeningMode('closed'); setOpeningValue(0); }
     if (template.defaultDimensions) setDimensions(template.defaultDimensions);
     setMessage(`${template.name} selected`);
   };
@@ -1134,7 +1148,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
       for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
       const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -1186,7 +1200,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     }
   }, [
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
-    mediaAssets, selectedTemplateId, dimensions, material, opening, measurementUnit,
+    mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
     projectName, projectRevision, projectId,
   ]);
