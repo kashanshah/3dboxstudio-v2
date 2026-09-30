@@ -132,15 +132,10 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
 ];
 
 const studioAreas: { id: StudioArea; label: string; helper: string; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
-  { id: 'box', label: 'Box', helper: 'Type, size & finish', icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
-  { id: 'design', label: 'Design', helper: 'Artwork & placement', icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
-  { id: 'preview', label: 'Preview', helper: 'Open & download', icon: Sparkles, defaultTool: 'opening', tools: ['opening','scene','export'] },
+  { id: 'box', label: 'Box', helper: 'Structure, size & finish', icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
+  { id: 'design', label: 'Design', helper: 'Artwork & print layout', icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
+  { id: 'preview', label: 'Preview & Download', helper: '3D review & output', icon: Boxes, defaultTool: 'opening', tools: ['opening','scene','export'] },
 ];
-
-function areaForTool(tool: Tool | null): StudioArea | null {
-  if (!tool) return null;
-  return studioAreas.find(area => area.tools.includes(tool))?.id ?? null;
-}
 
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
@@ -175,8 +170,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const autosaveBlockedFingerprintRef = useRef<string | null>(null);
   const projectNameRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
-  const [tool, setTool] = useState<Tool | null>(initialProject ? null : 'structure');
+  const [tool, setTool] = useState<Tool | null>(initialProject ? 'opening' : 'structure');
   const [mode, setMode] = useState<Mode>('3d');
+  const [workflowStep,setWorkflowStep] = useState<StudioArea>(initialProject ? 'preview' : 'box');
   const requestedTemplate = !initialProject && initialTemplateId
     ? PACKAGING_TEMPLATES.find(template => template.id === initialTemplateId && template.status === 'ready')
     : null;
@@ -593,9 +589,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const hasArtwork = outsideDielineLayers.length > 0 || insideDielineLayers.length > 0 || Object.keys(artworkByPanel).length > 0;
-  const onboardingStep = hasArtwork ? 3 : mediaLibraryOpen || tool === 'artwork' ? 2 : 1;
-  const activeArea = areaForTool(tool);
-  const activeAreaConfig = studioAreas.find(area => area.id === activeArea) ?? null;
+  const boxReady = Boolean(selectedTemplateId) && dimensions.width > 0 && dimensions.height > 0 && dimensions.depth > 0;
+  const designReady = hasArtwork;
+  const activeArea = workflowStep;
+  const activeAreaConfig = studioAreas.find(area => area.id === workflowStep) ?? null;
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
     return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel, ...mappedPanelArtwork };
@@ -733,15 +730,25 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     selectTool(id);
   };
 
-  const chooseArea = (id: StudioArea) => {
-    const area = studioAreas.find(item => item.id === id);
-    if (!area) return;
-    if (activeArea === id && inspectorOpen) {
+  const goToWorkflowStep = (id:StudioArea, preferredTool?:Tool) => {
+    const area=studioAreas.find(item=>item.id===id);
+    if(!area)return;
+    setWorkflowStep(id);
+    setFaceAction(null);
+    setCameraMenuOpen(false);
+    setPanEnabled(false);
+
+    if(id==='design'){
+      setMode('dieline');
+      setTool('artwork');
       setInspectorOpen(false);
-      setTool(null);
       return;
     }
-    selectTool(activeArea === id && tool ? tool : area.defaultTool);
+
+    setMode('3d');
+    const currentTool=tool && area.tools.includes(tool) ? tool : null;
+    setTool(preferredTool ?? currentTool ?? area.defaultTool);
+    setInspectorOpen(true);
   };
 
   const getDielineLayers = (scope: 'outside' | 'inside') => scope === 'inside' ? insideDielineLayers : outsideDielineLayers;
@@ -781,6 +788,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         setSelectedOutsideLayerId(layerId);
       }
       setMediaLibraryOpen(false);
+      setWorkflowStep('design');
       setMode('dieline');
       setMessage(`${asset.name} added to the ${artworkScope} 2D design`);
       return;
@@ -831,6 +839,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setArtworkScope(parsed.scope);
     setPanel(parsed.panel);
     setTool('artwork');
+    setWorkflowStep('design');
     setMode('dieline');
     setInspectorOpen(false);
     setMediaLibraryOpen(false);
@@ -1003,9 +1012,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       }
       setImportedDieline(parsed);
       setDielineMapping(createInitialDielineMapping(parsed));
+      setWorkflowStep('design');
       setMode('dieline');
-      setTool('structure');
-      setInspectorOpen(true);
+      setTool('artwork');
+      setInspectorOpen(false);
       const known = parsed.primitives.filter(item => item.role !== 'unknown').length;
       setMessage(`${file.name} imported · ${parsed.primitives.length} vector element${parsed.primitives.length === 1 ? '' : 's'}${known ? ` · ${known} classified cut/crease` : ''}`);
     } catch (error) {
@@ -1485,34 +1495,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   }, [saveDesign, saving]);
 
   const exportPng = () => {
-    if (mode !== '3d') {
-      setMode('3d');
-      setMessage('Switched to 3D Preview — click export again to capture PNG');
+    if (workflowStep !== 'preview' || mode !== '3d') {
+      goToWorkflowStep('preview','export');
+      setMessage('Preview is ready — download from the output panel');
       return;
     }
     const exported = engineRef.current?.exportPng('3d-box-studio-reverse-tuck.png');
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
-
-  const switchMode = (nextMode:Mode) => {
-    if (nextMode === mode) return;
-    setMode(nextMode);
-    setFaceAction(null);
-    setCameraMenuOpen(false);
-
-    // A tool may remain selected in state even after its inspector is no longer
-    // rendered for the new canvas mode. Keep the rail and visible UI in sync:
-    // no open inspector means no active tool.
-    if (inspectorOpen || tool) {
-      setInspectorOpen(false);
-      setTool(null);
-    }
-  };
-
-  const viewSwitch = <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
-    <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => switchMode('dieline')}><Grid3X3 size={14} /> 2D Design</button>
-    <button className={mode === '3d' ? 'is-active' : ''} onClick={() => switchMode('3d')}><Boxes size={14} /> 3D Preview</button>
-  </div>;
 
   return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
@@ -1535,32 +1525,34 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>}
         </div>
       </div>
+      <nav className="pro-workflow-nav" aria-label="Box design workflow">
+        {studioAreas.map((area,index)=>{
+          const Icon=area.icon;
+          const ready=area.id==='box'?boxReady:area.id==='design'?designReady:false;
+          return <button
+            key={area.id}
+            type="button"
+            className={`pro-workflow-step${workflowStep===area.id?' is-active':''}`}
+            aria-current={workflowStep===area.id?'step':undefined}
+            onClick={()=>goToWorkflowStep(area.id)}
+            title={area.helper}
+          >
+            <span className="pro-workflow-step-icon"><Icon size={18}/>{ready&&<i><Check size={10}/></i>}</span>
+            <span className="pro-workflow-step-copy"><b>{area.label}</b><small>{area.helper}</small></span>
+            <span className="pro-workflow-step-number">{index+1}</span>
+          </button>;
+        })}
+      </nav>
       <div className="pro-header-actions">
         <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?'Autosave is on. Click to save now.':'Save this design'} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':!projectId?'Save':hasUnsavedChanges?'Unsaved changes':'Saved'}</button>
+        <button className="pro-secondary pro-header-share" disabled={shareBusy} title="Share this design" onClick={()=>void shareDesign()}><Share2 size={16}/><span>Share</span></button>
         <AccountButton compact className="pro-secondary" />
-        <button className="pro-primary" title="Download your design" onClick={() => chooseTool('export')}><Download size={16} /> <span>Download</span></button>
       </div>
     </header>
 
     <div className="pro-studio-body">
-      <aside className="pro-tool-rail pro-task-rail" aria-label="Studio tools">
-        {studioAreas.map(({ id, label, helper, icon: Icon }) => <button key={id} className={activeArea === id ? 'is-active' : ''} onClick={() => chooseArea(id)} aria-pressed={activeArea === id} title={helper}>
-          <Icon size={20} strokeWidth={1.7} />
-          <span><strong>{label}</strong><small>{helper}</small></span>
-        </button>)}
-      </aside>
-
-      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''}`} aria-label="Box design canvas">
-        {!initialProject && <div className={`pro-first-run-guide is-${mode}`} aria-label="Getting started">
-          <span>Start here</span>
-          <ol>
-            <li className={onboardingStep>=1?'is-active':''}><b>1</b> Choose your box</li>
-            <li className={onboardingStep>=2?'is-active':''}><b>2</b> Add your design</li>
-            <li className={onboardingStep>=3?'is-active':''}><b>3</b> Preview & download</li>
-          </ol>
-        </div>}
-        {mode === '3d' && <div className="pro-canvas-top">
-          {viewSwitch}
+      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?'Packaging design workspace':workflowStep==='box'?'Box setup workspace':'3D preview and download workspace'}>
+        {mode === '3d' && <div className="pro-canvas-top pro-canvas-top-camera">
           <div className="pro-camera-menu" ref={cameraMenuRef}>
             <button
               type="button"
@@ -1639,6 +1631,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 setArtworkScope(parsed.scope);
                 setPanel(parsed.panel);
                 promotePanelArtworkToDieline(faceAction.panel);
+                setWorkflowStep('design');
                 setTool('artwork');
                 setInspectorOpen(false);
                 setMode('dieline');
@@ -1699,15 +1692,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onDropArtworkFiles={handleBoardArtworkDrop}
           onApplyChanges={() => {
-            setMode('3d');
-            setInspectorOpen(false);
+            goToWorkflowStep('preview','opening');
             setFaceAction(null);
             setPanEnabled(false);
-            setMessage('Artwork changes applied to 3D preview');
+            setMessage('Artwork changes applied — reviewing in 3D');
           }}
           livePreview={
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
-            <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
+            <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> Live 3D <ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
               <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
@@ -1721,7 +1713,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             </>}
           </aside>
           }
-          viewSwitch={viewSwitch}
+          viewSwitch={null}
           pdfExportRequest={pdfExportRequest}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />
@@ -1794,7 +1786,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>
 
 
-        <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
+        <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool||workflowStep==='design'}><Sparkles size={14} /> {workflowStep==='box'?'Box settings':workflowStep==='preview'?'Preview settings':'Design tools'}</button>
         {message !== 'Ready' && <div className={`pro-studio-toast${saveFailed?' is-error':''}`} role="status" aria-live="polite"><span className="pro-status-dot" /> <span>{message}</span></div>}
         <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
@@ -1838,9 +1830,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       onClose={() => setMediaLibraryOpen(false)}
     />}
 
-    <nav className="pro-mobile-dock pro-mobile-task-dock" aria-label="Mobile studio tools">
-      {studioAreas.map(({ id, label, icon: Icon }) => <button key={id} className={activeArea === id ? 'is-active' : ''} onClick={() => chooseArea(id)} aria-pressed={activeArea===id}><Icon size={20} /><span>{label}</span></button>)}
-    </nav>
     {shareOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!shareBusy)setShareOpen(false);}}>
       <section className="pro-confirm-modal pro-share-modal" role="dialog" aria-modal="true" aria-labelledby="share-design-title">
         <div className="pro-confirm-copy">
