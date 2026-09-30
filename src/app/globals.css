@@ -2276,3 +2276,50 @@ body{font-size:var(--type-body)}
 .pro-full-artwork-print-surface{clip-path:none}
 .pro-dieline-live .pro-dieline-panel-guide{pointer-events:none;cursor:default}
 .pro-dieline-print-error{position:absolute;top:140px;left:16px;z-index:20;max-width:420px;padding:8px 12px;background:#fff;color:#b42318;border:1px solid #fda29b;border-radius:8px;font-size:12px}
+
+
+/* Give the two 2D toolbar rows explicit layouts instead of inheriting a generic
+   column layout for every child div. Leave the Preview/Layers column clear. */
+.pro-2d-design-stage>.pro-2d-design-toolbar{
+  top:64px;left:16px;right:calc(var(--pro-side-panel-width,320px) + 32px);
+  width:auto;transform:none;display:grid;grid-template-columns:auto minmax(0,1fr);
+  gap:10px 14px;align-items:center;padding:10px 12px;z-index:18;
+}
+.pro-2d-design-toolbar>.pro-dieline-surface-switch{
+  display:flex;flex-direction:row;flex-basis:auto;gap:3px;margin:0;align-items:center;
+}
+.pro-2d-design-toolbar>.pro-2d-toolbar-summary{
+  display:flex;flex-direction:column;flex-basis:auto;gap:4px;margin:0;min-width:0;
+}
+.pro-2d-design-toolbar>.pro-2d-toolbar-summary>span,
+.pro-2d-design-toolbar>.pro-2d-toolbar-summary>strong{
+  display:block;line-height:1.35;white-space:normal;letter-spacing:normal;
+}
+.pro-2d-design-toolbar>.pro-2d-toolbar-summary>span{font-size:10px;text-transform:none}
+.pro-2d-design-toolbar>.pro-2d-toolbar-summary>strong{font-size:11px;font-weight:600}
+.pro-2d-design-toolbar>.pro-2d-toolbar-actions{
+  grid-column:1/-1;display:flex;flex-direction:row;flex-basis:auto;margin:0;
+  gap:6px;align-items:center;overflow-x:auto;overscroll-behavior:contain;padding-bottom:2px;
+}
+.pro-2d-toolbar-actions>.pro-secondary-button,
+.pro-2d-toolbar-actions>.pro-apply-artwork-button{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  flex:0 0 auto;height:34px;min-height:34px;padding:0 10px;font-size:11px;white-space:nowrap;
+}
+.pro-shared-canvas-control-bar.is-2d{
+  display:flex;width:max-content;max-width:calc(100% - 24px);min-height:44px;
+  gap:6px;padding:5px 7px;bottom:38px;align-items:center;
+}
+.pro-shared-canvas-control-bar.is-2d>.pro-canvas-bar-icon{flex:0 0 32px;width:32px;height:32px}
+.pro-shared-canvas-control-bar.is-2d>.pro-canvas-bar-divider{flex:0 0 1px;height:22px;align-self:center}
+.pro-shared-canvas-control-bar.is-2d>.pro-2d-zoom-value{min-width:44px;font-size:11px;text-align:center;white-space:nowrap}
+.pro-2d-design-stage>.pro-dieline-legend{
+  bottom:100px;left:16px;right:calc(var(--pro-side-panel-width,320px) + 32px);
+  flex-wrap:wrap;gap:6px 12px;line-height:1.4;pointer-events:none;z-index:18;
+}
+@media(max-width:760px){
+  .pro-2d-design-stage>.pro-2d-design-toolbar{top:52px;left:8px;right:8px;gap:8px 10px;padding:8px}
+  .pro-2d-design-stage>.pro-dieline-legend{bottom:94px;left:8px;right:8px}
+  .pro-2d-design-stage>.pro-dieline-legend>strong{display:none}
+  .pro-2d-side-panels{top:180px}
+}
