@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
@@ -47,7 +49,12 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
-export function StudioShell() {
+export function StudioShell({initialProject}:{initialProject?:SavedStudioProject} = {}) {
+  const initial = initialProject?.state;
+  const [projectId,setProjectId] = useState(initialProject?.id);
+  const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
+  const [projectUpdatedAt,setProjectUpdatedAt] = useState(initialProject?.updatedAt);
+  const [saving,setSaving] = useState(false);
   const [tool, setTool] = useState<Tool | null>(null);
   const [mode, setMode] = useState<Mode>('3d');
   const [family, setFamily] = useState('Reverse Tuck End Carton');
@@ -56,20 +63,20 @@ export function StudioShell() {
   const [templateCategory, setTemplateCategory] = useState('All');
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
-  const [material, setMaterial] = useState('Soft touch');
-  const [outsideColorMode, setOutsideColorMode] = useState<BaseColorMode>('material');
-  const [insideColorMode, setInsideColorMode] = useState<BaseColorMode>('material');
-  const [outsideCustomColor, setOutsideCustomColor] = useState('#C7D4DE');
-  const [insideCustomColor, setInsideCustomColor] = useState('#D7E0E7');
+  const [material, setMaterial] = useState(initial?.material ?? 'Soft touch');
+  const [outsideColorMode, setOutsideColorMode] = useState<BaseColorMode>(initial?.outsideColorMode ?? 'material');
+  const [insideColorMode, setInsideColorMode] = useState<BaseColorMode>(initial?.insideColorMode ?? 'material');
+  const [outsideCustomColor, setOutsideCustomColor] = useState(initial?.outsideCustomColor ?? '#C7D4DE');
+  const [insideCustomColor, setInsideCustomColor] = useState(initial?.insideCustomColor ?? '#D7E0E7');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const [opening, setOpeningValue] = useState(100);
+  const [opening, setOpeningValue] = useState(initial?.opening ?? 100);
   const [zoom, setZoom] = useState(82);
-  const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
-  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('mm');
-  const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
-  const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
-  const [insideDielineLayers, setInsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
+  const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? DEFAULT_CARTON_DIMENSIONS);
+  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
+  const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
+  const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.outsideArtworkLayers ?? []);
+  const [insideDielineLayers, setInsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.insideArtworkLayers ?? []);
   const [selectedOutsideLayerId, setSelectedOutsideLayerId] = useState<string | null>(null);
   const [selectedInsideLayerId, setSelectedInsideLayerId] = useState<string | null>(null);
   const [mappedOutsideArtwork, setMappedOutsideArtwork] = useState<ArtworkByPanel>({});
@@ -80,8 +87,8 @@ export function StudioShell() {
   const [panEnabled, setPanEnabled] = useState(false);
   const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
   const liveMapTokenRef = useRef(0);
-  const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
-  const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
+  const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
+  const mediaAssetsRef = useRef<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
   const [mediaLibraryTab, setMediaLibraryTab] = useState<'library' | 'upload'>('library');
   const [selectedMediaAssetId, setSelectedMediaAssetId] = useState<string | null>(null);
@@ -478,6 +485,44 @@ export function StudioShell() {
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
+  const saveDesign = async () => {
+    setSaving(true);
+    try {
+      if(importedDieline) throw new Error('Saving imported dielines is not available yet.');
+      const preview = engineRef.current?.thumbnail();
+      if (!preview) throw new Error('The 3D preview is not ready yet.');
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const urls = new Map<string,string>();
+      async function persist(value:unknown):Promise<unknown> {
+        if (Array.isArray(value)) return Promise.all(value.map(persist));
+        if (value && typeof value === 'object') {
+          const result:Record<string,unknown> = {};
+          for (const [key,item] of Object.entries(value)) {
+            if (key === 'url' && typeof item === 'string' && item.startsWith('blob:')) {
+              if (!urls.has(item)) {
+                const blob = await (await fetch(item)).blob();
+                const data = await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=reject;reader.readAsDataURL(blob);});
+                urls.set(item,data);
+              }
+              result[key] = urls.get(item);
+            } else result[key] = await persist(item);
+          }
+          return result;
+        }
+        return value;
+      }
+      const body = JSON.stringify({name:projectName,state:await persist(state),preview,updatedAt:projectUpdatedAt});
+      if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
+      const response=await fetch(projectId?`/api/projects/${projectId}`:'/api/projects',{method:projectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
+      const result=await response.json().catch(()=>({error:'The design service is unavailable. Please try again shortly.'}));
+      if(!response.ok) throw new Error(result.error || 'Could not save your design.');
+      setProjectId(result.project.id);setProjectUpdatedAt(result.project.updated_at);
+      if(!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
+      setMessage('Design saved');
+    } catch(error) {setMessage(error instanceof Error?error.message:'Could not save your design.');}
+    finally {setSaving(false);}
+  };
+
   const exportPng = () => {
     if (mode !== '3d') {
       setMode('3d');
@@ -493,9 +538,10 @@ export function StudioShell() {
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Local design</span></div>
+        <div className="pro-project-copy"><input aria-label="Design name" value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">Your designs</Link></div>
       </div>
       <div className="pro-header-actions">
+        <button className="pro-secondary pro-save-design" disabled={saving} onClick={()=>void saveDesign()}>{saving?'Saving…':'Save'}</button>
         <AccountButton compact className="pro-secondary" />
         <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
       </div>

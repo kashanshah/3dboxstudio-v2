@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
+import { safeReturnTo } from '@/lib/auth-navigation';
 import { optionalEnv } from '@/server/env';
 import { requestOrigin } from '@/server/request-origin';
 
 export const OAUTH_STATE_COOKIE='sb_oauth_state';
+export const OAUTH_RETURN_COOKIE='sb_oauth_return';
 
 export function googleConfig(req:Request){
   const clientId=optionalEnv('GOOGLE_CLIENT_ID');
@@ -19,6 +21,7 @@ export async function beginGoogleOAuth(req:Request){
   const state=randomBytes(24).toString('base64url');
   const store=await cookies();
   store.set(OAUTH_STATE_COOKIE,state,{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:600});
+  store.set(OAUTH_RETURN_COOKIE,safeReturnTo(new URL(req.url).searchParams.get('next')),{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:600});
   const url=new URL('https://accounts.google.com/o/oauth2/v2/auth');
   url.searchParams.set('client_id',config.clientId);
   url.searchParams.set('redirect_uri',config.redirectUri);

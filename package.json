@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run test && npm run test:geometry && npm run lint && npm run typecheck && npm run build",
     "migrate:legacy-users": "node scripts/migrate-legacy-users.mjs",
-    "test": "node --test scripts/*.test.mjs scripts/admin-dashboard.test.cjs",
+    "test": "node --test scripts/*.test.mjs scripts/admin-dashboard.test.cjs scripts/account-actions.test.cjs",
     "sync:legacy": "node scripts/migrate-legacy-users.mjs",
     "test:geometry": "node --test scripts/studio-geometry.test.cjs"
   },

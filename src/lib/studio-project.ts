@@ -1,0 +1,14 @@
+import type { CartonDimensions } from './packaging/reverse-tuck';
+import type { ArtworkByPanel,LocalMediaAsset } from './packaging/artwork';
+import type { FullDielineArtworkLayer } from './packaging/full-dieline-artwork';
+export type StudioProjectState={version:1;templateId:string;dimensions:CartonDimensions;material:string;opening:number;measurementUnit:'mm'|'in';artworkByPanel:ArtworkByPanel;outsideArtworkLayers:FullDielineArtworkLayer[];insideArtworkLayers:FullDielineArtworkLayer[];mediaAssets:LocalMediaAsset[];outsideColorMode:'material'|'custom';insideColorMode:'material'|'custom';outsideCustomColor:string;insideCustomColor:string};
+export type SavedStudioProject={id:string;name:string;state:StudioProjectState;updatedAt:string};
+export function validProjectState(value:unknown):value is StudioProjectState{
+ if(!value||typeof value!=='object')return false;const s=value as StudioProjectState;
+ if(s.version!==1||s.templateId!=='reverse-tuck-carton'||!s.dimensions||!['width','height','depth','thickness'].every(key=>typeof s.dimensions[key as keyof CartonDimensions]==='number'&&Number.isFinite(s.dimensions[key as keyof CartonDimensions])&&s.dimensions[key as keyof CartonDimensions]>0))return false;
+ if(typeof s.material!=='string'||!['mm','in'].includes(s.measurementUnit)||!Number.isFinite(s.opening)||s.opening<0||s.opening>100)return false;
+ if(!s.artworkByPanel||typeof s.artworkByPanel!=='object'||Array.isArray(s.artworkByPanel)||![s.outsideArtworkLayers,s.insideArtworkLayers,s.mediaAssets].every(list=>Array.isArray(list)&&list.length<=100))return false;
+ const images=[...Object.values(s.artworkByPanel),...s.outsideArtworkLayers,...s.insideArtworkLayers,...s.mediaAssets];
+ if(!images.every(item=>item&&typeof item.name==='string'&&typeof item.url==='string'&&/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(item.url)))return false;
+ return ['material','custom'].includes(s.outsideColorMode)&&['material','custom'].includes(s.insideColorMode)&&[s.outsideCustomColor,s.insideCustomColor].every(color=>typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color));
+}
