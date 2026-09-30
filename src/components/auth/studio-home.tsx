@@ -105,12 +105,15 @@ export function StudioHome({
    </section>}
 
    <section className="studio-project-library" aria-labelledby="project-library-heading">
-    <div className="studio-section-heading"><div><p>Keep related work together</p><h2 id="project-library-heading">Projects</h2></div><span>{projects.length} project{projects.length===1?'':'s'}</span></div>
+    <div className="studio-section-heading studio-project-heading">
+      <div><p>Keep related work together</p><h2 id="project-library-heading">Projects</h2></div>
+      <div className="studio-project-view-actions">
+        <Link className={`studio-all-work-link${!activeProjectId?' is-active':''}`} href="/studio"><Layers3 size={16}/> All work</Link>
+        <span>{projects.length} project{projects.length===1?'':'s'}</span>
+      </div>
+    </div>
     <div className="studio-project-grid">
-      <Link className={`studio-project-card${!activeProjectId?' is-active':''}`} href="/studio">
-        <div className="studio-project-card-icon"><Layers3 size={22}/></div><div><strong>All work</strong><span>Everything you have created, in one place</span></div>
-      </Link>
-      {projects.map(project=><Link className={`studio-project-card${activeProjectId===project.id?' is-active':''}`} href={`/studio?workspace=${encodeURIComponent(project.id)}`} key={project.id}>
+      {projects.map(project=><Link className={`studio-project-card studio-project-folder${activeProjectId===project.id?' is-active':''}`} href={`/studio?workspace=${encodeURIComponent(project.id)}`} key={project.id}>
         <div className="studio-project-card-icon"><Folder size={22}/></div>
         <div className="studio-project-card-copy"><div><strong>{project.name}</strong>{project.isDefault&&<em>Default</em>}</div><span>{project.designCount} design{project.designCount===1?'':'s'} · {project.sceneCount} scene{project.sceneCount===1?'':'s'}</span><small>Updated {new Date(project.updatedAt).toLocaleDateString()}</small></div>
       </Link>)}
