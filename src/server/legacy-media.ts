@@ -27,7 +27,8 @@ export async function ensureLegacyMediaForDesign(userId:string,payloadValue:unkn
  const sql=getSql(),out:Record<string,MediaAssetDto>={};
  for(const [faceId,entryValue] of Object.entries(images)){
    const entry=record(entryValue),key=sourceKey(entry);if(!key)continue;
-   const storageKey=targetKey(key),id=stableId(userId,storageKey);
+   let storageKey;try{storageKey=targetKey(key);}catch{continue;}
+   const id=stableId(userId,storageKey);
    let objectMeta;try{objectMeta=await headStoredObject(storageKey);}catch{continue;}
    const name=typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`;
    const mime=objectMeta.contentType || (typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png');
@@ -44,6 +45,7 @@ export async function ensureLegacyMediaForDesign(userId:string,payloadValue:unkn
      ON CONFLICT(user_id,storage_key) DO UPDATE SET
        name=EXCLUDED.name,
        mime_type=EXCLUDED.mime_type,
+       byte_size=CASE WHEN media_assets.byte_size>0 THEN media_assets.byte_size ELSE EXCLUDED.byte_size END,
        width=COALESCE(media_assets.width,EXCLUDED.width),
        height=COALESCE(media_assets.height,EXCLUDED.height)
      RETURNING id,name,mime_type,byte_size,width,height,fingerprint,created_at
