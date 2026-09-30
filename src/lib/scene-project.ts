@@ -4,7 +4,7 @@ export type SceneBoxObject = {
   id:string;
   type:'box-project';
   name:string;
-  sourceProjectId:string;
+  sourceDesignId:string;
   position:SceneVector3;
   rotation:SceneVector3;
   scale:SceneVector3;

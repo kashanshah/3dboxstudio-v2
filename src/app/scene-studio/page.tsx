@@ -10,9 +10,11 @@ export const metadata:Metadata={
   robots:{index:false,follow:false},
 };
 
-export default async function SceneStudioPage(){
+export default async function SceneStudioPage({searchParams}:{searchParams:Promise<{workspace?:string}>}){
   const user=await getCurrentUser();
+  const params=await searchParams;
   if(!user) redirect('/login?next=/scene-studio');
-  const {designs}=await getWorkspaceDesigns(user.id,'','recent',1);
-  return <SceneStudio designs={designs}/>;
+  const workspaceProjectId=params.workspace??null;
+  const {designs}=await getWorkspaceDesigns(user.id,'','recent',1,workspaceProjectId);
+  return <SceneStudio designs={designs} workspaceProjectId={workspaceProjectId}/>;
 }
