@@ -1297,6 +1297,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
   }, [saveFingerprint, projectId, importedDieline, saving, saveConflictOpen, saveDesign]);
 
   useEffect(() => {
+    if (!hasUnsavedChanges && !saveFailed) return;
+    const warnBeforeLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnBeforeLeave);
+    return () => window.removeEventListener('beforeunload', warnBeforeLeave);
+  }, [hasUnsavedChanges, saveFailed]);
+
+  useEffect(() => {
     if(!fileMenuOpen)return;
     const close=(event:PointerEvent)=>{if(!fileMenuRef.current?.contains(event.target as Node))setFileMenuOpen(false);};
     const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setFileMenuOpen(false);};
