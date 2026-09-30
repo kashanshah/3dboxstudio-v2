@@ -45,7 +45,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -286,7 +286,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
     pitch: 0.28,
     zoom: 82,
     viewPan:{x:0,y:0},
-    lightIntensity: 0.78,
+    lightIntensity: 0,
     hoverPanel: null,
   };
 
@@ -324,7 +324,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
 
     gl.uniformMatrix4fv(viewProjectionLocation, false, viewProjection);
     gl.uniform3f(lightLocation, -0.45, 0.8, 0.55);
-    gl.uniform1f(lightIntensityLocation, clamp(scene.lightIntensity, 0.15, 1.5));
+    gl.uniform1f(lightIntensityLocation, clamp(scene.lightIntensity, 0, 1));
     gl.activeTexture(gl.TEXTURE0);
     gl.uniform1i(textureLocation, 0);
 
@@ -504,8 +504,10 @@ export function buildMeshes(
   const y1 = h / 2;
   const zFront = d / 2;
 
-  const darker: [number, number, number] = color.map(v => v * 0.86) as [number, number, number];
-  const lighter: [number, number, number] = color.map(v => Math.min(1, v * 1.08)) as [number, number, number];
+  // Exterior faces intentionally share the exact same base color. The default
+  // studio view is a color-proofing view, not a photographic render: rotating
+  // the carton must not make one printed face appear darker or lighter simply
+  // because its normal points away from a virtual key light.
   const interior: [number, number, number] = interiorColor;
 
   const frontCorners = [
@@ -582,13 +584,13 @@ export function buildMeshes(
     surfaceColor: [number, number, number];
     aspect: number;
   }> = [
-    { name: 'Glue', corners: glueCorners, surfaceColor: darker, aspect: glueWidth/h },
+    { name: 'Glue', corners: glueCorners, surfaceColor: color, aspect: glueWidth/h },
     { name: 'Front', corners: frontCorners, surfaceColor: color, aspect: w / h },
-    { name: 'Left', corners: leftCorners, surfaceColor: darker, aspect: d / h },
+    { name: 'Left', corners: leftCorners, surfaceColor: color, aspect: d / h },
     { name: 'Right', corners: rightCorners, surfaceColor: color, aspect: d / h },
-    { name: 'Back', corners: backCorners, surfaceColor: darker, aspect: w / h },
-    { name: 'Top', corners: topCorners, surfaceColor: lighter, aspect: w / d },
-    { name: 'Bottom', corners: bottomCorners, surfaceColor: darker, aspect: w / d },
+    { name: 'Back', corners: backCorners, surfaceColor: color, aspect: w / h },
+    { name: 'Top', corners: topCorners, surfaceColor: color, aspect: w / d },
+    { name: 'Bottom', corners: bottomCorners, surfaceColor: color, aspect: w / d },
   ];
 
   const exteriorMeshes: Mesh[] = [];
@@ -785,7 +787,11 @@ uniform float uOutlineAlpha;
 void main() {
   vec3 normal = normalize(vNormal);
   float diffuse = max(0.0, dot(normal, normalize(uLightDirection)));
-  float light = 0.52 + diffuse * 0.48 * uLightIntensity;
+  // Zero is the default "true color" proofing mode: no directional shading,
+  // no artificial face darkening, and therefore no perceived cast shadow.
+  // A future scene/lighting control can blend directional modeling back in.
+  float directionalLight = 0.52 + diffuse * 0.48;
+  float light = mix(1.0, directionalLight, uLightIntensity);
 
   vec2 centered = vUv - vec2(0.5) - uUvOffset;
   float c = cos(uUvRotation);
