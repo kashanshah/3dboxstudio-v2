@@ -49,24 +49,34 @@ export function baseBoxPanels(input:CartonDimensions,openingMode:LegacyOpeningMo
   return panels;
 }
 
-export function splitTopBoxPanels(input:CartonDimensions,axis:'side_a'|'side_b'='side_a'):DielinePanel[]{
+export function splitTopBoxPanels(input:CartonDimensions,_axis:'side_a'|'side_b'='side_a'):DielinePanel[]{
   const d=sanitizeCartonDimensions(input);
-  const topExtent=axis==='side_a'?d.width/2:d.depth/2;
-  const {glue,panels}=bodyStrip(d,topExtent);
-  const leftX=glue,frontX=glue+d.depth,rightX=glue+d.depth+d.width,backX=glue+d.depth+d.width+d.depth;
-  if(axis==='side_a'){
-    panels.push(
-      {id:'topLeft',label:'TOP LEFT',x:leftX,y:0,width:d.depth,height:d.width/2,kind:'flap'},
-      {id:'topRight',label:'TOP RIGHT',x:rightX,y:0,width:d.depth,height:d.width/2,kind:'flap'},
-    );
-  }else{
-    panels.push(
-      {id:'topLeft',label:'TOP LEFT',x:backX,y:0,width:d.width,height:d.depth/2,kind:'flap'},
-      {id:'topRight',label:'TOP RIGHT',x:frontX,y:0,width:d.width,height:d.depth/2,kind:'flap'},
-    );
-  }
-  panels.push({id:'bottom',label:'BOTTOM',x:frontX,y:topExtent+d.height,width:d.width,height:d.depth,kind:'flap'});
-  return panels;
+  const glue=glueWidth(d);
+  // Production-style split-top / RSC layout:
+  // glue → major panel → minor panel → major panel → minor panel.
+  // The paired top and bottom closure flaps live on the two opposing major panels.
+  const flapDepth=d.depth/2;
+  const bodyY=flapDepth;
+  const frontX=glue;
+  const rightX=frontX+d.width;
+  const backX=rightX+d.depth;
+  const leftX=backX+d.width;
+  return [
+    {id:'glue',label:'GLUE',x:0,y:bodyY,width:glue,height:d.height,kind:'glue'},
+    {id:'front',label:'FRONT',x:frontX,y:bodyY,width:d.width,height:d.height,kind:'body'},
+    {id:'right',label:'RIGHT',x:rightX,y:bodyY,width:d.depth,height:d.height,kind:'body'},
+    {id:'back',label:'BACK',x:backX,y:bodyY,width:d.width,height:d.height,kind:'body'},
+    {id:'left',label:'LEFT',x:leftX,y:bodyY,width:d.depth,height:d.height,kind:'body'},
+
+    {id:'topLeft',label:'TOP LEFT',x:frontX,y:0,width:d.width,height:flapDepth,kind:'flap'},
+    {id:'topRight',label:'TOP RIGHT',x:backX,y:0,width:d.width,height:flapDepth,kind:'flap'},
+
+    // V1 exposed one Bottom artwork surface. Keep both physical bottom flaps
+    // addressable with the same BOTTOM artwork key in 2D, while the 3D model
+    // continues to expose one finished bottom face.
+    {id:'bottomFront',label:'BOTTOM',x:frontX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
+    {id:'bottomBack',label:'BOTTOM',x:backX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
+  ];
 }
 
 export function dielineBounds(panels:DielinePanel[]){
