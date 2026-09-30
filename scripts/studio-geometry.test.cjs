@@ -137,3 +137,29 @@ test('sheet artwork transforms convert to physical millimetres before panel crop
     near(physical.rotation,17);
   }
 });
+
+const {dielinePrintBounds}=require('../src/lib/packaging/dieline-print.ts');
+test('print page preserves physical dieline size and a 3mm outer margin',()=>{
+ const bounds={width:200,height:300};
+ assert.deepEqual(dielinePrintBounds(bounds,[]),{left:-3,top:-3,width:206,height:306});
+});
+test('print page includes all corners of rotated artwork beyond each edge',()=>{
+ const bounds={width:200,height:300};
+ const layers=[
+  {transform:{x:-20,y:50,width:80,height:50,rotation:45}},
+  {transform:{x:120,y:120,width:100,height:75,rotation:-30}},
+  {transform:{x:50,y:-40,width:50,height:60,rotation:90}},
+ ];
+ const page=dielinePrintBounds(bounds,layers);
+ assert.ok(page.left<0 && page.top<0);
+ assert.ok(page.left+page.width>bounds.width && page.top+page.height>bounds.height);
+ for(const {transform:t} of layers){
+  const a=t.rotation*Math.PI/180,cx=bounds.width*t.x/100,cy=bounds.height*t.y/100;
+  for(const sx of [-1,1])for(const sy of [-1,1]){
+   const dx=sx*bounds.width*t.width/200,dy=sy*bounds.height*t.height/200;
+   const x=cx+dx*Math.cos(a)-dy*Math.sin(a),y=cy+dx*Math.sin(a)+dy*Math.cos(a);
+   assert.ok(x>=page.left+3-1e-6 && x<=page.left+page.width-3+1e-6);
+   assert.ok(y>=page.top+3-1e-6 && y<=page.top+page.height-3+1e-6);
+  }
+ }
+});
