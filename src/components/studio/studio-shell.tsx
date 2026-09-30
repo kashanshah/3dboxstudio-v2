@@ -708,6 +708,21 @@ function Inspector(props: {
                 <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <em>{props.measurementUnit}</em>
               </div>
+              <div className="pro-current-box-thickness">
+                <label>
+                  <span>Board thickness</span>
+                  <div>
+                    <input
+                      type="number"
+                      min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
+                      step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
+                      value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
+                      onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+                    />
+                    <em>{props.measurementUnit}</em>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -750,6 +765,24 @@ function Inspector(props: {
         <span>Try another search or category.</span>
       </div>}
 
+      <div className="pro-card-section pro-box-thickness-card">
+        <SectionTitle title="Board thickness" meta="Box & size" />
+        <p className="pro-help">Set the physical board thickness used to build the package. This affects the carton geometry, not the artwork.</p>
+        <label className="pro-thickness-field">
+          <span>Thickness</span>
+          <div>
+            <input
+              type="number"
+              min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
+              step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
+              value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
+              onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+            />
+            <em>{props.measurementUnit}</em>
+          </div>
+        </label>
+      </div>
+
       <div className="pro-card-section pro-dieline-import-card">
         <SectionTitle title="Import dieline" meta="SVG / DXF" />
         <p className="pro-help">Use SVG or ASCII DXF for vector dielines. AI, EPS and PDF are not directly supported yet.</p>
@@ -784,8 +817,10 @@ function Inspector(props: {
       <div className="pro-card-section pro-artwork-design-card">
         <div className="pro-artwork-source-head">
           <div>
-            <strong>Design on this side</strong>
-            <span>{selectedArtwork ? 'Your image is ready. Change it or adjust how it sits on the box.' : 'Choose an image to place on this side.'}</span>
+            <strong>{props.artworkScope === 'inside' ? 'Design on inside' : 'Design on outside'}</strong>
+            <span>{selectedArtwork
+              ? `Your ${props.artworkScope} artwork is ready. Change it or adjust how it sits on the package.`
+              : `Choose an image for the ${props.artworkScope} of the package.`}</span>
           </div>
           {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
         </div>
@@ -855,20 +890,6 @@ function Inspector(props: {
   if (tool === 'material') return <div className="pro-inspector-content">
     <PanelIntro title="Material & finish" text="Choose the board or surface treatment, then fine-tune the physical material settings." />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
-
-    <div className="pro-card-section pro-material-settings-card">
-      <SectionTitle title="Board thickness" meta="Material setting" />
-      <ControlRow label="Thickness" value={`${props.dimensions.thickness.toFixed(1)} mm`} />
-      <input
-        className="pro-range"
-        type="range"
-        min="3"
-        max="20"
-        value={Math.round(props.dimensions.thickness*10)}
-        onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})}
-      />
-      <p className="pro-help">Thickness affects the physical board used to build the package.</p>
-    </div>
 
     <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
   </div>;
