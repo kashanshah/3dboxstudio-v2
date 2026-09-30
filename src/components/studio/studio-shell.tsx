@@ -322,6 +322,26 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setMediaLibraryOpen(true);
   };
 
+  const openPanelMediaFrom3D = (targetPanel: string) => {
+    const parsed = parseArtworkTarget(targetPanel);
+    setArtworkScope(parsed.scope);
+    setPanel(parsed.panel);
+    setTool('artwork');
+    setInspectorOpen(false);
+    setPanEnabled(false);
+    setSelectedOutsideLayerId(null);
+    setSelectedInsideLayerId(null);
+    setFaceAction(null);
+    setMode('dieline');
+    setMessage(`Choose artwork for ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
+
+    // Open after the 2D view has committed so the modal belongs to the
+    // editing context the user is about to work in, not the old 3D view.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => openMediaLibrary(targetPanel));
+    });
+  };
+
   const handleArtworkFiles = (files: File[]) => {
     const imageFiles = files.filter(file => {
       const lower = file.name.toLowerCase();
@@ -721,26 +741,27 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             }}
           >
             <span>{faceAction.panel.replace('Interior ', 'Inside ')}</span>
-            {artworkByPanel[faceAction.panel] ? <button onClick={() => {
-              const parsed = parseArtworkTarget(faceAction.panel);
-              setArtworkScope(parsed.scope);
-              setPanel(parsed.panel);
-              promotePanelArtworkToDieline(faceAction.panel);
-              setTool('artwork');
-              setInspectorOpen(false);
-              setMode('dieline');
-              setPanEnabled(false);
-              setFaceAction(null);
-              setMessage(`Adjust ${parsed.panel} artwork freely across the 2D board`);
-            }}>
-              <ImageIcon size={13} />
-              Edit / adjust image
-            </button> : <button onClick={() => {
-              setTool('artwork');
-              setInspectorOpen(false);
-              setFaceAction(null);
-              openMediaLibrary(faceAction.panel);
-            }}>
+            {artworkByPanel[faceAction.panel] ? <>
+              <button onClick={() => {
+                const parsed = parseArtworkTarget(faceAction.panel);
+                setArtworkScope(parsed.scope);
+                setPanel(parsed.panel);
+                promotePanelArtworkToDieline(faceAction.panel);
+                setTool('artwork');
+                setInspectorOpen(false);
+                setMode('dieline');
+                setPanEnabled(false);
+                setFaceAction(null);
+                setMessage(`Adjust ${parsed.panel} artwork freely across the 2D board`);
+              }}>
+                <ImageIcon size={13} />
+                Edit / adjust image
+              </button>
+              <button onClick={() => openPanelMediaFrom3D(faceAction.panel)}>
+                <Upload size={13} />
+                Replace artwork
+              </button>
+            </> : <button onClick={() => openPanelMediaFrom3D(faceAction.panel)}>
               <Upload size={13} />
               Add artwork
             </button>}
