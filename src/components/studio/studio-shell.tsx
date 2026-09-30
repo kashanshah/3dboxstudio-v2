@@ -1528,7 +1528,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </div>
     </header>
 
-    <div className={`pro-workflow-row is-${workflowStep}${inspectorOpen?' has-inspector':''}`}>
+    <div className={`pro-workflow-row is-${workflowStep}`}>
       <nav className="pro-workflow-nav" aria-label="Box design workflow">
         {studioAreas.map((area,index)=>{
           const Icon=area.icon;
@@ -1547,43 +1547,41 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </button>;
         })}
       </nav>
+      {mode === '3d' && <div className="pro-camera-menu pro-workflow-camera" ref={cameraMenuRef}>
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-label="Camera angle"
+          title="Choose camera angle"
+          aria-expanded={cameraMenuOpen}
+          onClick={() => setCameraMenuOpen(open => !open)}
+        >
+          <Camera size={16} />
+          <span>Camera Angle</span>
+          <small>{camera==='LegacyPerspective'?'Perspective':camera}</small>
+          <ChevronDown size={14} className={cameraMenuOpen ? 'is-open' : ''} />
+        </button>
+        {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label="Camera angles">
+          {cameras.map(item => <button
+            key={item}
+            type="button"
+            role="menuitemradio"
+            aria-checked={camera === item}
+            onClick={() => {
+              setCamera(item);
+              setCameraMenuOpen(false);
+            }}
+            className={camera === item ? 'is-active' : ''}
+          >
+            <span className={`pro-camera-view-icon is-${item.toLowerCase()}`} aria-hidden="true"><i/><i/><i/></span>
+            <b>{item}</b>
+          </button>)}
+        </div>}
+      </div>}
     </div>
 
     <div className="pro-studio-body">
       <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?'Packaging design workspace':workflowStep==='box'?'Box setup workspace':'3D preview and download workspace'}>
-        {mode === '3d' && <div className="pro-canvas-top pro-canvas-top-camera">
-          <div className="pro-camera-menu" ref={cameraMenuRef}>
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-label="Camera angle"
-              title="Choose camera angle"
-              aria-expanded={cameraMenuOpen}
-              onClick={() => setCameraMenuOpen(open => !open)}
-            >
-              <Camera size={16} />
-              <span>Camera Angle</span>
-              <small>{camera==='LegacyPerspective'?'Perspective':camera}</small>
-              <ChevronDown size={14} className={cameraMenuOpen ? 'is-open' : ''} />
-            </button>
-            {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label="Camera angles">
-              {cameras.map(item => <button
-                key={item}
-                type="button"
-                role="menuitemradio"
-                aria-checked={camera === item}
-                onClick={() => {
-                  setCamera(item);
-                  setCameraMenuOpen(false);
-                }}
-                className={camera === item ? 'is-active' : ''}
-              >
-                <span className={`pro-camera-view-icon is-${item.toLowerCase()}`} aria-hidden="true"><i/><i/><i/></span>
-                <b>{item}</b>
-              </button>)}
-            </div>}
-          </div>
-        </div>}
 
         <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
           <div className="pro-grid-floor" />
