@@ -13,3 +13,80 @@
 @media(prefers-reduced-motion:reduce){.studio-design-card{transition:none}.studio-design-card:hover{transform:none}}
 .studio-design-thumb>img{width:100%;height:100%;object-fit:contain}.studio-search input{width:100%;border:0;background:transparent;font:inherit;outline-offset:0;font-size:16px}.studio-legacy-label{font-size:11px;color:var(--muted)}.studio-pagination{display:flex;justify-content:center;gap:20px;margin-top:24px;font-size:13px}.studio-home .studio-home-header .brand{flex-shrink:0}.studio-design-meta h3{overflow-wrap:anywhere}.studio-home-header .account-button{max-width:220px}.studio-home-header .account-button span{overflow:hidden;text-overflow:ellipsis}
 @media(max-width:600px){.studio-home-header nav{display:none}.studio-library-controls{flex-wrap:wrap}.studio-search{flex:1 1 100%}.studio-home-header .account-button{max-width:160px}}
+
+
+/* Keep the design-library controls self-contained from global marketing form/button styles. */
+.studio-home .sr-only{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+.studio-library-controls{
+  align-items:center;
+}
+.studio-library-controls .studio-search{
+  height:44px;
+  display:flex;
+  align-items:center;
+  max-width:480px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--surface);
+  overflow:hidden;
+}
+.studio-library-controls .studio-search>svg{
+  left:14px;
+}
+.studio-library-controls .studio-search input{
+  width:100%;
+  height:100%;
+  padding:0 14px 0 42px;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:var(--ink);
+  font-size:14px;
+  outline:none;
+}
+.studio-library-controls .studio-search:focus-within{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);
+}
+.studio-library-controls .studio-sort{
+  flex:0 0 auto;
+  min-width:174px;
+  height:44px;
+  border-radius:8px;
+}
+.studio-library-controls>.button{
+  flex:0 0 auto;
+  min-width:92px;
+  min-height:44px;
+  height:44px;
+  padding:0 18px;
+  font-size:13px;
+  border-radius:8px;
+}
+@media(max-width:600px){
+  .studio-library-controls{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+  }
+  .studio-library-controls .studio-search{
+    grid-column:1/-1;
+    max-width:none;
+  }
+  .studio-library-controls .studio-sort{
+    min-width:0;
+  }
+  .studio-library-controls>.button{
+    min-width:88px;
+  }
+}
