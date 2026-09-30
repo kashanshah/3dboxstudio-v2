@@ -4,7 +4,7 @@ import { enforceRateLimit,getClientIp } from '@/server/rate-limit';
 import { createContactSubmission } from '@/server/contact-submissions';
 import { sendAdminContactSubmissionEmail } from '@/server/email/mailer';
 import { verifyTurnstileToken } from '@/server/turnstile';
-const VALID=new Set(CONTACT_TOPICS.map(t=>t.value)); const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const VALID=new Set<string>(CONTACT_TOPICS.map(t=>t.value)); const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function text(v:unknown,max:number){if(typeof v!=='string')return null;const x=v.trim();return x&&x.length<=max?x:null;}
 export async function POST(req:Request){
   const limited=enforceRateLimit(req,'contact:submit',{windowMs:15*60*1000,max:5});if(limited)return limited;
