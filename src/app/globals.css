@@ -1490,3 +1490,98 @@ body{font-size:var(--type-body)}
   .pro-dieline-workspace>.pro-dieline-live{width:100%}
   .pro-2d-canvas-control-bar{bottom:40px}
 }
+
+
+/* 2D workspace refinement: keep the dieline centered, pin Layers to the right edge,
+   and use a compact zoom control strip. */
+@media (min-width: 761px) {
+  .pro-2d-design-stage .pro-dieline-workspace{
+    width:100%;
+    max-width:none;
+    display:block;
+    position:static;
+  }
+
+  .pro-2d-design-stage .pro-dieline-workspace>.pro-dieline-live{
+    width:min(760px,72vw);
+    max-width:760px;
+    margin:0 auto;
+    justify-self:auto;
+  }
+
+  .pro-2d-design-stage .pro-dieline-workspace>.pro-dieline-layers-panel{
+    position:absolute;
+    top:50%;
+    right:16px;
+    transform:translateY(-50%);
+    width:250px;
+    min-height:360px;
+    max-height:68vh;
+    z-index:12;
+  }
+
+  .pro-2d-canvas-control-bar{
+    width:max-content;
+    min-height:44px;
+    padding:5px 7px;
+    grid-template-columns:34px auto 34px 1px 34px;
+    gap:6px;
+    border-radius:11px;
+  }
+
+  .pro-2d-canvas-control-bar .pro-canvas-bar-icon{
+    width:34px;
+    height:34px;
+    border-radius:7px!important;
+  }
+
+  .pro-2d-canvas-control-bar .pro-canvas-bar-divider{
+    height:22px;
+  }
+
+  .pro-2d-zoom-value{
+    min-width:42px;
+    font-size:10px;
+  }
+}
+
+@media (max-width: 1050px) and (min-width: 761px) {
+  .pro-2d-design-stage .pro-dieline-workspace>.pro-dieline-live{
+    width:min(650px,66vw);
+  }
+
+  .pro-2d-design-stage .pro-dieline-workspace>.pro-dieline-layers-panel{
+    right:10px;
+    width:220px;
+  }
+}
+
+@media (max-width: 760px) {
+  .pro-2d-canvas-control-bar{
+    width:max-content;
+    min-height:42px;
+    padding:4px 6px;
+    grid-template-columns:32px auto 32px 1px 32px;
+    gap:5px;
+    border-radius:10px;
+  }
+
+  .pro-2d-canvas-control-bar .pro-canvas-bar-icon{
+    width:32px;
+    height:32px;
+  }
+
+  .pro-2d-zoom-value{
+    min-width:40px;
+    font-size:10px;
+  }
+}
+
+
+/* Align dividers inside compact 2D control bar */
+.pro-2d-canvas-control-bar .pro-canvas-bar-divider{
+  align-self:center;
+  justify-self:center;
+  height:20px;
+  margin:0;
+}
