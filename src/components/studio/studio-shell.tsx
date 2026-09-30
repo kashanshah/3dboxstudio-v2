@@ -790,7 +790,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         </button>)}
       </aside>
 
-      <section ref={studioCanvasRef} className="pro-canvas" aria-label="Packaging workspace">
+      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''}`} aria-label="Packaging workspace">
         <div className="pro-canvas-top">
           <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
             <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> 2D Design</button>
@@ -916,7 +916,6 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
           panEnabled={panEnabled}
-          setPanEnabled={setPanEnabled}
           canvasPan={canvasPan}
           setCanvasPan={setCanvasPan}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
@@ -1566,7 +1565,6 @@ function DielinePrototype({
   zoom,
   onZoomChange,
   panEnabled,
-  setPanEnabled,
   canvasPan,
   setCanvasPan,
   onChooseFullLayout,
@@ -1595,7 +1593,6 @@ function DielinePrototype({
   zoom:number;
   onZoomChange:React.Dispatch<React.SetStateAction<number>>;
   panEnabled:boolean;
-  setPanEnabled:(enabled:boolean)=>void;
   canvasPan:{x:number;y:number};
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
   onChooseFullLayout:()=>void;
@@ -1809,19 +1806,8 @@ function DielinePrototype({
         <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
         <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
       </div>
-      <div className="pro-2d-toolbar-summary">
-        <span>{artworkScope === 'inside' ? 'Inside artwork' : 'Outside artwork'}</span>
-        <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
-      </div>
       <div className="pro-2d-toolbar-actions">
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
-      <button
-        type="button"
-        className={`pro-secondary-button pro-drag-board-button${panEnabled?' is-active':''}`}
-        aria-pressed={panEnabled}
-        title={panEnabled ? 'Stop dragging the board' : 'Drag the 2D board'}
-        onClick={()=>setPanEnabled(!panEnabled)}
-      ><Move size={16}/> {panEnabled ? 'Dragging board' : 'Drag board'}</button>
       {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
         selectedLayer.id,
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
