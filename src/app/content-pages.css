@@ -58,7 +58,7 @@
 .content-article-header{width:min(980px,calc(100% - 56px));margin:auto;padding:100px 0 56px}
 .content-article-header h1{margin:20px 0 26px;font-size:clamp(54px,7vw,88px);font-weight:650;line-height:.96;letter-spacing:-.055em}
 .content-article-summary{max-width:820px;margin:0 0 28px;color:var(--muted);font-size:20px;line-height:1.67}
-.content-article-hero{display:block;width:min(1280px,calc(100% - 56px));height:min(66vw,720px);margin:0 auto 90px;object-fit:cover;border-radius:14px;background:var(--panel)}
+.adaptive-article-media{width:min(1120px,calc(100% - 56px));margin:0 auto 88px;text-align:center}.adaptive-article-media img{display:block;max-width:100%;height:auto;max-height:620px;margin-inline:auto;object-fit:contain;border-radius:14px;background:var(--panel);box-shadow:var(--shadow-soft)}.adaptive-article-media.is-portrait img{max-height:720px}.adaptive-article-media.is-square img{max-height:680px}.adaptive-article-media.is-panoramic img{max-height:500px}.adaptive-article-media figcaption{max-width:760px;margin:12px auto 0;color:var(--muted);font-size:12px;line-height:1.55;text-align:left}
 .content-article-layout{width:min(1080px,calc(100% - 56px));margin:0 auto 120px;display:grid;grid-template-columns:220px minmax(0,700px);gap:80px;align-items:start}
 .content-article-toc{position:sticky;top:110px}
 .content-article-toc p{margin:0 0 16px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
@@ -166,7 +166,7 @@
   .content-article-toc a,.faq-categories a,.legal-toc a{flex:0 0 auto;padding:8px 11px;border:1px solid var(--line);border-radius:999px;white-space:nowrap}
   .contact-layout{grid-template-columns:1fr;gap:44px}
   .content-cta{padding:44px;align-items:flex-start;flex-direction:column}
-  .content-article-hero{margin-bottom:60px}
+  .adaptive-article-media{margin-bottom:60px}
 }
 @media(max-width:650px){
   .content-nav{width:calc(100% - 28px);height:70px}
@@ -177,11 +177,11 @@
   .content-hero{width:calc(100% - 34px);padding:76px 0 54px}
   .content-hero h1{font-size:clamp(48px,14vw,68px)}
   .content-lede{font-size:18px}
-  .journal-feature,.journal-feed,.content-article-header,.content-article-hero,.content-article-layout,.related-section,.content-cta,.faq-layout,.contact-layout,.legal-header,.legal-layout,.content-footer-main,.content-footer-base{width:calc(100% - 34px)}
+  .journal-feature,.journal-feed,.content-article-header,.adaptive-article-media,.content-article-layout,.related-section,.content-cta,.faq-layout,.contact-layout,.legal-header,.legal-layout,.content-footer-main,.content-footer-base{width:calc(100% - 34px)}
   .journal-feature{margin-bottom:72px}.journal-feature-media{min-height:280px}.journal-feature-copy{padding:28px}.journal-feature h2{font-size:31px}
   .feed-heading{display:block}.category-filter{margin-top:20px}.content-article-grid{grid-template-columns:1fr;gap:42px}
   .content-article-header{padding-top:72px}.content-article-header h1{font-size:48px}.content-article-summary{font-size:18px}
-  .content-article-hero{height:auto;aspect-ratio:3/2}
+  .adaptive-article-media img{width:auto!important;max-width:100%;max-height:72vh;border-radius:10px}
   .content-article-body{font-size:16px}.content-article-body>p:first-child{font-size:18px}.content-article-body h2{font-size:31px;margin-top:52px}
   .content-cta{padding:34px 26px}.content-cta h2{font-size:40px}
   .faq-group h2{font-size:30px}

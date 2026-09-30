@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
+import { AdaptiveArticleImage } from '@/components/adaptive-article-image';
 import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 
@@ -89,7 +90,7 @@ export default async function BlogPostPage({ params }: Props) {
         <div className="content-article-meta"><time dateTime={post.published}>{new Date(post.published + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>{post.updated ? <><span>Updated {new Date(post.updated + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></> : null}<span>{post.readMinutes} min read</span></div>
       </header>
 
-      <img className="content-article-hero" src={`/images/blog/${post.slug}.webp`} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} width="1200" height="800" />
+      <AdaptiveArticleImage src={`/images/blog/${post.slug}.webp`} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} />
 
       <div className="content-article-layout">
         <nav className="content-article-toc" aria-label="On this page"><p>On this page</p>{toc.map((item) => <a href={`#${item.id}`} key={item.id}>{item.text}</a>)}</nav>
