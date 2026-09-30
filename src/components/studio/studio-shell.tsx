@@ -1536,6 +1536,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         })}
       </nav>
       <div className="pro-header-actions">
+        <div className="pro-header-history" role="group" aria-label="Edit history">
+          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canUndo} onClick={undoStudioAction} aria-label="Undo" title="Undo · Ctrl/⌘+Z"><Undo2 size={17}/></button>
+          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canRedo} onClick={redoStudioAction} aria-label="Redo" title="Redo · Ctrl/⌘+Shift+Z"><Redo2 size={17}/></button>
+        </div>
         <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?'Autosave is on. Click to save now.':'Save this design'} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':!projectId?'Save':hasUnsavedChanges?'Unsaved changes':'Saved'}</button>
         <button className="pro-secondary pro-header-share" disabled={shareBusy} title="Share this design" onClick={()=>void shareDesign()}><Share2 size={16}/><span>Share</span></button>
         <AccountButton compact className="pro-secondary" />
