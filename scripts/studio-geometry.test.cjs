@@ -68,6 +68,33 @@ test('raster canvas keeps the sheet aspect ratio for unusually wide and tall net
   }
 });
 
+const {scaleStudioZoom,wheelStudioZoom}=require('../src/lib/studio-zoom.ts');
+const {studioViewProjection}=require('../src/components/studio/carton-engine.tsx');
+test('zoom controls continue past previous limits and preserve positive scales',()=>{
+  let zoom=82;
+  for(let i=0;i<100;i++)zoom=scaleStudioZoom(zoom,1.1);
+  assert.ok(zoom>100000);
+  for(let i=0;i<200;i++)zoom=scaleStudioZoom(zoom,1/1.1);
+  assert.ok(zoom>0&&zoom<.01);
+  assert.ok(wheelStudioZoom(200,-100)>200);
+  assert.ok(wheelStudioZoom(40,100)<40);
+  assert.equal(wheelStudioZoom(82,0),82);
+  near(wheelStudioZoom(82,3,1),wheelStudioZoom(82,48,0));
+  assert.ok(wheelStudioZoom(82,-1000)>wheelStudioZoom(82,-100));
+  assert.equal(scaleStudioZoom(Number.MAX_VALUE,2),Number.MAX_VALUE);
+  assert.equal(scaleStudioZoom(Number.MIN_VALUE,.5),Number.MIN_VALUE);
+});
+test('3D projection keeps magnifying past old limits without moving the camera through the box',()=>{
+  const original=studioViewProjection(180,1.5,-.55,.28,82);
+  for(const zoom of [.01,20,40,140,500,100000]){
+    const matrix=studioViewProjection(180,1.5,-.55,.28,zoom);
+    assert.ok(matrix.every(Number.isFinite));
+    assert.ok(Math.abs(matrix[0]-original[0]*zoom/82)<Math.max(1,Math.abs(matrix[0]))*1e-6);
+    assert.ok(Math.abs(matrix[1]-original[1]*zoom/82)<Math.max(1,Math.abs(matrix[1]))*1e-6);
+    near(matrix[2],original[2]);
+    near(matrix[3],original[3]);
+  }
+});
 
 test('finished dimensions define exact 2D panel sizes used for 3D texture crops',()=>{
   for(const dimensions of fixtures){
@@ -109,4 +136,30 @@ test('sheet artwork transforms convert to physical millimetres before panel crop
     near(physical.height,bounds.height*.40);
     near(physical.rotation,17);
   }
+});
+
+const {dielinePrintBounds}=require('../src/lib/packaging/dieline-print.ts');
+test('print page preserves physical dieline size and a 3mm outer margin',()=>{
+ const bounds={width:200,height:300};
+ assert.deepEqual(dielinePrintBounds(bounds,[]),{left:-3,top:-3,width:206,height:306});
+});
+test('print page includes all corners of rotated artwork beyond each edge',()=>{
+ const bounds={width:200,height:300};
+ const layers=[
+  {transform:{x:-20,y:50,width:80,height:50,rotation:45}},
+  {transform:{x:120,y:120,width:100,height:75,rotation:-30}},
+  {transform:{x:50,y:-40,width:50,height:60,rotation:90}},
+ ];
+ const page=dielinePrintBounds(bounds,layers);
+ assert.ok(page.left<0 && page.top<0);
+ assert.ok(page.left+page.width>bounds.width && page.top+page.height>bounds.height);
+ for(const {transform:t} of layers){
+  const a=t.rotation*Math.PI/180,cx=bounds.width*t.x/100,cy=bounds.height*t.y/100;
+  for(const sx of [-1,1])for(const sy of [-1,1]){
+   const dx=sx*bounds.width*t.width/200,dy=sy*bounds.height*t.height/200;
+   const x=cx+dx*Math.cos(a)-dy*Math.sin(a),y=cy+dx*Math.sin(a)+dy*Math.cos(a);
+   assert.ok(x>=page.left+3-1e-6 && x<=page.left+page.width-3+1e-6);
+   assert.ok(y>=page.top+3-1e-6 && y<=page.top+page.height-3+1e-6);
+  }
+ }
 });

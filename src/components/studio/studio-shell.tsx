@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
@@ -17,6 +18,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
+import { printDielineLayout } from '@/lib/packaging/dieline-print';
 import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
@@ -159,6 +161,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const fileRef = useRef<HTMLInputElement>(null);
   const dielineFileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
+  const studioCanvasRef = useRef<HTMLElement>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
   const foldAnimationRef = useRef<number | null>(null);
@@ -169,6 +172,34 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setFaceAction(null);
     setCameraMenuOpen(false);
   }, []);
+
+  useEffect(() => {
+    const canvas=studioCanvasRef.current;
+    if(!canvas)return;
+
+    const handleWheel=(event:WheelEvent)=>{
+      const target=event.target;
+      if(!(target instanceof HTMLElement))return;
+
+      // UI chrome keeps its normal wheel behavior. Everywhere else in the
+      // central workspace belongs to the active design canvas.
+      if(target.closest(
+        '.pro-canvas-top,.pro-canvas-control-bar,.pro-2d-side-panels,.pro-status-bar,.pro-face-action,button,input,select,textarea'
+      )) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if(mode==='3d'){
+        setZoom(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
+      }else{
+        setDielineZoom(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
+      }
+    };
+
+    canvas.addEventListener('wheel',handleWheel,{passive:false,capture:true});
+    return ()=>canvas.removeEventListener('wheel',handleWheel,{capture:true});
+  },[mode]);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
@@ -759,7 +790,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         </button>)}
       </aside>
 
-      <section className="pro-canvas" aria-label="Packaging workspace">
+      <section ref={studioCanvasRef} className="pro-canvas" aria-label="Packaging workspace">
         <div className="pro-canvas-top">
           <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
             <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> 2D Design</button>
@@ -931,14 +962,18 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         />
 
         </div>
-          <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
+          <div className={`pro-canvas-control-bar pro-shared-canvas-control-bar${mode==='dieline'?' is-2d':''}`} aria-label="Canvas controls">
             <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
-            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(Math.max(40, zoom - 10)) : setDielineZoom(Math.max(45, dielineZoom - 10))}>
+            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
             </button>
-            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(Math.min(140, zoom + 10)) : setDielineZoom(Math.min(200, dielineZoom + 10))}>
+            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1.1))}>
               <ZoomIn size={20}/>
             </button>
+            {mode === 'dieline' && <>
+              <span className="pro-2d-zoom-value" aria-live="polite">{Number(dielineZoom.toFixed(1))}%</span>
+              <span className="pro-canvas-bar-divider" />
+            </>}
             {mode === '3d' && <>
               <span className="pro-canvas-bar-divider" />
               <button
@@ -1558,7 +1593,7 @@ function DielinePrototype({
   onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
   zoom:number;
-  onZoomChange:(zoom:number)=>void;
+  onZoomChange:React.Dispatch<React.SetStateAction<number>>;
   panEnabled:boolean;
   setPanEnabled:(enabled:boolean)=>void;
   canvasPan:{x:number;y:number};
@@ -1568,7 +1603,9 @@ function DielinePrototype({
   onClearImportedDieline:()=>void;
   livePreview:React.ReactNode;
 }) {
-  const printClipId=useId().replaceAll(':','');
+  const printBoardRef=useRef<HTMLDivElement>(null);
+  const [printError,setPrintError]=useState('');
+  const [printing,setPrinting]=useState(false);
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   // Size the 2D sheet from its real physical footprint instead of relying on
@@ -1773,9 +1810,10 @@ function DielinePrototype({
         <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
       </div>
       <div className="pro-2d-toolbar-summary">
-        <span>{artworkScope === 'inside' ? 'Inside / reverse side' : 'Outside / front side'}</span>
+        <span>{artworkScope === 'inside' ? 'Inside artwork' : 'Outside artwork'}</span>
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
+      <div className="pro-2d-toolbar-actions">
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
       <button
         type="button"
@@ -1788,17 +1826,20 @@ function DielinePrototype({
         selectedLayer.id,
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
       )}><Maximize2 size={15}/> Reset selected</button>}
+      <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
+        if (!printBoardRef.current) return;
+        setPrintError('');setPrinting(true);
+        try { await printDielineLayout(printBoardRef.current,bounds,layers); }
+        catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
+        finally { setPrinting(false); }
+      }}><Download size={16}/> {printing?'Preparing print…':'Print / Save PDF'}</button>
       <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Check size={16}/> Apply Changes</button>
+      </div>
     </div>
 
+    {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
     <div
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
-      onWheel={(event)=>{
-        if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
-        event.preventDefault();
-        const step = event.deltaY > 0 ? -8 : 8;
-        onZoomChange(Math.max(45,Math.min(200,zoom+step)));
-      }}
       onPointerDownCapture={(event)=>{
         if (!panEnabled) return;
         if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
@@ -1868,6 +1909,7 @@ function DielinePrototype({
       </div>
 
       <div
+        ref={printBoardRef}
         className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
         style={{
           width:`${visualWidth}px`,
@@ -1880,8 +1922,7 @@ function DielinePrototype({
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
       >
-        <svg width="0" height="0" aria-hidden="true"><defs><clipPath id={printClipId} clipPathUnits="objectBoundingBox">{cartonPanels.map(item=><rect key={item.id} x={item.x/bounds.width} y={item.y/bounds.height} width={item.width/bounds.width} height={item.height/bounds.height}/>)}</clipPath></defs></svg>
-        <div className="pro-full-artwork-print-surface" style={{clipPath:`url(#${printClipId})`}}>{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><img src={layer.url} alt="" draggable={false}/></div>)}</div>
+        <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><img src={layer.url} alt="" draggable={false}/></div>)}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
