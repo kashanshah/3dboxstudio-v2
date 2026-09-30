@@ -133,7 +133,7 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
 const studioAreas: { id: StudioArea; label: string; helper: string; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
   { id: 'box', label: 'Box', helper: 'Type, size & finish', icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
   { id: 'design', label: 'Design', helper: 'Artwork & placement', icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
-  { id: 'preview', label: 'Preview', helper: 'Open, scene & download', icon: Sparkles, defaultTool: 'opening', tools: ['opening','scene','export'] },
+  { id: 'preview', label: 'Preview', helper: 'Open & download', icon: Sparkles, defaultTool: 'opening', tools: ['opening','scene','export'] },
 ];
 
 function areaForTool(tool: Tool | null): StudioArea | null {
@@ -2124,18 +2124,15 @@ function Inspector(props: {
     </div>;
   }
 
-  if (tool === 'scene') {
-    const sceneHref=props.workspaceProjectId?`/scene-studio?workspace=${encodeURIComponent(props.workspaceProjectId)}`:'/scene-studio';
-    return <div className="pro-inspector-content">
-      <PanelIntro title="Create a scene" text="Turn this packaging work into a product image with multiple boxes, backgrounds, lighting, shadows and camera composition." />
-      <div className="pro-feature-empty">
-        <Lightbulb size={28}/>
-        <strong>Continue in Scene Studio</strong>
-        <p>Your box design stays reusable here. Scene Studio uses saved packaging as objects without changing the source design.</p>
-        <Link className="pro-primary pro-export-button" href={sceneHref}>Create a scene</Link>
-      </div>
-    </div>;
-  }
+  if (tool === 'scene') return <div className="pro-inspector-content">
+    <PanelIntro title="Scene Studio" text="Product photography scenes are planned for a later V2 release." />
+    <div className="pro-feature-empty pro-coming-soon-panel">
+      <Lightbulb size={28}/>
+      <span className="pro-coming-soon-badge">Coming soon</span>
+      <strong>Create product photography scenes</strong>
+      <p>Backgrounds, lighting, shadows, cameras and multi-box compositions will arrive after the core Box Studio launch.</p>
+    </div>
+  </div>;
 
   return <div className="pro-inspector-content">
     <PanelIntro title="Download your design" text="Download the current 3D preview or prepare a physical-size 2D artwork layout." />
