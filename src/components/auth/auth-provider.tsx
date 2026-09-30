@@ -45,7 +45,15 @@ export function AuthProvider({children}:{children:ReactNode}){
     }
   },[]);
 
-  useEffect(()=>{void refresh();},[refresh]);
+  useEffect(()=>{
+    let cancelled=false;
+    void fetch('/api/auth/me',{cache:'no-store'})
+      .then(response=>response.json() as Promise<{user?:AuthUser|null}>)
+      .then(data=>{if(!cancelled) setUser(data.user??null);})
+      .catch(()=>{if(!cancelled) setUser(null);})
+      .finally(()=>{if(!cancelled) setLoading(false);});
+    return ()=>{cancelled=true;};
+  },[]);
 
   const openAuth=useCallback((nextMode:AuthMode='signin')=>{
     setMode(nextMode);
