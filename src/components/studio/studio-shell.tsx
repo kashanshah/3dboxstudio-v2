@@ -20,6 +20,20 @@ import { createFullDielineTransform, rasterizeFullDielineLayers, type FullDielin
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
 type MeasurementUnit = 'mm' | 'in';
+type BaseColorMode = 'material' | 'custom';
+
+const MATERIAL_BASE_COLORS: Record<string,{outside:string;inside:string}> = {
+  'White board': { outside:'#EBEDF0', inside:'#F5F6F7' },
+  'Kraft': { outside:'#A3784A', inside:'#B89668' },
+  'Soft touch': { outside:'#C7D4DE', inside:'#D7E0E7' },
+  'Matte coated': { outside:'#D1DBE3', inside:'#DCE4EA' },
+  'Gloss coated': { outside:'#C4D6E6', inside:'#D6E2EC' },
+  'Foil': { outside:'#C7A34D', inside:'#D2BA7A' },
+};
+
+function materialBaseColor(material:string, side:'outside'|'inside') {
+  return MATERIAL_BASE_COLORS[material]?.[side] ?? (side === 'inside' ? '#D7E0E7' : '#C7D4DE');
+}
 
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Box & Size', icon: Box },
@@ -43,6 +57,10 @@ export function StudioShell() {
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
   const [material, setMaterial] = useState('Soft touch');
+  const [outsideColorMode, setOutsideColorMode] = useState<BaseColorMode>('material');
+  const [insideColorMode, setInsideColorMode] = useState<BaseColorMode>('material');
+  const [outsideCustomColor, setOutsideCustomColor] = useState('#C7D4DE');
+  const [insideCustomColor, setInsideCustomColor] = useState('#D7E0E7');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpening] = useState(100);
@@ -513,6 +531,8 @@ export function StudioShell() {
             dimensions={dimensions}
             opening={opening}
             material={material}
+            outsideColor={outsideColorMode === 'custom' ? outsideCustomColor : null}
+            insideColor={insideColorMode === 'custom' ? insideCustomColor : null}
             artworkByPanel={resolvedArtworkByPanel}
             cameraPreset={camera}
             zoom={zoom}
@@ -632,7 +652,7 @@ export function StudioShell() {
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -664,7 +684,12 @@ function Inspector(props: {
   selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onImportDieline:()=>void; importedDieline:ParsedDieline|null;
   panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
-  material:string; setMaterial:(v:string)=>void; opening:number; setOpening:(v:number)=>void;
+  material:string; setMaterial:(v:string)=>void;
+  outsideColorMode:BaseColorMode; setOutsideColorMode:(v:BaseColorMode)=>void;
+  insideColorMode:BaseColorMode; setInsideColorMode:(v:BaseColorMode)=>void;
+  outsideCustomColor:string; setOutsideCustomColor:(v:string)=>void;
+  insideCustomColor:string; setInsideCustomColor:(v:string)=>void;
+  opening:number; setOpening:(v:number)=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   measurementUnit:MeasurementUnit; setMeasurementUnit:(unit:MeasurementUnit)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
@@ -905,48 +930,68 @@ function Inspector(props: {
     <PanelIntro title="Material & finish" text="Choose the board or surface treatment, then fine-tune the physical material settings." />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
 
-    <div className="pro-card-section pro-material-settings-card">
-      <SectionTitle title="Board thickness" meta="Material setting" />
-      <div className="pro-thickness-control">
-        <label className="pro-thickness-input">
-          <span>Thickness</span>
-          <div>
+    <div className="pro-card-section pro-base-color-card">
+      <SectionTitle title="Base color" meta="Inside / outside" />
+      <p className="pro-help">Color is independent from finish. Keep the material default, or override either side—for example, a white box can still be matte, glossy, or soft-touch.</p>
+
+      {(['outside','inside'] as const).map(side => {
+        const mode = side === 'outside' ? props.outsideColorMode : props.insideColorMode;
+        const setMode = side === 'outside' ? props.setOutsideColorMode : props.setInsideColorMode;
+        const customColor = side === 'outside' ? props.outsideCustomColor : props.insideCustomColor;
+        const setCustomColor = side === 'outside' ? props.setOutsideCustomColor : props.setInsideCustomColor;
+        const materialColor = materialBaseColor(props.material,side);
+        const shownColor = mode === 'custom' ? customColor : materialColor;
+        return <div className="pro-surface-color-row" key={side}>
+          <div className="pro-surface-color-head">
+            <div>
+              <span>{side === 'outside' ? 'Outside color' : 'Inside color'}</span>
+              <strong>{mode === 'material' ? 'Material default' : customColor.toUpperCase()}</strong>
+            </div>
+            <span className="pro-color-swatch" style={{background:shownColor}} aria-hidden="true"/>
+          </div>
+
+          <div className="pro-color-mode-switch" role="group" aria-label={`${side} color source`}>
+            <button
+              type="button"
+              className={mode === 'material' ? 'is-active' : ''}
+              onClick={()=>setMode('material')}
+            >Material default</button>
+            <button
+              type="button"
+              className={mode === 'custom' ? 'is-active' : ''}
+              onClick={()=>{
+                if (mode !== 'custom') setCustomColor(materialColor);
+                setMode('custom');
+              }}
+            >Custom</button>
+          </div>
+
+          {mode === 'custom' && <div className="pro-color-picker-row">
+            <label className="pro-color-picker">
+              <input
+                type="color"
+                value={customColor}
+                onChange={e=>setCustomColor(e.target.value.toUpperCase())}
+                aria-label={`Choose ${side} box color`}
+              />
+              <span>Select color</span>
+            </label>
             <input
-              type="number"
-              min={props.measurementUnit === 'mm' ? 0.3 : 0.01}
-              max={props.measurementUnit === 'mm' ? 2 : 0.08}
-              step={props.measurementUnit === 'mm' ? 0.05 : 0.001}
-              value={formatThickness(props.dimensions.thickness,props.measurementUnit)}
+              className="pro-color-hex"
+              value={customColor.toUpperCase()}
+              maxLength={7}
+              aria-label={`${side} color hex value`}
               onChange={e=>{
-                const mm=props.measurementUnit === 'mm' ? Number(e.target.value) : Number(e.target.value)*25.4;
-                props.setDimensions({...props.dimensions,thickness:clampThickness(mm)});
+                const value=e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`;
+                if (/^#[0-9A-Fa-f]{0,6}$/.test(value)) setCustomColor(value);
+              }}
+              onBlur={()=>{
+                if (!/^#[0-9A-Fa-f]{6}$/.test(customColor)) setCustomColor(materialColor);
               }}
             />
-            <em>{props.measurementUnit}</em>
-          </div>
-        </label>
-
-        <input
-          className="pro-range pro-thickness-range"
-          aria-label="Board thickness"
-          type="range"
-          min="0.3"
-          max="2"
-          step="0.05"
-          value={clampThickness(props.dimensions.thickness)}
-          onChange={e=>props.setDimensions({...props.dimensions,thickness:clampThickness(Number(e.target.value))})}
-        />
-
-        <div className="pro-thickness-presets" aria-label="Common board thicknesses">
-          {[0.3,0.5,0.7,1].map(value=><button
-            key={value}
-            type="button"
-            className={Math.abs(props.dimensions.thickness-value)<0.001?'is-active':''}
-            onClick={()=>props.setDimensions({...props.dimensions,thickness:value})}
-          >{props.measurementUnit === 'mm' ? `${value.toFixed(value<1?1:0)} mm` : `${(value/25.4).toFixed(3)} in`}</button>)}
-        </div>
-      </div>
-      <p className="pro-help">Typical folding carton board is around 0.3–0.7 mm. Heavier rigid stock can be thicker.</p>
+          </div>}
+        </div>;
+      })}
     </div>
 
     <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
@@ -1655,7 +1700,7 @@ function MediaLibraryModal(props: {
             <ImageIcon size={30}/>
             <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
             <p>{props.assets.length ? 'Try another search.' : 'Your image will appear here immediately and can be positioned on the dieline.'}</p>
-            {!props.assets.length && <button className="pro-primary" onClick={props.onUpload}>Choose image</button>}
+            {!props.assets.length && <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Choose image</button>}
           </div> : <div className="pro-media-grid pro-media-unified-grid">
             {filteredAssets.map(asset => {
               const used = Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === asset.id).length;
@@ -1739,7 +1784,7 @@ function MediaLibraryModal(props: {
             <ImageIcon size={32}/>
             <h3>Choose or upload artwork</h3>
             <p>Everything happens here. Select an existing image or upload a new one, then set its initial size before placing it on the dieline.</p>
-            <button className="pro-primary" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
+            <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>}
         </aside>
       </div>
