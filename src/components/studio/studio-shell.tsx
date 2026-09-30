@@ -1517,6 +1517,18 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>}
         </div>
       </div>
+      <div className="pro-header-actions">
+        <div className="pro-header-history" role="group" aria-label="Edit history">
+          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canUndo} onClick={undoStudioAction} aria-label="Undo" title="Undo · Ctrl/⌘+Z"><Undo2 size={17}/></button>
+          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canRedo} onClick={redoStudioAction} aria-label="Redo" title="Redo · Ctrl/⌘+Shift+Z"><Redo2 size={17}/></button>
+        </div>
+        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?'Autosave is on. Click to save now.':'Save this design'} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':!projectId?'Save':hasUnsavedChanges?'Unsaved changes':'Saved'}</button>
+        <button className="pro-secondary pro-header-share" disabled={shareBusy} title="Share this design" onClick={()=>void shareDesign()}><Share2 size={16}/><span>Share</span></button>
+        <AccountButton compact className="pro-secondary" />
+      </div>
+    </header>
+
+    <div className="pro-workflow-row">
       <nav className="pro-workflow-nav" aria-label="Box design workflow">
         {studioAreas.map((area,index)=>{
           const Icon=area.icon;
@@ -1529,22 +1541,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             onClick={()=>goToWorkflowStep(area.id)}
             title={area.helper}
           >
-            <span className="pro-workflow-step-icon"><Icon size={18}/>{ready&&<i><Check size={10}/></i>}</span>
-            <span className="pro-workflow-step-copy"><b>{area.label}</b><small>{area.helper}</small></span>
             <span className="pro-workflow-step-number">{index+1}</span>
+            <span className="pro-workflow-step-icon"><Icon size={20}/>{ready&&<i><Check size={10}/></i>}</span>
+            <span className="pro-workflow-step-copy"><b>{area.label}</b><small>{area.helper}</small></span>
           </button>;
         })}
       </nav>
-      <div className="pro-header-actions">
-        <div className="pro-header-history" role="group" aria-label="Edit history">
-          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canUndo} onClick={undoStudioAction} aria-label="Undo" title="Undo · Ctrl/⌘+Z"><Undo2 size={17}/></button>
-          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canRedo} onClick={redoStudioAction} aria-label="Redo" title="Redo · Ctrl/⌘+Shift+Z"><Redo2 size={17}/></button>
-        </div>
-        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?'Autosave is on. Click to save now.':'Save this design'} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':!projectId?'Save':hasUnsavedChanges?'Unsaved changes':'Saved'}</button>
-        <button className="pro-secondary pro-header-share" disabled={shareBusy} title="Share this design" onClick={()=>void shareDesign()}><Share2 size={16}/><span>Share</span></button>
-        <AccountButton compact className="pro-secondary" />
-      </div>
-    </header>
+    </div>
 
     <div className="pro-studio-body">
       <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?'Packaging design workspace':workflowStep==='box'?'Box setup workspace':'3D preview and download workspace'}>
@@ -1787,7 +1790,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
-      <aside className={`pro-inspector ${inspectorOpen ? 'is-open' : ''}`}>
+      <aside className={`pro-inspector is-workflow-${workflowStep} ${inspectorOpen ? 'is-open' : ''}`}>
         <div className="pro-inspector-title"><div><span>{activeAreaConfig?.label ?? 'Inspector'}</span><h2>{activeLabel}</h2></div><button
   className="pro-inspector-close"
   aria-label="Close tool panel"
@@ -2705,30 +2708,13 @@ function DielinePrototype({
       mapping={mapping ?? createInitialDielineMapping(importedDieline)}
       setMapping={setMapping}
       onClear={onClearImportedDieline}
-    /><div className="pro-2d-side-panels pro-2d-preview-only">{viewSwitch}{livePreview}</div></>;
+    /><div className="pro-2d-right-preview pro-2d-preview-only">{livePreview}</div></>;
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
     <div className="pro-2d-design-toolbar">
-      <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
-        <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
-        <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
-      </div>
-      <div className="pro-2d-toolbar-actions">
-      <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add image</button>
-      {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
-        selectedLayer.id,
-        createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
-      )}><Maximize2 size={15}/> Reset selected</button>}
-      <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
-        if (!printBoardRef.current) return;
-        setPrintError('');setPrinting(true);
-        try { await printDielineLayout(printBoardRef.current,bounds,layers); }
-        catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
-        finally { setPrinting(false); }
-      }}><Download size={16}/> {printing?'Preparing print…':'Print / Save PDF'}</button>
-      <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Boxes size={16}/> Preview in 3D</button>
-      </div>
+      <span>Design canvas</span>
+      <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Boxes size={17}/> Preview in 3D</button>
     </div>
 
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
@@ -2767,10 +2753,23 @@ function DielinePrototype({
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
     >
-      <div className="pro-2d-side-panels">
-        {viewSwitch}
-        {livePreview}
-      <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
+      <aside className="pro-2d-left-panel" aria-label="Design tools">
+        <div className="pro-2d-left-panel-head">
+          <span>Design</span>
+          <strong>Artwork & layers</strong>
+        </div>
+        <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
+          <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
+          <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
+        </div>
+        <div className="pro-2d-left-actions">
+          <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/> Add artwork</button>
+          {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
+            selectedLayer.id,
+            createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
+          )}><Maximize2 size={16}/> Reset selected</button>}
+        </div>
+        <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
           <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
           <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
@@ -2834,13 +2833,24 @@ function DielinePrototype({
         </section>}
 
         {selectedLayer && <div className="pro-dieline-layer-actions">
-          <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={14}/></button>
-          <button type="button" title="Send backward" aria-label="Send selected layer backward" disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={14}/></button>
-          <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={14}/></button>
-          <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={14}/></button>
+          <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={16}/></button>
+          <button type="button" title="Send backward" aria-label="Send selected layer backward" disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={16}/></button>
+          <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={16}/></button>
+          <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={16}/></button>
         </div>}
+        </aside>
+        <div className="pro-design-output">
+          <span>Print output</span>
+          <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
+            if (!printBoardRef.current) return;
+            setPrintError('');setPrinting(true);
+            try { await printDielineLayout(printBoardRef.current,bounds,layers); }
+            catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
+            finally { setPrinting(false); }
+          }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
+        </div>
       </aside>
-      </div>
+      <div className="pro-2d-right-preview">{livePreview}</div>
 
       <div
         ref={printBoardRef}
@@ -2964,7 +2974,7 @@ function DielinePrototype({
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{layers.length ? 'Freeform by default · magnetic snapping near guides · Option/Alt bypasses snap · Shift unlocks resize proportions' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
+      <strong>{layers.length ? 'Drag freely · hold Shift while resizing to change proportions · hold Shift while rotating for 15° steps' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
     </div>
 
   </div>;
