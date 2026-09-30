@@ -13,7 +13,7 @@ export function OriginalHome() {
     <nav className="site-nav">
       <BrandMark />
       <div className="original-nav-links"><a href="#workflow">Workflow</a><a href="#showcase">Examples</a><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link></div>
-      <div className="original-nav-actions"><AccountButton compact/><Button asChild size="sm"><Link href="/studio">Open Studio <ArrowRight /></Link></Button></div>
+      <div className="original-nav-actions"><AccountButton compact className="original-button original-button-outline original-button-size-sm"/><Button asChild size="sm"><Link href="/studio">Open Studio <ArrowRight /></Link></Button></div>
     </nav>
 
     <section className="home-hero">

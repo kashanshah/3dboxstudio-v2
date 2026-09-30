@@ -99,7 +99,6 @@ export function StudioShell() {
   const setOpening = useCallback((value: number) => {
     const next = Math.max(0, Math.min(100, value));
     setOpeningValue(next);
-    setMode(next <= 5 ? 'dieline' : '3d');
     setFaceAction(null);
     setCameraMenuOpen(false);
   }, []);
@@ -484,7 +483,7 @@ export function StudioShell() {
         <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Local design</span></div>
       </div>
       <div className="pro-header-actions">
-        <AccountButton compact />
+        <AccountButton compact className="pro-secondary" />
         <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
       </div>
     </header>
