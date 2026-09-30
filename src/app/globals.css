@@ -4537,7 +4537,6 @@ body{font-size:var(--type-body)}
   }
 }
 
-
 /* Design should feel like the same playground as the surrounding Studio canvas. */
 .pro-dieline-stage{
   background:inherit!important;
