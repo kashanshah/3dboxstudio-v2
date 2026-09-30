@@ -22,6 +22,8 @@ type Props = {
   dimensions: CartonDimensions;
   opening: number;
   material: string;
+  outsideColor?: string | null;
+  insideColor?: string | null;
   artworkByPanel: ArtworkByPanel;
   cameraPreset: string;
   zoom: number;
@@ -41,7 +43,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, artworkByPanel, cameraPreset, zoom, onZoomChange, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, onZoomChange, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -142,6 +144,8 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       dimensions,
       opening,
       material,
+      outsideColor,
+      insideColor,
       artworkByPanel,
       yaw,
       pitch,
@@ -149,7 +153,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       lightIntensity,
       hoverPanel,
     });
-  }, [dimensions, opening, material, artworkByPanel, yaw, pitch, zoom, lightIntensity, hoverPanel]);
+  }, [dimensions, opening, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
@@ -217,6 +221,8 @@ type Scene = {
   dimensions: CartonDimensions;
   opening: number;
   material: string;
+  outsideColor: string | null;
+  insideColor: string | null;
   artworkByPanel: ArtworkByPanel;
   yaw: number;
   pitch: number;
@@ -265,6 +271,8 @@ function createRenderer(canvas: HTMLCanvasElement) {
     dimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
     opening: 18,
     material: 'Soft touch',
+    outsideColor: null,
+    insideColor: null,
     artworkByPanel: {},
     yaw: -0.55,
     pitch: 0.28,
@@ -284,7 +292,10 @@ function createRenderer(canvas: HTMLCanvasElement) {
     const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
     const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20);
     const viewProjection = multiply4(projection, view);
-    const meshes = buildMeshes(scene.dimensions, scene.opening, materialColor(scene.material));
+    const materialBase = materialColor(scene.material);
+    const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
+    const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
+    const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.enable(gl.DEPTH_TEST);
@@ -428,7 +439,10 @@ function createRenderer(canvas: HTMLCanvasElement) {
       const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
       const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.01), maxDimension * 20);
       const viewProjection = multiply4(projection, view);
-      const meshes = buildMeshes(scene.dimensions, scene.opening, materialColor(scene.material))
+      const materialBase = materialColor(scene.material);
+      const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
+      const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
+      const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase)
         .filter(mesh => mesh.panel && mesh.pickCorners);
 
       const hits = meshes.map(mesh => {
@@ -458,7 +472,12 @@ function createRenderer(canvas: HTMLCanvasElement) {
   };
 }
 
-function buildMeshes(dimensions: CartonDimensions, opening: number, color: [number, number, number]): Mesh[] {
+function buildMeshes(
+  dimensions: CartonDimensions,
+  opening: number,
+  color: [number, number, number],
+  interiorColor: [number, number, number],
+): Mesh[] {
   const { width: w, height: h, depth: d } = dimensions;
   const t = clamp(dimensions.thickness, 0.3, Math.min(w, d) * 0.08);
   const fold = reverseTuckFoldState(opening);
@@ -475,7 +494,7 @@ function buildMeshes(dimensions: CartonDimensions, opening: number, color: [numb
 
   const darker: [number, number, number] = color.map(v => v * 0.86) as [number, number, number];
   const lighter: [number, number, number] = color.map(v => Math.min(1, v * 1.08)) as [number, number, number];
-  const interior: [number, number, number] = color.map(v => Math.min(1, v * 0.92 + 0.08)) as [number, number, number];
+  const interior: [number, number, number] = interiorColor;
 
   const frontCorners = [
     [x0, y0, zFront],
@@ -796,6 +815,24 @@ function materialColor(material: string): [number, number, number] {
     case 'Foil': return [0.78, 0.64, 0.3];
     default: return [0.78, 0.83, 0.87];
   }
+}
+
+function materialInteriorColor(material: string): [number, number, number] {
+  const base = materialColor(material);
+  return base.map(value => Math.min(1, value * 0.92 + 0.08)) as [number, number, number];
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const normalized = hex.trim().replace(/^#/, '');
+  const expanded = normalized.length === 3
+    ? normalized.split('').map(char => char + char).join('')
+    : normalized;
+  if (!/^[0-9a-f]{6}$/i.test(expanded)) return [1, 1, 1];
+  return [
+    parseInt(expanded.slice(0, 2), 16) / 255,
+    parseInt(expanded.slice(2, 4), 16) / 255,
+    parseInt(expanded.slice(4, 6), 16) / 255,
+  ];
 }
 
 function shortestAngleDelta(from: number, to: number) {
