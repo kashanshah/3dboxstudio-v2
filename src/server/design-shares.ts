@@ -265,3 +265,18 @@ export async function getShareMedia(id:string,assetId:string){
  ]);
  return ids.has(assetId)?row:null;
 }
+
+
+export async function getLegacyDesignThumbnail(id:string){
+ await ensureV2Schema();
+ const rows=await getSql()`
+  SELECT payload->>'v2_og_image_key' AS storage_key
+  FROM legacy_records
+  WHERE source||':'||source_id=${id}
+    AND entity_type='shared_designs'
+    AND deleted_at IS NULL
+  LIMIT 1
+ ` as {storage_key:string|null}[];
+ const storageKey=rows[0]?.storage_key;
+ return storageKey?{storageKey}:null;
+}

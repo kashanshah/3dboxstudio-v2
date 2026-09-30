@@ -6,16 +6,6 @@ import { ensureLegacyMediaForDesign } from '@/server/legacy-media';
 
 export type WorkspaceDesign={id:string;name:string;updatedAt:string;preview:string|null;legacy:boolean;href:string|null;favorite:boolean;workspaceProjectId:string|null};
 
-function legacyPreview(key:string|null){
- if(!key)return null;
- const base=process.env.LEGACY_ASSET_BASE_URL?.trim();
- if(!base)return null;
- try{
-  const url=new URL(base);if(url.protocol!=='https:')return null;
-  return url.toString().replace(/\/$/,'')+'/'+key.split('/').map(encodeURIComponent).join('/');
- }catch{return null;}
-}
-
 export async function getWorkspaceDesigns(userId:string,search='',sort='recent',page=1,workspaceProjectId?:string|null){
  await ensureV2Schema();const sql=getSql(),offset=(page-1)*24;
  const rows=await sql`WITH designs AS (
@@ -27,7 +17,7 @@ export async function getWorkspaceDesigns(userId:string,search='',sort='recent',
  SELECT lr.source||':'||lr.source_id AS id,
         COALESCE(lr.payload->>'name','Untitled legacy design') AS name,
         COALESCE((lr.payload->>'updated_at')::timestamptz,(lr.payload->>'created_at')::timestamptz) AS updated_at,
-        lr.payload->>'og_image_key' AS preview_image_key,
+        lr.payload->>'v2_og_image_key' AS preview_image_key,
         true AS legacy,
         false AS is_favorite,
         NULL::text AS workspace_project_id
@@ -52,7 +42,7 @@ export async function getWorkspaceDesigns(userId:string,search='',sort='recent',
    name:row.name,
    updatedAt:row.updated_at,
    legacy:row.legacy,
-   preview:row.legacy?legacyPreview(row.preview_image_key):row.preview_image_key,
+   preview:row.legacy?(row.preview_image_key?`/api/legacy-designs/${encodeURIComponent(row.id)}/thumbnail`:null):row.preview_image_key,
    href:`/studio/editor?project=${encodeURIComponent(row.id)}`,
    favorite:row.is_favorite,
    workspaceProjectId:row.workspace_project_id,
