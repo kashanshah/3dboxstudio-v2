@@ -3223,3 +3223,62 @@ body{font-size:var(--type-body)}
  .shared-design-stage{grid-template-columns:1fr;grid-template-rows:minmax(420px,65dvh) auto}.shared-design-controls{border-left:0;border-top:1px solid var(--line);padding:18px}
  .pro-share-link-row{grid-template-columns:1fr}.pro-share-link-row button{width:100%}
 }
+
+
+/* Keep first-run guidance in its own lane below canvas controls. */
+.pro-first-run-guide.is-3d{
+  top:74px;
+}
+.pro-first-run-guide.is-dieline{
+  top:92px;
+  max-width:min(720px,calc(100% - 380px));
+}
+.pro-canvas:has(.pro-first-run-guide.is-dieline) .pro-2d-design-stage{
+  padding-top:154px;
+}
+.pro-canvas:has(.pro-first-run-guide.is-3d) .pro-stage-badge{
+  top:138px;
+}
+
+@media(max-width:1100px) and (min-width:761px){
+  .pro-first-run-guide.is-dieline{
+    top:88px;
+    max-width:calc(100% - 330px);
+  }
+  .pro-first-run-guide.is-3d{
+    top:70px;
+    max-width:calc(100% - 180px);
+  }
+  .pro-canvas:has(.pro-first-run-guide.is-dieline) .pro-2d-design-stage{
+    padding-top:150px;
+  }
+}
+@media(max-width:760px){
+  .pro-first-run-guide.is-3d{
+    top:66px;
+  }
+  .pro-first-run-guide.is-dieline{
+    top:118px;
+    max-width:none;
+  }
+  .pro-canvas:has(.pro-first-run-guide.is-dieline) .pro-2d-design-stage{
+    padding-top:188px;
+  }
+  .pro-canvas:has(.pro-first-run-guide.is-dieline) .pro-2d-side-panels{
+    top:208px;
+  }
+  .pro-canvas:has(.pro-first-run-guide.is-3d) .pro-stage-badge{
+    top:126px;
+  }
+}
+@media(max-width:520px){
+  .pro-first-run-guide{
+    padding:6px 8px;
+  }
+  .pro-first-run-guide ol{
+    gap:4px;
+  }
+  .pro-first-run-guide li{
+    padding:0 7px;
+  }
+}
