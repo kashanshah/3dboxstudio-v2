@@ -9,6 +9,10 @@ export function validProjectState(value:unknown):value is StudioProjectState{
  if(typeof s.material!=='string'||!['mm','in'].includes(s.measurementUnit)||!Number.isFinite(s.opening)||s.opening<0||s.opening>100)return false;
  if(!s.artworkByPanel||typeof s.artworkByPanel!=='object'||Array.isArray(s.artworkByPanel)||![s.outsideArtworkLayers,s.insideArtworkLayers,s.mediaAssets].every(list=>Array.isArray(list)&&list.length<=100))return false;
  const images=[...Object.values(s.artworkByPanel),...s.outsideArtworkLayers,...s.insideArtworkLayers,...s.mediaAssets];
- if(!images.every(item=>item&&typeof item.name==='string'&&typeof item.url==='string'&&/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(item.url)))return false;
+ if(!images.every(item=>item&&typeof item.name==='string'&&typeof item.url==='string'&&(
+  /^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(item.url) ||
+  /^\/api\/media\/[A-Za-z0-9-]+$/.test(item.url) ||
+  /^https:\/\//.test(item.url)
+)))return false;
  return ['material','custom'].includes(s.outsideColorMode)&&['material','custom'].includes(s.insideColorMode)&&[s.outsideCustomColor,s.insideCustomColor].every(color=>typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color));
 }

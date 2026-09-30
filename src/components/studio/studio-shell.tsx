@@ -37,6 +37,24 @@ function materialBaseColor(material:string, side:'outside'|'inside') {
   return MATERIAL_BASE_COLORS[material]?.[side] ?? (side === 'inside' ? '#D7E0E7' : '#C7D4DE');
 }
 
+async function readUploadDimensions(file:File):Promise<{width:number|null;height:number|null}>{
+  const url=URL.createObjectURL(file);
+  try{
+    const image=new Image();
+    const result=await new Promise<{width:number|null;height:number|null}>((resolve)=>{
+      image.onload=()=>resolve({
+        width:image.naturalWidth||null,
+        height:image.naturalHeight||null,
+      });
+      image.onerror=()=>resolve({width:null,height:null});
+      image.src=url;
+    });
+    return result;
+  }finally{
+    URL.revokeObjectURL(url);
+  }
+}
+
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Box & Size', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
@@ -133,6 +151,29 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   }, [mediaAssets]);
 
   useEffect(() => {
+    let cancelled=false;
+    void fetch('/api/media',{cache:'no-store'})
+      .then(async response=>{
+        if(!response.ok){
+          if(response.status===401)return {assets:[] as LocalMediaAsset[]};
+          throw new Error('Could not load your image library.');
+        }
+        return response.json() as Promise<{assets:LocalMediaAsset[]}>;
+      })
+      .then(({assets})=>{
+        if(cancelled||!assets.length)return;
+        setMediaAssets(current=>{
+          const merged=new Map<string,LocalMediaAsset>();
+          for(const asset of assets)merged.set(asset.id,asset);
+          for(const asset of current)if(!merged.has(asset.id))merged.set(asset.id,asset);
+          return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
+        });
+      })
+      .catch(()=>{if(!cancelled)setMessage('Your saved image library could not be loaded.');});
+    return ()=>{cancelled=true;};
+  }, []);
+
+  useEffect(() => {
     const token = ++liveMapTokenRef.current;
     const timeout = window.setTimeout(() => {
       void Promise.all([
@@ -157,7 +198,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   }, [outsideDielineLayers, insideDielineLayers, dimensions]);
 
   useEffect(() => () => {
-    for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
+    for (const asset of mediaAssetsRef.current) if(asset.url.startsWith('blob:')) URL.revokeObjectURL(asset.url);
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
   }, []);
 
@@ -342,7 +383,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     });
   };
 
-  const handleArtworkFiles = (files: File[]) => {
+  const handleArtworkFiles = async (files: File[]) => {
     const imageFiles = files.filter(file => {
       const lower = file.name.toLowerCase();
       return ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type) || lower.endsWith('.svg');
@@ -352,57 +393,33 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       return;
     }
 
-    const existingByFingerprint = new Map(mediaAssetsRef.current.map(asset => [asset.fingerprint, asset]));
-    const newAssets: LocalMediaAsset[] = [];
-    let selectedId: string | null = null;
-
-    for (const file of imageFiles) {
-      const fingerprint = `${file.name}:${file.size}:${file.lastModified}`;
-      const existing = existingByFingerprint.get(fingerprint);
-      if (existing) {
-        selectedId ??= existing.id;
-        continue;
+    setMessage(`Uploading ${imageFiles.length} image${imageFiles.length===1?'':'s'}…`);
+    const uploaded: LocalMediaAsset[]=[];
+    try{
+      for(const file of imageFiles){
+        const dimensions=await readUploadDimensions(file);
+        const form=new FormData();
+        form.set('file',file);
+        if(dimensions.width)form.set('width',String(dimensions.width));
+        if(dimensions.height)form.set('height',String(dimensions.height));
+        const response=await fetch('/api/media',{method:'POST',body:form});
+        const result=await response.json().catch(()=>({error:'Could not upload artwork.'})) as {asset?:LocalMediaAsset;error?:string};
+        if(!response.ok||!result.asset)throw new Error(result.error||'Could not upload artwork.');
+        uploaded.push(result.asset);
       }
 
-      const url = URL.createObjectURL(file);
-      const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const mimeType = file.type || (file.name.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : 'image/png');
-      const asset: LocalMediaAsset = {
-        id,
-        name: file.name,
-        url,
-        mimeType,
-        byteSize: file.size,
-        width: null,
-        height: null,
-        fingerprint,
-        createdAt: Date.now(),
-      };
-      existingByFingerprint.set(fingerprint, asset);
-      newAssets.push(asset);
-      selectedId ??= id;
-
-      const image = new Image();
-      image.onload = () => {
-        setMediaAssets(current => current.map(item => item.id === id
-          ? { ...item, width: image.naturalWidth || 1000, height: image.naturalHeight || 1000 }
-          : item));
-      };
-      image.src = url;
+      setMediaAssets(current=>{
+        const merged=new Map(current.map(asset=>[asset.id,asset]));
+        for(const asset of uploaded)merged.set(asset.id,asset);
+        return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
+      });
+      if(uploaded[0])setSelectedMediaAssetId(uploaded[0].id);
+      setMediaLibraryTab('library');
+      setMediaLibraryOpen(true);
+      setMessage(`${uploaded.length} image${uploaded.length===1?'':'s'} saved to My Images`);
+    }catch(error){
+      setMessage(error instanceof Error?error.message:'Could not upload artwork.');
     }
-
-    if (newAssets.length > 0) {
-      setMediaAssets(current => [...newAssets, ...current]);
-      setMessage(`${newAssets.length} image${newAssets.length === 1 ? '' : 's'} added to your library`);
-    } else {
-      setMessage('Those images are already in your library');
-    }
-
-    if (selectedId) setSelectedMediaAssetId(selectedId);
-    setMediaLibraryTab('library');
-    setMediaLibraryOpen(true);
   };
 
   const handleDielineFile = async (file?: File) => {
@@ -507,19 +524,33 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setFaceAction(null);
   };
 
-  const removeMediaAsset = (assetId: string) => {
+  const removeMediaAsset = async (assetId: string) => {
     const inUse = [...outsideDielineLayers, ...insideDielineLayers].some(layer => layer.assetId === assetId)
       || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
     if (inUse) {
-      setMessage('Remove this image from every layer or panel before deleting it from the library');
+      setMessage('Remove this image from every layer or panel before deleting it from My Images');
       return;
     }
-    setMediaAssets(current => {
-      const asset = current.find(item => item.id === assetId);
-      if (asset) URL.revokeObjectURL(asset.url);
-      return current.filter(item => item.id !== assetId);
-    });
-    setMessage('Image removed from your local library');
+
+    const asset=mediaAssetsRef.current.find(item=>item.id===assetId);
+    if(!asset)return;
+
+    if(asset.url.startsWith('/api/media/')){
+      try{
+        const response=await fetch(`/api/media/${encodeURIComponent(assetId)}`,{method:'DELETE'});
+        const result=await response.json().catch(()=>({error:'Could not delete artwork.'})) as {error?:string};
+        if(!response.ok)throw new Error(result.error||'Could not delete artwork.');
+      }catch(error){
+        setMessage(error instanceof Error?error.message:'Could not delete artwork.');
+        return;
+      }
+    }else if(asset.url.startsWith('blob:')){
+      URL.revokeObjectURL(asset.url);
+    }
+
+    setMediaAssets(current => current.filter(item => item.id !== assetId));
+    if(selectedMediaAssetId===assetId)setSelectedMediaAssetId(null);
+    setMessage('Image removed from My Images');
   };
 
   const updateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, transform: FullDielineTransform) => {
@@ -608,7 +639,11 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       if(importedDieline) throw new Error('Saving imported dielines is not available yet.');
       const preview = engineRef.current?.thumbnail();
       if (!preview) throw new Error('The 3D preview is not ready yet.');
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const usedAssetIds=new Set<string>();
+      for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
+      for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
+      const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -650,7 +685,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -1913,7 +1948,7 @@ function MediaLibraryModal(props: {
   onUpload: ()=>void;
   onDropFiles: (files:File[])=>void;
   onUse: (asset:LocalMediaAsset, options:{ mode:ArtworkMode; scale:number; rotation:number })=>void;
-  onDelete: (assetId:string)=>void;
+  onDelete: (assetId:string)=>Promise<void>;
   onClose: ()=>void;
 }) {
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
@@ -1939,9 +1974,9 @@ function MediaLibraryModal(props: {
     <section className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label="Add artwork">
       <header className="pro-media-modal-header">
         <div>
-          <span>Artwork</span>
+          <span>My Images</span>
           <h2>Add artwork</h2>
-          <p>Choose or upload an image, then position it directly on the 2D board.</p>
+          <p>Reuse images from your account or upload a new one, then position it directly on the 2D board.</p>
         </div>
         <button aria-label="Close add artwork dialog" onClick={props.onClose}><X size={20}/></button>
       </header>
@@ -1975,7 +2010,7 @@ function MediaLibraryModal(props: {
           {filteredAssets.length === 0 ? <div className="pro-media-empty">
             <ImageIcon size={30}/>
             <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
-            <p>{props.assets.length ? 'Try another search.' : 'Your image will appear here immediately and can be positioned on the dieline.'}</p>
+            <p>{props.assets.length ? 'Try another search.' : 'Uploaded images are saved to My Images so you can reuse them in future designs.'}</p>
             {!props.assets.length && <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Choose image</button>}
           </div> : <div className="pro-media-grid pro-media-unified-grid">
             {filteredAssets.map(asset => {
@@ -2025,17 +2060,16 @@ function MediaLibraryModal(props: {
               <button
                 className="pro-media-delete-link"
                 disabled={usageCount > 0}
-                title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete from this local library'}
-                onClick={() => {
-                  props.onDelete(selected.id);
-                  props.setSelectedAssetId(null);
+                title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete from My Images'}
+                onClick={async () => {
+                  await props.onDelete(selected.id);
                 }}
               ><Trash2 size={14}/> Delete</button>
             </div>
           </> : <div className="pro-media-editor-empty">
             <ImageIcon size={32}/>
-            <h3>Choose or upload artwork</h3>
-            <p>Everything happens here. Select an existing image or upload a new one, then place it on the board.</p>
+            <h3>Choose from My Images</h3>
+            <p>Select an image you have already uploaded, or add a new one to your reusable account gallery.</p>
             <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>}
         </aside>
