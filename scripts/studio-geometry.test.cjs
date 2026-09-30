@@ -70,19 +70,21 @@ test('raster canvas keeps the sheet aspect ratio for unusually wide and tall net
 
 const {panForAnchoredZoom,scaleStudioZoom,wheelStudioZoom}=require('../src/lib/studio-zoom.ts');
 const {studioViewProjection}=require('../src/components/studio/carton-engine.tsx');
-test('zoom controls continue past previous limits and preserve positive scales',()=>{
+test('zoom controls keep a 5% floor while remaining unrestricted above it',()=>{
   let zoom=82;
   for(let i=0;i<100;i++)zoom=scaleStudioZoom(zoom,1.1);
   assert.ok(zoom>100000);
   for(let i=0;i<200;i++)zoom=scaleStudioZoom(zoom,1/1.1);
-  assert.ok(zoom>0&&zoom<.01);
+  assert.equal(zoom,5);
   assert.ok(wheelStudioZoom(200,-100)>200);
   assert.ok(wheelStudioZoom(40,100)<40);
+  assert.equal(wheelStudioZoom(5,1000),5);
+  assert.equal(scaleStudioZoom(5,1/1.1),5);
   assert.equal(wheelStudioZoom(82,0),82);
   near(wheelStudioZoom(82,3,1),wheelStudioZoom(82,48,0));
   assert.ok(wheelStudioZoom(82,-1000)>wheelStudioZoom(82,-100));
   assert.equal(scaleStudioZoom(Number.MAX_VALUE,2),Number.MAX_VALUE);
-  assert.equal(scaleStudioZoom(Number.MIN_VALUE,.5),Number.MIN_VALUE);
+  assert.equal(scaleStudioZoom(Number.MIN_VALUE,.5),5);
 });
 test('3D projection keeps magnifying past old limits without moving the camera through the box',()=>{
   const original=studioViewProjection(180,1.5,-.55,.28,82);
