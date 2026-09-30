@@ -20,6 +20,8 @@ export type ArtworkCrop = {
 };
 
 export type ArtworkPlacement = {
+  panelTexture?: boolean;
+  transform?: {x:number;y:number;width:number;height:number;rotation:number};
   assetId?: string;
   crop?: ArtworkCrop;
   name: string;
@@ -47,6 +49,10 @@ export function defaultArtworkPlacement(name: string, url: string, assetId?: str
 }
 
 export function artworkCss(artwork: ArtworkPlacement) {
+  if (artwork.transform) {
+    const t=artwork.transform;
+    return {inset:'auto',left:`${t.x}%`,top:`${t.y}%`,width:`${t.width}%`,height:`${t.height}%`,backgroundImage:`url("${artwork.url}")`,backgroundSize:'100% 100%',backgroundRepeat:'no-repeat',transform:`translate(-50%,-50%) rotate(${t.rotation}deg)`,transformOrigin:'center'} as const;
+  }
   const positionX = artwork.alignX === -1 ? 'left' : artwork.alignX === 1 ? 'right' : 'center';
   const positionY = artwork.alignY === -1 ? 'top' : artwork.alignY === 1 ? 'bottom' : 'center';
 

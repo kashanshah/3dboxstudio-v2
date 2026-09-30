@@ -72,9 +72,7 @@ export async function rasterizeFullDielineLayers(
   })));
 
   const bounds = reverseTuckBounds(dimensions);
-  const maxCanvas = 1800;
-  const canvasWidth = Math.max(800, Math.min(maxCanvas, Math.round(maxCanvas * Math.min(1, bounds.width / bounds.height))));
-  const canvasHeight = Math.max(800, Math.round(canvasWidth * bounds.height / bounds.width));
+  const {width:canvasWidth,height:canvasHeight}=dielineRasterSize(bounds);
   const canvas = document.createElement('canvas');
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
@@ -99,7 +97,6 @@ export async function rasterizeFullDielineLayers(
   const result: ArtworkByPanel = {};
   const compositeName = layers.length === 1 ? layers[0].name : `${layers.length} layer composition`;
   for (const item of reverseTuckPanels(dimensions)) {
-    if (item.id === 'glue') continue;
     const sx = Math.round(item.x / bounds.width * canvasWidth);
     const sy = Math.round(item.y / bounds.height * canvasHeight);
     const sw = Math.max(1, Math.round(item.width / bounds.width * canvasWidth));
@@ -115,6 +112,7 @@ export async function rasterizeFullDielineLayers(
     const panelName = item.label[0] + item.label.slice(1).toLowerCase();
     result[`${panelPrefix}${panelName}`] = {
       ...defaultArtworkPlacement(compositeName, panelCanvas.toDataURL('image/png')),
+      panelTexture: true,
       mode: 'fill',
       scale: 100,
       rotation: 0,
@@ -123,4 +121,33 @@ export async function rasterizeFullDielineLayers(
     };
   }
   return result;
+}
+
+// Bake board transforms into a transparent face texture, so the 2D and 3D
+// views use identical clipping, rotation, stretching, and placement.
+export async function rasterizePanelArtwork(artwork: ArtworkByPanel, dimensions: CartonDimensions): Promise<ArtworkByPanel> {
+  const panels=reverseTuckPanels(dimensions);
+  const entries=await Promise.all(Object.entries(artwork).filter(([,value])=>value.transform).map(async([key,value])=>{
+    const panel=panels.find(item=>item.label.toLowerCase()===key.replace('Interior ','').toLowerCase());
+    if(!panel || !value.transform) return null;
+    const image=await loadImage(value.url);
+    const canvas=document.createElement('canvas');
+    const ratio=panel.width/panel.height;
+    canvas.width=Math.max(1,Math.round(1200*Math.min(1,ratio)));
+    canvas.height=Math.max(1,Math.round(1200*Math.min(1,1/ratio)));
+    const ctx=canvas.getContext('2d');
+    if(!ctx) throw new Error('Canvas is not available');
+    const t=value.transform;
+    ctx.translate(canvas.width*t.x/100,canvas.height*t.y/100);
+    ctx.rotate(t.rotation*Math.PI/180);
+    const width=canvas.width*t.width/100,height=canvas.height*t.height/100;
+    ctx.drawImage(image,-width/2,-height/2,width,height);
+    return [key,{...defaultArtworkPlacement(value.name,canvas.toDataURL('image/png'),value.assetId),panelTexture:true,mode:'fill' as const}] as const;
+  }));
+  return Object.fromEntries(entries.filter(entry=>entry!==null));
+}
+
+export function dielineRasterSize(bounds:{width:number;height:number},maxCanvas=1800) {
+  const pixelsPerMm=maxCanvas / Math.max(bounds.width,bounds.height);
+  return {width:Math.max(1,Math.round(bounds.width*pixelsPerMm)),height:Math.max(1,Math.round(bounds.height*pixelsPerMm))};
 }

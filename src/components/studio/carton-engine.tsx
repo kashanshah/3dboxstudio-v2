@@ -10,7 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from 'react';
-import { reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 
 export type CartonEngineHandle = {
@@ -280,7 +280,6 @@ function createRenderer(canvas: HTMLCanvasElement) {
     lightIntensity: 0.78,
     hoverPanel: null,
   };
-  let artworkToken = 0;
 
   const render = () => {
     resize();
@@ -372,11 +371,10 @@ function createRenderer(canvas: HTMLCanvasElement) {
   };
 
   const syncPanelTextures = (artworkByPanel: ArtworkByPanel) => {
-    const token = ++artworkToken;
     const activePanels = new Set(Object.keys(artworkByPanel));
 
     for (const [panel, entry] of panelTextures) {
-      if (!activePanels.has(panel) || artworkByPanel[panel]?.url !== entry.url) {
+      if (!activePanels.has(panel)) {
         gl.deleteTexture(entry.texture);
         panelTextures.delete(panel);
       }
@@ -387,23 +385,22 @@ function createRenderer(canvas: HTMLCanvasElement) {
       const current = panelTextures.get(panel);
       if (current?.url === url) continue;
 
-      const texture = gl.createTexture();
+      const texture = current?.texture ?? gl.createTexture();
       if (!texture) continue;
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      uploadPlaceholderTexture(gl);
+      if(!current?.loaded) uploadPlaceholderTexture(gl);
 
-      const entry = { texture, url, loaded: false, width: 1, height: 1 };
+      const entry = { texture, url, loaded: current?.loaded ?? false, width: current?.width ?? 1, height: current?.height ?? 1 };
       panelTextures.set(panel, entry);
 
       const image = new Image();
       image.onload = () => {
-        if (token !== artworkToken) return;
         const latest = panelTextures.get(panel);
-        if (!latest || latest.url !== url) return;
+        if (latest !== entry) return;
         gl.bindTexture(gl.TEXTURE_2D, latest.texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -414,7 +411,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
       };
       image.onerror = () => {
         const latest = panelTextures.get(panel);
-        if (latest?.url === url) latest.loaded = false;
+        if (latest === entry && !current?.loaded) latest.loaded = false;
         render();
       };
       image.src = url;
@@ -425,7 +422,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
     setScene(next: Scene) {
       const previousUrls = artworkUrlSignature(scene.artworkByPanel);
       const nextUrls = artworkUrlSignature(next.artworkByPanel);
-      scene = next;
+      scene = {...next,dimensions:sanitizeCartonDimensions(next.dimensions)};
       if (previousUrls !== nextUrls) syncPanelTextures(next.artworkByPanel);
       render();
     },
@@ -463,7 +460,6 @@ function createRenderer(canvas: HTMLCanvasElement) {
       render();
     },
     dispose() {
-      ++artworkToken;
       gl.deleteBuffer(buffer);
       for (const entry of panelTextures.values()) gl.deleteTexture(entry.texture);
       panelTextures.clear();
@@ -472,13 +468,15 @@ function createRenderer(canvas: HTMLCanvasElement) {
   };
 }
 
-function buildMeshes(
+export function buildMeshes(
   dimensions: CartonDimensions,
   opening: number,
   color: [number, number, number],
   interiorColor: [number, number, number],
 ): Mesh[] {
+  dimensions=sanitizeCartonDimensions(dimensions);
   const { width: w, height: h, depth: d } = dimensions;
+  const footprint=reverseTuckPanels(dimensions);
   const t = clamp(dimensions.thickness, 0.3, Math.min(w, d) * 0.08);
   const fold = reverseTuckFoldState(opening);
   const wallAngle = fold.walls * Math.PI / 2;
@@ -551,12 +549,26 @@ function buildMeshes(
     [x0, y0, zFront],
   ];
 
+  const glueWidth=footprint.find(item=>item.id==='glue')!.width;
+  const glueAngle=wallAngle+backAngle;
+  const glueFarX=leftOuterX-glueWidth*Math.cos(glueAngle);
+  const glueFarZ=leftOuterZ+glueWidth*Math.sin(glueAngle);
+  // The glue strip sits inside the back wall when fully folded.
+  const glueInset=t*fold.back*2;
+  const glueCorners=[
+    [glueFarX,y0,glueFarZ+glueInset],
+    [leftOuterX,y0,leftOuterZ+glueInset],
+    [leftOuterX,y1,leftOuterZ+glueInset],
+    [glueFarX,y1,glueFarZ+glueInset],
+  ];
+
   const panels: Array<{
     name: string;
     corners: number[][];
     surfaceColor: [number, number, number];
     aspect: number;
   }> = [
+    { name: 'Glue', corners: glueCorners, surfaceColor: darker, aspect: glueWidth/h },
     { name: 'Front', corners: frontCorners, surfaceColor: color, aspect: w / h },
     { name: 'Left', corners: leftCorners, surfaceColor: darker, aspect: d / h },
     { name: 'Right', corners: rightCorners, surfaceColor: color, aspect: d / h },
@@ -571,7 +583,8 @@ function buildMeshes(
 
   for (const panel of panels) {
     const exterior = quadFromCorners(panel.corners, panel.surfaceColor, true, panel.name);
-    exterior.faceAspect = panel.aspect;
+    const netPanel=footprint.find(item=>item.label.toLowerCase()===panel.name.toLowerCase())!;
+    exterior.faceAspect = netPanel.width/netPanel.height;
     exteriorMeshes.push(exterior);
 
     const normal = faceNormal(panel.corners);
@@ -582,7 +595,7 @@ function buildMeshes(
     ]);
     const reversed = [insideCorners[3], insideCorners[2], insideCorners[1], insideCorners[0]];
     const inside = quadFromCorners(reversed, interior, true, `Interior ${panel.name}`);
-    inside.faceAspect = panel.aspect;
+    inside.faceAspect = exterior.faceAspect;
     interiorMeshes.push(inside);
 
     const edgeColor: [number, number, number] = [
@@ -788,6 +801,7 @@ function textureTransform(
   imageAspect: number,
   faceAspect: number,
 ) {
+  if(placement.panelTexture) return {scaleX:1,scaleY:1,offsetX:0,offsetY:0};
   let scaleX = 1;
   let scaleY = 1;
 
