@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { ensureV2Schema,getSql } from '@/server/db';
 import { validProjectState,type StudioProjectState } from '@/lib/studio-project';
+import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
 
 const SHARE_TOKEN_RE=/^[0-9A-Za-z]{10,24}$/;
 function createShareId(){return randomBytes(12).toString('base64url').replace(/[-_]/g,'').slice(0,14);}
@@ -17,6 +18,34 @@ function rewriteMediaUrls(state:StudioProjectState,shareId:string):StudioProject
 }
 
 export type PublicShare={id:string;name:string;state:StudioProjectState;legacy:boolean;updatedAt:string|null};
+
+type LegacyShareRow={source:string;source_id:string;payload:unknown};
+
+function legacyAssetBaseUrl(){
+ const value=process.env.LEGACY_ASSET_BASE_URL?.trim();
+ if(!value)return undefined;
+ try{
+  const url=new URL(value);
+  return url.protocol==='https:'?url.toString():undefined;
+ }catch{return undefined;}
+}
+
+function legacyRowToPublicShare(row:LegacyShareRow):PublicShare|null{
+ const converted=legacyDesignToStudioProject({
+  source:row.source,
+  sourceId:row.source_id,
+  payload:row.payload,
+  assetBaseUrl:legacyAssetBaseUrl(),
+ });
+ if(!converted||!validProjectState(converted.state))return null;
+ return {
+  id:row.source_id,
+  name:converted.name,
+  state:converted.state,
+  legacy:true,
+  updatedAt:converted.updatedAt,
+ };
+}
 
 export async function upsertDesignShare(userId:string,input:{projectId?:string|null;name:string;state:unknown}){
  await ensureV2Schema();
@@ -87,12 +116,14 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
  // the migrated V2 share by its preserved preview token.
  if(!row){
   const legacyRows=await sql`
-   SELECT payload->>'preview_token' AS preview_token
+   SELECT source,source_id,payload
    FROM legacy_records
    WHERE entity_type='shared_designs' AND source_id=${id} AND deleted_at IS NULL
    LIMIT 1
-  ` as {preview_token:string|null}[];
-  const previewToken=legacyRows[0]?.preview_token;
+  ` as LegacyShareRow[];
+  const legacy=legacyRows[0];
+  const payload=legacy?.payload&&typeof legacy.payload==='object'?legacy.payload as Record<string,unknown>:null;
+  const previewToken=payload&&typeof payload.preview_token==='string'?payload.preview_token:null;
   if(previewToken){
    const fallback=await sql`
     SELECT id,name,studio_state,legacy_source,updated_at
@@ -104,6 +135,10 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
    ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
    row=fallback[0];
   }
+  if(!row&&legacy){
+   const direct=legacyRowToPublicShare(legacy);
+   if(direct)return direct;
+  }
  }
 
  if(!row||!validProjectState(row.studio_state))return null;
@@ -113,15 +148,27 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
 export async function getPreviewShare(previewToken:string):Promise<PublicShare|null>{
  if(!SHARE_TOKEN_RE.test(previewToken))return null;
  await ensureV2Schema();
- const rows=await getSql()`
+ const sql=getSql();
+ const rows=await sql`
   SELECT id,name,studio_state,legacy_source,updated_at
   FROM design_shares
   WHERE preview_token=${previewToken} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())
   LIMIT 1
  ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
  const row=rows[0];
- if(!row||!validProjectState(row.studio_state))return null;
- return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
+ if(row&&validProjectState(row.studio_state)){
+  return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
+ }
+
+ const legacyRows=await sql`
+  SELECT source,source_id,payload
+  FROM legacy_records
+  WHERE entity_type='shared_designs'
+    AND deleted_at IS NULL
+    AND payload->>'preview_token'=${previewToken}
+  LIMIT 1
+ ` as LegacyShareRow[];
+ return legacyRows[0]?legacyRowToPublicShare(legacyRows[0]):null;
 }
 
 export async function getMigratedShareAsset(id:string,faceId:string){
