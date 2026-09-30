@@ -29,19 +29,6 @@ function NavigationLinks({ onNavigate, compact = false }: { onNavigate?: () => v
 }
 
 export function MarketingStickyHeader() {
-  return <header className={`marketing-sticky-header${revealed ? ' is-visible' : ''}`} aria-hidden={!revealed}>
-    <div className="marketing-header-inner is-compact">
-      <Brand />
-      <nav className="marketing-nav-links" aria-label="Sticky navigation"><NavigationLinks compact /></nav>
-      <div className="marketing-header-actions">
-        <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
-      </div>
-    </div>
-  </header>;
-}
-
-export function SiteHeader() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -58,6 +45,20 @@ export function SiteHeader() {
       window.removeEventListener('resize', update);
     };
   }, []);
+
+  return <header className={`marketing-sticky-header${revealed ? ' is-visible' : ''}`} aria-hidden={!revealed}>
+    <div className="marketing-header-inner is-compact">
+      <Brand />
+      <nav className="marketing-nav-links" aria-label="Sticky navigation"><NavigationLinks compact /></nav>
+      <div className="marketing-header-actions">
+        <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
+      </div>
+    </div>
+  </header>;
+}
+
+export function SiteHeader() {
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const headerContents = (compact = false) => <div className={compact ? 'marketing-header-inner is-compact' : 'marketing-header-inner'}>
     <Brand />
