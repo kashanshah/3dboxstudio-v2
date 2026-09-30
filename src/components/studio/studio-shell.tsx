@@ -221,6 +221,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const canvasPanRef=useRef(canvasPan);
   const [pdfExportRequest,setPdfExportRequest] = useState(0);
   const liveMapTokenRef = useRef(0);
+  const panelMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -605,14 +606,22 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     : { scope: 'outside' as const, panel: target };
 
   useEffect(() => {
-    let cancelled=false;
+    const token=++panelMapTokenRef.current;
     void rasterizePanelArtwork(
       artworkByPanel,
       dimensions,
       selectedTemplateId,
       {openingMode,splitTopHingeSide},
-    ).then(next=>{if(!cancelled)setMappedPanelArtwork(next);}).catch(()=>{if(!cancelled)setMessage('Artwork preview could not update. Try replacing the image.');});
-    return ()=>{cancelled=true;};
+    ).then(next=>{
+      if(panelMapTokenRef.current!==token)return;
+      setMappedPanelArtwork(next);
+    }).catch(()=>{
+      if(panelMapTokenRef.current!==token)return;
+      setMessage('Artwork preview could not update. Try replacing the image.');
+    });
+    return ()=>{
+      if(panelMapTokenRef.current===token)panelMapTokenRef.current++;
+    };
   },[artworkByPanel,dimensions,selectedTemplateId,openingMode,splitTopHingeSide]);
 
   useEffect(() => {
