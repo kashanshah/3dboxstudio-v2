@@ -4246,3 +4246,80 @@ body{font-size:var(--type-body)}
     transform:translateY(0) scale(1)!important;
   }
 }
+
+
+/* Reference-layout polish: keep workflow navigation visually centered over usable canvas. */
+@media(min-width:1181px){
+  .pro-workflow-row.is-box.has-inspector{
+    padding-left:388px;
+    padding-right:18px;
+  }
+  .pro-workflow-row.is-preview.has-inspector{
+    padding-left:18px;
+    padding-right:408px;
+  }
+  .pro-workflow-row.is-design{
+    padding-left:338px;
+    padding-right:308px;
+  }
+}
+.pro-workflow-row .pro-workflow-nav{
+  width:min(840px,100%);
+}
+.pro-workflow-row .pro-workflow-step{
+  color:#526277!important;
+}
+.pro-workflow-row .pro-workflow-step:hover{
+  color:var(--ink)!important;
+}
+.pro-workflow-row .pro-workflow-step:not(.is-active){
+  background:rgba(255,255,255,.55)!important;
+  border:1px solid transparent!important;
+}
+.pro-workflow-row .pro-workflow-step:not(.is-active):hover{
+  background:#fff!important;
+  border-color:var(--line)!important;
+}
+.pro-workflow-row .pro-workflow-step-copy small{
+  color:#708096;
+}
+.pro-workflow-row .pro-workflow-step.is-active .pro-workflow-step-copy small{
+  color:color-mix(in srgb,var(--accent) 76%,#4d6075);
+}
+
+/* The selected Box sub-tab is already clear from fill + underline; avoid redundant dot. */
+.pro-inspector-subnav button.is-active:before{
+  display:none!important;
+}
+
+/* Slightly stronger canvas contrast helps pale/white packaging stay visible without altering material color. */
+.pro-canvas.is-workflow-box,
+.pro-canvas.is-workflow-preview{
+  background:#e9eff5;
+}
+.pro-canvas.is-workflow-box .pro-grid-floor,
+.pro-canvas.is-workflow-preview .pro-grid-floor{
+  opacity:.74;
+}
+
+/* Status bar dimensions should remain readable as production metadata. */
+.pro-status-bar>span:last-child{
+  font-weight:600;
+  letter-spacing:.005em;
+}
+@media(max-width:1180px){
+  .pro-workflow-row.is-box.has-inspector,
+  .pro-workflow-row.is-preview.has-inspector,
+  .pro-workflow-row.is-design{
+    padding-left:12px;
+    padding-right:12px;
+  }
+}
+@media(max-width:760px){
+  .pro-workflow-row.is-box.has-inspector,
+  .pro-workflow-row.is-preview.has-inspector,
+  .pro-workflow-row.is-design{
+    padding-left:8px;
+    padding-right:8px;
+  }
+}
