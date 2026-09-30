@@ -2312,9 +2312,12 @@ body{font-size:var(--type-body)}
   flex-direction:row-reverse;align-items:flex-start;z-index:18;
 }
 .pro-canvas-top>.pro-mode-switch{
-  width:var(--pro-side-panel-width);flex:none;flex-direction:column;gap:3px;
+  width:var(--pro-side-panel-width);flex:none;
 }
 .pro-canvas-top>.pro-mode-switch>button{justify-content:center}
+.pro-mode-switch{flex-wrap:wrap;gap:3px}
+.pro-mode-switch>button{flex:1 0 104px;justify-content:center;white-space:nowrap}
+.pro-2d-side-panels>.pro-mode-switch{position:relative;width:100%;flex:none;z-index:1}
 .pro-canvas-top .pro-camera-popover{left:0;right:auto}
 .pro-2d-design-stage>.pro-2d-design-toolbar{
   top:16px;left:calc((100% - var(--pro-side-panel-width)) / 2);right:auto;
@@ -2329,7 +2332,7 @@ body{font-size:var(--type-body)}
   display:flex;flex-direction:row;flex:0 0 auto;margin:0;
   gap:6px;align-items:center;max-width:100%;overflow-x:auto;overscroll-behavior:contain;
 }
-.pro-2d-side-panels{top:100px}
+.pro-2d-side-panels{top:16px}
 .pro-dieline-print-error{top:78px}
 @media(max-width:1100px) and (min-width:761px){
   .pro-canvas{--pro-side-panel-width:280px;--pro-side-panel-right:10px}
@@ -2354,16 +2357,35 @@ body{font-size:var(--type-body)}
 @media(max-width:760px){
   .pro-canvas{--pro-side-panel-width:min(260px,calc(100vw - 16px));--pro-side-panel-right:8px}
   .pro-canvas>.pro-canvas-top{top:8px;left:8px}
-  .pro-canvas.is-2d-mode>.pro-canvas-top{top:70px}
   .pro-2d-design-stage>.pro-2d-design-toolbar{top:8px;left:50%;right:auto;width:max-content;max-width:calc(100% - 16px);gap:8px;padding:8px}
   .pro-dieline-print-error{top:70px;max-width:calc(100% - 32px)}
   .pro-2d-design-stage>.pro-dieline-legend{bottom:94px;left:8px;right:8px}
   .pro-2d-design-stage>.pro-dieline-legend>strong{display:none}
-  .pro-2d-side-panels{top:154px}
+  .pro-2d-side-panels{top:70px}
 }
+
+.pro-dieline-layer-list>button[draggable="true"]{cursor:grab}
+.pro-dieline-layer-list>button[draggable="true"]:active{cursor:grabbing}
+.pro-dieline-layer-list>button.is-drop-target{border-color:var(--accent)!important;background:var(--accent-soft)!important;box-shadow:inset 0 0 0 1px var(--accent)}
+.pro-template-visual.is-dieline{display:flex;align-items:center;justify-content:center;padding:10px}
+.pro-template-visual.is-dieline svg{display:block;max-width:100%;max-height:100%;width:auto;height:100%;overflow:visible}
+.pro-template-visual.is-dieline rect{fill:#fff;stroke:#1684b8;stroke-width:1.2;vector-effect:non-scaling-stroke}
+.pro-template-visual.is-dieline rect.is-glue{fill:#f2f7fa;stroke-dasharray:4 3}
+.pro-template-visual.is-dieline.is-compact{padding:5px}
 
 
 /* The entire central Studio workspace owns wheel gestures for zoom. */
 .pro-canvas{
   overscroll-behavior:none;
+}
+
+
+/* Available PDF export sits alongside PNG rather than under Coming soon. */
+.pro-export-pdf-ready{margin-top:16px}
+.pro-export-pdf-button{
+  width:100%;
+  min-height:42px;
+  justify-content:center;
+  margin-top:8px;
+  font-weight:600;
 }
