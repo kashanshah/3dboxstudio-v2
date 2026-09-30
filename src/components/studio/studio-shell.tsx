@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
@@ -17,6 +17,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
+import { printDielineLayout } from '@/lib/packaging/dieline-print';
 import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
@@ -1568,7 +1569,9 @@ function DielinePrototype({
   onClearImportedDieline:()=>void;
   livePreview:React.ReactNode;
 }) {
-  const printClipId=useId().replaceAll(':','');
+  const printBoardRef=useRef<HTMLDivElement>(null);
+  const [printError,setPrintError]=useState('');
+  const [printing,setPrinting]=useState(false);
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   // Size the 2D sheet from its real physical footprint instead of relying on
@@ -1788,9 +1791,17 @@ function DielinePrototype({
         selectedLayer.id,
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
       )}><Maximize2 size={15}/> Reset selected</button>}
+      <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
+        if (!printBoardRef.current) return;
+        setPrintError('');setPrinting(true);
+        try { await printDielineLayout(printBoardRef.current,bounds,layers); }
+        catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
+        finally { setPrinting(false); }
+      }}><Download size={16}/> {printing?'Preparing print…':'Print / Save PDF'}</button>
       <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Check size={16}/> Apply Changes</button>
     </div>
 
+    {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
     <div
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
       onWheel={(event)=>{
@@ -1868,6 +1879,7 @@ function DielinePrototype({
       </div>
 
       <div
+        ref={printBoardRef}
         className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
         style={{
           width:`${visualWidth}px`,
@@ -1880,8 +1892,7 @@ function DielinePrototype({
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
       >
-        <svg width="0" height="0" aria-hidden="true"><defs><clipPath id={printClipId} clipPathUnits="objectBoundingBox">{cartonPanels.map(item=><rect key={item.id} x={item.x/bounds.width} y={item.y/bounds.height} width={item.width/bounds.width} height={item.height/bounds.height}/>)}</clipPath></defs></svg>
-        <div className="pro-full-artwork-print-surface" style={{clipPath:`url(#${printClipId})`}}>{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><img src={layer.url} alt="" draggable={false}/></div>)}</div>
+        <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><img src={layer.url} alt="" draggable={false}/></div>)}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div

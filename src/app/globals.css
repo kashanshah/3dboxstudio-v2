@@ -2269,3 +2269,10 @@ body{font-size:var(--type-body)}
   .pro-media-upload-progress-head{gap:10px}
   .pro-media-upload-progress-head>div:first-child span{max-width:58vw}
 }
+
+
+/* Keep print artwork visible beyond the panel outlines and sheet bounds. */
+.pro-dieline-live,.pro-full-artwork-print-surface{overflow:visible}
+.pro-full-artwork-print-surface{clip-path:none}
+.pro-dieline-live .pro-dieline-panel-guide{pointer-events:none;cursor:default}
+.pro-dieline-print-error{position:absolute;top:140px;left:16px;z-index:20;max-width:420px;padding:8px 12px;background:#fff;color:#b42318;border:1px solid #fda29b;border-radius:8px;font-size:12px}
