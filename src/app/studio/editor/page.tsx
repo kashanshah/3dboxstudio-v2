@@ -18,11 +18,11 @@ export const metadata: Metadata = {
   openGraph:{title,description,type:'website',url:'/studio'},
 };
 
-export default async function Studio({searchParams}:{searchParams:Promise<{project?:string;template?:string}>}) {
+export default async function Studio({searchParams}:{searchParams:Promise<{project?:string;template?:string;workspace?:string}>}) {
   const params=await searchParams,user=await getCurrentUser();
   if(!user) redirect(`/login?next=${encodeURIComponent('/studio/editor'+(params.project?'?project='+encodeURIComponent(params.project):''))}`);
   const project=params.project?await getStudioProject(user.id,params.project):null;
   if(params.project&&!project)notFound();
   const schema={'@context':'https://schema.org','@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description,url:new URL('/studio',site.url).toString(),featureList:['Custom box dimensions','Packaging materials','Opening simulation','Per-face artwork upload','Interactive 3D preview','PNG export']};
-  return <><StudioShell key={project?.id??'new'} initialProject={project??undefined}/>{!user.emailVerified&&<div className="editor-verification-reminder"><Link href="/verify-email">Verify your email</Link></div>}<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><StudioShell key={project?.id??'new'} initialProject={project??undefined} initialWorkspaceProjectId={params.workspace??project?.workspaceProjectId??undefined}/>{!user.emailVerified&&<div className="editor-verification-reminder"><Link href="/verify-email">Verify your email</Link></div>}<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
