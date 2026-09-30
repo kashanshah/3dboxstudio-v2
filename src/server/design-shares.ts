@@ -21,13 +21,31 @@ export type PublicShare={id:string;name:string;state:StudioProjectState;legacy:b
 
 type LegacyShareRow={source:string;source_id:string;payload:unknown};
 
-function legacyAssetBaseUrl(){
- const value=process.env.LEGACY_ASSET_BASE_URL?.trim();
- if(!value)return undefined;
- try{
-  const url=new URL(value);
-  return url.protocol==='https:'?url.toString():undefined;
- }catch{return undefined;}
+function jsonRecord(value:unknown):Record<string,unknown>{
+ return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
+}
+
+function legacyMediaByFace(shareId:string,payloadValue:unknown){
+ const payload=jsonRecord(payloadValue),images=jsonRecord(payload.images);
+ return Object.fromEntries(Object.entries(images).flatMap(([faceId,value])=>{
+  const entry=jsonRecord(value);
+  const storageKey=typeof entry.v2StorageKey==='string'?entry.v2StorageKey:'';
+  const sourceKey=typeof entry.s3Key==='string'?entry.s3Key:typeof entry.s3_key==='string'?entry.s3_key:'';
+  if(!storageKey&&!sourceKey)return [];
+  const name=typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`;
+  const mime=typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png';
+  return [[faceId,{
+   id:`legacy-share-${faceId}`,
+   name,
+   url:`/api/shares/${encodeURIComponent(shareId)}/legacy-media/${encodeURIComponent(faceId)}`,
+   mimeType:mime,
+   byteSize:0,
+   width:null,
+   height:null,
+   fingerprint:storageKey||sourceKey,
+   createdAt:0,
+  }]];
+ }));
 }
 
 function legacyRowToPublicShare(row:LegacyShareRow):PublicShare|null{
@@ -35,7 +53,7 @@ function legacyRowToPublicShare(row:LegacyShareRow):PublicShare|null{
   source:row.source,
   sourceId:row.source_id,
   payload:row.payload,
-  assetBaseUrl:legacyAssetBaseUrl(),
+  mediaByFace:legacyMediaByFace(row.source_id,row.payload),
  });
  if(!converted||!validProjectState(converted.state))return null;
  return {
@@ -174,13 +192,33 @@ export async function getPreviewShare(previewToken:string):Promise<PublicShare|n
 export async function getMigratedShareAsset(id:string,faceId:string){
  if(!SHARE_TOKEN_RE.test(id)||!/^[A-Za-z][A-Za-z0-9]*$/.test(faceId))return null;
  await ensureV2Schema();
- const rows=await getSql()`
+ const sql=getSql();
+ const rows=await sql`
   SELECT legacy_assets FROM design_shares
   WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) AND legacy_source=TRUE
   LIMIT 1
  ` as {legacy_assets:Record<string,{storageKey?:string;mime?:string;name?:string}>}[];
- const entry=rows[0]?.legacy_assets?.[faceId];
- return entry?.storageKey?{storageKey:entry.storageKey,mime:entry.mime||'image/png',name:entry.name||`${faceId}-artwork`}:null;
+ const migrated=rows[0]?.legacy_assets?.[faceId];
+ if(migrated?.storageKey)return {storageKey:migrated.storageKey,mime:migrated.mime||'image/png',name:migrated.name||`${faceId}-artwork`};
+
+ // On-demand legacy shares may not have a design_shares row. Read the mirrored
+ // record directly; migrate-legacy-shares stores the copied V2 object key on
+ // each image as v2StorageKey.
+ const legacyRows=await sql`
+  SELECT payload
+  FROM legacy_records
+  WHERE entity_type='shared_designs' AND source_id=${id} AND deleted_at IS NULL
+  LIMIT 1
+ ` as {payload:unknown}[];
+ const payload=jsonRecord(legacyRows[0]?.payload);
+ const entry=jsonRecord(jsonRecord(payload.images)[faceId]);
+ const storageKey=typeof entry.v2StorageKey==='string'?entry.v2StorageKey:'';
+ if(!storageKey)return null;
+ return {
+  storageKey,
+  mime:typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png',
+  name:typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`,
+ };
 }
 
 export async function getShareMedia(id:string,assetId:string){
