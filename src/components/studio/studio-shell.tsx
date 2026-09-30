@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
-  PackageOpen, RotateCcw, Search, Share2, Sparkles, ZoomIn, ZoomOut,
+  PackageOpen, Redo2, RotateCcw, Search, Share2, Sparkles, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -34,6 +34,25 @@ type MediaUploadProgress = {
   percent:number;
   phase:'uploading'|'processing'|'complete';
 };
+
+type StudioHistorySnapshot = {
+  family:string;
+  selectedTemplateId:string;
+  material:string;
+  outsideColorMode:BaseColorMode;
+  insideColorMode:BaseColorMode;
+  outsideCustomColor:string;
+  insideCustomColor:string;
+  opening:number;
+  dimensions:CartonDimensions;
+  measurementUnit:MeasurementUnit;
+  artworkByPanel:ArtworkByPanel;
+  outsideDielineLayers:FullDielineArtworkLayer[];
+  insideDielineLayers:FullDielineArtworkLayer[];
+};
+
+const STUDIO_HISTORY_LIMIT = 80;
+const STUDIO_HISTORY_DEBOUNCE_MS = 220;
 
 const MATERIAL_BASE_COLORS: Record<string,{outside:string;inside:string}> = {
   'White board': { outside:'#EBEDF0', inside:'#F5F6F7' },
@@ -167,6 +186,166 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
   const foldAnimationRef = useRef<number | null>(null);
+
+  const historySnapshot = useMemo<StudioHistorySnapshot>(() => ({
+    family,
+    selectedTemplateId,
+    material,
+    outsideColorMode,
+    insideColorMode,
+    outsideCustomColor,
+    insideCustomColor,
+    opening,
+    dimensions,
+    measurementUnit,
+    artworkByPanel,
+    outsideDielineLayers,
+    insideDielineLayers,
+  }), [
+    family,
+    selectedTemplateId,
+    material,
+    outsideColorMode,
+    insideColorMode,
+    outsideCustomColor,
+    insideCustomColor,
+    opening,
+    dimensions,
+    measurementUnit,
+    artworkByPanel,
+    outsideDielineLayers,
+    insideDielineLayers,
+  ]);
+  const historySerialized = useMemo(() => JSON.stringify(historySnapshot), [historySnapshot]);
+  const historySnapshotRef = useRef(historySnapshot);
+  const historySerializedRef = useRef(historySerialized);
+  const historyPastRef = useRef<StudioHistorySnapshot[]>([]);
+  const historyFutureRef = useRef<StudioHistorySnapshot[]>([]);
+  const historyCommittedRef = useRef(historySnapshot);
+  const historyCommittedSerializedRef = useRef(historySerialized);
+  const historyApplyingSerializedRef = useRef<string | null>(null);
+  const historyTimerRef = useRef<number | null>(null);
+  const [historyStatus,setHistoryStatus] = useState({canUndo:false,canRedo:false});
+  historySnapshotRef.current = historySnapshot;
+  historySerializedRef.current = historySerialized;
+
+  const applyHistorySnapshot = useCallback((snapshot:StudioHistorySnapshot, messageText:string) => {
+    if (historyTimerRef.current !== null) {
+      window.clearTimeout(historyTimerRef.current);
+      historyTimerRef.current = null;
+    }
+    historyApplyingSerializedRef.current = JSON.stringify(snapshot);
+    setFamily(snapshot.family);
+    setSelectedTemplateId(snapshot.selectedTemplateId);
+    setMaterial(snapshot.material);
+    setOutsideColorMode(snapshot.outsideColorMode);
+    setInsideColorMode(snapshot.insideColorMode);
+    setOutsideCustomColor(snapshot.outsideCustomColor);
+    setInsideCustomColor(snapshot.insideCustomColor);
+    setOpeningValue(snapshot.opening);
+    setDimensions(snapshot.dimensions);
+    setMeasurementUnit(snapshot.measurementUnit);
+    setArtworkByPanel(snapshot.artworkByPanel);
+    setOutsideDielineLayers(snapshot.outsideDielineLayers);
+    setInsideDielineLayers(snapshot.insideDielineLayers);
+    setSelectedOutsideLayerId(current => snapshot.outsideDielineLayers.some(layer => layer.id === current) ? current : null);
+    setSelectedInsideLayerId(current => snapshot.insideDielineLayers.some(layer => layer.id === current) ? current : null);
+    setFaceAction(null);
+    setCameraMenuOpen(false);
+    setMessage(messageText);
+  }, []);
+
+  const commitCurrentHistory = useCallback(() => {
+    if (historyTimerRef.current !== null) {
+      window.clearTimeout(historyTimerRef.current);
+      historyTimerRef.current = null;
+    }
+    const current = historySnapshotRef.current;
+    const serialized = historySerializedRef.current;
+    if (serialized === historyCommittedSerializedRef.current) return false;
+    historyPastRef.current = [...historyPastRef.current, historyCommittedRef.current].slice(-STUDIO_HISTORY_LIMIT);
+    historyFutureRef.current = [];
+    historyCommittedRef.current = current;
+    historyCommittedSerializedRef.current = serialized;
+    setHistoryStatus({canUndo:historyPastRef.current.length > 0,canRedo:false});
+    return true;
+  }, []);
+
+  const undoStudioAction = useCallback(() => {
+    if (historyApplyingSerializedRef.current !== null) return;
+    if (historySerializedRef.current !== historyCommittedSerializedRef.current) commitCurrentHistory();
+    const previous = historyPastRef.current.pop();
+    if (!previous) return;
+    historyFutureRef.current = [...historyFutureRef.current, historyCommittedRef.current].slice(-STUDIO_HISTORY_LIMIT);
+    applyHistorySnapshot(previous, 'Undid last change');
+  }, [applyHistorySnapshot, commitCurrentHistory]);
+
+  const redoStudioAction = useCallback(() => {
+    if (historyApplyingSerializedRef.current !== null) return;
+    if (historySerializedRef.current !== historyCommittedSerializedRef.current) return;
+    const next = historyFutureRef.current.pop();
+    if (!next) return;
+    historyPastRef.current = [...historyPastRef.current, historyCommittedRef.current].slice(-STUDIO_HISTORY_LIMIT);
+    applyHistorySnapshot(next, 'Redid last change');
+  }, [applyHistorySnapshot]);
+
+  useEffect(() => {
+    const applying = historyApplyingSerializedRef.current;
+    if (applying !== null) {
+      if (historySerialized === applying) {
+        historyCommittedRef.current = historySnapshot;
+        historyCommittedSerializedRef.current = historySerialized;
+        historyApplyingSerializedRef.current = null;
+        setHistoryStatus({
+          canUndo: historyPastRef.current.length > 0,
+          canRedo: historyFutureRef.current.length > 0,
+        });
+      }
+      return;
+    }
+
+    if (historySerialized === historyCommittedSerializedRef.current) {
+      setHistoryStatus({
+        canUndo: historyPastRef.current.length > 0,
+        canRedo: historyFutureRef.current.length > 0,
+      });
+      return;
+    }
+
+    historyFutureRef.current = [];
+    setHistoryStatus({canUndo:true,canRedo:false});
+    if (historyTimerRef.current !== null) window.clearTimeout(historyTimerRef.current);
+    historyTimerRef.current = window.setTimeout(() => {
+      historyTimerRef.current = null;
+      commitCurrentHistory();
+    }, STUDIO_HISTORY_DEBOUNCE_MS);
+
+    return () => {
+      if (historyTimerRef.current !== null) {
+        window.clearTimeout(historyTimerRef.current);
+        historyTimerRef.current = null;
+      }
+    };
+  }, [historySerialized, historySnapshot, commitCurrentHistory]);
+
+  useEffect(() => {
+    const onHistoryKeyDown = (event:KeyboardEvent) => {
+      if (event.altKey || (!event.ctrlKey && !event.metaKey)) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
+
+      const key = event.key.toLowerCase();
+      const wantsUndo = key === 'z' && !event.shiftKey;
+      const wantsRedo = (key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey && !event.metaKey);
+      if (!wantsUndo && !wantsRedo) return;
+
+      event.preventDefault();
+      if (wantsRedo) redoStudioAction();
+      else undoStudioAction();
+    };
+    window.addEventListener('keydown', onHistoryKeyDown);
+    return () => window.removeEventListener('keydown', onHistoryKeyDown);
+  }, [redoStudioAction, undoStudioAction]);
 
   const setOpening = useCallback((value: number) => {
     const next = Math.max(0, Math.min(100, value));
@@ -1032,6 +1211,9 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
 
         </div>
           <div className={`pro-canvas-control-bar pro-shared-canvas-control-bar${mode==='dieline'?' is-2d':''}`} aria-label="Canvas controls">
+            <button className="pro-canvas-bar-icon" title="Undo (Ctrl/⌘+Z)" aria-label="Undo last change" disabled={!historyStatus.canUndo} onClick={undoStudioAction}><Undo2 size={18}/></button>
+            <button className="pro-canvas-bar-icon" title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo last change" disabled={!historyStatus.canRedo} onClick={redoStudioAction}><Redo2 size={18}/></button>
+            <span className="pro-canvas-bar-divider" aria-hidden="true"/>
             <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag 2D board" aria-label="Drag 2D board" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
