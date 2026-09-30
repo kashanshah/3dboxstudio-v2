@@ -94,6 +94,21 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
  return {id,name:converted.name,state:converted.state,legacy:true,updatedAt:converted.updatedAt};
 }
 
+export async function getLegacyPreviewShare(previewToken:string):Promise<PublicShare|null>{
+ if(!SHARE_TOKEN_RE.test(previewToken))return null;
+ await ensureV2Schema();
+ const rows=await getSql()`
+  SELECT source,source_id,payload
+  FROM legacy_records
+  WHERE entity_type='shared_designs' AND payload->>'preview_token'=${previewToken} AND deleted_at IS NULL
+  LIMIT 1
+ ` as {source:string;source_id:string;payload:unknown}[];
+ const legacy=rows[0];
+ if(!legacy)return null;
+ const converted=legacyDesignToStudioProject({source:legacy.source,sourceId:legacy.source_id,payload:legacy.payload,assetBaseUrl:legacyAssetBase()});
+ return converted?{id:previewToken,name:converted.name,state:converted.state,legacy:true,updatedAt:converted.updatedAt}:null;
+}
+
 export async function getShareMedia(id:string,assetId:string){
  if(!SHARE_TOKEN_RE.test(id)||!/^[A-Za-z0-9-]+$/.test(assetId))return null;
  await ensureV2Schema();
