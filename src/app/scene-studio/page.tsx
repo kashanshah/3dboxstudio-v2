@@ -1,20 +1,23 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import { SceneStudio } from '@/components/studio/scene-studio';
-import { getCurrentUser } from '@/server/auth/session';
-import { getWorkspaceDesigns } from '@/server/projects';
+import Link from 'next/link';
+import { ArrowLeft, Sparkles } from 'lucide-react';
+import { Brand } from '@/components/site-shell';
 
 export const metadata:Metadata={
-  title:{absolute:'Scene Studio | 3D Box Studio'},
-  description:'Build product photography scenes using your saved packaging designs, backgrounds, lighting, shadows, cameras and studio environments.',
+  title:{absolute:'Scene Studio — Coming Soon | 3D Box Studio'},
+  description:'Scene Studio is coming after the V2 Box Studio launch.',
   robots:{index:false,follow:false},
 };
 
-export default async function SceneStudioPage({searchParams}:{searchParams:Promise<{workspace?:string}>}){
-  const user=await getCurrentUser();
-  const params=await searchParams;
-  if(!user) redirect('/login?next=/scene-studio');
-  const workspaceProjectId=params.workspace??null;
-  const {designs}=await getWorkspaceDesigns(user.id,'','recent',1,workspaceProjectId);
-  return <SceneStudio designs={designs} workspaceProjectId={workspaceProjectId}/>;
+export default function SceneStudioPage(){
+  return <main className="scene-coming-page">
+    <header className="scene-coming-header"><Brand/><Link href="/studio"><ArrowLeft size={17}/> Back to Studio</Link></header>
+    <section className="scene-coming-content">
+      <span className="scene-coming-icon"><Sparkles size={30}/></span>
+      <p className="scene-coming-eyebrow">Coming soon</p>
+      <h1>Scene Studio is next.</h1>
+      <p>V2 is launching first with the complete Box Studio workflow. Product photography scenes, multi-box compositions, backgrounds, lighting, shadows and camera controls will follow in a later release.</p>
+      <Link className="button" href="/studio">Continue to Box Studio</Link>
+    </section>
+  </main>;
 }
