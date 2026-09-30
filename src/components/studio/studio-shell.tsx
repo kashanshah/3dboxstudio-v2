@@ -14,7 +14,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
-import { DEFAULT_FULL_DIELINE_TRANSFORM, rasterizeFullDielineLayers, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { createFullDielineTransform, rasterizeFullDielineLayers, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -172,16 +172,20 @@ export function StudioShell() {
       const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const bounds = reverseTuckBounds(dimensions);
+      const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
       const layer: FullDielineArtworkLayer = {
         id: layerId,
         assetId: asset.id,
         name: asset.name,
         url: asset.url,
-        transform: {
-          ...DEFAULT_FULL_DIELINE_TRANSFORM,
-          width: DEFAULT_FULL_DIELINE_TRANSFORM.width * scale / 100,
-          rotation: options?.rotation ?? 0,
-        },
+        aspectRatio: imageAspect,
+        transform: createFullDielineTransform(
+          imageAspect,
+          bounds.width / bounds.height,
+          scale,
+          options?.rotation ?? 0,
+        ),
       };
       setFullDielineLayers(current => [...current, layer]);
       setSelectedFullDielineLayerId(layerId);
@@ -1053,16 +1057,19 @@ function DielinePrototype({
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
+  type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
     layerId:string;
     type:'move'|'resize'|'rotate';
+    handle?:ResizeHandle;
     pointerId:number;
     startX:number;
     startY:number;
     start:FullDielineTransform;
     centerX:number;
     centerY:number;
-    startDistance:number;
+    startWidthPx:number;
+    startHeightPx:number;
     startAngle:number;
   } | null>(null);
 
@@ -1070,6 +1077,7 @@ function DielinePrototype({
     event: React.PointerEvent<HTMLDivElement | HTMLButtonElement>,
     layer: FullDielineArtworkLayer,
     type:'move'|'resize'|'rotate',
+    handle?:ResizeHandle,
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -1085,13 +1093,15 @@ function DielinePrototype({
     gestureRef.current = {
       layerId:layer.id,
       type,
+      handle,
       pointerId:event.pointerId,
       startX:event.clientX,
       startY:event.clientY,
       start:{...layer.transform},
       centerX,
       centerY,
-      startDistance:Math.max(1,Math.hypot(dx,dy)),
+      startWidthPx:Math.max(1,rect.width * layer.transform.width / 100),
+      startHeightPx:Math.max(1,rect.height * layer.transform.height / 100),
       startAngle:Math.atan2(dy,dx),
     };
     element.setPointerCapture(event.pointerId);
@@ -1115,12 +1125,80 @@ function DielinePrototype({
       return;
     }
 
-    if (gesture.type === 'resize') {
-      const distance=Math.hypot(event.clientX-gesture.centerX,event.clientY-gesture.centerY);
-      const ratio=distance/Math.max(1,gesture.startDistance);
+    if (gesture.type === 'resize' && gesture.handle) {
+      const rotation = gesture.start.rotation * Math.PI / 180;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+      const dx = event.clientX - gesture.centerX;
+      const dy = event.clientY - gesture.centerY;
+      const localX = dx * cos + dy * sin;
+      const localY = -dx * sin + dy * cos;
+      const startWidth = gesture.startWidthPx;
+      const startHeight = gesture.startHeightPx;
+      const minWidth = Math.max(18, rect.width * 0.03);
+      const minHeight = Math.max(18, rect.height * 0.03);
+      const maxWidth = rect.width * 3;
+      const maxHeight = rect.height * 3;
+      const handle = gesture.handle;
+      const isCorner = handle.length === 2;
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+      let centerLocalX = 0;
+      let centerLocalY = 0;
+
+      if (isCorner) {
+        const dirX = handle.includes('e') ? 1 : -1;
+        const dirY = handle.includes('s') ? 1 : -1;
+        const anchorX = -dirX * startWidth / 2;
+        const anchorY = -dirY * startHeight / 2;
+        const originalX = dirX * startWidth;
+        const originalY = dirY * startHeight;
+        const currentX = localX - anchorX;
+        const currentY = localY - anchorY;
+        const denominator = originalX * originalX + originalY * originalY || 1;
+        let scale = (currentX * originalX + currentY * originalY) / denominator;
+        const minScale = Math.max(minWidth / startWidth, minHeight / startHeight);
+        const maxScale = Math.min(maxWidth / startWidth, maxHeight / startHeight);
+        scale = Math.max(minScale, Math.min(maxScale, scale));
+        newWidth = startWidth * scale;
+        newHeight = startHeight * scale;
+        const movingX = anchorX + dirX * newWidth;
+        const movingY = anchorY + dirY * newHeight;
+        centerLocalX = (anchorX + movingX) / 2;
+        centerLocalY = (anchorY + movingY) / 2;
+      } else if (handle === 'e' || handle === 'w') {
+        const dirX = handle === 'e' ? 1 : -1;
+        const anchorX = -dirX * startWidth / 2;
+        newWidth = Math.max(minWidth, Math.min(maxWidth, dirX * (localX - anchorX)));
+        const movingX = anchorX + dirX * newWidth;
+        centerLocalX = (anchorX + movingX) / 2;
+        if (event.shiftKey) {
+          const scale = newWidth / startWidth;
+          newHeight = Math.max(minHeight, Math.min(maxHeight, startHeight * scale));
+        }
+      } else {
+        const dirY = handle === 's' ? 1 : -1;
+        const anchorY = -dirY * startHeight / 2;
+        newHeight = Math.max(minHeight, Math.min(maxHeight, dirY * (localY - anchorY)));
+        const movingY = anchorY + dirY * newHeight;
+        centerLocalY = (anchorY + movingY) / 2;
+        if (event.shiftKey) {
+          const scale = newHeight / startHeight;
+          newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth * scale));
+        }
+      }
+
+      const centerDx = centerLocalX * cos - centerLocalY * sin;
+      const centerDy = centerLocalX * sin + centerLocalY * cos;
+      const nextCenterX = gesture.centerX + centerDx;
+      const nextCenterY = gesture.centerY + centerDy;
+
       onUpdateLayer(gesture.layerId,{
         ...gesture.start,
-        width:Math.max(8,Math.min(300,gesture.start.width*ratio)),
+        x:(nextCenterX - rect.left) / Math.max(1,rect.width) * 100,
+        y:(nextCenterY - rect.top) / Math.max(1,rect.height) * 100,
+        width:newWidth / Math.max(1,rect.width) * 100,
+        height:newHeight / Math.max(1,rect.height) * 100,
       });
       return;
     }
@@ -1153,7 +1231,10 @@ function DielinePrototype({
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add artwork</button>
-      {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(selectedLayer.id,DEFAULT_FULL_DIELINE_TRANSFORM)}><Maximize2 size={15}/> Reset selected</button>}
+      {selectedLayer && <button className="pro-secondary-button" onClick={() => onUpdateLayer(
+        selectedLayer.id,
+        createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
+      )}><Maximize2 size={15}/> Reset selected</button>}
       <span className="pro-live-sync-badge"><span/> Live 3D</span>
     </div> : <div className="pro-2d-design-toolbar pro-2d-inside-note">
       <div><span>Inside design</span><strong>Inside panel overrides remain available from the Artwork inspector.</strong></div>
@@ -1176,7 +1257,7 @@ function DielinePrototype({
               onClick={()=>onSelectLayer(layer.id)}
             >
               <img src={layer.url} alt="" />
-              <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)}% · {Math.round(layer.transform.rotation)}°</small></span>
+              <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
               <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
             </button>;
           })}
@@ -1204,6 +1285,7 @@ function DielinePrototype({
               left:`${layer.transform.x}%`,
               top:`${layer.transform.y}%`,
               width:`${layer.transform.width}%`,
+              height:`${layer.transform.height}%`,
               transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`,
               zIndex:10+index,
             }}
@@ -1215,7 +1297,13 @@ function DielinePrototype({
             <img src={layer.url} alt={layer.name} draggable={false}/>
             {selected && <>
               <span className="pro-transform-box" aria-hidden="true"/>
-              <button type="button" className="pro-transform-handle pro-transform-resize" aria-label="Resize selected artwork" onPointerDown={event=>beginLayerGesture(event,layer,'resize')}/>
+              {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle => <button
+                key={handle}
+                type="button"
+                className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`}
+                aria-label={`Resize selected artwork from ${handle}`}
+                onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}
+              />)}
               <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate selected artwork" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><span/></button>
             </>}
           </div>;
@@ -1249,7 +1337,7 @@ function DielinePrototype({
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{layers.length ? 'Select a layer · drag to move · resize/rotate with handles · 3D updates automatically' : 'Add multiple images and compose them directly on the dieline'}</strong>
+      <strong>{layers.length ? 'Corners resize proportionally · side handles resize freely · hold Shift on a side handle to preserve proportions · 3D updates automatically' : 'Add multiple images and compose them directly on the dieline'}</strong>
     </div>
   </div>;
 }

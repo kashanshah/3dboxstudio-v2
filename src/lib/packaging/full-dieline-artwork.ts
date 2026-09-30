@@ -5,6 +5,7 @@ export type FullDielineTransform = {
   x: number;
   y: number;
   width: number;
+  height: number;
   rotation: number;
 };
 
@@ -14,14 +15,40 @@ export type FullDielineArtworkLayer = {
   name: string;
   url: string;
   transform: FullDielineTransform;
+  aspectRatio: number;
 };
 
 export const DEFAULT_FULL_DIELINE_TRANSFORM: FullDielineTransform = {
   x: 50,
   y: 50,
   width: 72,
+  height: 72,
   rotation: 0,
 };
+
+export function createFullDielineTransform(
+  imageAspect: number,
+  dielineAspect: number,
+  scalePercent = 100,
+  rotation = 0,
+): FullDielineTransform {
+  const targetBox = DEFAULT_FULL_DIELINE_TRANSFORM.width * scalePercent / 100;
+  const safeImageAspect = Math.max(0.0001, imageAspect);
+  const safeDielineAspect = Math.max(0.0001, dielineAspect);
+  let width = targetBox;
+  let height = width * safeDielineAspect / safeImageAspect;
+  if (height > targetBox) {
+    height = targetBox;
+    width = height * safeImageAspect / safeDielineAspect;
+  }
+  return {
+    x: 50,
+    y: 50,
+    width,
+    height,
+    rotation,
+  };
+}
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -57,8 +84,7 @@ export async function rasterizeFullDielineLayers(
 
   for (const { layer, image } of loaded) {
     const targetWidth = canvasWidth * layer.transform.width / 100;
-    const aspect = (image.naturalWidth || image.width || 1) / (image.naturalHeight || image.height || 1);
-    const targetHeight = targetWidth / Math.max(aspect, 0.0001);
+    const targetHeight = canvasHeight * layer.transform.height / 100;
     const cx = canvasWidth * layer.transform.x / 100;
     const cy = canvasHeight * layer.transform.y / 100;
 
