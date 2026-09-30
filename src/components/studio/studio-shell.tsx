@@ -161,6 +161,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const fileRef = useRef<HTMLInputElement>(null);
   const dielineFileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
+  const studioCanvasRef = useRef<HTMLElement>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
   const foldAnimationRef = useRef<number | null>(null);
@@ -171,6 +172,34 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setFaceAction(null);
     setCameraMenuOpen(false);
   }, []);
+
+  useEffect(() => {
+    const canvas=studioCanvasRef.current;
+    if(!canvas)return;
+
+    const handleWheel=(event:WheelEvent)=>{
+      const target=event.target;
+      if(!(target instanceof HTMLElement))return;
+
+      // UI chrome keeps its normal wheel behavior. Everywhere else in the
+      // central workspace belongs to the active design canvas.
+      if(target.closest(
+        '.pro-canvas-top,.pro-canvas-control-bar,.pro-2d-side-panels,.pro-status-bar,.pro-face-action,button,input,select,textarea'
+      )) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if(mode==='3d'){
+        setZoom(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
+      }else{
+        setDielineZoom(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
+      }
+    };
+
+    canvas.addEventListener('wheel',handleWheel,{passive:false,capture:true});
+    return ()=>canvas.removeEventListener('wheel',handleWheel,{capture:true});
+  },[mode]);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
@@ -761,7 +790,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         </button>)}
       </aside>
 
-      <section className="pro-canvas" aria-label="Packaging workspace">
+      <section ref={studioCanvasRef} className="pro-canvas" aria-label="Packaging workspace">
         <div className="pro-canvas-top">
           <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
             <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> 2D Design</button>
@@ -1588,7 +1617,6 @@ function DielinePrototype({
   const visualHeight = bounds.height * visualScale;
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
-  const workspaceRef = useRef<HTMLDivElement>(null);
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
@@ -1766,25 +1794,6 @@ function DielinePrototype({
     gestureRef.current=null;
   };
 
-  useEffect(() => {
-    const workspace=workspaceRef.current;
-    if(!workspace)return;
-
-    const handleWheel=(event:WheelEvent)=>{
-      const target=event.target;
-      if(target instanceof HTMLElement && target.closest('.pro-2d-side-panels')) return;
-
-      // This workspace owns the wheel while the pointer is over the board:
-      // zoom the dieline, never scroll the document or a parent container.
-      event.preventDefault();
-      event.stopPropagation();
-      onZoomChange(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
-    };
-
-    workspace.addEventListener('wheel',handleWheel,{passive:false});
-    return ()=>workspace.removeEventListener('wheel',handleWheel);
-  },[onZoomChange]);
-
   if (importedDieline) {
     return <><ImportedDielineMapper
       dieline={importedDieline}
@@ -1830,7 +1839,6 @@ function DielinePrototype({
 
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
     <div
-      ref={workspaceRef}
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
       onPointerDownCapture={(event)=>{
         if (!panEnabled) return;
