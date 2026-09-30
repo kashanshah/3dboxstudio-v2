@@ -2540,14 +2540,18 @@ function TemplateVisual({template,dimensions,compact=false}:{template:PackagingT
           x={panel.x} y={panel.y} width={panel.width} height={panel.height}
           className={panel.kind === 'glue' ? 'is-glue' : ''}
         />)}
-      </svg> : <svg className="pro-template-generic-net" viewBox="0 0 100 82" preserveAspectRatio="xMidYMid meet">
-        <rect x="31" y="28" width="20" height="28"/>
-        <rect x="51" y="28" width="20" height="28"/>
-        <rect x="11" y="28" width="20" height="28"/>
-        <rect x="71" y="28" width="13" height="28" className="is-glue"/>
-        <rect x="31" y="10" width="20" height="18"/>
-        <rect x="31" y="56" width="20" height="16"/>
-      </svg>}
+      </svg> : template.family === 'pouch'
+        ? <svg className="pro-template-generic-net" viewBox="0 0 100 82"><path d="M24 12h52l6 58H18z"/><path className="is-crease" d="M22 57h56M28 20h44"/></svg>
+        : ['bottle','jar','can','cup'].includes(template.family)
+          ? <svg className="pro-template-generic-net" viewBox="0 0 100 82"><rect x="18" y="24" width="64" height="38"/><path className="is-crease" d="M26 24v38M74 24v38"/><circle cx="50" cy="14" r="8"/></svg>
+          : <svg className="pro-template-generic-net" viewBox="0 0 100 82" preserveAspectRatio="xMidYMid meet">
+            <rect x="31" y="28" width="20" height="28"/>
+            <rect x="51" y="28" width="20" height="28"/>
+            <rect x="11" y="28" width="20" height="28"/>
+            <rect x="71" y="28" width="13" height="28" className="is-glue"/>
+            <rect x="31" y="10" width="20" height="18"/>
+            <rect x="31" y="56" width="20" height="16"/>
+          </svg>}
     </span>
     <span className="pro-template-package" data-preview="3D">
       <i className="shape-main"/>
