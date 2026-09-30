@@ -414,6 +414,38 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setCameraMenuOpen(false);
   },[]);
 
+  const hasOpeningStage = selectedTemplateId!=='reverse-tuck-carton'
+    && (selectedTemplateId==='split-top-box' || openingMode!=='closed');
+  const assemblyProgress = selectedTemplateId==='reverse-tuck-carton' || !hasOpeningStage
+    ? formation
+    : formation < 99.999
+      ? formation * 0.7
+      : 70 + (100-opening) * 0.3;
+  const setAssemblyProgress = useCallback((value:number)=>{
+    const next=Math.max(0,Math.min(100,value));
+    if(selectedTemplateId==='reverse-tuck-carton' || !hasOpeningStage){
+      setFormation(next);
+      if(selectedTemplateId!=='reverse-tuck-carton') setOpening(0);
+      return;
+    }
+    if(next<=70){
+      setFormation(next/70*100);
+      setOpening(100);
+    }else{
+      setFormation(100);
+      setOpening((100-next)/30*100);
+    }
+  },[hasOpeningStage,selectedTemplateId,setFormation,setOpening]);
+  const assemblyStage = assemblyProgress<=1
+    ? 'Flat dieline'
+    : hasOpeningStage && assemblyProgress>=69 && assemblyProgress<=71
+      ? 'Assembled · open'
+      : assemblyProgress<70
+        ? 'Forming box'
+        : assemblyProgress<99
+          ? 'Closing package'
+          : 'Closed package';
+
   useEffect(()=>{zoomRef.current=zoom;},[zoom]);
   useEffect(()=>{dielineZoomRef.current=dielineZoom;},[dielineZoom]);
   useEffect(()=>{viewPan3dRef.current=viewPan3d;},[viewPan3d]);
@@ -1147,7 +1179,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   const animateFold = (target: 0 | 100) => {
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-    const start = selectedTemplateId==='reverse-tuck-carton'?formation:opening;
+    const start = assemblyProgress;
     const startedAt = performance.now();
     const duration = 1500;
 
@@ -1156,8 +1188,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       const eased = progress < 0.5
         ? 4 * progress * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      if(selectedTemplateId==='reverse-tuck-carton')setFormation(start + (target - start) * eased);
-      else setOpening(start + (target - start) * eased);
+      setAssemblyProgress(start + (target - start) * eased);
       if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
       else foldAnimationRef.current = null;
     };
@@ -1496,7 +1527,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{`Assembled ${Math.round(formation)}%`}{selectedTemplateId!=='reverse-tuck-carton'&&openingMode!=='closed'?` · Open ${Math.round(opening)}%`:''}</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{assemblyStage} · {Math.round(assemblyProgress)}%</span></div>
 
           {faceAction && <div
             ref={faceActionRef}
