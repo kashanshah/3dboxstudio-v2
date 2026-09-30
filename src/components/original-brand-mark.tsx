@@ -1,2 +1,5 @@
-import { Box } from 'lucide-react';
-export function BrandMark() {return <div className="original-brand"><span className="original-brand-icon"><Box strokeWidth={1.8}/></span><span>3D Box Studio</span></div>;}
+import { BrandLogo } from '@/components/brand-logo';
+
+export function BrandMark() {
+  return <div className="original-brand"><BrandLogo className="original-brand-logo" priority /></div>;
+}
