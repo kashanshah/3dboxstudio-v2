@@ -3,7 +3,8 @@ import { useState,type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight,Eye,EyeOff,Mail } from 'lucide-react';
-import { AuthShell,AuthNotice,GoogleMark } from './auth-shell';
+import { AuthShell,AuthNotice } from './auth-shell';
+import { GoogleSignInButton } from './google-sign-in-button';
 import { useAuth } from './auth-provider';
 import { safeReturnTo } from '@/lib/auth-navigation';
 export type AuthPageKind='login'|'signup'|'forgot-password'|'reset-password'|'verify-email';
@@ -30,7 +31,7 @@ export function AuthForm({kind,next,token,authError}:{kind:AuthPageKind;next?:st
  {error&&<AuthNotice kind="error">{error}</AuthNotice>}
  {message&&<AuthNotice>{message}</AuthNotice>}
  {complete?<div className="auth-status-actions">{signup&&<button className="button button-secondary" onClick={resend} disabled={busy}><Mail size={16}/> Resend verification email</button>}<Link className="button button-primary" href={reset?'/login':kind==='forgot-password'?'/login':returnTo}>{reset?'Sign in with new password':kind==='forgot-password'?'Back to sign in':'Continue to Studio'} <ArrowRight size={16}/></Link></div>:verify&&!token?<div className="auth-status-actions">{auth.user?.emailVerified?<AuthNotice>Your email is already verified.</AuthNotice>:auth.user?<><p>Check the inbox for {auth.user.email}.</p><button className="button button-primary" disabled={busy} onClick={resend}>Resend verification email</button></>:<Link className="button button-primary" href="/login?next=%2Fverify-email">Sign in to resend verification</Link>}<Link className="button button-secondary" href="/studio">Continue to Studio</Link></div>:reset&&!token?<div className="auth-status-actions"><AuthNotice kind="error">This reset link is missing or invalid.</AuthNotice><Link className="button button-primary" href="/forgot-password">Request a new link</Link></div>:<form className="auth-form" onSubmit={submit}>
- {(login||signup)&&<><Link className="button button-secondary auth-google" href={`/api/auth/google?next=${encodeURIComponent(returnTo)}`}><GoogleMark/> Continue with Google</Link><div className="auth-divider">or use email</div></>}
+ {(login||signup)&&<><GoogleSignInButton next={returnTo} large/><div className="auth-divider">or use email</div></>}
  {signup&&<div className="auth-field"><label htmlFor="auth-name">Display name</label><input id="auth-name" autoComplete="name" required maxLength={120} value={name} onChange={event=>setName(event.target.value)}/></div>}
  {!verify&&!reset&&<div className="auth-field"><label htmlFor="auth-email">Email</label><input id="auth-email" type="email" autoComplete="email" required maxLength={320} value={email} onChange={event=>setEmail(event.target.value)}/></div>}
  {(login||signup||reset)&&<PasswordField id="auth-password" label={reset?'New password':'Password'} value={password} onChange={setPassword} autoComplete={login?'current-password':'new-password'} minLength={login?1:8}/>}
