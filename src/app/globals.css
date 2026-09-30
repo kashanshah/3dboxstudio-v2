@@ -1845,6 +1845,34 @@ body{font-size:var(--type-body)}
   .pro-studio .account-button svg:last-child{display:none}
 }
 
+/* Keep both renderers warm and the opening slider stable across view changes. */
+.pro-canvas > .pro-view-pane{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 240ms ease-in-out;
+}
+.pro-canvas > .pro-view-pane.is-active{opacity:1;pointer-events:auto}
+.pro-shared-canvas-control-bar{
+  width:min(640px,calc(100% - 24px));
+  min-height:48px;
+  padding:6px 8px;
+  grid-template-columns:32px 32px 32px 1px 32px auto minmax(70px,1fr) auto 1px 32px;
+  gap:7px;
+}
+.pro-shared-canvas-control-bar .pro-canvas-bar-icon,
+.pro-shared-canvas-control-bar .pro-canvas-bar-play{width:32px;height:32px}
+.pro-shared-canvas-control-bar .pro-canvas-bar-icon:disabled{opacity:.3;cursor:default}
+.pro-shared-canvas-control-bar .pro-canvas-bar-icon.is-active{background:var(--accent-soft);color:var(--accent)}
+@media(max-width:560px){
+  .pro-shared-canvas-control-bar{grid-template-columns:28px 28px 28px 1px 28px minmax(48px,1fr) 1px 28px;gap:4px}
+  .pro-shared-canvas-control-bar .pro-canvas-bar-icon,
+  .pro-shared-canvas-control-bar .pro-canvas-bar-play{width:28px;height:32px}
+}
+@media(prefers-reduced-motion:reduce){
+  .pro-canvas > .pro-view-pane{transition:none}
+}
 
 /* Independent inside / outside base colors */
 .pro-base-color-card{display:grid;gap:14px}
