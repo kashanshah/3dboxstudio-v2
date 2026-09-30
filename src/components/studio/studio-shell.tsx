@@ -792,7 +792,32 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         />
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
             <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> 3D preview <ChevronDown size={14}/></button>
-            {previewOpen && mode === 'dieline' && <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} opening={opening} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>}
+            {previewOpen && mode === 'dieline' && <>
+              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} opening={opening} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
+              <div className="pro-artwork-preview-fold">
+                <div className="pro-artwork-preview-fold-head">
+                  <span>Open / close</span>
+                  <strong>{Math.round(opening)}%</strong>
+                </div>
+                <div className="pro-artwork-preview-fold-row">
+                  <span>Open</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(opening)}
+                    aria-label="Open or close box in 3D preview"
+                    onChange={e=>{
+                      if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+                      foldAnimationRef.current=null;
+                      setOpening(Number(e.target.value));
+                    }}
+                  />
+                  <span>Closed</span>
+                </div>
+              </div>
+            </>}
           </aside>
         </div>
           <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
@@ -803,32 +828,34 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(Math.min(140, zoom + 10)) : setDielineZoom(Math.min(200, dielineZoom + 10))}>
               <ZoomIn size={20}/>
             </button>
-            <span className="pro-canvas-bar-divider" />
-            <button
-              className="pro-canvas-bar-play"
-              aria-label={opening >= 50 ? 'Open box' : 'Close box'}
-              title={opening >= 50 ? 'Open box' : 'Close box'}
-              onClick={() => animateFold(opening >= 50 ? 0 : 100)}
-            >
-              {opening >= 50 ? <PackageOpen size={19}/> : <Box size={19}/>}
-            </button>
-            <span className="pro-canvas-bar-label">Open</span>
-            <input
-              className="pro-canvas-bar-range"
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={Math.round(opening)}
-              aria-label="Open or close box"
-              onChange={e => {
-                if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-                foldAnimationRef.current = null;
-                setOpening(Number(e.target.value));
-              }}
-            />
-            <span className="pro-canvas-bar-label">Closed</span>
-            <span className="pro-canvas-bar-divider" />
+            {mode === '3d' && <>
+              <span className="pro-canvas-bar-divider" />
+              <button
+                className="pro-canvas-bar-play"
+                aria-label={opening >= 50 ? 'Open box' : 'Close box'}
+                title={opening >= 50 ? 'Open box' : 'Close box'}
+                onClick={() => animateFold(opening >= 50 ? 0 : 100)}
+              >
+                {opening >= 50 ? <PackageOpen size={19}/> : <Box size={19}/>}
+              </button>
+              <span className="pro-canvas-bar-label">Open</span>
+              <input
+                className="pro-canvas-bar-range"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={Math.round(opening)}
+                aria-label="Open or close box"
+                onChange={e => {
+                  if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+                  foldAnimationRef.current = null;
+                  setOpening(Number(e.target.value));
+                }}
+              />
+              <span className="pro-canvas-bar-label">Closed</span>
+              <span className="pro-canvas-bar-divider" />
+            </>}
             <button
               className="pro-canvas-bar-icon"
               title="Fit view"
