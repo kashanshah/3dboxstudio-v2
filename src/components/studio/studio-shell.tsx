@@ -1588,6 +1588,7 @@ function DielinePrototype({
   const visualHeight = bounds.height * visualScale;
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
@@ -1765,6 +1766,25 @@ function DielinePrototype({
     gestureRef.current=null;
   };
 
+  useEffect(() => {
+    const workspace=workspaceRef.current;
+    if(!workspace)return;
+
+    const handleWheel=(event:WheelEvent)=>{
+      const target=event.target;
+      if(target instanceof HTMLElement && target.closest('.pro-2d-side-panels')) return;
+
+      // This workspace owns the wheel while the pointer is over the board:
+      // zoom the dieline, never scroll the document or a parent container.
+      event.preventDefault();
+      event.stopPropagation();
+      onZoomChange(value=>wheelStudioZoom(value,event.deltaY,event.deltaMode,event.ctrlKey));
+    };
+
+    workspace.addEventListener('wheel',handleWheel,{passive:false});
+    return ()=>workspace.removeEventListener('wheel',handleWheel);
+  },[onZoomChange]);
+
   if (importedDieline) {
     return <><ImportedDielineMapper
       dieline={importedDieline}
@@ -1810,12 +1830,8 @@ function DielinePrototype({
 
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
     <div
+      ref={workspaceRef}
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
-      onWheel={(event)=>{
-        if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
-        event.preventDefault();
-        onZoomChange(value => wheelStudioZoom(value, event.deltaY, event.deltaMode, event.ctrlKey));
-      }}
       onPointerDownCapture={(event)=>{
         if (!panEnabled) return;
         if ((event.target as HTMLElement).closest('.pro-2d-side-panels')) return;
