@@ -1,37 +1,100 @@
 import { site } from '@/lib/site';
 
-export type EmailTemplatePreview = {
-  id:string; label:string; description:string; subject:string; html:string; text:string; sourcePath:string;
+export type RenderedEmail = { subject: string; html: string; text: string };
+export type EmailTemplatePreview = RenderedEmail & {
+  id: string; label: string; description: string; sourcePath: string;
 };
 
 function esc(value: unknown) {
-  return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
-function shell(eyebrow:string,title:string,body:string) {
-  const origin=site.url.toString().replace(/\/$/,'');
-  return `<!doctype html><html><body style="margin:0;padding:32px 16px;background:#eef2f6;color:#101720;font-family:Arial,sans-serif"><table role="presentation" width="100%"><tr><td align="center"><table role="presentation" width="640" style="max-width:640px;width:100%"><tr><td style="padding:0 0 16px"><a href="${origin}" style="display:inline-block;text-decoration:none"><img src="${origin}/brand/logo-horizontal-light.svg" width="184" height="48" alt="3D Box Studio" style="display:block;width:184px;height:auto;border:0"></a></td></tr><tr><td style="background:#fff;border:1px solid #dce3eb;border-radius:16px;overflow:hidden"><div style="padding:24px 30px;background:#101720;color:#fff"><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75">${esc(eyebrow)}</div><div style="font-size:27px;font-weight:600;margin-top:7px">${esc(title)}</div></div><div style="padding:28px 30px;font-size:15px;line-height:1.65">${body}</div><div style="padding:0 30px 26px;color:#6b7280;font-size:12px;text-align:center"><hr style="border:0;border-top:1px solid #e5e7eb;margin:0 0 18px"><a href="${origin}" style="color:#0075c4">www.3dboxstudio.com</a></div></td></tr></table></td></tr></table></body></html>`;
+function webUrl(value: string) {
+  const url = new URL(value);
+  if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) throw new Error('Email links must be HTTP(S) URLs without credentials');
+  return url.toString();
 }
-function row(label:string,value:string){return `<tr><td style="padding:7px 12px 7px 0;color:#6b7280;vertical-align:top">${esc(label)}</td><td style="padding:7px 0">${value}</td></tr>`;}
-function info(rows:string[]){return `<table style="border-collapse:collapse;width:100%;font-size:14px">${rows.join('')}</table>`;}
-export function renderAdminContactTemplate(input:{id:string;name:string;email:string;topic:string;subject:string;message:string;submittedAt:string}) {
-  const subject=`New contact message · ${input.subject || input.topic}`;
-  const text=`New contact message\n\nName: ${input.name}\nEmail: ${input.email}\nTopic: ${input.topic}\nSubject: ${input.subject}\nSubmitted: ${input.submittedAt}\nID: ${input.id}\n\n${input.message}`;
-  const html=shell('Admin notification','New contact message',
-    `<p>A visitor sent a message through the 3D Box Studio contact form.</p>${info([
-      row('Name',esc(input.name)), row('Email',`<a href="mailto:${esc(input.email)}" style="color:#0075c4">${esc(input.email)}</a>`),
-      row('Topic',esc(input.topic)), row('Subject',esc(input.subject)), row('Submitted',esc(input.submittedAt)), row('ID',`<code>${esc(input.id)}</code>`)
-    ])}<div style="margin-top:18px;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;white-space:pre-wrap">${esc(input.message)}</div>`);
-  return {subject,html,text};
+function appUrl(path: string) {
+  return webUrl(new URL(path, process.env.AUTH_APP_URL?.trim() || site.url).toString());
+}
+function paragraph(content: string) {
+  return `<p style="margin:0 0 20px;font-size:16px;line-height:26px">${content}</p>`;
+}
+function button(url: string, label: string) {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 24px"><tr><td bgcolor="#0075c4" style="border-radius:8px;mso-padding-alt:14px 24px"><a href="${esc(url)}" style="display:inline-block;padding:14px 24px;border:1px solid #0075c4;border-radius:8px;color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;line-height:22px;text-decoration:none">${esc(label)}</a></td></tr></table>`;
+}
+function fallback(url: string) {
+  return `<p style="margin:0 0 8px;color:#626779;font-size:13px;line-height:20px">If the button doesn’t work, copy and paste this link into your browser:</p><p style="margin:0 0 24px;font-size:13px;line-height:20px;word-break:break-all;overflow-wrap:anywhere"><a href="${esc(url)}" style="color:#0075c4;text-decoration:underline">${esc(url)}</a></p>`;
+}
+function greeting(name?: string | null) {
+  return paragraph(name?.trim() ? `Hi ${esc(name.trim())},` : 'Hi there,');
+}
+function shell(preheader: string, eyebrow: string, title: string, body: string) {
+  const origin = webUrl(site.url.toString());
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · 3D Box Studio</title></head><body style="margin:0;padding:0;background:#f1f5f9;color:#101720;font-family:Arial,Helvetica,sans-serif"><div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${esc(preheader)}</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f1f5f9"><tr><td align="center" style="padding:32px 16px"><!--[if mso]><table role="presentation" width="600"><tr><td><![endif]--><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px"><tr><td style="padding:0 0 24px"><a href="${esc(origin)}" style="color:#101720;text-decoration:none;font-size:20px;font-weight:bold;line-height:28px">3D Box Studio<span style="color:#0075c4">.</span></a></td></tr><tr><td bgcolor="#101720" style="padding:28px 24px;border-radius:12px 12px 0 0"><p style="margin:0 0 10px;color:#bbddf6;font-size:12px;font-weight:bold;line-height:18px;letter-spacing:1px;text-transform:uppercase">${esc(eyebrow)}</p><h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:bold;line-height:36px">${esc(title)}</h1></td></tr><tr><td bgcolor="#ffffff" style="padding:28px 24px;border:1px solid #dce3eb;border-top:0;border-radius:0 0 12px 12px;font-size:16px;line-height:26px">${body}</td></tr><tr><td align="center" style="padding:24px 12px;color:#626779;font-size:12px;line-height:20px">3D Box Studio · Design your packaging, your way.<br><a href="${esc(origin)}" style="color:#626779;text-decoration:underline">${esc(site.url.hostname)}</a></td></tr></table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>`;
+}
+function note(content: string) {
+  return `<p style="margin:0;padding-top:20px;border-top:1px solid #dce3eb;color:#626779;font-size:13px;line-height:21px">${content}</p>`;
+}
+
+export function renderVerificationTemplate(input: { name?: string | null; verifyUrl: string }): RenderedEmail {
+  const url = webUrl(input.verifyUrl);
+  const title = 'Verify your email';
+  const instructions = 'Confirm your email address to finish setting up your 3D Box Studio account.';
+  const expiry = 'This link expires in 24 hours and can only be used once.';
+  const safety = 'If you didn’t create an account, you can ignore this email.';
+  return {
+    subject: `${title} · 3D Box Studio`,
+    text: `${input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi there,'}\n\n${instructions}\n\nVerify email: ${url}\n\n${expiry}\n\n${safety}`,
+    html: shell('One quick step to confirm your email. Link valid for 24 hours.', 'Your account', title,
+      greeting(input.name) + paragraph(instructions) + button(url, 'Verify email') + paragraph(esc(expiry)) + fallback(url) + note(esc(safety))),
+  };
+}
+export function renderPasswordResetTemplate(input: { name?: string | null; resetUrl: string }): RenderedEmail {
+  const url = webUrl(input.resetUrl);
+  const title = 'Reset your password';
+  const instructions = 'We received a request to reset the password for your 3D Box Studio account. Choose a new password using the link below.';
+  const expiry = 'This link expires in 1 hour and can only be used once.';
+  const safety = 'If you didn’t request a reset, you can ignore this email. Your password will stay the same. Never share this link with anyone.';
+  return {
+    subject: `${title} · 3D Box Studio`,
+    text: `${input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi there,'}\n\n${instructions}\n\nReset password: ${url}\n\n${expiry}\n\n${safety}`,
+    html: shell('Choose a new password. Your reset link is valid for 1 hour.', 'Account security', title,
+      greeting(input.name) + paragraph(instructions) + button(url, 'Reset password') + paragraph(esc(expiry)) + fallback(url) + note(esc(safety))),
+  };
+}
+export function renderWelcomeTemplate(input: { name?: string | null } = {}): RenderedEmail {
+  const url = appUrl('/studio');
+  return {
+    subject: 'Welcome to 3D Box Studio',
+    text: `${input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi there,'}\n\nWelcome to 3D Box Studio. Start with a box template, add your artwork in 2D, and check your packaging in the 3D preview.\n\nOpen Studio: ${url}\n\nYou can return to your saved designs from your Studio home.`,
+    html: shell('Your next packaging idea starts here.', 'Let’s create', 'Welcome to your Studio',
+      greeting(input.name) + paragraph('Start with a box template, add your artwork in 2D, and check your packaging in the 3D preview.') + button(url, 'Open Studio') + paragraph('You can return to your saved designs from your Studio home.') + fallback(url)),
+  };
+}
+function row(label: string, value: string) {
+  return `<tr><th scope="row" align="left" style="width:100px;padding:8px 12px 8px 0;color:#626779;font-size:13px;font-weight:normal;line-height:20px;vertical-align:top">${esc(label)}</th><td style="padding:8px 0;font-size:14px;line-height:22px;word-break:break-word">${value}</td></tr>`;
+}
+export function renderAdminContactTemplate(input: { id: string; name: string; email: string; topic: string; subject: string; message: string; submittedAt: string }): RenderedEmail {
+  const subject = `New contact message · ${input.subject || input.topic || 'Contact form'}`.replace(/[\r\n]+/g, ' ');
+  const replyUrl = `mailto:${encodeURIComponent(input.email)}?subject=${encodeURIComponent(`Re: ${input.subject || input.topic || 'Your message'}`)}`;
+  const text = `New contact message on 3D Box Studio\n\nName: ${input.name}\nEmail: ${input.email}\nTopic: ${input.topic || '—'}\nSubject: ${input.subject || '—'}\nSubmitted (UTC): ${input.submittedAt}\nSubmission ID: ${input.id}\n\nMessage:\n${input.message}\n\nReply to: ${input.email}\n${replyUrl}`;
+  const html = shell(`${input.name || 'A visitor'} sent a contact message.`, 'Admin notification', 'New contact message',
+    paragraph('A visitor sent a message through the contact form. Reply directly to this email to get back to them.') +
+    `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px">${[
+      row('Name', esc(input.name || '—')), row('Email', `<a href="${esc(replyUrl)}" style="color:#0075c4">${esc(input.email)}</a>`),
+      row('Topic', esc(input.topic || '—')), row('Subject', esc(input.subject || '—')), row('Submitted (UTC)', esc(input.submittedAt)), row('Submission ID', esc(input.id)),
+    ].join('')}</table><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px"><tr><td bgcolor="#f1f5f9" style="padding:20px;border:1px solid #dce3eb;border-radius:8px;font-size:15px;line-height:25px;word-break:break-word"><p style="margin:0 0 10px;font-size:12px;font-weight:bold;color:#626779">MESSAGE</p>${esc(input.message).replace(/\r\n|\r|\n/g, '<br>')}</td></tr></table>` + button(replyUrl, 'Reply to message') + note('This notification was sent to the admin address configured in 3D Box Studio.'));
+  return { subject, html, text };
 }
 export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
-  const contact=renderAdminContactTemplate({id:'sample123',name:'Alex Morgan',email:'alex@example.com',topic:'Feature request',subject:'Custom dieline support',message:'Hi, I would like to know whether custom dieline import is planned for V2.',submittedAt:new Date('2026-09-29T18:30:00Z').toISOString()});
-  const welcome={subject:'Welcome to 3D Box Studio',text:'Welcome to 3D Box Studio.',html:shell('3D Box Studio','Welcome to 3D Box Studio','<p>Your workspace is ready. Start a packaging concept in the Studio.</p>')};
-  const reset={subject:'Reset your password · 3D Box Studio',text:'Reset your 3D Box Studio password.',html:shell('Account security','Reset your password','<p>Use the secure reset link to choose a new password. This is a library preview for the future account flow.</p>')};
-  const verification={subject:'Verify your email · 3D Box Studio',text:'Verify your 3D Box Studio email.',html:shell('Account security','Verify your email','<p>Confirm your email address to finish setting up your account. This is a library preview for the future account flow.</p>')};
+  const contact = renderAdminContactTemplate({ id: 'sample123', name: 'Alex Morgan', email: 'alex@example.com', topic: 'Feature request', subject: 'Custom dieline support', message: 'Hi, I would like to know whether custom dieline import is planned for V2.\nThanks for your help!', submittedAt: '2026-09-29T18:30:00Z' });
+  const welcome = renderWelcomeTemplate({ name: 'Alex' });
+  const verification = renderVerificationTemplate({ name: 'Alex', verifyUrl: appUrl('/verify-email?token=sample-preview-token') });
+  const reset = renderPasswordResetTemplate({ name: 'Alex', resetUrl: appUrl('/reset-password?token=sample-preview-token') });
   return [
-    {id:'admin-contact-submission',label:'Admin · Contact submission',description:'Sent to the configured admin email when a visitor submits the contact form.',...contact,sourcePath:'src/server/email/templates.ts'},
-    {id:'welcome',label:'Welcome',description:'Future account welcome email.',...welcome,sourcePath:'src/server/email/templates.ts'},
-    {id:'verification',label:'Email verification',description:'Future account verification email.',...verification,sourcePath:'src/server/email/templates.ts'},
-    {id:'password-reset',label:'Password reset',description:'Future password reset email.',...reset,sourcePath:'src/server/email/templates.ts'},
+    { id: 'admin-contact-submission', label: 'Admin · Contact submission', description: 'Sent to the configured admin address when contact notifications are enabled. Replies go to the visitor.', ...contact, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'welcome', label: 'Welcome', description: 'Preview only. Available as a template; not automatically sent.', ...welcome, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'verification', label: 'Email verification', description: 'Sent after email signup or a verification resend. One-use link expires in 24 hours.', ...verification, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'password-reset', label: 'Password reset', description: 'Sent for password recovery. One-use link expires in 1 hour.', ...reset, sourcePath: 'src/server/email/templates.ts' },
   ];
 }

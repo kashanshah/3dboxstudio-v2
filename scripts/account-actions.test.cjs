@@ -2,13 +2,13 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
 const {PGlite}=require('@electric-sql/pglite');
 const load=Module._load,resolve=Module._resolveFilename;
-let projectDb,currentUser='owner';
+let projectDb,currentUser='owner', emailDelivery=null;
 const sql=async(strings,...params)=>(await projectDb.query(strings.reduce((out,part,i)=>out+part+(i<params.length?'$'+(i+1):''),''),params)).rows;
 sql.query=async(query,params)=>(await projectDb.query(query,params)).rows;
-Module._load=function(request,...args){if(request==='@/server/db')return {ensureV2Schema:async()=>{},getSql:()=>sql};if(request==='./db')return {ensureV2Schema:async()=>{},getSql:()=>sql};if(request==='@/server/auth/session')return {getCurrentUser:async()=>currentUser?{id:currentUser}:null};if(request==='@/server/auth/action-request')return {guardAuthAction:()=>null};if(request==='@/server/email/mailer')return {sendEmail:async()=>{throw Error('unexpected email call');}};return load.call(this,request,...args);};
+Module._load=function(request,...args){if(request==='@/server/db')return {ensureV2Schema:async()=>{},getSql:()=>sql};if(request==='./db')return {ensureV2Schema:async()=>{},getSql:()=>sql};if(request==='@/server/auth/session')return {getCurrentUser:async()=>currentUser?{id:currentUser}:null};if(request==='@/server/auth/action-request')return {guardAuthAction:()=>null};if(request==='@/server/email/mailer')return {sendEmail:async(input)=>{if(emailDelivery)return emailDelivery(input);throw Error('unexpected email call');}};return load.call(this,request,...args);};
 Module._resolveFilename=function(request,...args){return resolve.call(this,request.startsWith('@/')?path.resolve(__dirname,'../src',request.slice(2)):request,...args);};
 require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);
-const {RESET_PASSWORD_SQL,VERIFY_EMAIL_SQL,tokenDigest}=require('../src/server/auth/email-actions.ts');
+const {RESET_PASSWORD_SQL,VERIFY_EMAIL_SQL,tokenDigest,issueEmailAction}=require('../src/server/auth/email-actions.ts');
 const {isValidEmail,cleanName}=require('../src/server/auth/validation.ts');
 const {safeReturnTo}=require('../src/lib/auth-navigation.ts');
 const {validProjectState}=require('../src/lib/studio-project.ts');
@@ -53,4 +53,30 @@ test('project saves/opening/library enforce ownership and prevent stale overwrit
  assert.equal((await getWorkspaceDesigns('owner')).designs[0].name,'Updated box');
  currentUser=null;assert.equal((await saveProject(request(body))).status,401);
  }finally{await projectDb.close();currentUser='owner';}
+});
+
+const {renderVerificationTemplate,renderPasswordResetTemplate}=require('../src/server/email/templates.ts');
+test('email action delivery uses preview renderers, rate limits, and removes tokens on failure',async()=>{
+ projectDb=new PGlite();const previous=process.env.AUTH_APP_URL;process.env.AUTH_APP_URL='https://studio.example';
+ try{
+  await projectDb.exec(`CREATE TABLE email_verification_tokens(token text primary key,user_id text,email text,expires_at timestamptz,created_at timestamptz default now());CREATE TABLE password_reset_tokens(token text primary key,user_id text,expires_at timestamptz,created_at timestamptz default now());`);
+  const user={id:'email-user',email:'alex@example.com',name:'Alex <&>'};
+  let delivered;emailDelivery=async(input)=>{delivered=input;};
+  for(const kind of ['verify','reset']){
+   assert.equal(await issueEmailAction(user,kind),true);
+   const url=delivered.text.match(/https:\/\/studio\.example\/[^\s]+/)[0];
+   const rendered=kind==='verify'?renderVerificationTemplate({name:user.name,verifyUrl:url}):renderPasswordResetTemplate({name:user.name,resetUrl:url});
+   assert.deepEqual(delivered,{to:user.email,...rendered});
+   const table=kind==='verify'?'email_verification_tokens':'password_reset_tokens';
+   const rows=(await projectDb.query(`SELECT token FROM ${table}`)).rows;
+   assert.equal(rows[0].token,tokenDigest(new URL(url).searchParams.get('token')));
+   assert.equal(await issueEmailAction(user,kind),false);
+  }
+  emailDelivery=async()=>{throw Error('delivery unavailable');};
+  await assert.rejects(issueEmailAction({...user,id:'failed-user'},'verify'),/delivery unavailable/);
+  assert.equal((await projectDb.query("SELECT token FROM email_verification_tokens WHERE user_id='failed-user'")).rows.length,0);
+  process.env.AUTH_APP_URL='javascript:bad';
+  await assert.rejects(issueEmailAction({...user,id:'invalid-origin'},'verify'));
+  assert.equal((await projectDb.query("SELECT token FROM email_verification_tokens WHERE user_id='invalid-origin'")).rows.length,0);
+ }finally{emailDelivery=null;if(previous===undefined)delete process.env.AUTH_APP_URL;else process.env.AUTH_APP_URL=previous;await projectDb.close();}
 });

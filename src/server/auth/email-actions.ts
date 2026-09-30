@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { getSql } from '@/server/db';
 import { sendEmail } from '@/server/email/mailer';
+import { renderPasswordResetTemplate, renderVerificationTemplate } from '@/server/email/templates';
 import { hashPassword } from './password';
 import type { UserRow } from './users';
 export function tokenDigest(token:string){return createHash('sha256').update(token).digest('hex');}
@@ -29,9 +30,13 @@ export async function issueEmailAction(user:UserRow,kind:'verify'|'reset'){
  else await sql`INSERT INTO password_reset_tokens(token,user_id,expires_at) VALUES(${digest},${user.id},NOW()+INTERVAL '1 hour')`;
  const origin=process.env.AUTH_APP_URL?.trim()||process.env.NEXT_PUBLIC_SITE_URL?.trim();
  if(!origin) {await sql.query(`DELETE FROM ${table} WHERE token=$1`,[digest]);throw new Error('AUTH_APP_URL must be configured for account emails');}
- const url=new URL(kind==='verify'?'/verify-email':'/reset-password',origin);url.searchParams.set('token',token);
- const action=kind==='verify'?'Verify your email':'Reset your password';
- try{await sendEmail({to:user.email,subject:`${action} — 3D Box Studio`,text:`${action}: ${url.toString()}\nThis link expires in ${kind==='verify'?'24 hours':'1 hour'}. If you did not request this, ignore this email.`,html:`<h1>${action}</h1><p><a href="${url.toString()}">${action}</a></p><p>This link expires in ${kind==='verify'?'24 hours':'1 hour'}. If you did not request this, ignore this email.</p>`});return true;}
+ try{
+  const url=new URL(kind==='verify'?'/verify-email':'/reset-password',origin);url.searchParams.set('token',token);
+  const rendered=kind==='verify'
+   ?renderVerificationTemplate({name:user.name,verifyUrl:url.toString()})
+   :renderPasswordResetTemplate({name:user.name,resetUrl:url.toString()});
+  await sendEmail({to:user.email,...rendered});return true;
+ }
  catch(error){await sql.query(`DELETE FROM ${table} WHERE token=$1`,[digest]);throw error;}
 }
 export async function resetPassword(token:string,password:string){const rows=await getSql().query(RESET_PASSWORD_SQL,[tokenDigest(token),await hashPassword(password)]);return (rows as unknown[]).length>0;}
