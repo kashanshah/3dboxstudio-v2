@@ -79,9 +79,35 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
       SELECT id,name,studio_state,legacy_source,updated_at
       FROM design_shares WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) LIMIT 1
     `;
- const row=(rows as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[])[0];
+ let row=(rows as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[])[0];
+
+ // Compatibility for original V1 /studio/<shareId> links. Some migrated
+ // deployments retained the legacy preview token but not the original share id
+ // as design_shares.id. Resolve the old id through legacy_records, then locate
+ // the migrated V2 share by its preserved preview token.
+ if(!row){
+  const legacyRows=await sql`
+   SELECT payload->>'preview_token' AS preview_token
+   FROM legacy_records
+   WHERE entity_type='shared_designs' AND source_id=${id} AND deleted_at IS NULL
+   LIMIT 1
+  ` as {preview_token:string|null}[];
+  const previewToken=legacyRows[0]?.preview_token;
+  if(previewToken){
+   const fallback=await sql`
+    SELECT id,name,studio_state,legacy_source,updated_at
+    FROM design_shares
+    WHERE preview_token=${previewToken}
+      AND revoked_at IS NULL
+      AND (expires_at IS NULL OR expires_at>NOW())
+    LIMIT 1
+   ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
+   row=fallback[0];
+  }
+ }
+
  if(!row||!validProjectState(row.studio_state))return null;
- return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,id),legacy:row.legacy_source,updatedAt:row.updated_at};
+ return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
 }
 
 export async function getPreviewShare(previewToken:string):Promise<PublicShare|null>{
