@@ -165,6 +165,9 @@ export function StudioShell() {
     setInspectorOpen(true);
   };
 
+  const getDielineLayers = (scope: 'outside' | 'inside') => scope === 'inside' ? insideDielineLayers : outsideDielineLayers;
+  const getSelectedDielineLayerId = (scope: 'outside' | 'inside') => scope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
+
   const applyAssetToPanel = (
     asset: LocalMediaAsset,
     targetPanel = artworkKey(),
@@ -190,11 +193,17 @@ export function StudioShell() {
           options?.rotation ?? 0,
         ),
       };
-      setFullDielineLayers(current => [...current, layer]);
-      setSelectedFullDielineLayerId(layerId);
+
+      if (artworkScope === 'inside') {
+        setInsideDielineLayers(current => [...current, layer]);
+        setSelectedInsideLayerId(layerId);
+      } else {
+        setOutsideDielineLayers(current => [...current, layer]);
+        setSelectedOutsideLayerId(layerId);
+      }
       setMediaLibraryOpen(false);
       setMode('dieline');
-      setMessage(`${asset.name} added as a new 2D layer`);
+      setMessage(`${asset.name} added to the ${artworkScope} 2D design`);
       return;
     }
 
@@ -218,7 +227,8 @@ export function StudioShell() {
   };
 
   const openMediaLibrary = (targetPanel = artworkKey(), tab?: 'library' | 'upload') => {
-    const selectedLayer = fullDielineLayers.find(layer => layer.id === selectedFullDielineLayerId);
+    const activeLayers = getDielineLayers(artworkScope);
+    const selectedLayer = activeLayers.find(layer => layer.id === getSelectedDielineLayerId(artworkScope));
     const currentAssetId = targetPanel === '__FULL_DIELINE__'
       ? selectedLayer?.assetId ?? mediaAssets[0]?.id ?? null
       : artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
@@ -236,9 +246,12 @@ export function StudioShell() {
   };
 
   const handleArtworkFiles = (files: File[]) => {
-    const imageFiles = files.filter(file => ['image/png', 'image/jpeg', 'image/webp'].includes(file.type));
+    const imageFiles = files.filter(file => {
+      const lower = file.name.toLowerCase();
+      return ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type) || lower.endsWith('.svg');
+    });
     if (imageFiles.length === 0) {
-      setMessage('Use PNG, JPG or WebP artwork');
+      setMessage('Use PNG, JPG, WebP or SVG artwork');
       return;
     }
 
@@ -258,11 +271,12 @@ export function StudioShell() {
       const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `asset-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const mimeType = file.type || (file.name.toLowerCase().endsWith('.svg') ? 'image/svg+xml' : 'image/png');
       const asset: LocalMediaAsset = {
         id,
         name: file.name,
         url,
-        mimeType: file.type,
+        mimeType,
         byteSize: file.size,
         width: null,
         height: null,
@@ -276,7 +290,7 @@ export function StudioShell() {
       const image = new Image();
       image.onload = () => {
         setMediaAssets(current => current.map(item => item.id === id
-          ? { ...item, width: image.naturalWidth, height: image.naturalHeight }
+          ? { ...item, width: image.naturalWidth || 1000, height: image.naturalHeight || 1000 }
           : item));
       };
       image.src = url;
@@ -293,7 +307,6 @@ export function StudioShell() {
     setMediaLibraryTab('library');
     setMediaLibraryOpen(true);
   };
-
 
   const handleDielineFile = async (file?: File) => {
     if (!file) return;
@@ -328,9 +341,10 @@ export function StudioShell() {
   };
 
   const removeMediaAsset = (assetId: string) => {
-    const inUse = fullDielineLayers.some(layer => layer.assetId === assetId) || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
+    const inUse = [...outsideDielineLayers, ...insideDielineLayers].some(layer => layer.assetId === assetId)
+      || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
     if (inUse) {
-      setMessage('Remove this image from every panel before deleting it from the library');
+      setMessage('Remove this image from every layer or panel before deleting it from the library');
       return;
     }
     setMediaAssets(current => {
@@ -341,25 +355,31 @@ export function StudioShell() {
     setMessage('Image removed from your local library');
   };
 
-  const updateFullDielineLayer = (layerId: string, transform: FullDielineTransform) => {
-    setFullDielineLayers(current => current.map(layer => layer.id === layerId ? { ...layer, transform } : layer));
+  const updateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, transform: FullDielineTransform) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => current.map(layer => layer.id === layerId ? { ...layer, transform } : layer));
   };
 
-  const removeFullDielineLayer = (layerId: string) => {
-    setFullDielineLayers(current => {
+  const removeFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    const selectedId = scope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
+    const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
+    setter(current => {
       const index = current.findIndex(layer => layer.id === layerId);
       const next = current.filter(layer => layer.id !== layerId);
-      if (selectedFullDielineLayerId === layerId) {
+      if (selectedId === layerId) {
         const fallback = next[Math.min(index, Math.max(0, next.length - 1))] ?? next[next.length - 1] ?? null;
-        setSelectedFullDielineLayerId(fallback?.id ?? null);
+        setSelectedId(fallback?.id ?? null);
       }
       return next;
     });
     setMessage('Artwork layer removed');
   };
 
-  const duplicateFullDielineLayer = (layerId: string) => {
-    setFullDielineLayers(current => {
+  const duplicateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
+    setter(current => {
       const index = current.findIndex(layer => layer.id === layerId);
       if (index < 0) return current;
       const source = current[index];
@@ -378,14 +398,15 @@ export function StudioShell() {
       };
       const next = [...current];
       next.splice(index + 1, 0, duplicate);
-      setSelectedFullDielineLayerId(id);
+      setSelectedId(id);
       return next;
     });
     setMessage('Artwork layer duplicated');
   };
 
-  const moveFullDielineLayer = (layerId: string, direction: -1 | 1) => {
-    setFullDielineLayers(current => {
+  const moveFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, direction: -1 | 1) => {
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => {
       const index = current.findIndex(layer => layer.id === layerId);
       const target = index + direction;
       if (index < 0 || target < 0 || target >= current.length) return current;
