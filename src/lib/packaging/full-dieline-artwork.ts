@@ -32,14 +32,20 @@ export function createFullDielineTransform(
   scalePercent = 100,
   rotation = 0,
 ): FullDielineTransform {
-  const width = DEFAULT_FULL_DIELINE_TRANSFORM.width * scalePercent / 100;
+  const targetBox = DEFAULT_FULL_DIELINE_TRANSFORM.width * scalePercent / 100;
   const safeImageAspect = Math.max(0.0001, imageAspect);
   const safeDielineAspect = Math.max(0.0001, dielineAspect);
+  let width = targetBox;
+  let height = width * safeDielineAspect / safeImageAspect;
+  if (height > targetBox) {
+    height = targetBox;
+    width = height * safeImageAspect / safeDielineAspect;
+  }
   return {
     x: 50,
     y: 50,
     width,
-    height: width * safeDielineAspect / safeImageAspect,
+    height,
     rotation,
   };
 }
