@@ -119,3 +119,49 @@ The CLI prints aggregate counts only. User snapshots in the migration ledger con
 The V2 admin dashboard includes user/verification totals, design ownership/views, 7/30-day counts, daily averages, activity charts (daily through yearly), source/method/landing/signup-page breakdowns, image counts, V2 media totals, S3 inventory, and completed sync snapshots. All design metrics default to designs with uploaded artwork; the include-blank toggle applies to totals and charts consistently. Charts use `ADMIN_DISPLAY_TIMEZONE` (default America/Toronto). Image activity uses original design creation dates, matching the legacy convention, rather than claiming per-upload timestamps.
 
 S3 inventory only lists the configured `AWS_S3_PREFIX`, which must start with `v2/`; it never scans the V1 bucket/prefix implicitly. It caches for five minutes, caps at 50,000 objects, and marks partial results. Unconfigured or denied inventory is shown as unavailable rather than zero usage. Billing/cost estimates are not invented from object counts.
+
+
+## One command for all existing legacy migrations
+
+After configuring `LEGACY_DATABASE_URL`, `DATABASE_URL`, and the usual AWS region,
+bucket and credentials in `.env` or `.env.local`, run:
+
+```sh
+npm run migrate:all -- --apply
+```
+
+For a read-only preview of both stages:
+
+```sh
+npm run migrate:all
+```
+
+The command loads the same optional environment files as the individual scripts.
+It validates database identity and asset configuration, then runs these stages in order:
+
+1. Users and OAuth identities, plus preserved shared designs, contacts and replies.
+2. Legacy S3 assets under the deterministic V2 legacy prefix.
+
+Stage labels, database table/page counts, S3 page and object counts, and a ten-second
+heartbeat keep long operations visible. Asset progress includes copied, would-copy,
+unchanged, failed and elapsed-time counts. Each S3 request has a sixty-second deadline
+including SDK retries. Both stages print their detailed aggregate JSON reports.
+
+Rerun the same command after a failure or when V1 has new data. Database primary keys,
+migration ledgers and content hashes prevent duplicate users/design records; the existing
+merge logic preserves newer V2 account changes. Asset copies reuse the same destination
+key and skip matching source ETags/recorded source ETags with matching sizes. Matching
+file size alone is not enough: a same-size image change is copied. Source ETags are
+recorded in destination metadata so encrypted destination objects can also be skipped
+on a repeat run. Source metadata and content headers are retained. Overlapping source
+and destination prefixes in the same bucket are rejected to prevent recursive copying.
+
+A failed database stage stops the command before asset copying. If the asset stage fails,
+the database stage remains committed and any successful copies remain; rerunning safely
+finishes the outstanding work. This is not one cross-service transaction. Concurrent DB
+applies retain the existing advisory lock; do not launch multiple asset copy jobs together.
+
+This command runs every currently implemented legacy migration. Shared designs are
+preserved in `legacy_records`; conversion to editable native V2 projects and remapping
+legacy share links are still pending and are explicitly called out on completion. Sessions
+and reset/verification tokens remain excluded.

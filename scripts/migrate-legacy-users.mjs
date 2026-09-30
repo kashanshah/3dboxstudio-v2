@@ -16,8 +16,9 @@ const sourceName = process.env.LEGACY_SOURCE_NAME?.trim() || '3dboxstudio-v1';
 const pools = [new Pool({connectionString: sourceUrl}),new Pool({connectionString: targetUrl})];
 let source, target;
 try {
+  console.error(`[database] ${apply ? 'Apply' : 'Dry run'}: connecting to source and target`);
   source = await pools[0].connect(); target = await pools[1].connect();
-  console.log(JSON.stringify(await runLegacySync({source,target,sourceName,apply}),null,2));
+  console.log(JSON.stringify(await runLegacySync({source,target,sourceName,apply,onProgress:message=>console.error(`[database] ${message}`)}),null,2));
 } catch (error) {
   if (source) await source.query('ROLLBACK').catch(()=>{});
   if (target) await target.query('ROLLBACK').catch(()=>{});
