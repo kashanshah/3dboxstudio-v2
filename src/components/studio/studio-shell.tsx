@@ -2836,7 +2836,7 @@ function DielinePrototype({
         {selectedLayer && <section className="pro-precision-transform" aria-label="Selected artwork transform">
           <div className="pro-precision-transform-head">
             <div><span>Transform</span><strong>Exact placement</strong></div>
-            <span className={snapEnabled?'is-on':''}><Magnet size={13}/> {snapEnabled?'Snap on':'Snap off'}</span>
+            <span>Free movement</span>
           </div>
           <div className="pro-precision-transform-grid">
             <label><span>X</span><input key={`x-${selectedLayer.id}-${Math.round(selectedLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,x:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
