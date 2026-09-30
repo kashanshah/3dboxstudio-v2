@@ -257,14 +257,15 @@ test('base box and split-top nets preserve finished face dimensions',()=>{
   assert.equal(base.find(panel=>panel.id==='left').width,160);
   assert.equal(base.find(panel=>panel.id==='top').height,160);
   assert.equal(splitA.filter(panel=>panel.id.startsWith('top')).length,2);
-  assert.equal(splitA.find(panel=>panel.id==='topLeft').width,160);
-  assert.equal(splitA.find(panel=>panel.id==='topLeft').height,120);
-  assert.equal(splitA.find(panel=>panel.id==='topRight').width,160);
-  assert.equal(splitA.find(panel=>panel.id==='topRight').height,120);
-  assert.equal(splitB.find(panel=>panel.id==='topLeft').width,240);
-  assert.equal(splitB.find(panel=>panel.id==='topLeft').height,80);
-  assert.equal(splitB.find(panel=>panel.id==='topRight').width,240);
-  assert.equal(splitB.find(panel=>panel.id==='topRight').height,80);
+  for(const split of [splitA,splitB]){
+    assert.equal(split.find(panel=>panel.id==='topLeft').width,240);
+    assert.equal(split.find(panel=>panel.id==='topLeft').height,80);
+    assert.equal(split.find(panel=>panel.id==='topRight').width,240);
+    assert.equal(split.find(panel=>panel.id==='topRight').height,80);
+    assert.equal(split.filter(panel=>panel.id.startsWith('bottom')).length,2);
+    assert.equal(split.find(panel=>panel.id==='bottomFront').width,240);
+    assert.equal(split.find(panel=>panel.id==='bottomBack').width,240);
+  }
   assert.ok(baseBoxBounds(dimensions).width>dimensions.width);
   assert.ok(splitTopBoxBounds(dimensions,'side_a').height>dimensions.height);
 });
@@ -322,4 +323,46 @@ test('base-box lid variants attach the top face to the matching body panel',()=>
   assert.equal(top.width,body.width,mode+' top hinge edge should equal wall top edge');
   assert.equal(top.y+top.height,body.y,mode+' top should touch the selected wall');
  }
+});
+
+
+test('split-top net matches the production major/minor panel sequence',()=>{
+  const d={width:475,height:225,depth:255,thickness:.5};
+  const panels=splitTopBoxPanels(d,'side_a');
+  const glue=panels.find(panel=>panel.id==='glue');
+  const front=panels.find(panel=>panel.id==='front');
+  const right=panels.find(panel=>panel.id==='right');
+  const back=panels.find(panel=>panel.id==='back');
+  const left=panels.find(panel=>panel.id==='left');
+  assert.equal(front.x,glue.x+glue.width);
+  assert.equal(right.x,front.x+front.width);
+  assert.equal(back.x,right.x+right.width);
+  assert.equal(left.x,back.x+back.width);
+  assert.deepEqual([front.width,right.width,back.width,left.width],[475,255,475,255]);
+
+  const topFront=panels.find(panel=>panel.id==='topLeft');
+  const topBack=panels.find(panel=>panel.id==='topRight');
+  const bottomFront=panels.find(panel=>panel.id==='bottomFront');
+  const bottomBack=panels.find(panel=>panel.id==='bottomBack');
+  for(const [flap,parent] of [[topFront,front],[topBack,back],[bottomFront,front],[bottomBack,back]]){
+    assert.equal(flap.x,parent.x);
+    assert.equal(flap.width,parent.width);
+  }
+  assert.equal(topFront.y+topFront.height,front.y);
+  assert.equal(topBack.y+topBack.height,back.y);
+  assert.equal(bottomFront.y,front.y+front.height);
+  assert.equal(bottomBack.y,back.y+back.height);
+});
+
+test('split-top 3D halves meet along the depth centre and hinge from front/back edges',()=>{
+  const d={width:475,height:225,depth:255,thickness:.5};
+  const closed=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center'});
+  const a=closed.find(mesh=>mesh.panel==='Top Left').pickCorners;
+  const b=closed.find(mesh=>mesh.panel==='Top Right').pickCorners;
+  near(Math.abs(a[0][0]-a[1][0]),d.width);
+  near(Math.abs(b[0][0]-b[1][0]),d.width);
+  assert.ok(a.some(point=>Math.abs(point[2]-d.depth/2)<1e-6));
+  assert.ok(b.some(point=>Math.abs(point[2]+d.depth/2)<1e-6));
+  assert.ok(a.some(point=>Math.abs(point[2])<1e-6));
+  assert.ok(b.some(point=>Math.abs(point[2])<1e-6));
 });
