@@ -981,7 +981,8 @@ body{font-size:var(--type-body)}
 
 /* Shared marketing header/footer used by content pages */
 .marketing-header{
-  position:relative;
+  position:sticky;
+  top:0;
   z-index:50;
   width:100%;
   background:rgba(255,255,255,.94);
@@ -1046,37 +1047,6 @@ body{font-size:var(--type-body)}
   place-items:center;
 }
 .marketing-mobile-menu{display:none}
-.marketing-sticky-header{
-  position:fixed;
-  top:12px;
-  left:0;
-  right:0;
-  z-index:55;
-  pointer-events:none;
-  opacity:0;
-  transform:translateY(-18px);
-  transition:opacity .2s ease,transform .2s ease;
-}
-.marketing-sticky-header.is-visible{
-  opacity:1;
-  transform:translateY(0);
-  pointer-events:auto;
-}
-.marketing-sticky-header .marketing-header-inner{
-  width:min(1060px,calc(100% - 40px));
-  min-height:58px;
-  padding:0 10px 0 14px;
-  border:1px solid var(--line);
-  border-radius:14px;
-  background:rgba(255,255,255,.96);
-  box-shadow:var(--shadow-lift);
-  backdrop-filter:blur(18px);
-}
-.marketing-sticky-header .brand{font-size:16px}
-.marketing-sticky-header .brand-icon{width:30px;height:30px}
-.marketing-sticky-header .marketing-nav-links{gap:22px;font-size:13px}
-.marketing-sticky-header .marketing-header-cta{min-height:38px;padding-inline:14px;font-size:13px}
-
 .marketing-footer{
   width:min(1240px,calc(100% - 64px));
   margin:80px auto 0;
@@ -1160,7 +1130,6 @@ body{font-size:var(--type-body)}
   }
   .marketing-mobile-menu a:hover{background:var(--panel)}
   .marketing-mobile-menu>a:last-child{margin-top:0}
-  .marketing-sticky-header{display:none}
   .marketing-footer{width:calc(100% - 32px);margin-top:56px}
   .marketing-footer-main{flex-direction:column}
   .marketing-footer-links{width:100%;gap:24px}
@@ -1337,7 +1306,6 @@ body{font-size:var(--type-body)}
 }
 
 .brand-vector-logo{display:block;width:154px;height:auto}
-.marketing-sticky-header .brand-vector-logo{width:136px}
 .pro-project .brand-vector-logo{width:142px}
 .marketing-footer .brand-vector-logo{width:154px}
 @media(max-width:760px){.brand-vector-logo{width:140px}}
