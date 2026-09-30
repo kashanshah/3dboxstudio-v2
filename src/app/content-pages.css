@@ -200,7 +200,7 @@
   gap:52px;
   align-items:start;
 }
-.blog-filter-sidebar{min-width:0}
+.blog-filter-sidebar{min-width:0;align-self:stretch}
 .blog-filter-sticky{
   position:sticky;
   top:84px;
