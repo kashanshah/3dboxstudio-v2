@@ -34,7 +34,8 @@ export function StudioHome({
  const [projectName,setProjectName]=useState('');
  const [projectError,setProjectError]=useState('');
  const [projectBusy,setProjectBusy]=useState(false);
- const [libraryDesigns,setLibraryDesigns]=useState(designs);
+ const [favoriteOverrides,setFavoriteOverrides]=useState<Record<string,boolean>>({});
+ const [deletedDesignIds,setDeletedDesignIds]=useState<Set<string>>(()=>new Set());
  const [openMenuId,setOpenMenuId]=useState<string|null>(null);
  const [moveDesign,setMoveDesign]=useState<WorkspaceDesign|null>(null);
  const [deleteDesign,setDeleteDesign]=useState<WorkspaceDesign|null>(null);
@@ -45,10 +46,11 @@ export function StudioHome({
  const scope=activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:'';
  const pageLink=(target:number)=>`/studio?q=${encodeURIComponent(search)}&sort=${sort}&page=${target}${scope}`;
  const createDesignHref=activeProjectId?`/studio/editor?workspace=${encodeURIComponent(activeProjectId)}`:'/studio/editor';
+ const libraryDesigns=designs
+   .filter(design=>!deletedDesignIds.has(design.id))
+   .map(design=>Object.prototype.hasOwnProperty.call(favoriteOverrides,design.id)?{...design,favorite:favoriteOverrides[design.id]}:design);
  const recentDesigns=!search&&sort==='recent'&&page===1?libraryDesigns.slice(0,4):[];
  const favoriteDesigns=!search&&page===1?libraryDesigns.filter(design=>design.favorite).slice(0,4):[];
-
- useEffect(()=>{setLibraryDesigns(designs);},[designs]);
  useEffect(()=>{
    if(!openMenuId)return;
    const close=(event:PointerEvent)=>{if(!menuRef.current?.contains(event.target as Node))setOpenMenuId(null);};
@@ -64,16 +66,16 @@ export function StudioHome({
  },[actionMessage]);
 
  const toggleDesignFavorite=async(design:WorkspaceDesign)=>{
-   if(design.legacy){setActionMessage('Save this legacy design in V2 before adding it to favourites.');return;}
+   if(design.legacy){setActionMessage('Save this legacy design in V2 before adding it to favorites.');return;}
    const next=!design.favorite;
    setActionBusy(true);setOpenMenuId(null);
    try{
      const response=await fetch(`/api/projects/${encodeURIComponent(design.id)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({favorite:next})});
-     const result=await response.json().catch(()=>({error:'Could not update favourite.'}));
-     if(!response.ok)throw new Error(result.error||'Could not update favourite.');
-     setLibraryDesigns(current=>current.map(item=>item.id===design.id?{...item,favorite:next}:item));
-     setActionMessage(next?'Added to favourites':'Removed from favourites');
-   }catch(error){setActionMessage(error instanceof Error?error.message:'Could not update favourite.');}
+     const result=await response.json().catch(()=>({error:'Could not update favorite.'}));
+     if(!response.ok)throw new Error(result.error||'Could not update favorite.');
+     setFavoriteOverrides(current=>({...current,[design.id]:next}));
+     setActionMessage(next?'Added to favorites':'Removed from favorites');
+   }catch(error){setActionMessage(error instanceof Error?error.message:'Could not update favorite.');}
    finally{setActionBusy(false);}
  };
 
@@ -87,7 +89,6 @@ export function StudioHome({
      setMoveDesign(null);
      setActionMessage('Design moved');
      if(activeProjectId)window.location.reload();
-     else setLibraryDesigns(current=>current.map(item=>item.id===moveDesign.id?{...item,workspaceProjectId:destinationId}:item));
    }catch(error){setActionMessage(error instanceof Error?error.message:'Could not move this design.');}
    finally{setActionBusy(false);}
  };
@@ -99,7 +100,7 @@ export function StudioHome({
      const response=await fetch(`/api/projects/${encodeURIComponent(deleteDesign.id)}`,{method:'DELETE'});
      const result=await response.json().catch(()=>({error:'Could not delete this design.'}));
      if(!response.ok)throw new Error(result.error||'Could not delete this design.');
-     setLibraryDesigns(current=>current.filter(item=>item.id!==deleteDesign.id));
+     setDeletedDesignIds(current=>new Set([...current,deleteDesign.id]));
      setDeleteDesign(null);
      setActionMessage('Design deleted');
    }catch(error){setActionMessage(error instanceof Error?error.message:'Could not delete this design.');}
@@ -186,7 +187,7 @@ export function StudioHome({
    {favoriteDesigns.length>0&&<section className="studio-favorites" aria-labelledby="favorite-designs-heading">
     <div className="studio-section-heading">
       <div><p>Your shortcuts</p><h2 id="favorite-designs-heading"><Star size={22} fill="currentColor"/> Favorites</h2></div>
-      <span>{favoriteDesigns.length} favourite{favoriteDesigns.length===1?'':'s'}</span>
+      <span>{favoriteDesigns.length} favorite{favoriteDesigns.length===1?'':'s'}</span>
     </div>
     <div className="studio-favorite-grid">
       {favoriteDesigns.map(design=><Link className="studio-favorite-card" href={design.href??'/studio'} key={design.id}>
@@ -209,18 +210,18 @@ export function StudioHome({
       <div className="studio-design-thumb tone-sage">
         {design.href?<Link className="studio-design-thumb-link" href={design.href} aria-label={`Open ${design.name}`}>{design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}</Link>:design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}
         <span className="studio-design-type">{design.legacy?'Legacy design':'Box design'}</span>
-        {!design.legacy&&<button type="button" className={`studio-card-star${design.favorite?' is-active':''}`} aria-label={design.favorite?'Remove from favourites':'Add to favourites'} title={design.favorite?'Remove from favourites':'Add to favourites'} disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={18} fill={design.favorite?'currentColor':'none'}/></button>}
+        {!design.legacy&&<button type="button" className={`studio-card-star${design.favorite?' is-active':''}`} aria-label={design.favorite?'Remove from favorites':'Add to favorites'} title={design.favorite?'Remove from favorites':'Add to favorites'} disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={18} fill={design.favorite?'currentColor':'none'}/></button>}
         <div className="studio-card-menu-wrap" ref={openMenuId===design.id?menuRef:undefined}>
           <button type="button" className="studio-card-menu-trigger" aria-label={`More actions for ${design.name}`} aria-expanded={openMenuId===design.id} onClick={()=>setOpenMenuId(current=>current===design.id?null:design.id)}><MoreHorizontal size={20}/></button>
           {openMenuId===design.id&&<div className="studio-card-menu" role="menu">
             {design.href&&<Link role="menuitem" href={design.href} onClick={()=>setOpenMenuId(null)}><ExternalLink size={16}/><span><strong>Open</strong><small>{design.legacy?'Open and convert in V2':'Continue editing'}</small></span></Link>}
             {!design.legacy&&<>
-              <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={16} fill={design.favorite?'currentColor':'none'}/><span><strong>{design.favorite?'Remove from favourites':'Add to favourites'}</strong><small>Keep important designs handy</small></span></button>
+              <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={16} fill={design.favorite?'currentColor':'none'}/><span><strong>{design.favorite?'Remove from favorites':'Add to favorites'}</strong><small>Keep important designs handy</small></span></button>
               <button type="button" role="menuitem" disabled={actionBusy||projects.length<2} onClick={()=>{setOpenMenuId(null);setMoveDesign(design);}}><Move size={16}/><span><strong>Move to project…</strong><small>{projects.length<2?'Create another project first':'Organize this design'}</small></span></button>
               <span className="studio-card-menu-separator" aria-hidden="true"/>
               <button type="button" role="menuitem" className="is-danger" disabled={actionBusy} onClick={()=>{setOpenMenuId(null);setDeleteDesign(design);}}><Trash2 size={16}/><span><strong>Delete</strong><small>Permanently delete this design</small></span></button>
             </>}
-            {design.legacy&&<div className="studio-card-menu-note">Save this legacy design in V2 to favourite, move or delete it here.</div>}
+            {design.legacy&&<div className="studio-card-menu-note">Save this legacy design in V2 to favorite, move or delete it here.</div>}
           </div>}
         </div>
       </div>
