@@ -35,6 +35,8 @@ LEGACY_SOURCE_NAME=3dboxstudio-v1
 
 Never expose either database URL to the browser.
 
+The operator commands automatically load `.env` and then `.env.local` when those files exist. Existing shell/CI environment variables remain available, so production and CI can continue injecting secrets without local env files.
+
 ## Preflight behavior
 
 Run:
