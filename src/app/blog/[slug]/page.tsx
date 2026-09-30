@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
 import { AdaptiveArticleImage } from '@/components/adaptive-article-image';
+import { BlogShareButtons } from '@/components/blog-share-buttons';
 import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 
@@ -89,6 +90,8 @@ export default async function BlogPostPage({ params }: Props) {
         <p className="content-article-summary">{post.description}</p>
         <div className="content-article-meta"><time dateTime={post.published}>{new Date(post.published + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>{post.updated ? <><span>Updated {new Date(post.updated + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span></> : null}<span>{post.readMinutes} min read</span></div>
       </header>
+
+      <BlogShareButtons title={post.title} url={canonical} />
 
       <AdaptiveArticleImage src={`/images/blog/${post.slug}.webp`} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} />
 
