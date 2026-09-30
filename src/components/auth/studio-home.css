@@ -356,3 +356,49 @@
   .studio-project-view-actions{align-items:flex-end;flex-direction:column;gap:7px}
   .studio-all-work-link{min-height:44px}
 }
+
+
+/* Scene is post-launch: visible as roadmap, not an active V2 flow. */
+.studio-create-action.is-coming-soon{
+  cursor:default;
+  opacity:.86;
+  box-shadow:none;
+  background:color-mix(in srgb,var(--surface) 92%,var(--panel));
+}
+.studio-create-action.is-coming-soon:hover{
+  transform:none;
+  border-color:var(--line);
+  box-shadow:none;
+}
+.studio-create-action.is-coming-soon .studio-create-action-icon{
+  background:var(--panel);
+  color:var(--muted);
+}
+.studio-create-action.is-coming-soon strong{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.studio-create-action.is-coming-soon strong em{
+  padding:3px 7px;
+  border-radius:999px;
+  background:var(--panel);
+  color:var(--muted);
+  font-size:11px;
+  font-style:normal;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+.studio-coming-soon-pill{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  padding:0 11px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--panel);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+}
