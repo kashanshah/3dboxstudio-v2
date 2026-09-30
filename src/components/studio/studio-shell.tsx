@@ -639,7 +639,11 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       if(importedDieline) throw new Error('Saving imported dielines is not available yet.');
       const preview = engineRef.current?.thumbnail();
       if (!preview) throw new Error('The 3D preview is not ready yet.');
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const usedAssetIds=new Set<string>();
+      for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
+      for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
+      const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -1944,7 +1948,7 @@ function MediaLibraryModal(props: {
   onUpload: ()=>void;
   onDropFiles: (files:File[])=>void;
   onUse: (asset:LocalMediaAsset, options:{ mode:ArtworkMode; scale:number; rotation:number })=>void;
-  onDelete: (assetId:string)=>void;
+  onDelete: (assetId:string)=>Promise<void>;
   onClose: ()=>void;
 }) {
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
@@ -1970,9 +1974,9 @@ function MediaLibraryModal(props: {
     <section className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label="Add artwork">
       <header className="pro-media-modal-header">
         <div>
-          <span>Artwork</span>
+          <span>My Images</span>
           <h2>Add artwork</h2>
-          <p>Choose or upload an image, then position it directly on the 2D board.</p>
+          <p>Reuse images from your account or upload a new one, then position it directly on the 2D board.</p>
         </div>
         <button aria-label="Close add artwork dialog" onClick={props.onClose}><X size={20}/></button>
       </header>
@@ -2006,7 +2010,7 @@ function MediaLibraryModal(props: {
           {filteredAssets.length === 0 ? <div className="pro-media-empty">
             <ImageIcon size={30}/>
             <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
-            <p>{props.assets.length ? 'Try another search.' : 'Your image will appear here immediately and can be positioned on the dieline.'}</p>
+            <p>{props.assets.length ? 'Try another search.' : 'Uploaded images are saved to My Images so you can reuse them in future designs.'}</p>
             {!props.assets.length && <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Choose image</button>}
           </div> : <div className="pro-media-grid pro-media-unified-grid">
             {filteredAssets.map(asset => {
@@ -2056,17 +2060,16 @@ function MediaLibraryModal(props: {
               <button
                 className="pro-media-delete-link"
                 disabled={usageCount > 0}
-                title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete from this local library'}
-                onClick={() => {
-                  props.onDelete(selected.id);
-                  props.setSelectedAssetId(null);
+                title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete from My Images'}
+                onClick={async () => {
+                  await props.onDelete(selected.id);
                 }}
               ><Trash2 size={14}/> Delete</button>
             </div>
           </> : <div className="pro-media-editor-empty">
             <ImageIcon size={32}/>
-            <h3>Choose or upload artwork</h3>
-            <p>Everything happens here. Select an existing image or upload a new one, then place it on the board.</p>
+            <h3>Choose from My Images</h3>
+            <p>Select an image you have already uploaded, or add a new one to your reusable account gallery.</p>
             <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>}
         </aside>
