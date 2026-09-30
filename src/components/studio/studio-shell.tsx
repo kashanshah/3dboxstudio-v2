@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
@@ -63,7 +63,7 @@ export function StudioShell() {
   const [insideCustomColor, setInsideCustomColor] = useState('#D7E0E7');
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const [opening, setOpening] = useState(100);
+  const [opening, setOpeningValue] = useState(100);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('mm');
@@ -75,6 +75,8 @@ export function StudioShell() {
   const [mappedOutsideArtwork, setMappedOutsideArtwork] = useState<ArtworkByPanel>({});
   const [mappedInsideArtwork, setMappedInsideArtwork] = useState<ArtworkByPanel>({});
   const [dielineZoom, setDielineZoom] = useState(112);
+  const [panEnabled, setPanEnabled] = useState(false);
+  const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
   const liveMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
@@ -93,6 +95,14 @@ export function StudioShell() {
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
   const foldAnimationRef = useRef<number | null>(null);
+
+  const setOpening = useCallback((value: number) => {
+    const next = Math.max(0, Math.min(100, value));
+    setOpeningValue(next);
+    setMode(next <= 5 ? 'dieline' : '3d');
+    setFaceAction(null);
+    setCameraMenuOpen(false);
+  }, []);
 
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
@@ -523,7 +533,7 @@ export function StudioShell() {
           </div>}
         </div>
 
-        {mode === '3d' ? <div className="pro-3d-stage">
+        <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
           <div className="pro-grid-floor" />
           <div className="pro-stage-badge"><span/> Drag to rotate</div>
           <CartonEngine
@@ -548,48 +558,6 @@ export function StudioShell() {
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
-
-          <div className="pro-canvas-control-bar" aria-label="Canvas controls">
-            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
-              <ZoomOut size={20}/>
-            </button>
-            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => setZoom(Math.min(140, zoom + 10))}>
-              <ZoomIn size={20}/>
-            </button>
-            <span className="pro-canvas-bar-divider" />
-            <button
-              className="pro-canvas-bar-play"
-              aria-label={opening >= 50 ? 'Open box' : 'Close box'}
-              title={opening >= 50 ? 'Open box' : 'Close box'}
-              onClick={() => animateFold(opening >= 50 ? 0 : 100)}
-            >
-              {opening >= 50 ? <PackageOpen size={19}/> : <Box size={19}/>} 
-            </button>
-            <span className="pro-canvas-bar-label">Open</span>
-            <input
-              className="pro-canvas-bar-range"
-              type="range"
-              min="0"
-              max="100"
-              step="1"
-              value={Math.round(opening)}
-              aria-label="Open or close box"
-              onChange={e => setOpening(Number(e.target.value))}
-            />
-            <span className="pro-canvas-bar-label">Closed</span>
-            <span className="pro-canvas-bar-divider" />
-            <button
-              className="pro-canvas-bar-icon"
-              title="Fit view"
-              aria-label="Fit view"
-              onClick={() => {
-                setZoom(82);
-                engineRef.current?.resetCamera();
-              }}
-            >
-              <Maximize2 size={20}/>
-            </button>
-          </div>
 
           {faceAction && <div
             ref={faceActionRef}
@@ -617,7 +585,9 @@ export function StudioShell() {
             </button>}
             <button className="pro-face-action-close" aria-label="Dismiss face action" onClick={() => setFaceAction(null)}><X size={12}/></button>
           </div>}
-        </div> : <DielinePrototype
+        </div>
+        <div className={`pro-view-pane${mode === 'dieline' ? ' is-active' : ''}`} inert={mode !== 'dieline'} aria-hidden={mode !== 'dieline'}>
+        <DielinePrototype
           importedDieline={importedDieline}
           mapping={dielineMapping}
           setMapping={setDielineMapping}
@@ -634,9 +604,65 @@ export function StudioShell() {
           dimensions={dimensions}
           zoom={dielineZoom}
           onZoomChange={setDielineZoom}
+          panEnabled={panEnabled}
+          canvasPan={canvasPan}
+          setCanvasPan={setCanvasPan}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
-        />}
+        />
+        </div>
+          <div className="pro-canvas-control-bar pro-shared-canvas-control-bar" aria-label="Canvas controls">
+            <button className={`pro-canvas-bar-icon${panEnabled && mode === 'dieline' ? ' is-active' : ''}`} title="Drag canvas" aria-label="Drag canvas" aria-pressed={panEnabled && mode === 'dieline'} disabled={mode !== 'dieline' || !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
+            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(Math.max(40, zoom - 10)) : setDielineZoom(Math.max(45, dielineZoom - 10))}>
+              <ZoomOut size={20}/>
+            </button>
+            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(Math.min(140, zoom + 10)) : setDielineZoom(Math.min(200, dielineZoom + 10))}>
+              <ZoomIn size={20}/>
+            </button>
+            <span className="pro-canvas-bar-divider" />
+            <button
+              className="pro-canvas-bar-play"
+              aria-label={opening >= 50 ? 'Open box' : 'Close box'}
+              title={opening >= 50 ? 'Open box' : 'Close box'}
+              onClick={() => animateFold(opening >= 50 ? 0 : 100)}
+            >
+              {opening >= 50 ? <PackageOpen size={19}/> : <Box size={19}/>}
+            </button>
+            <span className="pro-canvas-bar-label">Open</span>
+            <input
+              className="pro-canvas-bar-range"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={Math.round(opening)}
+              aria-label="Open or close box"
+              onChange={e => {
+                if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+                foldAnimationRef.current = null;
+                setOpening(Number(e.target.value));
+              }}
+            />
+            <span className="pro-canvas-bar-label">Closed</span>
+            <span className="pro-canvas-bar-divider" />
+            <button
+              className="pro-canvas-bar-icon"
+              title="Fit view"
+              aria-label="Fit view"
+              onClick={() => {
+                if (mode === '3d') {
+                  setZoom(82);
+                  engineRef.current?.resetCamera();
+                } else {
+                  setDielineZoom(100);
+                  setCanvasPan({ x: 0, y: 0 });
+                }
+              }}
+            >
+              <Maximize2 size={20}/>
+            </button>
+          </div>
+
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
         <div className="pro-status-bar"><span><span className="pro-status-dot" /> {message}</span><span>{family} · {formatDimension(dimensions.width, measurementUnit)} × {formatDimension(dimensions.height, measurementUnit)} × {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
@@ -1209,6 +1235,9 @@ function DielinePrototype({
   dimensions,
   zoom,
   onZoomChange,
+  panEnabled,
+  canvasPan,
+  setCanvasPan,
   onChooseFullLayout,
   onClearImportedDieline,
 }:{
@@ -1228,14 +1257,15 @@ function DielinePrototype({
   dimensions:CartonDimensions;
   zoom:number;
   onZoomChange:(zoom:number)=>void;
+  panEnabled:boolean;
+  canvasPan:{x:number;y:number};
+  setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
   onChooseFullLayout:()=>void;
   onClearImportedDieline:()=>void;
 }) {
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
-  const [panEnabled, setPanEnabled] = useState(false);
-  const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
   const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
@@ -1574,21 +1604,6 @@ function DielinePrototype({
       <strong>{layers.length ? 'Resize keeps proportions · hold Shift to change proportions freely · 3D updates automatically' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
     </div>
 
-    <div className="pro-canvas-control-bar pro-2d-canvas-control-bar" aria-label="2D canvas controls">
-      <button
-        className={`pro-canvas-bar-icon${panEnabled ? ' is-active' : ''}`}
-        title="Drag canvas"
-        aria-label="Drag canvas"
-        aria-pressed={panEnabled}
-        onClick={()=>setPanEnabled(enabled=>!enabled)}
-      ><Move size={18}/></button>
-      <span className="pro-canvas-bar-divider"/>
-      <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={()=>onZoomChange(Math.max(45,zoom-10))}><ZoomOut size={18}/></button>
-      <span className="pro-2d-zoom-value">{Math.round(zoom)}%</span>
-      <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={()=>onZoomChange(Math.min(200,zoom+10))}><ZoomIn size={18}/></button>
-      <span className="pro-canvas-bar-divider"/>
-      <button className="pro-canvas-bar-icon" title="Fit dieline" aria-label="Fit dieline" onClick={()=>{onZoomChange(100);setCanvasPan({x:0,y:0});}}><Maximize2 size={18}/></button>
-    </div>
   </div>;
 }
 
