@@ -2627,7 +2627,7 @@ function DielinePrototype({
         })}
 
         {cartonPanels.map(item => {
-          const panelName=item.label[0]+item.label.slice(1).toLowerCase();
+          const panelName=item.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
           return <div
