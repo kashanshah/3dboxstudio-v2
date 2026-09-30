@@ -107,6 +107,7 @@ export function legacyDesignToStudioProject(args:{source:string;sourceId:string;
    updatedAt:updated,
    favorite:false,
    revision:1,
+   workspaceProjectId:null,
    legacyImport:true,
  };
 }
