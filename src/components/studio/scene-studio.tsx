@@ -40,7 +40,7 @@ export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
         id,
         type:'box-project',
         name:design.name,
-        sourceProjectId:design.id,
+        sourceDesignId:design.id,
         position:{x:current.objects.length*0.35,y:0,z:0},
         rotation:{x:0,y:0,z:0},
         scale:{x:1,y:1,z:1},
@@ -132,7 +132,7 @@ export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
           <TransformGroup title="Position" value={selected.position}/>
           <TransformGroup title="Rotation" value={selected.rotation}/>
           <TransformGroup title="Scale" value={selected.scale}/>
-          <Link className="scene-edit-source" href={`/studio/editor?project=${encodeURIComponent(selected.sourceProjectId)}`}>Edit source box</Link>
+          <Link className="scene-edit-source" href={`/studio/editor?project=${encodeURIComponent(selected.sourceDesignId)}`}>Edit source box</Link>
         </div>}
       </aside>
     </section>
