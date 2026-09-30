@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { CopyObjectCommand, GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSql } from '@/server/db';
-import { headStoredObject, type MediaAssetDto } from '@/server/media-assets';
+import { headStoredObject, readStoredObject, type MediaAssetDto } from '@/server/media-assets';
 
 type JsonRecord=Record<string,unknown>;
 function record(value:unknown):JsonRecord{return value&&typeof value==='object'&&!Array.isArray(value)?value as JsonRecord:{};}
@@ -39,6 +39,20 @@ function legacyS3(){
  return client;
 }
 export async function readLegacyStoredObject(sourceStorageKey:string){
+ // Public legacy previews should use the migrated V2 copy first. Production
+ // credentials may intentionally be restricted to v2/uploads/* even though
+ // the original application can still read shares/*.
+ try{
+  const migratedKey=targetKey(sourceStorageKey);
+  const migrated=await readStoredObject(migratedKey);
+  if(migrated)return migrated;
+ }catch(error){
+  console.warn('migrated legacy artwork read failed; falling back to source',{
+   sourceStorageKey,
+   error:error instanceof Error?error.message:String(error),
+  });
+ }
+
  const sourceBucket=(process.env.LEGACY_AWS_S3_BUCKET||process.env.AWS_S3_BUCKET)?.trim();
  if(!sourceBucket)throw new Error('Legacy S3 bucket is not configured.');
  const object=await legacyS3().send(new GetObjectCommand({Bucket:sourceBucket,Key:sourceStorageKey}));
