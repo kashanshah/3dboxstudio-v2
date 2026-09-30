@@ -491,10 +491,6 @@ export function StudioShell() {
               setMessage(error instanceof Error ? error.message : 'Could not map artwork to 3D');
             }
           }}
-          onPanelSelect={(selectedPanel) => {
-            setPanel(selectedPanel);
-            setMessage(`${selectedPanel} panel selected from the dieline`);
-          }}
         />}
 
         <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {tool ? `Edit ${activeLabel}` : 'Choose a tool'}</button>
@@ -945,7 +941,6 @@ function DielinePrototype({
   onRemoveFullLayout,
   onApplyFullLayoutTo3D,
   onClearImportedDieline,
-  onPanelSelect,
 }:{
   panel:string;
   importedDieline:ParsedDieline|null;
@@ -961,7 +956,6 @@ function DielinePrototype({
   onRemoveFullLayout:()=>void;
   onApplyFullLayoutTo3D:()=>void | Promise<void>;
   onClearImportedDieline:()=>void;
-  onPanelSelect:(panel:string)=>void;
 }) {
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
@@ -1082,15 +1076,11 @@ function DielinePrototype({
       {cartonPanels.map(item => {
         const panelName = item.label[0] + item.label.slice(1).toLowerCase();
         const explicitArtwork = artworkByPanel[artworkScope === 'inside' ? `Interior ${panelName}` : panelName];
-        const selectable = item.id !== 'glue';
         const hasArtwork = !!explicitArtwork || (!!fullDielineArtwork && artworkScope === 'outside');
 
-        return <button
+        return <div
           key={item.id}
-          type="button"
-          disabled={!selectable}
-          onClick={() => selectable && onPanelSelect(panelName)}
-          className={`dl-live ${item.id === panel.toLowerCase() ? 'is-selected' : ''} dl-${item.kind} ${hasArtwork ? 'has-artwork' : ''} ${explicitArtwork ? 'has-explicit-artwork' : ''}`}
+          className={`dl-live dl-${item.kind} ${hasArtwork ? 'has-artwork' : ''} ${explicitArtwork ? 'has-explicit-artwork' : ''}`}
           style={{
             left: `${item.x / bounds.width * 100}%`,
             top: `${item.y / bounds.height * 100}%`,
@@ -1098,19 +1088,19 @@ function DielinePrototype({
             height: `${item.height / bounds.height * 100}%`,
             overflow: 'hidden',
           }}
-          aria-label={selectable ? `Select ${panelName} panel` : 'Glue flap'}
+          aria-hidden="true"
         >
           {explicitArtwork ? <span className="artwork-layer" style={artworkCss(explicitArtwork)} /> : null}
           <span className="dl-label">{item.label}</span>
           {explicitArtwork && <b>OVERRIDE</b>}
-        </button>;
+        </div>;
       })}
     </div>
     <div className="pro-dieline-legend">
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{fullDielineArtwork ? 'Drag artwork to move · use corner handle to resize · rotation handle to rotate · Apply to 3D when ready' : 'Add one image across the dieline, or click a panel for side-specific artwork'}</strong>
+      <strong>{fullDielineArtwork ? 'Drag artwork to move · use corner handle to resize · rotation handle to rotate · Apply to 3D when ready' : 'Add artwork, then drag, resize and rotate it directly on the dieline'}</strong>
     </div>
   </div>;
 }
