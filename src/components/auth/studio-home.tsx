@@ -154,7 +154,7 @@ export function StudioHome({
       <span>{activeProject?activeProject.name:'Across your projects'}</span>
     </div>
     <div className="studio-recent-grid">
-      {recentDesigns.map(design=><Link className="studio-recent-card" href={design.href??'/studio'} key={design.id} target={design.legacy?'_blank':undefined} rel={design.legacy?'noopener noreferrer':undefined}>
+      {recentDesigns.map(design=><Link className="studio-recent-card" href={design.href??'/studio'} key={design.id} target="_blank" rel="noopener noreferrer">
         <div className="studio-recent-thumb">
           {design.preview?<img src={design.preview} alt="" loading="lazy"/>:<Box size={54} strokeWidth={1}/>}
           {design.favorite&&<span className="studio-recent-favorite" aria-label="Favourite"><Star size={14} fill="currentColor"/></span>}
@@ -190,7 +190,7 @@ export function StudioHome({
       <span>{favoriteDesigns.length} favorite{favoriteDesigns.length===1?'':'s'}</span>
     </div>
     <div className="studio-favorite-grid">
-      {favoriteDesigns.map(design=><Link className="studio-favorite-card" href={design.href??'/studio'} key={design.id}>
+      {favoriteDesigns.map(design=><Link className="studio-favorite-card" href={design.href??'/studio'} key={design.id} target="_blank" rel="noopener noreferrer">
         <span className="studio-favorite-thumb">{design.preview?<img src={design.preview} alt="" loading="lazy"/>:<Box size={30} strokeWidth={1.2}/>}</span>
         <span className="studio-favorite-copy"><strong>{design.name}</strong><small><Clock3 size={12}/> Edited {new Date(design.updatedAt).toLocaleDateString()}</small></span>
         <Star size={18} fill="currentColor"/>
@@ -208,13 +208,13 @@ export function StudioHome({
     </form>
     {libraryDesigns.length?<div className="studio-design-grid">{libraryDesigns.map(design=><article className={`studio-design-card${design.favorite?' is-favorite':''}`} key={design.id}>
       <div className="studio-design-thumb tone-sage">
-        {design.href?<Link className="studio-design-thumb-link" href={design.href} aria-label={`Open ${design.name}`}>{design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}</Link>:design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}
+        {design.href?<Link className="studio-design-thumb-link" href={design.href} target="_blank" rel="noopener noreferrer" aria-label={`Open ${design.name} in a new tab`}>{design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}</Link>:design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}
         <span className="studio-design-type">{design.legacy?'Legacy design':'Box design'}</span>
         {!design.legacy&&<button type="button" className={`studio-card-star${design.favorite?' is-active':''}`} aria-label={design.favorite?'Remove from favorites':'Add to favorites'} title={design.favorite?'Remove from favorites':'Add to favorites'} disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={18} fill={design.favorite?'currentColor':'none'}/></button>}
         <div className="studio-card-menu-wrap" ref={openMenuId===design.id?menuRef:undefined}>
           <button type="button" className="studio-card-menu-trigger" aria-label={`More actions for ${design.name}`} aria-expanded={openMenuId===design.id} onClick={()=>setOpenMenuId(current=>current===design.id?null:design.id)}><MoreHorizontal size={20}/></button>
           {openMenuId===design.id&&<div className="studio-card-menu" role="menu">
-            {design.href&&<Link role="menuitem" href={design.href} onClick={()=>setOpenMenuId(null)}><ExternalLink size={16}/><span><strong>Open</strong><small>{design.legacy?'Open and convert in V2':'Continue editing'}</small></span></Link>}
+            {design.href&&<Link role="menuitem" href={design.href} target="_blank" rel="noopener noreferrer" onClick={()=>setOpenMenuId(null)}><ExternalLink size={16}/><span><strong>Open in new tab</strong><small>{design.legacy?'Open and convert in V2':'Continue editing'}</small></span></Link>}
             {!design.legacy&&<>
               <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={16} fill={design.favorite?'currentColor':'none'}/><span><strong>{design.favorite?'Remove from favorites':'Add to favorites'}</strong><small>Keep important designs handy</small></span></button>
               <button type="button" role="menuitem" disabled={actionBusy||projects.length<2} onClick={()=>{setOpenMenuId(null);setMoveDesign(design);}}><Move size={16}/><span><strong>Move to project…</strong><small>{projects.length<2?'Create another project first':'Organize this design'}</small></span></button>
@@ -227,10 +227,10 @@ export function StudioHome({
       </div>
       <div className="studio-design-meta">
         <div className="studio-design-info">
-          <div className="studio-design-title-row"><h3>{design.href?<Link href={design.href}>{design.name}</Link>:design.name}</h3>{design.favorite&&<span className="studio-favorite-label"><Star size={12} fill="currentColor"/> Favorite</span>}</div>
+          <div className="studio-design-title-row"><h3>{design.href?<Link href={design.href} target="_blank" rel="noopener noreferrer">{design.name}</Link>:design.name}</h3>{design.favorite&&<span className="studio-favorite-label"><Star size={12} fill="currentColor"/> Favorite</span>}</div>
           <small><Clock3/> Edited {new Date(design.updatedAt).toLocaleDateString()}</small>
         </div>
-        {design.href?<Link className="studio-card-open" href={design.href}>{design.legacy?'Open':'Open'} <ExternalLink size={15}/></Link>:<span className="studio-legacy-label">Preserved · conversion pending</span>}
+        {design.href?<Link className="studio-card-open" href={design.href} target="_blank" rel="noopener noreferrer">Open <ExternalLink size={15}/></Link>:<span className="studio-legacy-label">Preserved · conversion pending</span>}
       </div>
     </article>)}</div>:<div className="studio-library-empty"><Box/><h3>{search?'No matching designs':activeProject?'No designs in this project yet':'Your first design starts here'}</h3><p>{search?'Try a different search.':activeProject?'Create a design here and it will stay grouped with this project.':'Create a design and save it to see it in this library.'}</p><Link className="button button-primary" href={search?(activeProjectId?`/studio?workspace=${encodeURIComponent(activeProjectId)}`:'/studio'):createDesignHref}>{search?'Clear search':'Create new design'}</Link></div>}
     {total>24&&<nav className="studio-pagination" aria-label="Design pages">{page>1&&<Link href={pageLink(page-1)}>Previous</Link>}<span>Page {page} of {Math.ceil(total/24)}</span>{page*24<total&&<Link href={pageLink(page+1)}>Next</Link>}</nav>}
