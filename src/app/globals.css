@@ -1213,3 +1213,29 @@ body{font-size:var(--type-body)}
 .pro-mapping-checklist span.is-done{color:#237247}.pro-mapping-checklist span.is-done svg{color:#278352}
 .pro-map-to-3d{width:100%;justify-content:center}.pro-map-to-3d:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:980px){.pro-dieline-mapper-layout{grid-template-columns:1fr}.pro-dieline-mapping-panel{max-height:none}}
+
+
+/* Photoshop-like full dieline artwork composition */
+.has-full-layout-editor{overflow:visible!important}
+.has-full-layout-editor .dl-live:not(.has-explicit-artwork){background:transparent!important}
+.has-full-layout-editor .dl-live{z-index:3}
+.has-full-layout-editor .dl-live.has-explicit-artwork{background:#fff!important}
+.pro-full-artwork-transform{position:absolute;z-index:2;transform-origin:center;touch-action:none;cursor:move;user-select:none}
+.pro-full-artwork-transform img{display:block;width:100%;height:auto;pointer-events:none;user-select:none;-webkit-user-drag:none;box-shadow:0 0 0 1px rgba(0,117,196,.18)}
+.pro-transform-box{position:absolute;inset:-3px;border:1.5px solid var(--accent);pointer-events:none}
+.pro-transform-box:before,.pro-transform-box:after{content:"";position:absolute;left:50%;top:50%;background:rgba(0,117,196,.32);pointer-events:none}
+.pro-transform-box:before{width:1px;height:100%;transform:translate(-50%,-50%)}
+.pro-transform-box:after{height:1px;width:100%;transform:translate(-50%,-50%)}
+.pro-transform-handle{position:absolute;z-index:5;width:16px;height:16px;border:2px solid #fff!important;border-radius:50%;background:var(--accent)!important;box-shadow:0 1px 6px rgba(16,23,32,.28);padding:0!important}
+.pro-transform-resize{right:-10px;bottom:-10px;cursor:nwse-resize}
+.pro-transform-rotate{left:50%;top:-35px;transform:translateX(-50%);cursor:grab}
+.pro-transform-rotate:before{content:"";position:absolute;left:50%;top:14px;width:1px;height:20px;background:var(--accent);transform:translateX(-50%)}
+.pro-transform-rotate span{display:block;width:6px;height:6px;margin:auto;border:1.5px solid #fff;border-radius:50%}
+.pro-apply-layout-3d{min-height:36px;padding:0 12px;font-size:11px;font-weight:600}
+.pro-2d-design-toolbar{z-index:8}
+.has-full-layout-editor .dl-label{background:rgba(255,255,255,.82);color:var(--ink);padding:3px 5px;border-radius:4px;text-shadow:none}
+@media(max-width:640px){
+  .pro-transform-handle{width:20px;height:20px}
+  .pro-transform-resize{right:-12px;bottom:-12px}
+  .pro-transform-rotate{top:-40px}
+}
