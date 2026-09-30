@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { ensureV2Schema,getSql } from '@/server/db';
 import { validProjectState,type StudioProjectState } from '@/lib/studio-project';
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
+import { ensureLegacyStoredObject } from '@/server/media-assets';
 
 const SHARE_TOKEN_RE=/^[0-9A-Za-z]{10,24}$/;
 function createShareId(){return randomBytes(12).toString('base64url').replace(/[-_]/g,'').slice(0,14);}
@@ -205,15 +206,37 @@ export async function getMigratedShareAsset(id:string,faceId:string){
  // record directly; migrate-legacy-shares stores the copied V2 object key on
  // each image as v2StorageKey.
  const legacyRows=await sql`
-  SELECT payload
+  SELECT source,payload
   FROM legacy_records
   WHERE entity_type='shared_designs' AND source_id=${id} AND deleted_at IS NULL
   LIMIT 1
- ` as {payload:unknown}[];
- const payload=jsonRecord(legacyRows[0]?.payload);
- const entry=jsonRecord(jsonRecord(payload.images)[faceId]);
- const storageKey=typeof entry.v2StorageKey==='string'?entry.v2StorageKey:'';
- if(!storageKey)return null;
+ ` as {source:string;payload:unknown}[];
+ const legacy=legacyRows[0];
+ const payload=jsonRecord(legacy?.payload);
+ const images=jsonRecord(payload.images);
+ const entry=jsonRecord(images[faceId]);
+ let storageKey=typeof entry.v2StorageKey==='string'?entry.v2StorageKey:'';
+
+ // If this mirrored record predates the v2StorageKey enrichment, repair it
+ // once by copying the original legacy object into the normal V2 namespace.
+ if(!storageKey){
+  const sourceKey=typeof entry.s3Key==='string'?entry.s3Key:typeof entry.s3_key==='string'?entry.s3_key:'';
+  if(!sourceKey)return null;
+  storageKey=await ensureLegacyStoredObject(sourceKey);
+
+  const nextEntry={...entry,v2StorageKey:storageKey};
+  const nextPayload={...payload,images:{...images,[faceId]:nextEntry}};
+  if(legacy?.source){
+   await sql`
+    UPDATE legacy_records
+    SET payload=${JSON.stringify(nextPayload)}::jsonb
+    WHERE source=${legacy.source}
+      AND entity_type='shared_designs'
+      AND source_id=${id}
+   `;
+  }
+ }
+
  return {
   storageKey,
   mime:typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png',
