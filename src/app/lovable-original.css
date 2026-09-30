@@ -221,3 +221,74 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 @media(max-width:560px){
   .lovable-original .original-nav-actions .account-button{padding-inline:9px;max-width:84px}
 }
+
+
+/* Mobile marketing chrome: keep the brand/primary CTA readable and center the footer. */
+@media (max-width: 560px){
+  .lovable-original .site-nav{
+    width:calc(100% - 24px);
+    gap:10px;
+  }
+
+  .lovable-original .original-nav-actions{
+    gap:7px;
+    margin-left:auto;
+  }
+
+  .lovable-original .original-nav-actions .account-menu,
+  .lovable-original .original-nav-actions>.account-button{
+    flex:0 0 auto;
+  }
+
+  .lovable-original .original-nav-actions .account-button{
+    width:44px;
+    min-width:44px;
+    max-width:44px;
+    height:44px;
+    padding:0!important;
+    gap:0;
+    border-radius:8px;
+  }
+
+  .lovable-original .original-nav-actions .account-button>span,
+  .lovable-original .original-nav-actions .account-button>svg:last-child{
+    display:none;
+  }
+
+  .lovable-original .original-nav-actions .account-button>svg:first-child{
+    width:19px;
+    height:19px;
+    margin:0;
+  }
+
+  .lovable-original .original-nav-actions .original-button-default{
+    padding-inline:14px;
+  }
+
+  .lovable-original.marketing-page footer{
+    width:calc(100% - 32px);
+    padding:34px 0 38px;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:18px;
+    text-align:center;
+  }
+
+  .lovable-original.marketing-page footer>.original-brand{
+    justify-content:center;
+  }
+
+  .lovable-original.marketing-page footer>nav{
+    order:3;
+    width:100%;
+    justify-content:center;
+    gap:12px 20px;
+  }
+
+  .lovable-original.marketing-page footer>span{
+    order:2;
+    width:100%;
+    text-align:center;
+  }
+}
