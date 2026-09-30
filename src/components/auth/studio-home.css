@@ -113,3 +113,205 @@
 .studio-section-heading-actions{display:flex;align-items:center;gap:12px}
 @media(max-width:1000px){.studio-project-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.studio-home-welcome-actions,.studio-project-create,.studio-project-create-controls,.studio-section-heading-actions{align-items:stretch;flex-direction:column}.studio-project-create-controls input{min-width:0;width:100%}.studio-project-grid{grid-template-columns:1fr}}
+
+
+/* P0 Studio Home — task-first workspace hierarchy. */
+.studio-home-main{padding-top:56px}
+.studio-home-welcome{
+  align-items:flex-start;
+  gap:48px;
+  margin-bottom:36px;
+}
+.studio-home-welcome>div:first-child{max-width:520px}
+.studio-home-welcome h1{
+  font-size:clamp(44px,5vw,66px);
+  line-height:.98;
+}
+.studio-home-welcome>div>span{
+  margin-top:18px;
+  font-size:17px;
+  line-height:1.5;
+}
+.studio-home-eyebrow,.studio-section-heading p{
+  font-size:12px;
+  letter-spacing:.08em;
+}
+.studio-home-welcome-actions{
+  width:min(100%,560px);
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  align-self:flex-start;
+}
+.studio-create-action{
+  min-height:110px;
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr);
+  align-items:start;
+  gap:14px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.studio-create-action:hover{
+  transform:translateY(-2px);
+  border-color:var(--accent-line);
+  box-shadow:var(--shadow-lift);
+}
+.studio-create-action.is-primary{
+  border-color:color-mix(in srgb,var(--accent) 28%,var(--line));
+  background:linear-gradient(180deg,#fff,color-mix(in srgb,var(--accent-soft) 42%,#fff));
+}
+.studio-create-action-icon{
+  width:46px;height:46px;
+  display:grid;place-items:center;
+  border-radius:11px;
+  background:var(--panel);
+  color:var(--ink);
+}
+.studio-create-action.is-primary .studio-create-action-icon{
+  background:var(--accent);
+  color:#fff;
+}
+.studio-create-action strong{
+  display:block;
+  margin:1px 0 6px;
+  font-size:16px;
+  line-height:1.25;
+  font-weight:700;
+}
+.studio-create-action small{
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+.studio-create-project-link{
+  grid-column:1/-1;
+  justify-self:start;
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:0 8px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:650;
+}
+.studio-create-project-link:hover{color:var(--accent)}
+
+.studio-recent{margin:0 0 64px}
+.studio-recent-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+}
+.studio-recent-card{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.studio-recent-card:hover{
+  transform:translateY(-3px);
+  border-color:var(--accent-line);
+  box-shadow:var(--shadow-lift);
+}
+.studio-recent-thumb{
+  position:relative;
+  aspect-ratio:1.45;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:linear-gradient(145deg,#f8fafc,#e8edf3);
+  border-bottom:1px solid var(--line);
+  color:var(--muted);
+}
+.studio-recent-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.studio-recent-favorite{
+  position:absolute;top:10px;right:10px;
+  width:30px;height:30px;
+  display:grid;place-items:center;
+  border-radius:999px;
+  background:color-mix(in srgb,#fff 90%,transparent);
+  color:#9a6d00;
+  box-shadow:0 2px 8px #10172012;
+}
+.studio-recent-copy{padding:15px 16px 17px}
+.studio-recent-copy>span{
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:7px;
+  color:var(--accent);
+  font-size:12px;
+  font-weight:650;
+}
+.studio-recent-copy strong{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:15px;
+  font-weight:700;
+}
+.studio-recent-copy small{
+  display:flex;align-items:center;gap:5px;
+  margin-top:7px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.studio-project-library{margin-bottom:70px}
+.studio-section-heading{margin-bottom:24px}
+.studio-section-heading h2{font-size:31px}
+.studio-section-heading>span,.studio-section-heading-actions>span{font-size:13px}
+.studio-project-card{
+  min-height:112px;
+  padding:18px;
+  border-radius:13px;
+}
+.studio-project-card-icon{width:44px;height:44px;border-radius:11px}
+.studio-project-card strong{font-size:16px}
+.studio-project-card span,.studio-project-card small{font-size:13px;line-height:1.4}
+.studio-project-card em{font-size:11px}
+
+.studio-library{margin-bottom:82px}
+.studio-library-controls{margin-bottom:24px}
+.studio-search input{height:46px;font-size:15px}
+.studio-sort{height:46px}
+.studio-sort label{font-size:12px}
+.studio-sort select{font-size:14px}
+.studio-design-meta h3,.studio-template-card h3{font-size:15px}
+.studio-design-meta small{font-size:12px}
+.studio-design-thumb>span{font-size:11px}
+.studio-library-empty h3{font-size:20px}
+.studio-library-empty p{font-size:14px;line-height:1.5}
+
+@media(max-width:1080px){
+  .studio-home-welcome{display:block}
+  .studio-home-welcome-actions{margin-top:28px;width:100%;max-width:720px}
+  .studio-recent-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .studio-home-main{padding-top:36px}
+  .studio-home-welcome{margin-bottom:28px}
+  .studio-home-welcome h1{font-size:42px}
+  .studio-home-welcome>div>span{font-size:16px}
+  .studio-home-welcome-actions{display:grid;grid-template-columns:1fr;gap:10px}
+  .studio-create-action{min-height:94px;padding:15px}
+  .studio-create-project-link{grid-column:auto}
+  .studio-recent{margin-bottom:52px}
+  .studio-recent-grid{grid-template-columns:1fr 1fr;gap:12px}
+  .studio-section-heading h2{font-size:27px}
+  .studio-project-card{min-height:100px}
+}
+@media(max-width:520px){
+  .studio-recent-grid{grid-template-columns:1fr}
+  .studio-create-action{grid-template-columns:42px minmax(0,1fr)}
+  .studio-create-action-icon{width:42px;height:42px}
+}
