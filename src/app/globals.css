@@ -2188,3 +2188,12 @@ body{font-size:var(--type-body)}
 .pro-media-editor-empty .pro-media-empty-action{
   margin-top:4px;
 }
+
+
+/* Empty-state artwork CTAs: keep the upload icon visible on the blue button. */
+.pro-media-empty .pro-media-empty-action>svg,
+.pro-media-editor-empty .pro-media-empty-action>svg{
+  color:#fff!important;
+  stroke:currentColor!important;
+  margin:0!important;
+}
