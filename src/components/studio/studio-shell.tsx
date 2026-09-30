@@ -136,10 +136,19 @@ export function StudioShell() {
     setInspectorOpen(true);
   };
 
-  const applyAssetToPanel = (asset: LocalMediaAsset, targetPanel = artworkKey()) => {
+  const applyAssetToPanel = (
+    asset: LocalMediaAsset,
+    targetPanel = artworkKey(),
+    options?: { mode?: ArtworkMode; scale?: number; rotation?: number },
+  ) => {
     if (targetPanel === '__FULL_DIELINE__') {
       setFullDielineArtwork(defaultArtworkPlacement(asset.name, asset.url, asset.id));
-      setFullDielineTransform(DEFAULT_FULL_DIELINE_TRANSFORM);
+      const scale = options?.scale ?? 100;
+      setFullDielineTransform({
+        ...DEFAULT_FULL_DIELINE_TRANSFORM,
+        width: DEFAULT_FULL_DIELINE_TRANSFORM.width * scale / 100,
+        rotation: options?.rotation ?? 0,
+      });
       setMappedFullDielineArtwork({});
       setMediaLibraryOpen(false);
       setMode('dieline');
@@ -147,9 +156,15 @@ export function StudioShell() {
       return;
     }
 
+    const placement = {
+      ...defaultArtworkPlacement(asset.name, asset.url, asset.id),
+      ...(options?.mode ? { mode: options.mode } : {}),
+      ...(typeof options?.scale === 'number' ? { scale: options.scale } : {}),
+      ...(typeof options?.rotation === 'number' ? { rotation: options.rotation } : {}),
+    };
     setArtworkByPanel(current => ({
       ...current,
-      [targetPanel]: defaultArtworkPlacement(asset.name, asset.url, asset.id),
+      [targetPanel]: placement,
     }));
     const parsed = parseArtworkTarget(targetPanel);
     setArtworkScope(parsed.scope);
@@ -525,7 +540,7 @@ export function StudioShell() {
       setSelectedAssetId={setSelectedMediaAssetId}
       onUpload={() => fileRef.current?.click()}
       onDropFiles={handleArtworkFiles}
-      onUse={(asset) => applyAssetToPanel(asset, mediaTargetPanel)}
+      onUse={(asset, options) => applyAssetToPanel(asset, mediaTargetPanel, options)}
       onDelete={removeMediaAsset}
       onClose={() => setMediaLibraryOpen(false)}
     />}
@@ -1151,65 +1166,89 @@ function MediaLibraryModal(props: {
   setSelectedAssetId: (id:string|null)=>void;
   onUpload: ()=>void;
   onDropFiles: (files:File[])=>void;
-  onUse: (asset:LocalMediaAsset)=>void;
+  onUse: (asset:LocalMediaAsset, options:{ mode:ArtworkMode; scale:number; rotation:number })=>void;
   onDelete: (assetId:string)=>void;
   onClose: ()=>void;
 }) {
   const [dragging, setDragging] = useState(false);
+  const [search, setSearch] = useState('');
+  const [fitMode, setFitMode] = useState<ArtworkMode>('fit');
+  const [scale, setScale] = useState(100);
+  const [rotation, setRotation] = useState(0);
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
+  const targetLabel = props.targetPanel === '__FULL_DIELINE__' ? 'Full dieline' : props.targetPanel.replace('Interior ', 'Inside ');
+  const filteredAssets = props.assets.filter(asset => asset.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (!selected) return;
+    const existing = props.targetPanel === '__FULL_DIELINE__'
+      ? null
+      : props.artworkByPanel[props.targetPanel];
+    if (existing?.assetId === selected.id) {
+      setFitMode(existing.mode);
+      setScale(existing.scale);
+      setRotation(existing.rotation);
+    } else {
+      setFitMode('fit');
+      setScale(100);
+      setRotation(0);
+    }
+  }, [selected?.id, props.targetPanel]);
+
+  const previewStyle = selected ? artworkCss({
+    ...defaultArtworkPlacement(selected.name, selected.url, selected.id),
+    mode: fitMode,
+    scale,
+    rotation,
+  }) : undefined;
 
   return <div className="pro-media-modal-backdrop" role="presentation" onMouseDown={(event) => {
     if (event.target === event.currentTarget) props.onClose();
   }}>
-    <section className="pro-media-modal" role="dialog" aria-modal="true" aria-label="Artwork library">
+    <section className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label="Add artwork">
       <header className="pro-media-modal-header">
         <div>
           <span>Artwork</span>
-          <h2>Media Library</h2>
+          <h2>Add artwork</h2>
+          <p>Upload or choose an image, set its starting size, then refine placement directly on the 2D dieline.</p>
         </div>
-        <button aria-label="Close media library" onClick={props.onClose}><X size={20}/></button>
+        <button aria-label="Close add artwork dialog" onClick={props.onClose}><X size={20}/></button>
       </header>
 
-      <div className="pro-media-tabs">
-        <button className={props.tab === 'upload' ? 'is-active' : ''} onClick={() => props.setTab('upload')}>Upload files</button>
-        <button className={props.tab === 'library' ? 'is-active' : ''} onClick={() => props.setTab('library')}>Media Library</button>
-      </div>
-
-      {props.tab === 'upload' ? <div className="pro-media-upload-pane">
-        <div
-          className={`pro-media-dropzone ${dragging ? 'is-dragging' : ''}`}
-          onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
-          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setDragging(true); }}
-          onDragLeave={(event) => {
-            event.preventDefault();
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            setDragging(false);
-            props.onDropFiles(Array.from(event.dataTransfer.files));
-          }}
-        >
-          <Upload size={30}/>
-          <h3>{dragging ? 'Drop files here' : 'Drag artwork here'}</h3>
-          <p>Drop PNG, JPG or WebP files here, or choose files from your device. Uploaded images are reusable across panels and designs.</p>
-          <button className="pro-primary" onClick={props.onUpload}>Select files</button>
-          <span>Files stay in this local Studio session for now.</span>
-        </div>
-      </div> : <div className="pro-media-library-pane">
-        <div className="pro-media-browser">
+      <div className="pro-media-unified-workspace">
+        <div className="pro-media-unified-library">
           <div className="pro-media-browser-toolbar">
-            <label className="pro-search"><Search size={16}/><input placeholder="Search library" /></label>
-            <button className="pro-secondary-button" onClick={props.onUpload}><Upload size={15}/> Upload new</button>
+            <label className="pro-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search artwork" /></label>
+            <button className="pro-secondary-button" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>
-          {props.assets.length === 0 ? <div className="pro-media-empty">
+
+          <div
+            className={`pro-media-inline-dropzone ${dragging ? 'is-dragging' : ''}`}
+            onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
+            onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setDragging(true); }}
+            onDragLeave={(event) => {
+              event.preventDefault();
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              props.onDropFiles(Array.from(event.dataTransfer.files));
+            }}
+          >
+            <Upload size={20}/>
+            <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG or WebP · any image dimensions</span></div>
+            <button type="button" onClick={props.onUpload}>Browse</button>
+          </div>
+
+          {filteredAssets.length === 0 ? <div className="pro-media-empty">
             <ImageIcon size={30}/>
-            <h3>No artwork yet</h3>
-            <p>Upload an image and it will appear here for reuse.</p>
-            <button className="pro-primary" onClick={() => props.setTab('upload')}>Upload artwork</button>
-          </div> : <div className="pro-media-grid">
-            {props.assets.map(asset => {
+            <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
+            <p>{props.assets.length ? 'Try another search.' : 'Your image will appear here immediately and can be positioned on the dieline.'}</p>
+            {!props.assets.length && <button className="pro-primary" onClick={props.onUpload}>Choose image</button>}
+          </div> : <div className="pro-media-grid pro-media-unified-grid">
+            {filteredAssets.map(asset => {
               const used = Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === asset.id).length;
               return <button
                 key={asset.id}
@@ -1218,6 +1257,7 @@ function MediaLibraryModal(props: {
                 onClick={() => props.setSelectedAssetId(asset.id)}
               >
                 <img src={asset.url} alt={asset.name} />
+                <span className="pro-media-tile-name">{asset.name}</span>
                 {props.selectedAssetId === asset.id && <span className="pro-media-check"><Check size={14}/></span>}
                 {used > 0 && <span className="pro-media-usage">{used}</span>}
               </button>;
@@ -1225,37 +1265,83 @@ function MediaLibraryModal(props: {
           </div>}
         </div>
 
-        <aside className="pro-media-details">
+        <aside className="pro-media-unified-editor">
           {selected ? <>
-            <img className="pro-media-detail-preview" src={selected.url} alt={selected.name} />
-            <h3>{selected.name}</h3>
-            <dl>
-              <div><dt>Type</dt><dd>{selected.mimeType.replace('image/','').toUpperCase()}</dd></div>
-              <div><dt>Size</dt><dd>{formatBytes(selected.byteSize)}</dd></div>
-              {selected.width && selected.height && <div><dt>Dimensions</dt><dd>{selected.width} × {selected.height}</dd></div>}
-              <div><dt>Used</dt><dd>{usageCount === 0 ? 'Not used yet' : `${usageCount} panel${usageCount === 1 ? '' : 's'}`}</dd></div>
-            </dl>
-            <button
-              className="pro-media-delete-link"
-              disabled={usageCount > 0}
-              title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete permanently from this local library'}
-              onClick={() => {
-                props.onDelete(selected.id);
-                props.setSelectedAssetId(null);
-              }}
-            ><Trash2 size={14}/> Delete permanently</button>
-          </> : <div className="pro-media-detail-empty">
-            <ImageIcon size={28}/>
-            <p>Select an image to see its details.</p>
+            <div className="pro-media-editor-heading">
+              <div><span>Place on</span><strong>{targetLabel}</strong></div>
+              <button type="button" className="pro-media-replace" onClick={props.onUpload}><Upload size={14}/> Replace</button>
+            </div>
+
+            <div className="pro-media-placement-preview">
+              <div className="pro-media-placement-canvas">
+                <span className="pro-media-placement-artwork" style={previewStyle}/>
+                <span className="pro-media-placement-label">{targetLabel}</span>
+              </div>
+            </div>
+
+            <div className="pro-media-editor-file">
+              <img src={selected.url} alt="" />
+              <div>
+                <strong>{selected.name}</strong>
+                <span>{selected.width && selected.height ? `${selected.width} × ${selected.height}px · ` : ''}{formatBytes(selected.byteSize)}</span>
+              </div>
+            </div>
+
+            {props.targetPanel !== '__FULL_DIELINE__' && <div className="pro-media-editor-section">
+              <div className="pro-media-editor-row"><strong>Fit mode</strong><span>Panel placement</span></div>
+              <div className="pro-media-fit-switch">
+                {(['fit','fill','tile'] as ArtworkMode[]).map(mode => <button key={mode} type="button" className={fitMode===mode?'is-active':''} onClick={()=>setFitMode(mode)}>{mode[0].toUpperCase()+mode.slice(1)}</button>)}
+              </div>
+            </div>}
+
+            <div className="pro-media-editor-section">
+              <div className="pro-media-editor-row"><strong>Starting size</strong><span>{scale}%</span></div>
+              <input className="pro-range" type="range" min="40" max="180" step="5" value={scale} onChange={e=>setScale(Number(e.target.value))}/>
+              <div className="pro-media-size-presets">
+                {[75,100,125].map(value=><button key={value} type="button" className={scale===value?'is-active':''} onClick={()=>setScale(value)}>{value}%</button>)}
+              </div>
+            </div>
+
+            <div className="pro-media-editor-section">
+              <div className="pro-media-editor-row"><strong>Starting rotation</strong><span>{rotation}°</span></div>
+              <input className="pro-range" type="range" min="-180" max="180" step="5" value={rotation} onChange={e=>setRotation(Number(e.target.value))}/>
+              <button type="button" className="pro-media-reset-placement" onClick={()=>{setFitMode('fit');setScale(100);setRotation(0);}}>Reset</button>
+            </div>
+
+            {props.targetPanel === '__FULL_DIELINE__' && <div className="pro-media-canvas-handoff">
+              <Move size={16}/>
+              <p><strong>Fine-tune on the dieline</strong><span>After adding, drag the artwork freely and use the transform handles for precise resize and rotation.</span></p>
+            </div>}
+
+            <div className="pro-media-editor-meta">
+              <span>{selected.mimeType.replace('image/','').toUpperCase()}</span>
+              <span>{usageCount ? `Used on ${usageCount} panel${usageCount===1?'':'s'}` : 'Not used yet'}</span>
+              <button
+                className="pro-media-delete-link"
+                disabled={usageCount > 0}
+                title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete from this local library'}
+                onClick={() => {
+                  props.onDelete(selected.id);
+                  props.setSelectedAssetId(null);
+                }}
+              ><Trash2 size={14}/> Delete</button>
+            </div>
+          </> : <div className="pro-media-editor-empty">
+            <ImageIcon size={32}/>
+            <h3>Choose or upload artwork</h3>
+            <p>Everything happens here. Select an existing image or upload a new one, then set its initial size before placing it on the dieline.</p>
+            <button className="pro-primary" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
           </div>}
         </aside>
-      </div>}
+      </div>
 
       <footer className="pro-media-modal-footer">
-        <span>{props.tab === 'library' ? `Choose artwork for ${props.targetPanel === '__FULL_DIELINE__' ? 'Full layout' : props.targetPanel.replace('Interior ', 'Inside ')}` : 'Upload files to your library'}</span>
+        <span>{props.targetPanel === '__FULL_DIELINE__' ? 'You can continue moving and resizing the image directly on the 2D dieline.' : `Adding artwork to ${targetLabel}.`}</span>
         <div>
           <button className="pro-secondary-button" onClick={props.onClose}>Cancel</button>
-          {props.tab === 'library' && <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected)}>Use on {props.targetPanel === '__FULL_DIELINE__' ? 'Full layout' : props.targetPanel.replace('Interior ', 'Inside ')}</button>}
+          <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected,{mode:fitMode,scale,rotation})}>
+            {props.targetPanel === '__FULL_DIELINE__' ? 'Add to dieline' : `Add to ${targetLabel}`}
+          </button>
         </div>
       </footer>
     </section>
