@@ -1303,3 +1303,9 @@ body{font-size:var(--type-body)}
   .pro-media-unified-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pro-media-inline-dropzone{margin:8px 10px 0}
 }
+
+
+/* 2D dieline panels are registration guides, never pointer targets. */
+.pro-dieline-live .dl-live{pointer-events:none;user-select:none}
+.pro-dieline-live .dl-live .artwork-layer{pointer-events:none}
+.pro-full-artwork-transform{pointer-events:auto}
