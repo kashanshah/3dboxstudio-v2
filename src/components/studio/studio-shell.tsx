@@ -1574,7 +1574,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1641,6 +1641,8 @@ function Inspector(props: {
   outsideCustomColor:string; setOutsideCustomColor:(v:string)=>void;
   insideCustomColor:string; setInsideCustomColor:(v:string)=>void;
   opening:number; setOpening:(v:number)=>void;
+  openingMode:LegacyOpeningMode; setOpeningMode:(v:LegacyOpeningMode)=>void;
+  splitTopHingeSide:'side_a'|'side_b'; setSplitTopHingeSide:(v:'side_a'|'side_b')=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
   measurementUnit:MeasurementUnit; setMeasurementUnit:(unit:MeasurementUnit)=>void;
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
@@ -1917,42 +1919,68 @@ function Inspector(props: {
   </div>;
 
   if (tool === 'opening') {
-    const stage = props.opening <= 4
-      ? 'Flat dieline'
-      : props.opening < 52
-        ? 'Raising the walls'
-        : props.opening < 68
-          ? 'Wrapping the back'
-          : props.opening < 84
-            ? 'Closing the bottom'
-            : props.opening < 99
-              ? 'Closing the top'
-              : 'Assembled box';
-
-    return <div className="pro-inspector-content">
-      <PanelIntro title="Open or close your box" text="Drag the slider to move smoothly between the fully open structure and the finished closed package." />
-      <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading">
-          <div><span>Open / close</span><strong>{stage}</strong></div>
-          <b>{Math.round(props.opening)}%</b>
+    const isFormation=props.selectedTemplateId==='reverse-tuck-carton';
+    const modeLabels:Record<LegacyOpeningMode,string>={
+      closed:'Closed / fixed',
+      lid_from_back:'Top lid · back hinge',
+      lid_from_front:'Top lid · front hinge',
+      lid_from_left:'Top lid · left hinge',
+      lid_from_right:'Top lid · right hinge',
+      top_split_meet_center:'Split top',
+      door_left:'Left side door',
+      door_right:'Right side door',
+      double_doors:'Double side doors',
+    };
+    if(isFormation){
+      const stage = props.opening <= 4
+        ? 'Flat dieline'
+        : props.opening < 52
+          ? 'Raising the walls'
+          : props.opening < 68
+            ? 'Wrapping the back'
+            : props.opening < 84
+              ? 'Closing the bottom'
+              : props.opening < 99
+                ? 'Closing the top'
+                : 'Assembled box';
+      return <div className="pro-inspector-content">
+        <PanelIntro title="Form your box" text="Move between the flat dieline and the fully assembled reverse-tuck carton." />
+        <div className="pro-card-section pro-fold-card">
+          <div className="pro-fold-heading"><div><span>Formation</span><strong>{stage}</strong></div><b>{Math.round(props.opening)}%</b></div>
+          <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
+          <div className="pro-fold-endpoints"><span>Flat</span><span>Assembled</span></div>
+          <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Flatten box' : 'Assemble box'}</button>
         </div>
-        <input
-          className="pro-range pro-fold-range"
-          aria-label="Open or close box"
-          type="range"
-          min="0"
-          max="100"
-          step="1"
-          value={Math.round(props.opening)}
-          onChange={e=>props.setOpening(Number(e.target.value))}
-        />
-        <div className="pro-fold-endpoints"><span>Open</span><span>Closed</span></div>
-        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}>
-          <CirclePlay size={20}/>
-          {props.opening >= 50 ? 'Open box' : 'Close box'}
-        </button>
+        <div className="pro-callout"><Sparkles size={16}/><span>Formation is different from opening a finished package.</span></div>
+      </div>;
+    }
+
+    const isSplit=props.selectedTemplateId==='split-top-box';
+    const disabled=props.openingMode==='closed'&&!isSplit;
+    return <div className="pro-inspector-content">
+      <PanelIntro title="Open or close your box" text="Choose which physical face is hinged, then control how far the assembled box is opened." />
+      <div className="pro-card-section">
+        {isSplit ? <label className="pro-field"><span>Split direction</span><select value={props.splitTopHingeSide} onChange={e=>props.setSplitTopHingeSide(e.target.value as 'side_a'|'side_b')}>
+          <option value="side_a">Left + right top panels</option>
+          <option value="side_b">Front + back top panels</option>
+        </select></label> : <label className="pro-field"><span>Opening mechanism</span><select value={props.openingMode} onChange={e=>{const mode=e.target.value as LegacyOpeningMode;props.setOpeningMode(mode);if(mode==='closed')props.setOpening(0);else if(props.opening===0)props.setOpening(35);}}>
+          <option value="closed">Closed / fixed</option>
+          <option value="lid_from_back">Top lid · back hinge</option>
+          <option value="lid_from_front">Top lid · front hinge</option>
+          <option value="lid_from_left">Top lid · left hinge</option>
+          <option value="lid_from_right">Top lid · right hinge</option>
+          <option value="door_left">Left side door</option>
+          <option value="door_right">Right side door</option>
+          <option value="double_doors">Double side doors</option>
+        </select></label>}
       </div>
-      <div className="pro-callout"><Sparkles size={16}/><span>Artwork stays attached to each surface throughout the fold.</span></div>
+      <div className="pro-card-section pro-fold-card">
+        <div className="pro-fold-heading"><div><span>Open / close</span><strong>{isSplit?'Split top':modeLabels[props.openingMode]}</strong></div><b>{Math.round(props.opening)}%</b></div>
+        <input className="pro-range pro-fold-range" aria-label="Open or close box" type="range" min="0" max="100" step="1" disabled={disabled} value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
+        <div className="pro-fold-endpoints"><span>Closed</span><span>Open</span></div>
+        <button className="pro-fold-play" disabled={disabled} onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Close box' : 'Open box'}</button>
+      </div>
+      <div className="pro-callout"><Sparkles size={16}/><span>The dieline only changes when panel topology changes. Hinge direction stays an option of the same Base Box.</span></div>
     </div>;
   }
 
