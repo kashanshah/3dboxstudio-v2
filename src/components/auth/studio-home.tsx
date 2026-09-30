@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3 } from 'lucide-react';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { GoogleSignInButton } from './google-sign-in-button';
 import { AccountButton } from './account-button';
@@ -38,6 +38,10 @@ export function StudioHome({
  const scope=activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:'';
  const pageLink=(target:number)=>`/studio?q=${encodeURIComponent(search)}&sort=${sort}&page=${target}${scope}`;
  const createDesignHref=activeProjectId?`/studio/editor?workspace=${encodeURIComponent(activeProjectId)}`:'/studio/editor';
+ const defaultProject=projects.find(project=>project.isDefault)??projects[0]??null;
+ const sceneProjectId=activeProjectId??defaultProject?.id??null;
+ const createSceneHref=sceneProjectId?`/scene-studio?workspace=${encodeURIComponent(sceneProjectId)}`:'/scene-studio';
+ const recentDesigns=!search&&sort==='recent'&&page===1?designs.slice(0,4):[];
 
  const createProject=async()=>{
    const name=projectName.trim();
@@ -54,7 +58,24 @@ export function StudioHome({
  return <main className="studio-home">
   <header className="studio-home-header"><Brand/><nav aria-label="Workspace navigation"><Link className="studio-home-nav-link is-current" href="/studio" aria-current="page">Studio</Link><Link className="studio-home-nav-link" href="/accounts"><UserRound size={16}/> Account</Link></nav><div className="studio-home-header-actions"><AccountButton className="button button-secondary button-small"/></div></header>
   <div className="studio-home-main">
-   <section className="studio-home-welcome"><div><p className="studio-home-eyebrow">Your workspace</p><h1>Good to see you, {firstName}.</h1><span>Organize box designs and scenes inside projects.</span></div><div className="studio-home-welcome-actions"><button className="button button-secondary" type="button" onClick={()=>setCreatingProject(value=>!value)}><Plus size={18}/> New project</button><Link className="button button-primary" href={createDesignHref}><FilePlus2 size={18}/> Create new design</Link></div></section>
+   <section className="studio-home-welcome">
+     <div>
+       <p className="studio-home-eyebrow">Your workspace</p>
+       <h1>Good to see you, {firstName}.</h1>
+       <span>What would you like to create today?</span>
+     </div>
+     <div className="studio-home-welcome-actions">
+       <Link className="studio-create-action is-primary" href={createDesignHref}>
+         <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
+         <span><strong>New box design</strong><small>Choose a box, add artwork, preview it in 3D.</small></span>
+       </Link>
+       <Link className="studio-create-action" href={createSceneHref}>
+         <span className="studio-create-action-icon"><Clapperboard size={22}/></span>
+         <span><strong>New scene</strong><small>Build a product image using your saved packaging.</small></span>
+       </Link>
+       <button className="studio-create-project-link" type="button" onClick={()=>setCreatingProject(value=>!value)}><Plus size={17}/> New project</button>
+     </div>
+   </section>
    {!user.emailVerified&&<aside className="studio-demo-note"><MailNotice/></aside>}
 
    {creatingProject&&<section className="studio-project-create" aria-label="Create project">
@@ -63,11 +84,31 @@ export function StudioHome({
      {projectError&&<span className="studio-project-create-error">{projectError}</span>}
    </section>}
 
+   {recentDesigns.length>0&&<section className="studio-recent" aria-labelledby="recent-work-heading">
+    <div className="studio-section-heading">
+      <div><p>Pick up where you left off</p><h2 id="recent-work-heading">Recent work</h2></div>
+      <span>{activeProject?activeProject.name:'Across your projects'}</span>
+    </div>
+    <div className="studio-recent-grid">
+      {recentDesigns.map(design=><Link className="studio-recent-card" href={design.href??'/studio'} key={design.id} target={design.legacy?'_blank':undefined} rel={design.legacy?'noopener noreferrer':undefined}>
+        <div className="studio-recent-thumb">
+          {design.preview?<img src={design.preview} alt="" loading="lazy"/>:<Box size={54} strokeWidth={1}/>}
+          {design.favorite&&<span className="studio-recent-favorite" aria-label="Favourite"><Star size={14} fill="currentColor"/></span>}
+        </div>
+        <div className="studio-recent-copy">
+          <span><Sparkles size={14}/> {design.legacy?'Legacy design':'Box design'}</span>
+          <strong>{design.name}</strong>
+          <small><Clock3 size={13}/> Edited {new Date(design.updatedAt).toLocaleDateString()}</small>
+        </div>
+      </Link>)}
+    </div>
+   </section>}
+
    <section className="studio-project-library" aria-labelledby="project-library-heading">
-    <div className="studio-section-heading"><div><p>Projects</p><h2 id="project-library-heading">Your projects</h2></div><span>{projects.length} project{projects.length===1?'':'s'}</span></div>
+    <div className="studio-section-heading"><div><p>Keep related work together</p><h2 id="project-library-heading">Projects</h2></div><span>{projects.length} project{projects.length===1?'':'s'}</span></div>
     <div className="studio-project-grid">
       <Link className={`studio-project-card${!activeProjectId?' is-active':''}`} href="/studio">
-        <div className="studio-project-card-icon"><Layers3 size={22}/></div><div><strong>All work</strong><span>Browse designs across every project</span></div>
+        <div className="studio-project-card-icon"><Layers3 size={22}/></div><div><strong>All work</strong><span>Everything you have created, in one place</span></div>
       </Link>
       {projects.map(project=><Link className={`studio-project-card${activeProjectId===project.id?' is-active':''}`} href={`/studio?workspace=${encodeURIComponent(project.id)}`} key={project.id}>
         <div className="studio-project-card-icon"><Folder size={22}/></div>
@@ -77,7 +118,7 @@ export function StudioHome({
    </section>
 
    <section className="studio-library" aria-labelledby="design-library-heading">
-    <div className="studio-section-heading"><div><p>{activeProject?'Project contents':'Design library'}</p><h2 id="design-library-heading">{activeProject?activeProject.name:'Your designs'}</h2></div><div className="studio-section-heading-actions">{activeProject&&<Link className="button button-secondary button-small" href={`/scene-studio?workspace=${encodeURIComponent(activeProject.id)}`}>Open Scene Studio</Link>}<span>{total} designs</span></div></div>
+    <div className="studio-section-heading"><div><p>{activeProject?'Inside this project':'Your box designs'}</p><h2 id="design-library-heading">{activeProject?activeProject.name:'All designs'}</h2></div><div className="studio-section-heading-actions">{activeProject&&<Link className="button button-secondary button-small" href={`/scene-studio?workspace=${encodeURIComponent(activeProject.id)}`}>Create scene</Link>}<span>{total} designs</span></div></div>
     <form className="studio-library-controls" action="/studio">
       {activeProjectId&&<input type="hidden" name="workspace" value={activeProjectId}/>}
       <label className="studio-search"><Search/><span className="sr-only">Search designs</span><input name="q" defaultValue={search} placeholder="Search your designs" maxLength={80}/></label>
