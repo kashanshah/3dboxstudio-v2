@@ -35,9 +35,9 @@ test('legacy converter preserves split structure, physical size, crop, rotation 
  assert.equal(result.state.openingMode,'top_split_meet_center');
  assert.equal(result.state.splitTopHingeSide,'side_b');
  assert.equal(result.state.opening,42);
- assert.equal(result.state.dimensions.width,254);
- assert.equal(result.state.dimensions.height,101.6);
- assert.equal(result.state.dimensions.depth,152.4);
+ assert.ok(Math.abs(result.state.dimensions.width-254)<1e-9);
+ assert.ok(Math.abs(result.state.dimensions.height-101.6)<1e-9);
+ assert.ok(Math.abs(result.state.dimensions.depth-152.4)<1e-9);
  assert.equal(result.state.material,'Foil');
  assert.equal(result.state.outsideCustomColor,'#cbcdd2');
  assert.equal(result.state.artworkByPanel.Front.assetId,'legacy-front');
