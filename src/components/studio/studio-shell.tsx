@@ -1110,6 +1110,9 @@ function DielinePrototype({
   const cartonPanels = reverseTuckPanels(dimensions);
   const bounds = reverseTuckBounds(dimensions);
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
+  const [panEnabled, setPanEnabled] = useState(false);
+  const [canvasPan, setCanvasPan] = useState({ x: 0, y: 0 });
+  const panGestureRef = useRef<{ pointerId:number; startX:number; startY:number; originX:number; originY:number } | null>(null);
   type ResizeHandle = 'nw'|'n'|'ne'|'e'|'se'|'s'|'sw'|'w';
   const gestureRef = useRef<{
     layerId:string;
@@ -1305,11 +1308,43 @@ function DielinePrototype({
     </div>
 
     <div
-      className="pro-dieline-workspace"
+      className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
       onWheel={(event)=>{
         event.preventDefault();
         const step = event.deltaY > 0 ? -8 : 8;
         onZoomChange(Math.max(45,Math.min(200,zoom+step)));
+      }}
+      onPointerDownCapture={(event)=>{
+        if (!panEnabled) return;
+        if ((event.target as HTMLElement).closest('.pro-dieline-layers-panel')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        panGestureRef.current = {
+          pointerId:event.pointerId,
+          startX:event.clientX,
+          startY:event.clientY,
+          originX:canvasPan.x,
+          originY:canvasPan.y,
+        };
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event)=>{
+        const gesture=panGestureRef.current;
+        if (!gesture || gesture.pointerId!==event.pointerId) return;
+        setCanvasPan({
+          x:gesture.originX + event.clientX - gesture.startX,
+          y:gesture.originY + event.clientY - gesture.startY,
+        });
+      }}
+      onPointerUp={(event)=>{
+        if (panGestureRef.current?.pointerId!==event.pointerId) return;
+        panGestureRef.current=null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      }}
+      onPointerCancel={(event)=>{
+        if (panGestureRef.current?.pointerId!==event.pointerId) return;
+        panGestureRef.current=null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
     >
       <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
@@ -1346,7 +1381,7 @@ function DielinePrototype({
         className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
         style={{
           aspectRatio:`${bounds.width} / ${bounds.height}`,
-          transform:`scale(${zoom/100})`,
+          transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100})`,
           transformOrigin:'center',
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
@@ -1415,12 +1450,20 @@ function DielinePrototype({
       <strong>{layers.length ? 'Resize keeps proportions · hold Shift to change proportions freely · 3D updates automatically' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
     </div>
 
-    <div className="pro-canvas-control-bar pro-2d-canvas-control-bar" aria-label="2D canvas zoom controls">
-      <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={()=>onZoomChange(Math.max(45,zoom-10))}><ZoomOut size={20}/></button>
-      <span className="pro-2d-zoom-value">{Math.round(zoom)}%</span>
-      <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={()=>onZoomChange(Math.min(200,zoom+10))}><ZoomIn size={20}/></button>
+    <div className="pro-canvas-control-bar pro-2d-canvas-control-bar" aria-label="2D canvas controls">
+      <button
+        className={`pro-canvas-bar-icon${panEnabled ? ' is-active' : ''}`}
+        title="Drag canvas"
+        aria-label="Drag canvas"
+        aria-pressed={panEnabled}
+        onClick={()=>setPanEnabled(enabled=>!enabled)}
+      ><Move size={18}/></button>
       <span className="pro-canvas-bar-divider"/>
-      <button className="pro-canvas-bar-icon" title="Fit dieline" aria-label="Fit dieline" onClick={()=>onZoomChange(100)}><Maximize2 size={20}/></button>
+      <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={()=>onZoomChange(Math.max(45,zoom-10))}><ZoomOut size={18}/></button>
+      <span className="pro-2d-zoom-value">{Math.round(zoom)}%</span>
+      <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={()=>onZoomChange(Math.min(200,zoom+10))}><ZoomIn size={18}/></button>
+      <span className="pro-canvas-bar-divider"/>
+      <button className="pro-canvas-bar-icon" title="Fit dieline" aria-label="Fit dieline" onClick={()=>{onZoomChange(100);setCanvasPan({x:0,y:0});}}><Maximize2 size={18}/></button>
     </div>
   </div>;
 }
