@@ -14,6 +14,7 @@ import { artworkCropCss, artworkCss, defaultArtworkPlacement, type ArtworkByPane
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
+import { DEFAULT_FULL_DIELINE_TRANSFORM, rasterizeFullDielineArtwork, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -47,6 +48,8 @@ export function StudioShell() {
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
   const [fullDielineArtwork, setFullDielineArtwork] = useState<ArtworkPlacement | null>(null);
+  const [fullDielineTransform, setFullDielineTransform] = useState<FullDielineTransform>(DEFAULT_FULL_DIELINE_TRANSFORM);
+  const [mappedFullDielineArtwork, setMappedFullDielineArtwork] = useState<ArtworkByPanel>({});
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -68,30 +71,8 @@ export function StudioShell() {
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
-    const inherited: ArtworkByPanel = {};
-    if (fullDielineArtwork) {
-      const bounds = reverseTuckBounds(dimensions);
-      for (const item of reverseTuckPanels(dimensions)) {
-        if (item.id === 'glue') continue;
-        const panelName = item.label[0] + item.label.slice(1).toLowerCase();
-        inherited[panelName] = {
-          ...fullDielineArtwork,
-          mode: 'fill',
-          scale: 100,
-          rotation: 0,
-          alignX: 0,
-          alignY: 0,
-          crop: {
-            x: item.x / bounds.width,
-            y: item.y / bounds.height,
-            width: item.width / bounds.width,
-            height: item.height / bounds.height,
-          },
-        };
-      }
-    }
-    return { ...inherited, ...artworkByPanel };
-  }, [artworkByPanel, dimensions, fullDielineArtwork]);
+    return { ...mappedFullDielineArtwork, ...artworkByPanel };
+  }, [artworkByPanel, mappedFullDielineArtwork]);
   const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
   const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
     ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
@@ -158,6 +139,8 @@ export function StudioShell() {
   const applyAssetToPanel = (asset: LocalMediaAsset, targetPanel = artworkKey()) => {
     if (targetPanel === '__FULL_DIELINE__') {
       setFullDielineArtwork(defaultArtworkPlacement(asset.name, asset.url, asset.id));
+      setFullDielineTransform(DEFAULT_FULL_DIELINE_TRANSFORM);
+      setMappedFullDielineArtwork({});
       setMediaLibraryOpen(false);
       setMode('dieline');
       setMessage(`${asset.name} applied across the full 2D layout`);
@@ -482,13 +465,31 @@ export function StudioShell() {
           setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
           fullDielineArtwork={fullDielineArtwork}
+          fullDielineTransform={fullDielineTransform}
+          onFullDielineTransformChange={setFullDielineTransform}
           artworkScope={artworkScope}
           dimensions={dimensions}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
           onRemoveFullLayout={() => {
             setFullDielineArtwork(null);
+            setMappedFullDielineArtwork({});
             setMessage('Full-layout artwork removed');
+          }}
+          onApplyFullLayoutTo3D={async () => {
+            if (!fullDielineArtwork) return;
+            try {
+              setMessage('Mapping 2D artwork to 3D panels…');
+              const mapped = await rasterizeFullDielineArtwork({
+                id: fullDielineArtwork.assetId,
+                name: fullDielineArtwork.name,
+                url: fullDielineArtwork.url,
+              }, fullDielineTransform, dimensions);
+              setMappedFullDielineArtwork(mapped);
+              setMessage('2D artwork mapped to the 3D package');
+            } catch (error) {
+              setMessage(error instanceof Error ? error.message : 'Could not map artwork to 3D');
+            }
           }}
           onPanelSelect={(selectedPanel) => {
             setPanel(selectedPanel);
@@ -936,6 +937,8 @@ function DielinePrototype({
   setMapping,
   artworkByPanel,
   fullDielineArtwork,
+  fullDielineTransform,
+  onFullDielineTransformChange,
   artworkScope,
   dimensions,
   onChooseFullLayout,
@@ -949,10 +952,13 @@ function DielinePrototype({
   setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
   artworkByPanel:ArtworkByPanel;
   fullDielineArtwork:ArtworkPlacement | null;
+  fullDielineTransform:FullDielineTransform;
+  onFullDielineTransformChange:(value:FullDielineTransform)=>void;
   artworkScope:'outside'|'inside';
   dimensions:CartonDimensions;
   onChooseFullLayout:()=>void;
   onRemoveFullLayout:()=>void;
+  onApplyFullLayoutTo3D:()=>void | Promise<void>;
   onClearImportedDieline:()=>void;
   onPanelSelect:(panel:string)=>void;
 }) {
