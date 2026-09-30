@@ -2362,3 +2362,14 @@ body{font-size:var(--type-body)}
 .pro-canvas{
   overscroll-behavior:none;
 }
+
+
+/* Available PDF export sits alongside PNG rather than under Coming soon. */
+.pro-export-pdf-ready{margin-top:16px}
+.pro-export-pdf-button{
+  width:100%;
+  min-height:42px;
+  justify-content:center;
+  margin-top:8px;
+  font-weight:600;
+}
