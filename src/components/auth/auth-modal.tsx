@@ -56,7 +56,7 @@ export function AuthModal(){
       <form onSubmit={submit}>
         {signup&&<label><span>Name</span><input autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"/></label>}
         <label><span>Email</span><input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label>
-        <label><span>Password</span><input type="password" autoComplete={signup?'new-password':'current-password'} required minLength={8} value={password} onChange={e=>setPassword(e.target.value)} placeholder={signup?'At least 8 characters':'Your password'}/></label>
+        <label><span>Password</span><input type="password" autoComplete={signup?'new-password':'current-password'} required minLength={signup?8:undefined} value={password} onChange={e=>setPassword(e.target.value)} placeholder={signup?'At least 8 characters':'Your password'}/></label>
         {error&&<p className="auth-error" role="alert">{error}</p>}
         <button className="auth-submit" type="submit" disabled={submitting}>{submitting?'Please wait…':signup?'Create account':'Sign in'}</button>
       </form>
