@@ -431,6 +431,38 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setCameraMenuOpen(false);
   },[]);
 
+  const hasOpeningStage = selectedTemplateId!=='reverse-tuck-carton'
+    && (selectedTemplateId==='split-top-box' || openingMode!=='closed');
+  const assemblyProgress = selectedTemplateId==='reverse-tuck-carton' || !hasOpeningStage
+    ? formation
+    : formation < 99.999
+      ? formation * 0.7
+      : 70 + (100-opening) * 0.3;
+  const setAssemblyProgress = useCallback((value:number)=>{
+    const next=Math.max(0,Math.min(100,value));
+    if(selectedTemplateId==='reverse-tuck-carton' || !hasOpeningStage){
+      setFormation(next);
+      if(selectedTemplateId!=='reverse-tuck-carton') setOpening(0);
+      return;
+    }
+    if(next<=70){
+      setFormation(next/70*100);
+      setOpening(100);
+    }else{
+      setFormation(100);
+      setOpening((100-next)/30*100);
+    }
+  },[hasOpeningStage,selectedTemplateId,setFormation,setOpening]);
+  const assemblyStage = assemblyProgress<=1
+    ? 'Flat dieline'
+    : hasOpeningStage && assemblyProgress>=69 && assemblyProgress<=71
+      ? 'Assembled · open'
+      : assemblyProgress<70
+        ? 'Forming box'
+        : assemblyProgress<99
+          ? 'Closing package'
+          : 'Closed package';
+
   useEffect(()=>{zoomRef.current=zoom;},[zoom]);
   useEffect(()=>{dielineZoomRef.current=dielineZoom;},[dielineZoom]);
   useEffect(()=>{viewPan3dRef.current=viewPan3d;},[viewPan3d]);
@@ -1183,7 +1215,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   const animateFold = (target: 0 | 100) => {
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-    const start = selectedTemplateId==='reverse-tuck-carton'?formation:opening;
+    const start = assemblyProgress;
     const startedAt = performance.now();
     const duration = 1500;
 
@@ -1192,8 +1224,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       const eased = progress < 0.5
         ? 4 * progress * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      if(selectedTemplateId==='reverse-tuck-carton')setFormation(start + (target - start) * eased);
-      else setOpening(start + (target - start) * eased);
+      setAssemblyProgress(start + (target - start) * eased);
       if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
       else foldAnimationRef.current = null;
     };
@@ -1589,7 +1620,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
           />
-          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{`Assembled ${Math.round(formation)}%`}{selectedTemplateId!=='reverse-tuck-carton'&&openingMode!=='closed'?` · Open ${Math.round(opening)}%`:''}</span></div>
+          <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{assemblyStage} · {Math.round(assemblyProgress)}%</span></div>
 
           {faceAction && <div
             ref={faceActionRef}
@@ -1677,45 +1708,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             {previewOpen && mode === 'dieline' && <>
               <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
-                <div className="pro-artwork-preview-fold-head">
-                  <span>Formation</span>
-                  <strong>{Math.round(formation)}%</strong>
-                </div>
+                <div className="pro-artwork-preview-fold-head"><span>Assembly</span><strong>{Math.round(assemblyProgress)}%</strong></div>
                 <div className="pro-artwork-preview-fold-row">
                   <span>Flat</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={Math.round(formation)}
-                    aria-label="Box formation in 3D preview"
-                    onChange={e=>{
-                      if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-                      foldAnimationRef.current=null;
-                      setFormation(Number(e.target.value));
-                    }}
-                  />
-                  <span>Assembled</span>
-                </div>
-                {selectedTemplateId!=='reverse-tuck-carton' && <div className="pro-artwork-preview-fold-row">
+                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label="Assemble or flatten box in 3D preview" onChange={e=>{if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);foldAnimationRef.current=null;setAssemblyProgress(Number(e.target.value));}}/>
                   <span>Closed</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={Math.round(opening)}
-                    disabled={formation<99 || openingMode==='closed'}
-                    aria-label="Open or close box in 3D preview"
-                    onChange={e=>{
-                      if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-                      foldAnimationRef.current=null;
-                      setOpening(Number(e.target.value));
-                    }}
-                  />
-                  <span>Open</span>
-                </div>}
+                </div>
               </div>
             </>}
           </aside>
@@ -1745,37 +1743,28 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-divider" />
               <button
                 className="pro-canvas-bar-play"
-                aria-label={selectedTemplateId==='reverse-tuck-carton'
-                  ? (formation>=50?'Flatten box':'Assemble box')
-                  : (opening>=50?'Close box':'Open box')}
-                title={selectedTemplateId==='reverse-tuck-carton'
-                  ? (formation>=50?'Flatten box':'Assemble box')
-                  : (opening>=50?'Close box':'Open box')}
-                disabled={selectedTemplateId!=='reverse-tuck-carton'&&formation<99}
-                onClick={() => animateFold((selectedTemplateId==='reverse-tuck-carton'?formation:opening) >= 50 ? 0 : 100)}
+                aria-label={assemblyProgress>=50?'Flatten box':'Assemble and close box'}
+                title={assemblyProgress>=50?'Flatten box':'Assemble and close box'}
+                onClick={() => animateFold(assemblyProgress >= 50 ? 0 : 100)}
               >
-                {selectedTemplateId==='reverse-tuck-carton'
-                  ? (formation>=50?<Grid3X3 size={19}/>:<Box size={19}/>)
-                  : (opening>=50?<Box size={19}/>:<PackageOpen size={19}/>)}
+                {assemblyProgress>=50?<Grid3X3 size={19}/>:<Box size={19}/>}
               </button>
-              <span className="pro-canvas-bar-label">{selectedTemplateId==='reverse-tuck-carton'?'Flat':'Closed'}</span>
+              <span className="pro-canvas-bar-label">Flat</span>
               <input
                 className="pro-canvas-bar-range"
                 type="range"
                 min="0"
                 max="100"
                 step="1"
-                disabled={selectedTemplateId!=='reverse-tuck-carton'&&formation<99}
-                value={Math.round(selectedTemplateId==='reverse-tuck-carton'?formation:opening)}
-                aria-label={selectedTemplateId==='reverse-tuck-carton'?'Box formation':'Open or close box'}
+                value={Math.round(assemblyProgress)}
+                aria-label="Assemble or flatten box"
                 onChange={e => {
                   if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
                   foldAnimationRef.current = null;
-                  if(selectedTemplateId==='reverse-tuck-carton')setFormation(Number(e.target.value));
-                  else setOpening(Number(e.target.value));
+                  setAssemblyProgress(Number(e.target.value));
                 }}
               />
-              <span className="pro-canvas-bar-label">{selectedTemplateId==='reverse-tuck-carton'?'Assembled':'Open'}</span>
+              <span className="pro-canvas-bar-label">Closed</span>
               <span className="pro-canvas-bar-divider" />
             </>}
             <button
@@ -1824,7 +1813,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             return <button key={toolId} type="button" className={tool===toolId?'is-active':''} aria-pressed={tool===toolId} onClick={()=>selectTool(toolId)}><Icon size={15}/><span>{item.label}</span></button>;
           })}
         </nav>}
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1944,6 +1933,7 @@ function Inspector(props: {
   insideCustomColor:string; setInsideCustomColor:(v:string)=>void;
   opening:number; setOpening:(v:number)=>void;
   formation:number; setFormation:(v:number)=>void;
+  assemblyProgress:number; setAssemblyProgress:(v:number)=>void; assemblyStage:string; hasOpeningStage:boolean;
   openingMode:LegacyOpeningMode; setOpeningMode:(v:LegacyOpeningMode)=>void;
   splitTopHingeSide:'side_a'|'side_b'; setSplitTopHingeSide:(v:'side_a'|'side_b')=>void;
   dimensions:CartonDimensions; setDimensions:(v:CartonDimensions)=>void;
@@ -2227,52 +2217,10 @@ function Inspector(props: {
   </div>;
 
   if (tool === 'opening') {
-    const isFormation=props.selectedTemplateId==='reverse-tuck-carton';
-    const modeLabels:Record<LegacyOpeningMode,string>={
-      closed:'Closed / fixed',
-      lid_from_back:'Top lid · back hinge',
-      lid_from_front:'Top lid · front hinge',
-      lid_from_left:'Top lid · left hinge',
-      lid_from_right:'Top lid · right hinge',
-      top_split_meet_center:'Split top',
-      door_left:'Left side door',
-      door_right:'Right side door',
-      double_doors:'Double side doors',
-    };
-    if(isFormation){
-      const stage = props.formation <= 4
-        ? 'Flat dieline'
-        : props.formation < 52
-          ? 'Raising the walls'
-          : props.formation < 68
-            ? 'Wrapping the back'
-            : props.formation < 84
-              ? 'Closing the bottom'
-              : props.formation < 99
-                ? 'Closing the top'
-                : 'Assembled box';
-      return <div className="pro-inspector-content">
-        <PanelIntro title="Form your box" text="Move between the flat dieline and the fully assembled reverse-tuck carton." />
-        <div className="pro-card-section pro-fold-card">
-          <div className="pro-fold-heading"><div><span>Formation</span><strong>{stage}</strong></div><b>{Math.round(props.formation)}%</b></div>
-          <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.formation)} onChange={e=>props.setFormation(Number(e.target.value))}/>
-          <div className="pro-fold-endpoints"><span>Flat dieline</span><span>Assembled</span></div>
-          <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.formation >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.formation >= 50 ? 'Flatten box' : 'Assemble box'}</button>
-        </div>
-        <div className="pro-callout"><Sparkles size={16}/><span>Formation is different from opening a finished package.</span></div>
-      </div>;
-    }
-
     const isSplit=props.selectedTemplateId==='split-top-box';
-    const disabled=props.openingMode==='closed'&&!isSplit;
     return <div className="pro-inspector-content">
-      <PanelIntro title="Form and open your box" text="First move between the flat dieline and the assembled box. Then control the lid or opening independently." />
-      <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading"><div><span>Formation</span><strong>{props.formation<=1?'Flat dieline':props.formation>=99?'Assembled box':'Forming box'}</strong></div><b>{Math.round(props.formation)}%</b></div>
-        <input className="pro-range pro-fold-range" aria-label="Box formation" type="range" min="0" max="100" step="1" value={Math.round(props.formation)} onChange={e=>props.setFormation(Number(e.target.value))}/>
-        <div className="pro-fold-endpoints"><span>Flat dieline</span><span>Assembled</span></div>
-      </div>
-      <div className="pro-card-section">
+      <PanelIntro title="Assemble your box" text="Use one control from the flat dieline through assembly and, where the package opens, all the way to fully closed." />
+      {props.selectedTemplateId!=='reverse-tuck-carton' && <div className="pro-card-section">
         {isSplit ? <label className="pro-field"><span>Split direction</span><select value={props.splitTopHingeSide} onChange={e=>props.setSplitTopHingeSide(e.target.value as 'side_a'|'side_b')}>
           <option value="side_a">Left + right top panels</option>
           <option value="side_b">Front + back top panels</option>
@@ -2286,14 +2234,14 @@ function Inspector(props: {
           <option value="door_right">Right side door</option>
           <option value="double_doors">Double side doors</option>
         </select></label>}
-      </div>
+      </div>}
       <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading"><div><span>Open / close</span><strong>{isSplit?'Split top':modeLabels[props.openingMode]}</strong></div><b>{Math.round(props.opening)}%</b></div>
-        <input className="pro-range pro-fold-range" aria-label="Open or close box" type="range" min="0" max="100" step="1" disabled={disabled||props.formation<99} value={Math.round(props.opening)} onChange={e=>props.setOpening(Number(e.target.value))}/>
-        <div className="pro-fold-endpoints"><span>Closed</span><span>Open</span></div>
-        <button className="pro-fold-play" disabled={disabled||props.formation<99} onClick={() => props.onAnimateFold(props.opening >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.opening >= 50 ? 'Close box' : 'Open box'}</button>
+        <div className="pro-fold-heading"><div><span>Assembly</span><strong>{props.assemblyStage}</strong></div><b>{Math.round(props.assemblyProgress)}%</b></div>
+        <input className="pro-range pro-fold-range" aria-label="Assemble or flatten box" type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
+        <div className="pro-fold-endpoints"><span>Flat</span><span>Closed</span></div>
+        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.assemblyProgress >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.assemblyProgress >= 50 ? 'Flatten box' : 'Assemble & close'}</button>
       </div>
-      <div className="pro-callout"><Sparkles size={16}/><span>Opening is available once the box is fully assembled. Formation and package opening are separate states.</span></div>
+      <div className="pro-callout"><Sparkles size={16}/><span>{props.hasOpeningStage?'The box passes through its fully assembled/open state before the final lid or door closure.':'The same Flat → Closed control is used across all box templates.'}</span></div>
     </div>;
   }
 
