@@ -4436,3 +4436,14 @@ body{font-size:var(--type-body)}
     transform:translateY(0) scale(1)!important;
   }
 }
+
+
+/* Design should feel like the same playground as the surrounding Studio canvas. */
+.pro-dieline-stage{
+  background:inherit!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.pro-canvas.is-workflow-design{
+  background:#e9edf2;
+}
