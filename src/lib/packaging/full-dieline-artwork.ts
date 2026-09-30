@@ -1,5 +1,5 @@
 import { reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from './reverse-tuck';
-import { defaultArtworkPlacement, type ArtworkByPanel, type LocalMediaAsset } from './artwork';
+import { defaultArtworkPlacement, type ArtworkByPanel } from './artwork';
 
 export type FullDielineTransform = {
   x: number;
@@ -25,7 +25,7 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 }
 
 export async function rasterizeFullDielineArtwork(
-  asset: LocalMediaAsset,
+  asset: { id?: string; name: string; url: string },
   transform: FullDielineTransform,
   dimensions: CartonDimensions,
 ): Promise<ArtworkByPanel> {
