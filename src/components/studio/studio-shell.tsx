@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
-  PackageOpen, Ruler, Search, Share2, Sparkles, ZoomIn, ZoomOut,
+  PackageOpen, Search, Share2, Sparkles, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -41,7 +41,6 @@ export function StudioShell() {
   const [camera, setCamera] = useState('Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
   const [opening, setOpening] = useState(100);
-  const [showMeasurements, setShowMeasurements] = useState(false);
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
@@ -139,14 +138,15 @@ export function StudioShell() {
     setMessage(`${asset.name} applied to ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
   };
 
-  const openMediaLibrary = (targetPanel = artworkKey(), tab: 'library' | 'upload' = 'library') => {
+  const openMediaLibrary = (targetPanel = artworkKey(), tab?: 'library' | 'upload') => {
     const currentAssetId = artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
+    const initialTab = tab ?? (mediaAssets.length > 0 ? 'library' : 'upload');
     const parsed = parseArtworkTarget(targetPanel);
     setMediaTargetPanel(targetPanel);
     setArtworkScope(parsed.scope);
     setPanel(parsed.panel);
     setSelectedMediaAssetId(currentAssetId);
-    setMediaLibraryTab(tab);
+    setMediaLibraryTab(initialTab);
     setMediaLibraryOpen(true);
   };
 
@@ -237,7 +237,6 @@ export function StudioShell() {
   };
 
   const animateFold = (target: 0 | 100) => {
-    if (target === 0) setShowMeasurements(false);
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
     const start = opening;
     const startedAt = performance.now();
@@ -344,12 +343,6 @@ export function StudioShell() {
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
 
-          {showMeasurements && opening >= 99.5 && <div className="pro-measurements-overlay" aria-label="Box measurements">
-            <div className="pro-measurement pro-measurement-width"><span>{dimensions.width} mm</span></div>
-            <div className="pro-measurement pro-measurement-height"><span>{dimensions.height} mm</span></div>
-            <div className="pro-measurement pro-measurement-depth"><span>{dimensions.depth} mm</span></div>
-          </div>}
-
           <div className="pro-canvas-control-bar" aria-label="Canvas controls">
             <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => setZoom(Math.max(40, zoom - 10))}>
               <ZoomOut size={20}/>
@@ -375,11 +368,7 @@ export function StudioShell() {
               step="1"
               value={Math.round(opening)}
               aria-label="Open or close box"
-              onChange={e => {
-                const nextOpening = Number(e.target.value);
-                if (nextOpening < 99.5) setShowMeasurements(false);
-                setOpening(nextOpening);
-              }}
+              onChange={e => setOpening(Number(e.target.value))}
             />
             <span className="pro-canvas-bar-label">Closed</span>
             <span className="pro-canvas-bar-divider" />
@@ -393,16 +382,6 @@ export function StudioShell() {
               }}
             >
               <Maximize2 size={20}/>
-            </button>
-            <button
-              className={`pro-canvas-bar-icon pro-measure-toggle ${showMeasurements ? 'is-active' : ''}`}
-              title={opening >= 99.5 ? (showMeasurements ? 'Hide measurements' : 'Show measurements') : 'Close the box to show measurements'}
-              aria-label={showMeasurements ? 'Hide measurements' : 'Show measurements'}
-              aria-pressed={showMeasurements}
-              disabled={opening < 99.5}
-              onClick={() => setShowMeasurements(value => !value)}
-            >
-              <Ruler size={20}/>
             </button>
           </div>
 
@@ -419,7 +398,7 @@ export function StudioShell() {
               setTool('artwork');
               setInspectorOpen(true);
               setFaceAction(null);
-              openMediaLibrary(faceAction.panel, artworkByPanel[faceAction.panel] ? 'library' : 'upload');
+              openMediaLibrary(faceAction.panel);
             }}>
               <Upload size={13} />
               {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Add artwork'}
@@ -611,14 +590,14 @@ function Inspector(props: {
           <button className="pro-current-artwork-remove" aria-label="Remove artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
         </div>}
 
-        <div className="pro-artwork-choice-row">
-          <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
+        <div className="pro-artwork-choice-row pro-artwork-choice-single">
+          <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey)}>
             <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
-            <span><b>{selectedArtwork ? 'Change image' : 'Choose image'}</b><small>From your library</small></span>
+            <span>
+              <b>{selectedArtwork ? 'Change image' : 'Choose image'}</b>
+              <small>{props.mediaAssets.length > 0 ? 'Browse your media library' : 'Upload your first image'}</small>
+            </span>
             <ChevronDown size={16}/>
-          </button>
-          <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
-            <Upload size={15}/> Upload new
           </button>
         </div>
 
