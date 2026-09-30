@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { Box,Grid3X3,PackageOpen } from 'lucide-react';
 import { CartonEngine } from '@/components/studio/carton-engine';
 import type { StudioProjectState } from '@/lib/studio-project';
@@ -14,7 +15,7 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
     <header className="shared-design-header">
       <Brand/>
       <div><strong>{name}</strong><span>{legacy?'Legacy shared design':'Shared design'} · View only</span></div>
-      <a href="/studio">Open 3D Box Studio</a>
+      <Link href="/studio">Open 3D Box Studio</Link>
     </header>
     <section className="shared-design-stage">
       <div className="shared-design-canvas">
