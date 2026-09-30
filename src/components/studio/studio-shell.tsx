@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Download,
-  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   PackageOpen, Search, Share2, Sparkles, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
@@ -527,6 +527,7 @@ export function StudioShell() {
     </div>
 
     {mediaLibraryOpen && <MediaLibraryModal
+      key={`${mediaTargetPanel}:${selectedMediaAssetId ?? 'none'}`}
       assets={mediaAssets}
       artworkByPanel={artworkByPanel}
       targetPanel={mediaTargetPanel}
@@ -1160,31 +1161,20 @@ function MediaLibraryModal(props: {
   onDelete: (assetId:string)=>void;
   onClose: ()=>void;
 }) {
+  const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
+  const existing = props.targetPanel === '__FULL_DIELINE__'
+    ? null
+    : props.artworkByPanel[props.targetPanel];
+  const selectedMatchesExisting = !!selected && existing?.assetId === selected.id;
+
   const [dragging, setDragging] = useState(false);
   const [search, setSearch] = useState('');
-  const [fitMode, setFitMode] = useState<ArtworkMode>('fit');
-  const [scale, setScale] = useState(100);
-  const [rotation, setRotation] = useState(0);
-  const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
+  const [fitMode, setFitMode] = useState<ArtworkMode>(selectedMatchesExisting ? existing!.mode : 'fit');
+  const [scale, setScale] = useState(selectedMatchesExisting ? existing!.scale : 100);
+  const [rotation, setRotation] = useState(selectedMatchesExisting ? existing!.rotation : 0);
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
   const targetLabel = props.targetPanel === '__FULL_DIELINE__' ? 'Full dieline' : props.targetPanel.replace('Interior ', 'Inside ');
   const filteredAssets = props.assets.filter(asset => asset.name.toLowerCase().includes(search.trim().toLowerCase()));
-
-  useEffect(() => {
-    if (!selected) return;
-    const existing = props.targetPanel === '__FULL_DIELINE__'
-      ? null
-      : props.artworkByPanel[props.targetPanel];
-    if (existing?.assetId === selected.id) {
-      setFitMode(existing.mode);
-      setScale(existing.scale);
-      setRotation(existing.rotation);
-    } else {
-      setFitMode('fit');
-      setScale(100);
-      setRotation(0);
-    }
-  }, [selected?.id, props.targetPanel]);
 
   const previewStyle = selected ? artworkCss({
     ...defaultArtworkPlacement(selected.name, selected.url, selected.id),
