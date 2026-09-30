@@ -89,6 +89,7 @@ export async function ensureV2Schema(): Promise<void> {
       )
     `;
     await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS is_favorite BOOLEAN NOT NULL DEFAULT FALSE`;
+    await db`ALTER TABLE projects ADD COLUMN IF NOT EXISTS revision INTEGER NOT NULL DEFAULT 1`;
     await db`CREATE INDEX IF NOT EXISTS idx_projects_user_updated ON projects(user_id,updated_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_projects_user_favorite ON projects(user_id,is_favorite,updated_at DESC)`;
     await db`
