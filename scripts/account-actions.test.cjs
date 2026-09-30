@@ -14,7 +14,7 @@ const {safeReturnTo}=require('../src/lib/auth-navigation.ts');
 const {validProjectState}=require('../src/lib/studio-project.ts');
 test('valid emails and names work; return URLs stay on the site',()=>{
  assert.equal(isValidEmail('kashan@example.com'),true);assert.equal(isValidEmail('bad email@example.com'),false);assert.equal(isValidEmail('a@b'),false);assert.equal(cleanName(' A   Name '),'A Name');
- for(const next of ['https://evil.example','//evil.example','/\\evil.example','/login?next=/accounts'])assert.equal(safeReturnTo(next),'/studio');
+ for(const next of ['https://evil.example','//evil.example','/\\evil.example','/login?next=/accounts','/'])assert.equal(safeReturnTo(next),'/studio');
  assert.equal(safeReturnTo('/studio/editor?project=a'),'/studio/editor?project=a');
 });
 test('project state accepts persistable artwork and rejects temporary blob URLs',()=>{
