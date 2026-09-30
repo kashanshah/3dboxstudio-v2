@@ -43,6 +43,7 @@ test('legacy converter preserves split structure, physical size, crop, rotation 
  assert.equal(result.state.artworkByPanel.Front.assetId,'legacy-front');
  assert.equal(result.state.artworkByPanel.Front.rotation,90);
  assert.deepEqual(result.state.artworkByPanel.Front.crop,{x:.1,y:.2,width:.7,height:.6});
+ assert.equal(result.state.artworkByPanel.Front.panelTexture,true,'persisted V1 crop must bypass V2 cover/fill before UV crop');
  assert.equal(result.state.mediaAssets.length,2);
  assert.equal(result.state.legacySourceId,'v1:d');
 });
