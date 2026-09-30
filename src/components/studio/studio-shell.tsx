@@ -138,14 +138,15 @@ export function StudioShell() {
     setMessage(`${asset.name} applied to ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
   };
 
-  const openMediaLibrary = (targetPanel = artworkKey(), tab: 'library' | 'upload' = 'library') => {
+  const openMediaLibrary = (targetPanel = artworkKey(), tab?: 'library' | 'upload') => {
     const currentAssetId = artworkByPanel[targetPanel]?.assetId ?? mediaAssets[0]?.id ?? null;
+    const initialTab = tab ?? (mediaAssets.length > 0 ? 'library' : 'upload');
     const parsed = parseArtworkTarget(targetPanel);
     setMediaTargetPanel(targetPanel);
     setArtworkScope(parsed.scope);
     setPanel(parsed.panel);
     setSelectedMediaAssetId(currentAssetId);
-    setMediaLibraryTab(tab);
+    setMediaLibraryTab(initialTab);
     setMediaLibraryOpen(true);
   };
 
@@ -397,7 +398,7 @@ export function StudioShell() {
               setTool('artwork');
               setInspectorOpen(true);
               setFaceAction(null);
-              openMediaLibrary(faceAction.panel, artworkByPanel[faceAction.panel] ? 'library' : 'upload');
+              openMediaLibrary(faceAction.panel);
             }}>
               <Upload size={13} />
               {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Add artwork'}
@@ -589,14 +590,14 @@ function Inspector(props: {
           <button className="pro-current-artwork-remove" aria-label="Remove artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
         </div>}
 
-        <div className="pro-artwork-choice-row">
-          <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey, 'library')}>
+        <div className="pro-artwork-choice-row pro-artwork-choice-single">
+          <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey)}>
             <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
-            <span><b>{selectedArtwork ? 'Change image' : 'Choose image'}</b><small>From your library</small></span>
+            <span>
+              <b>{selectedArtwork ? 'Change image' : 'Choose image'}</b>
+              <small>{props.mediaAssets.length > 0 ? 'Browse your media library' : 'Upload your first image'}</small>
+            </span>
             <ChevronDown size={16}/>
-          </button>
-          <button className="pro-artwork-source-upload" onClick={() => props.onOpenMediaLibrary(selectedKey, 'upload')}>
-            <Upload size={15}/> Upload new
           </button>
         </div>
 
