@@ -252,28 +252,55 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       return;
     }
 
-    const face=reverseTuckPanels(dimensions).find(item=>item.label.toLowerCase()===targetPanel.replace('Interior ','').toLowerCase());
-    const placement = {
-      ...defaultArtworkPlacement(asset.name, asset.url, asset.id),
-      transform:createFullDielineTransform(asset.width && asset.height ? asset.width/asset.height : 1,face ? face.width/face.height : 1,125),
-      ...(options?.mode ? { mode: options.mode } : {}),
-      ...(typeof options?.scale === 'number' ? { scale: options.scale } : {}),
-      ...(typeof options?.rotation === 'number' ? { rotation: options.rotation } : {}),
-    };
-    setArtworkByPanel(current => ({
-      ...current,
-      [targetPanel]: placement,
-    }));
     const parsed = parseArtworkTarget(targetPanel);
+    const face=reverseTuckPanels(dimensions).find(item=>item.label.toLowerCase()===parsed.panel.toLowerCase());
+    if (!face) {
+      setMessage('Could not find that box side in the 2D layout');
+      return;
+    }
+
+    const bounds = reverseTuckBounds(dimensions);
+    const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
+    const faceTransform = createFullDielineTransform(
+      imageAspect,
+      face.width / face.height,
+      options?.scale ?? 125,
+      options?.rotation ?? 0,
+    );
+    const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const layer: FullDielineArtworkLayer = {
+      id: layerId,
+      assetId: asset.id,
+      name: asset.name,
+      url: asset.url,
+      aspectRatio: imageAspect,
+      transform: {
+        x: (face.x + face.width * faceTransform.x / 100) / bounds.width * 100,
+        y: (face.y + face.height * faceTransform.y / 100) / bounds.height * 100,
+        width: face.width * faceTransform.width / 100 / bounds.width * 100,
+        height: face.height * faceTransform.height / 100 / bounds.height * 100,
+        rotation: faceTransform.rotation,
+      },
+    };
+
+    if (parsed.scope === 'inside') {
+      setInsideDielineLayers(current => [...current, layer]);
+      setSelectedInsideLayerId(layerId);
+      setSelectedOutsideLayerId(null);
+    } else {
+      setOutsideDielineLayers(current => [...current, layer]);
+      setSelectedOutsideLayerId(layerId);
+      setSelectedInsideLayerId(null);
+    }
     setArtworkScope(parsed.scope);
     setPanel(parsed.panel);
     setTool('artwork');
     setMode('dieline');
-    setSelectedOutsideLayerId(null);
-    setSelectedInsideLayerId(null);
-    setInspectorOpen(true);
+    setInspectorOpen(false);
     setMediaLibraryOpen(false);
-    setMessage(`${asset.name} applied to ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
+    setMessage(`${asset.name} added to ${parsed.panel} — drag it freely across the 2D board`);
   };
 
   const openMediaLibrary = (targetPanel = artworkKey(), tab?: 'library' | 'upload') => {
@@ -376,6 +403,76 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not import dieline');
     }
+  };
+
+  const promotePanelArtworkToDieline = (targetPanel: string) => {
+    const artwork = artworkByPanel[targetPanel];
+    if (!artwork) return null;
+
+    const parsed = parseArtworkTarget(targetPanel);
+    const face = reverseTuckPanels(dimensions).find(item => item.label.toLowerCase() === parsed.panel.toLowerCase());
+    if (!face) return null;
+
+    const bounds = reverseTuckBounds(dimensions);
+    const asset = mediaAssets.find(item => item.id === artwork.assetId);
+    const imageAspect = asset?.width && asset.height ? asset.width / asset.height : 1;
+
+    let localTransform = artwork.transform;
+    if (!localTransform) {
+      const faceAspect = face.width / face.height;
+      let width = 100;
+      let height = 100;
+      if (artwork.mode === 'fill') {
+        if (imageAspect > faceAspect) width = 100 * imageAspect / faceAspect;
+        else height = 100 * faceAspect / imageAspect;
+      } else if (artwork.mode === 'fit') {
+        if (imageAspect > faceAspect) height = 100 * faceAspect / imageAspect;
+        else width = 100 * imageAspect / faceAspect;
+      }
+      width *= artwork.scale / 100;
+      height *= artwork.scale / 100;
+      localTransform = {
+        x: 50 + (100 - width) / 2 * artwork.alignX,
+        y: 50 + (100 - height) / 2 * artwork.alignY,
+        width,
+        height,
+        rotation: artwork.rotation,
+      };
+    }
+
+    const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const layer: FullDielineArtworkLayer = {
+      id: layerId,
+      assetId: artwork.assetId,
+      name: artwork.name,
+      url: artwork.url,
+      aspectRatio: imageAspect,
+      transform: {
+        x: (face.x + face.width * localTransform.x / 100) / bounds.width * 100,
+        y: (face.y + face.height * localTransform.y / 100) / bounds.height * 100,
+        width: face.width * localTransform.width / 100 / bounds.width * 100,
+        height: face.height * localTransform.height / 100 / bounds.height * 100,
+        rotation: localTransform.rotation,
+      },
+    };
+
+    if (parsed.scope === 'inside') {
+      setInsideDielineLayers(current => [...current, layer]);
+      setSelectedInsideLayerId(layerId);
+    } else {
+      setOutsideDielineLayers(current => [...current, layer]);
+      setSelectedOutsideLayerId(layerId);
+    }
+
+    setArtworkByPanel(current => {
+      const next = { ...current };
+      delete next[targetPanel];
+      return next;
+    });
+
+    return layerId;
   };
 
   const removeArtwork = (targetPanel: string) => {
@@ -605,18 +702,12 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
             cameraPreset={camera}
             zoom={zoom}
             onZoomChange={setZoom}
-            onPanelSelect={(selectedPanel) => {
+            onPanelSelect={(selectedPanel, point) => {
               const parsed = parseArtworkTarget(selectedPanel);
               setArtworkScope(parsed.scope);
               setPanel(parsed.panel);
-              setTool('artwork');
-              setInspectorOpen(true);
-              setMode('dieline');
-              setPanEnabled(false);
-              setFaceAction(null);
-              setSelectedOutsideLayerId(null);
-              setSelectedInsideLayerId(null);
-              setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} artwork selected`);
+              setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
+              setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
@@ -629,16 +720,30 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
               top: `clamp(54px, ${faceAction.y - 18}px, calc(100% - 58px))`,
             }}
           >
-            <span>{faceAction.panel}</span>
-            <button onClick={() => {
+            <span>{faceAction.panel.replace('Interior ', 'Inside ')}</span>
+            {artworkByPanel[faceAction.panel] ? <button onClick={() => {
+              const parsed = parseArtworkTarget(faceAction.panel);
+              setArtworkScope(parsed.scope);
+              setPanel(parsed.panel);
+              promotePanelArtworkToDieline(faceAction.panel);
               setTool('artwork');
-              setInspectorOpen(true);
+              setInspectorOpen(false);
+              setMode('dieline');
+              setPanEnabled(false);
+              setFaceAction(null);
+              setMessage(`Adjust ${parsed.panel} artwork freely across the 2D board`);
+            }}>
+              <ImageIcon size={13} />
+              Edit / adjust image
+            </button> : <button onClick={() => {
+              setTool('artwork');
+              setInspectorOpen(false);
               setFaceAction(null);
               openMediaLibrary(faceAction.panel);
             }}>
               <Upload size={13} />
-              {artworkByPanel[faceAction.panel] ? 'Replace artwork' : 'Add artwork'}
-            </button>
+              Add artwork
+            </button>}
             {artworkByPanel[faceAction.panel] && <button
               className="pro-face-action-remove"
               onClick={() => removeArtwork(faceAction.panel)}
@@ -664,7 +769,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           artworkScope={artworkScope}
           selectedPanel={panel}
           mediaAssets={mediaAssets}
-          onPanelSelect={(name)=>{setPanEnabled(false);setPanel(name);setTool('artwork');setInspectorOpen(true);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}
+          onPanelSelect={(name)=>{setPanEnabled(false);setPanel(name);setTool('artwork');setInspectorOpen(false);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}
           onUpdatePanelArtwork={(key,transform)=>setArtworkByPanel(current=>current[key]?{...current,[key]:{...current[key],transform}}:current)}
           onArtworkScopeChange={setArtworkScope}
           dimensions={dimensions}
@@ -676,6 +781,13 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           setCanvasPan={setCanvasPan}
           onChoosePanelArtwork={() => openMediaLibrary(artworkKey())}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
+          onApplyChanges={() => {
+            setMode('3d');
+            setInspectorOpen(false);
+            setFaceAction(null);
+            setPanEnabled(false);
+            setMessage('Artwork changes applied to 3D preview');
+          }}
           onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
@@ -1285,6 +1397,7 @@ function DielinePrototype({
   setCanvasPan,
   onChoosePanelArtwork,
   onChooseFullLayout,
+  onApplyChanges,
   onClearImportedDieline,
 }:{
   importedDieline:ParsedDieline|null;
@@ -1313,6 +1426,7 @@ function DielinePrototype({
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
   onChoosePanelArtwork:()=>void;
   onChooseFullLayout:()=>void;
+  onApplyChanges:()=>void;
   onClearImportedDieline:()=>void;
 }) {
   const printClipId=useId().replaceAll(':','');
@@ -1535,7 +1649,7 @@ function DielinePrototype({
         selectedLayer.id,
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
       )}><Maximize2 size={15}/> Reset selected</button>}
-      <span className="pro-live-sync-badge"><span/> Live 3D</span>
+      <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Check size={16}/> Apply Changes</button>
     </div>
 
     <div
