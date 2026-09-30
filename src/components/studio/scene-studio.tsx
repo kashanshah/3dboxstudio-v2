@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Box, Camera, ChevronLeft, CirclePlus, Download, Image as ImageIcon,
   Layers3, Lightbulb, Moon, PackagePlus, Sparkles, Sun, Upload, WandSparkles
@@ -28,10 +28,12 @@ export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
   const [tool,setTool]=useState<SceneTool>('objects');
   const [scene,setScene]=useState<SceneProjectState>(()=>createEmptySceneProject());
   const [selectedId,setSelectedId]=useState<string|null>(null);
+  const nextObjectIdRef=useRef(0);
   const selected=useMemo(()=>scene.objects.find(item=>item.id===selectedId)??null,[scene.objects,selectedId]);
 
   const addBox=(design:WorkspaceDesign)=>{
-    const id=globalThis.crypto?.randomUUID?.() ?? `scene-box-${Date.now()}`;
+    nextObjectIdRef.current += 1;
+    const id=`scene-box-${nextObjectIdRef.current}`;
     setScene(current=>({
       ...current,
       objects:[...current.objects,{
