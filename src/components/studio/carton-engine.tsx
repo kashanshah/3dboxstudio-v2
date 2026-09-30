@@ -10,6 +10,7 @@ import {
   type PointerEvent as ReactPointerEvent
 } from 'react';
 import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { baseBoxPanels,splitTopBoxPanels } from '@/lib/packaging/box-structures';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
 
@@ -23,6 +24,7 @@ type Props = {
   dimensions: CartonDimensions;
   templateId?: string;
   opening: number;
+  formation?: number;
   openingMode?: LegacyOpeningMode;
   splitTopHingeSide?: 'side_a' | 'side_b';
   material: string;
@@ -49,7 +51,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId = 'reverse-tuck-carton', opening, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0, onPanelSelect },
+  { dimensions, templateId = 'reverse-tuck-carton', opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,6 +164,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       dimensions,
       templateId,
       opening,
+      formation,
       openingMode,
       splitTopHingeSide,
       material,
@@ -175,7 +178,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       lightIntensity,
       hoverPanel,
     });
-  }, [dimensions, templateId, opening, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
+  }, [dimensions, templateId, opening, formation, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
@@ -235,6 +238,7 @@ type Scene = {
   dimensions: CartonDimensions;
   templateId: string;
   opening: number;
+  formation: number;
   openingMode: LegacyOpeningMode;
   splitTopHingeSide: 'side_a' | 'side_b';
   material: string;
@@ -288,7 +292,8 @@ function createRenderer(canvas: HTMLCanvasElement) {
   let scene: Scene = {
     dimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
     templateId: 'reverse-tuck-carton',
-    opening: 18,
+    opening: 0,
+    formation: 100,
     openingMode: 'closed',
     splitTopHingeSide: 'side_a',
     material: 'Soft touch',
@@ -316,7 +321,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
     const materialBase = materialColor(scene.material);
     const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
     const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
-    const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase,{templateId:scene.templateId,openingMode:scene.openingMode,splitTopHingeSide:scene.splitTopHingeSide});
+    const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase,{templateId:scene.templateId,formation:scene.formation,openingMode:scene.openingMode,splitTopHingeSide:scene.splitTopHingeSide});
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.enable(gl.DEPTH_TEST);
@@ -466,7 +471,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
       const materialBase = materialColor(scene.material);
       const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
       const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
-      const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase,{templateId:scene.templateId,openingMode:scene.openingMode,splitTopHingeSide:scene.splitTopHingeSide})
+      const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase,{templateId:scene.templateId,formation:scene.formation,openingMode:scene.openingMode,splitTopHingeSide:scene.splitTopHingeSide})
         .filter(mesh => mesh.panel && mesh.pickCorners);
 
       const hits = meshes.map(mesh => {
@@ -495,7 +500,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
   };
 }
 
-export type BoxMeshOptions={templateId?:string;openingMode?:LegacyOpeningMode;splitTopHingeSide?:'side_a'|'side_b'};
+export type BoxMeshOptions={templateId?:string;formation?:number;openingMode?:LegacyOpeningMode;splitTopHingeSide?:'side_a'|'side_b'};
 
 export function buildMeshes(
   dimensions: CartonDimensions,
@@ -505,13 +510,14 @@ export function buildMeshes(
   options:BoxMeshOptions={},
 ): Mesh[] {
   if(options.templateId==='base-box'||options.templateId==='split-top-box'){
-    return buildLegacyBoxMeshes(dimensions,opening,color,interiorColor,options.openingMode??'closed',options.splitTopHingeSide??'side_a',options.templateId==='split-top-box');
+    return buildLegacyBoxMeshes(dimensions,options.formation??100,opening,color,interiorColor,options.openingMode??'closed',options.splitTopHingeSide??'side_a',options.templateId==='split-top-box');
   }
-  return buildReverseTuckMeshes(dimensions,opening,color,interiorColor);
+  return buildReverseTuckMeshes(dimensions,options.formation??opening,color,interiorColor);
 }
 
 function buildLegacyBoxMeshes(
   dimensions:CartonDimensions,
+  formation:number,
   opening:number,
   color:[number,number,number],
   interiorColor:[number,number,number],
@@ -520,6 +526,7 @@ function buildLegacyBoxMeshes(
   splitTop:boolean,
 ):Mesh[]{
   const d=sanitizeCartonDimensions(dimensions),w=d.width,h=d.height,depth=d.depth;
+  const formationT=clamp(formation,0,100)/100;
   const x0=-w/2,x1=w/2,y0=-h/2,y1=h/2,z0=-depth/2,z1=depth/2;
   const angle=clamp(opening,0,100)/100*(75*Math.PI/180);
   const rotateX=(p:number[],pivot:number[],theta:number)=>{
@@ -565,12 +572,27 @@ function buildLegacyBoxMeshes(
   }else{
     panels.push({name:'Top',corners:transform([[x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0]],'top')});
   }
+  const flatPanels=(splitTop?splitTopBoxPanels(d,splitTopHingeSide):baseBoxPanels(d,openingMode));
+  const frontFlat=flatPanels.find(panel=>panel.id==='front')!;
+  const flatCornerMap=new Map(flatPanels.map(panel=>{
+    const name=panel.label.toLowerCase().split(' ').map(part=>part[0].toUpperCase()+part.slice(1)).join(' ');
+    const corners=[
+      [panel.x-frontFlat.x-w/2,h/2-(panel.y+panel.height-frontFlat.y),depth/2],
+      [panel.x+panel.width-frontFlat.x-w/2,h/2-(panel.y+panel.height-frontFlat.y),depth/2],
+      [panel.x+panel.width-frontFlat.x-w/2,h/2-(panel.y-frontFlat.y),depth/2],
+      [panel.x-frontFlat.x-w/2,h/2-(panel.y-frontFlat.y),depth/2],
+    ];
+    return [name,corners] as const;
+  }));
+  const blend=(flat:number[][],assembled:number[][])=>assembled.map((point,index)=>point.map((value,axis)=>flat[index][axis]+(value-flat[index][axis])*formationT));
   const result:Mesh[]=[];
   for(const panel of panels){
-    const outer=quadFromCorners(panel.corners,color,true,panel.name);
+    const flat=flatCornerMap.get(panel.name)??panel.corners;
+    const formedCorners=blend(flat,panel.corners);
+    const outer=quadFromCorners(formedCorners,color,true,panel.name);
     result.push(outer);
-    const normal=faceNormal(panel.corners),offset=Math.max(0.02,Math.min(2,d.thickness));
-    const innerCorners=panel.corners.map(p=>[p[0]-normal[0]*offset,p[1]-normal[1]*offset,p[2]-normal[2]*offset]);
+    const normal=faceNormal(formedCorners),offset=Math.max(0.02,Math.min(2,d.thickness));
+    const innerCorners=formedCorners.map(p=>[p[0]-normal[0]*offset,p[1]-normal[1]*offset,p[2]-normal[2]*offset]);
     result.push(quadFromCorners([innerCorners[3],innerCorners[2],innerCorners[1],innerCorners[0]],interiorColor,true,`Interior ${panel.name}`));
   }
   return result;
