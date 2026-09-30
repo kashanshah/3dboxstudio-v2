@@ -1873,3 +1873,23 @@ body{font-size:var(--type-body)}
 @media(prefers-reduced-motion:reduce){
   .pro-canvas > .pro-view-pane{transition:none}
 }
+
+/* Independent inside / outside base colors */
+.pro-base-color-card{display:grid;gap:14px}
+.pro-base-color-card>.pro-help{margin-top:-4px}
+.pro-surface-color-row{display:grid;gap:10px;padding:13px;border:1px solid var(--line);border-radius:11px;background:var(--paper)}
+.pro-surface-color-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pro-surface-color-head>div{display:grid;gap:2px}
+.pro-surface-color-head span{font-size:10px;color:var(--muted)}
+.pro-surface-color-head strong{font-size:12px;font-weight:600}
+.pro-color-swatch{width:34px;height:34px;border-radius:8px;border:1px solid #10172020;box-shadow:inset 0 0 0 1px #fff8;flex:0 0 auto}
+.pro-color-mode-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:3px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.pro-color-mode-switch button{height:32px;border:0!important;border-radius:6px!important;background:transparent!important;color:var(--muted);font-size:10px;font-weight:500;cursor:pointer}
+.pro-color-mode-switch button.is-active{background:#fff!important;color:var(--ink);box-shadow:var(--shadow-soft)}
+.pro-color-mode-switch button:focus-visible{outline:2px solid var(--accent-line);outline-offset:1px}
+.pro-color-picker-row{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:8px}
+.pro-color-picker{height:38px;display:flex;align-items:center;gap:9px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer}
+.pro-color-picker input[type="color"]{width:24px;height:24px;padding:0;border:0;background:transparent;cursor:pointer}
+.pro-color-picker span{font-size:11px;font-weight:600}
+.pro-color-hex{width:100%;height:38px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 9px;font:inherit;font-size:11px;text-transform:uppercase}
+.pro-color-hex:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
