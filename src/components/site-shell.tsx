@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, Box, Menu, X } from 'lucide-react';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { BrandLogo } from '@/components/brand-logo';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -15,7 +16,7 @@ const navLinks = [
 ] as const;
 
 export function Brand() {
-  return <Link href="/" className="brand" aria-label="3D Box Studio home"><span className="brand-icon"><Box size={21} strokeWidth={1.7} /></span><span>3D Box<span className="brand-light"> Studio</span></span></Link>;
+  return <Link href="/" className="brand brand-vector" aria-label="3D Box Studio home"><BrandLogo className="brand-vector-logo" priority /></Link>;
 }
 
 function NavigationLinks({ onNavigate, compact = false }: { onNavigate?: () => void; compact?: boolean }) {

@@ -5,7 +5,7 @@ import { site } from '@/lib/site';
 import './lovable-original.css';
 
 const title='Free 3D Box Designer & Packaging Mockup Generator | 3D Box Studio';
-const description='Free online packaging designer with a 2D dieline-to-3D workflow. Place, move, resize and rotate artwork on the flat dieline, then map that exact composition onto a folded 3D box for review.';
+const description='Free online 3D box designer and packaging mockup generator. Explore packaging templates, set custom dimensions, place artwork, open and close the structure in 3D, and export a PNG preview in your browser.';
 
 export const metadata: Metadata = {
   title:{absolute:title},
@@ -20,7 +20,7 @@ export default function Home() {
   const origin=site.url.toString().replace(/\/$/,'');
   const schema={'@context':'https://schema.org','@graph':[
     {'@type':'WebSite',name:'3D Box Studio',alternateName:['3D Box Maker','Free Packaging Mockup Generator'],description,url:origin+'/'},
-    {'@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description,url:origin+'/studio',featureList:['Packaging template browser','Custom box dimensions','2D dieline artwork composition','Drag, resize and rotate artwork','2D artwork mapped to 3D panels','Open and close simulation','Interactive 3D preview','PNG export']},
+    {'@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description,url:origin+'/studio',featureList:['Packaging template browser','Custom box dimensions','Per-surface artwork','Open and close simulation','Interactive 3D preview','PNG export']},
     {'@type':'FAQPage',mainEntity:FAQ_ITEMS.slice(0,8).map(item=>({'@type':'Question',name:item.question,acceptedAnswer:{'@type':'Answer',text:faqAnswerPlainText(item.answer)}}))}
   ]};
   return <><OriginalHome/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
