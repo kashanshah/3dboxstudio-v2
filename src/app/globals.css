@@ -2998,3 +2998,73 @@ body{font-size:var(--type-body)}
   font-size:12px;
   font-weight:700;
 }
+
+
+/* Scene Studio launch gate. */
+.scene-coming-page{min-height:100dvh;background:var(--paper);color:var(--ink)}
+.scene-coming-header{
+  height:72px;
+  width:min(1180px,calc(100% - 48px));
+  margin:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  border-bottom:1px solid var(--line);
+}
+.scene-coming-header>a{
+  min-height:42px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:650;
+}
+.scene-coming-header>a:hover{color:var(--accent)}
+.scene-coming-content{
+  width:min(720px,calc(100% - 40px));
+  min-height:calc(100dvh - 72px);
+  margin:auto;
+  padding:80px 0 110px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+}
+.scene-coming-icon{
+  width:62px;height:62px;
+  display:grid;place-items:center;
+  margin-bottom:24px;
+  border-radius:16px;
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+.scene-coming-eyebrow{
+  margin-bottom:12px;
+  color:var(--accent);
+  font-size:13px;
+  font-weight:750;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.scene-coming-content h1{
+  margin:0;
+  font-size:clamp(48px,7vw,78px);
+  line-height:.98;
+  letter-spacing:-.055em;
+  font-weight:650;
+}
+.scene-coming-content>p:not(.scene-coming-eyebrow){
+  max-width:650px;
+  margin:22px 0 28px;
+  font-size:17px;
+  line-height:1.65;
+  color:var(--muted);
+}
+@media(max-width:640px){
+  .scene-coming-header{height:64px;width:calc(100% - 32px)}
+  .scene-coming-content{min-height:calc(100dvh - 64px);padding:56px 0 84px}
+  .scene-coming-content h1{font-size:44px}
+  .scene-coming-content>p:not(.scene-coming-eyebrow){font-size:16px}
+}
