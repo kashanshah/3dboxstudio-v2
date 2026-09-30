@@ -107,7 +107,7 @@ export async function ensureV2Schema(): Promise<void> {
     await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_projects_one_default ON workspace_projects(user_id) WHERE is_default=TRUE`;
     await db`
       INSERT INTO workspace_projects(id,user_id,name,is_default)
-      SELECT 'default_' || substr(md5(id),1,24), id, 'My Project', TRUE
+      SELECT 'default_' || substr(md5(u.id),1,24), u.id, 'My Project', TRUE
       FROM users u
       WHERE NOT EXISTS (
         SELECT 1 FROM workspace_projects wp WHERE wp.user_id=u.id AND wp.is_default=TRUE
