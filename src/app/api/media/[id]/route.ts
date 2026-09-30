@@ -11,7 +11,11 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const media=await readMediaAsset(user.id,(await params).id);
     if(!media)return new NextResponse('Not found',{status:404});
-    return new NextResponse(media.bytes,{
+    const body=media.bytes.buffer.slice(
+      media.bytes.byteOffset,
+      media.bytes.byteOffset+media.bytes.byteLength,
+    ) as ArrayBuffer;
+    return new NextResponse(body,{
       status:200,
       headers:{
         'Content-Type':media.row.mime_type,
