@@ -721,15 +721,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setInspectorOpen(true);
   };
 
-  const chooseTool = (id: Tool) => {
-    if (tool === id && inspectorOpen) {
-      setInspectorOpen(false);
-      setTool(null);
-      return;
-    }
-    selectTool(id);
-  };
-
   const goToWorkflowStep = (id:StudioArea, preferredTool?:Tool) => {
     const area=studioAreas.find(item=>item.id===id);
     if(!area)return;
@@ -2827,7 +2818,7 @@ function DielinePrototype({
         catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
         finally { setPrinting(false); }
       }}><Download size={16}/> {printing?'Preparing print…':'Print / Save PDF'}</button>
-      <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Check size={16}/> Apply Changes</button>
+      <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Boxes size={16}/> Preview in 3D</button>
       </div>
     </div>
 
