@@ -10,12 +10,11 @@ let client: S3Client | null = null;
 
 function s3(){
   if(!client){
+    const accessKeyId=optionalEnv('AWS_ACCESS_KEY_ID');
+    const secretAccessKey=optionalEnv('AWS_SECRET_ACCESS_KEY');
     client = new S3Client({
       region: requireEnv('AWS_REGION'),
-      credentials: {
-        accessKeyId: requireEnv('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: requireEnv('AWS_SECRET_ACCESS_KEY'),
-      },
+      ...(accessKeyId&&secretAccessKey ? {credentials:{accessKeyId,secretAccessKey}} : {}),
       ...(optionalEnv('AWS_S3_ENDPOINT') ? {
         endpoint: optionalEnv('AWS_S3_ENDPOINT'),
         forcePathStyle: optionalEnv('AWS_S3_FORCE_PATH_STYLE') === 'true',
@@ -103,7 +102,9 @@ export async function uploadMediaAsset(userId:string,file:File,input:{width?:num
   if(existing[0]) return toDto(existing[0]);
 
   const id=randomUUID();
-  const key=`users/${userId}/artwork/${id}/${safeFilename(file.name)}`;
+  const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
+  const prefix=configuredPrefix ? configuredPrefix+'/' : '';
+  const key=`${prefix}users/${userId}/artwork/${id}/${safeFilename(file.name)}`;
   await s3().send(new PutObjectCommand({
     Bucket:bucket(),
     Key:key,
