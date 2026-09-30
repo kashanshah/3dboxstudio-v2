@@ -132,11 +132,12 @@ const tools: { id: Tool; label: string; icon: typeof Box }[] = [
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
-export function StudioShell({initialProject}:{initialProject?:SavedStudioProject} = {}) {
+export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string} = {}) {
   const initial = initialProject?.state;
   const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
   const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
+  const [workspaceProjectId,setWorkspaceProjectId] = useState(initialWorkspaceProjectId ?? initialProject?.workspaceProjectId ?? null);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
   const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
@@ -144,6 +145,12 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [deleteModalOpen,setDeleteModalOpen] = useState(false);
   const [deleting,setDeleting] = useState(false);
   const [saveConflictOpen,setSaveConflictOpen] = useState(false);
+  const [projectTransferMode,setProjectTransferMode] = useState<'move'|'copy'|null>(null);
+  const [projectOptions,setProjectOptions] = useState<Array<{id:string;name:string;isDefault:boolean;designCount:number;sceneCount:number}>>([]);
+  const [transferProjectId,setTransferProjectId] = useState('');
+  const [transferBusy,setTransferBusy] = useState(false);
+  const [transferError,setTransferError] = useState('');
+  const [transferLoading,setTransferLoading] = useState(false);
   const saveInFlightRef = useRef(false);
   const projectNameRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
@@ -1133,10 +1140,10 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false) => {
+  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false) => {
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
-    if (saveInFlightRef.current) return;
+    if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
     setSaving(true);
     setSaveFailed(false);
@@ -1169,7 +1176,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         return value;
       }
       const targetName=saveAsCopy?`${projectName} copy`:projectName;
-      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,force:forceOverwrite});
+      const targetWorkspaceProjectId=destinationWorkspaceProjectId??workspaceProjectId;
+      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,force:forceOverwrite,workspaceProjectId:targetWorkspaceProjectId});
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
       const targetProjectId=saveAsCopy?undefined:projectId;
       const response=await fetch(targetProjectId?`/api/projects/${targetProjectId}`:'/api/projects',{method:targetProjectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
@@ -1178,12 +1186,17 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         if(response.status===409) throw new Error('SAVE_CONFLICT');
         throw new Error(result.error || 'Could not save your design.');
       }
-      setProjectId(result.project.id);setProjectRevision(result.project.revision);
-      if(saveAsCopy){setProjectName(targetName);setFavorite(false);}
-      if(saveAsCopy||!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
+      if(saveAsCopy&&keepOriginalOpen){
+        setMessage(`Copy created in another project`);
+      }else{
+        setProjectId(result.project.id);setProjectRevision(result.project.revision);setWorkspaceProjectId(result.project.workspace_project_id ?? targetWorkspaceProjectId);
+        if(saveAsCopy){setProjectName(targetName);setFavorite(false);}
+        if(saveAsCopy||!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
+      }
       setSaveFailed(false);
       setSaveConflictOpen(false);
-      setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?'Copy saved — you are now editing the copy':'Design saved');
+      setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
+      return true;
     } catch(error) {
       setSaveFailed(true);
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
@@ -1193,6 +1206,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       }else{
         setMessage(`Save failed — NOT SAVED. ${error instanceof Error?error.message:'Could not save your design.'}`);
       }
+      return false;
     }
     finally {
       saveInFlightRef.current = false;
@@ -1202,7 +1216,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId,
+    projectName, projectRevision, projectId, workspaceProjectId,
   ]);
 
   useEffect(() => {
@@ -1213,6 +1227,53 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     document.addEventListener('keydown',escape);
     return ()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
   },[fileMenuOpen]);
+
+  const openProjectTransfer = async (mode:'move'|'copy') => {
+    if(!projectId){setMessage('Save the design before organizing it into another project');return;}
+    setFileMenuOpen(false);
+    setProjectTransferMode(mode);
+    setTransferProjectId('');
+    setTransferError('');
+    setTransferLoading(true);
+    try{
+      const response=await fetch('/api/workspace-projects',{cache:'no-store'});
+      const result=await response.json().catch(()=>({projects:[]}));
+      if(!response.ok)throw new Error(result.error||'Could not load your projects.');
+      const options=(result.projects as Array<{id:string;name:string;isDefault:boolean;designCount:number;sceneCount:number}>).filter(project=>project.id!==workspaceProjectId);
+      setProjectOptions(options);
+    }catch(error){
+      setProjectOptions([]);
+      setTransferError(error instanceof Error?error.message:'Could not load your projects.');
+    }finally{
+      setTransferLoading(false);
+    }
+  };
+
+  const submitProjectTransfer = async () => {
+    if(!projectTransferMode||!projectId||!transferProjectId||transferBusy)return;
+    setTransferBusy(true);setTransferError('');
+    try{
+      if(projectTransferMode==='move'){
+        const saved=await saveDesign(false);
+        if(!saved)throw new Error('Save the latest changes before moving this design.');
+        const response=await fetch(`/api/projects/${projectId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspaceProjectId:transferProjectId})});
+        const result=await response.json().catch(()=>({error:'Could not move this design.'}));
+        if(!response.ok)throw new Error(result.error||'Could not move this design.');
+        setWorkspaceProjectId(result.project.workspaceProjectId);
+        setProjectTransferMode(null);
+        setMessage(`Moved to ${projectOptions.find(project=>project.id===transferProjectId)?.name??'project'}`);
+      }else{
+        const copied=await saveDesign(true,false,transferProjectId,true);
+        if(!copied)throw new Error('Could not create the copy.');
+        setProjectTransferMode(null);
+        setMessage(`Copy created in ${projectOptions.find(project=>project.id===transferProjectId)?.name??'project'}`);
+      }
+    }catch(error){
+      setTransferError(error instanceof Error?error.message:'Could not complete this action.');
+    }finally{
+      setTransferBusy(false);
+    }
+  };
 
   const toggleFavorite = async () => {
     if(!projectId){setMessage('Save the design before adding it to favourites');return;}
@@ -1294,6 +1355,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
           {fileMenuOpen&&<div className="pro-file-menu-popover" role="menu">
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign();}}><Download size={15}/><span><strong>Save</strong><small>⌘/Ctrl + S</small></span></button>
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>Save a copy</strong><small>Create an independent design</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('move')}><Move size={15}/><span><strong>Move to Project…</strong><small>Keep this design, change its project</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('copy')}><Copy size={15}/><span><strong>Copy to Project…</strong><small>Create an independent copy elsewhere</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?'Remove from favourites':'Add to favourites'}</strong><small>{projectId?'Keep important files handy':'Save this design first'}</small></span></button>
             <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>Rename</strong><small>Edit the file name</small></span></button>
             <span className="pro-file-menu-separator" aria-hidden="true"/>
@@ -1600,6 +1663,43 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
       {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
     </nav>
+    {projectTransferMode && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!transferBusy)setProjectTransferMode(null);}}>
+      <section className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
+        <div className="pro-confirm-copy">
+          <span>Organize design</span>
+          <h2 id="organize-design-title">{projectTransferMode==='move'?'Move to Project':'Copy to Project'}</h2>
+          <p>{projectTransferMode==='move'
+            ? 'Move this same design to another project. Its design ID and revision history stay the same.'
+            : 'Create a new independent copy in another project. The original stays where it is.'}</p>
+        </div>
+        <div className="pro-transfer-mode" role="radiogroup" aria-label="Transfer type">
+          <button type="button" role="radio" aria-checked={projectTransferMode==='move'} className={projectTransferMode==='move'?'is-active':''} disabled={transferBusy} onClick={()=>setProjectTransferMode('move')}><Move size={16}/><span><strong>Move</strong><small>Same design</small></span></button>
+          <button type="button" role="radio" aria-checked={projectTransferMode==='copy'} className={projectTransferMode==='copy'?'is-active':''} disabled={transferBusy} onClick={()=>setProjectTransferMode('copy')}><Copy size={16}/><span><strong>Copy</strong><small>New independent design</small></span></button>
+        </div>
+        <div className="pro-transfer-destination">
+          <label>Destination project</label>
+          {transferLoading?<div className="pro-transfer-loading"><span/><span/><span/></div>:projectOptions.length?<div className="pro-transfer-project-list" role="radiogroup" aria-label="Destination project">
+            {projectOptions.map(project=><button key={project.id} type="button" role="radio" aria-checked={transferProjectId===project.id} className={transferProjectId===project.id?'is-selected':''} disabled={transferBusy} onClick={()=>setTransferProjectId(project.id)}>
+              <span className="pro-transfer-project-icon"><Layers3 size={17}/></span>
+              <span className="pro-transfer-project-copy"><strong>{project.name}</strong><small>{project.designCount} design{project.designCount===1?'':'s'} · {project.sceneCount} scene{project.sceneCount===1?'':'s'}</small></span>
+              {transferProjectId===project.id&&<Check size={17}/>}
+            </button>)}
+          </div>:<div className="pro-transfer-empty"><strong>No other projects yet</strong><p>Create another project before moving or copying this design.</p><Link href="/studio">Go to Projects</Link></div>}
+        </div>
+        {transferProjectId&&<div className="pro-transfer-summary">
+          {projectTransferMode==='move'
+            ? <><strong>{projectName}</strong><span>will move to {projectOptions.find(project=>project.id===transferProjectId)?.name}. The same design remains open.</span></>
+            : <><strong>{projectName} copy</strong><span>will be created in {projectOptions.find(project=>project.id===transferProjectId)?.name}. You will keep editing the original.</span></>}
+        </div>}
+        {transferError&&<p className="pro-transfer-error" role="alert">{transferError}</p>}
+        <div className="pro-confirm-actions">
+          <button type="button" className="pro-secondary-button" disabled={transferBusy} onClick={()=>setProjectTransferMode(null)}>Cancel</button>
+          <button type="button" className="pro-primary" disabled={transferBusy||transferLoading||!transferProjectId} onClick={()=>void submitProjectTransfer()}>
+            {transferBusy?(projectTransferMode==='move'?'Moving…':'Copying…'):(projectTransferMode==='move'?'Move design':'Copy design')}
+          </button>
+        </div>
+      </section>
+    </div>}
     {saveConflictOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!saving)setSaveConflictOpen(false);}}>
       <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="overwrite-design-title" aria-describedby="overwrite-design-copy">
         <div className="pro-confirm-icon is-warning"><RotateCcw size={22}/></div>
