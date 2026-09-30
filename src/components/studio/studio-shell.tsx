@@ -140,6 +140,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [fileMenuOpen,setFileMenuOpen] = useState(false);
   const [deleteModalOpen,setDeleteModalOpen] = useState(false);
   const [deleting,setDeleting] = useState(false);
+  const [saveConflictOpen,setSaveConflictOpen] = useState(false);
   const saveInFlightRef = useRef(false);
   const projectNameRef = useRef<HTMLInputElement>(null);
   const fileMenuRef = useRef<HTMLDivElement>(null);
@@ -1118,7 +1119,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = useCallback(async (saveAsCopy=false) => {
+  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false) => {
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
     if (saveInFlightRef.current) return;
@@ -1154,7 +1155,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
         return value;
       }
       const targetName=saveAsCopy?`${projectName} copy`:projectName;
-      const body = JSON.stringify({name:targetName,state:await persist(state),preview,updatedAt:saveAsCopy?undefined:projectUpdatedAt});
+      const body = JSON.stringify({name:targetName,state:await persist(state),preview,updatedAt:saveAsCopy?undefined:projectUpdatedAt,force:forceOverwrite});
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
       const targetProjectId=saveAsCopy?undefined:projectId;
       const response=await fetch(targetProjectId?`/api/projects/${targetProjectId}`:'/api/projects',{method:targetProjectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
@@ -1167,13 +1168,17 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       if(saveAsCopy){setProjectName(targetName);setFavorite(false);}
       if(saveAsCopy||!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
       setSaveFailed(false);
-      setMessage(saveAsCopy?'Copy saved — you are now editing the copy':'Design saved');
+      setSaveConflictOpen(false);
+      setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?'Copy saved — you are now editing the copy':'Design saved');
     } catch(error) {
       setSaveFailed(true);
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
-      setMessage(conflict
-        ? 'Save failed — NOT SAVED. A newer saved version exists or this design is no longer available. Reloading may discard your current local changes.'
-        : `Save failed — NOT SAVED. ${error instanceof Error?error.message:'Could not save your design.'}`);
+      if(conflict){
+        setSaveConflictOpen(true);
+        setMessage('Save conflict — a newer saved version exists');
+      }else{
+        setMessage(`Save failed — NOT SAVED. ${error instanceof Error?error.message:'Could not save your design.'}`);
+      }
     }
     finally {
       saveInFlightRef.current = false;
@@ -1575,6 +1580,20 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     <nav className="pro-mobile-dock" aria-label="Mobile studio tools">
       {tools.slice(0,5).map(({ id, label, icon: Icon }) => <button key={id} className={tool === id ? 'is-active' : ''} onClick={() => chooseTool(id)}><Icon size={18} /><span>{label}</span></button>)}
     </nav>
+    {saveConflictOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!saving)setSaveConflictOpen(false);}}>
+      <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="overwrite-design-title" aria-describedby="overwrite-design-copy">
+        <div className="pro-confirm-icon is-warning"><RotateCcw size={22}/></div>
+        <div className="pro-confirm-copy">
+          <span>Save conflict</span>
+          <h2 id="overwrite-design-title">Overwrite the newer saved version?</h2>
+          <p id="overwrite-design-copy">This design has changed since you opened it. Overwriting will replace the newer saved version with the version currently open in this Studio.</p>
+        </div>
+        <div className="pro-confirm-actions">
+          <button type="button" className="pro-secondary-button" disabled={saving} onClick={()=>setSaveConflictOpen(false)}>Cancel</button>
+          <button type="button" className="pro-danger-button" disabled={saving} onClick={()=>{setSaveConflictOpen(false);void saveDesign(false,true);}}>{saving?'Overwriting…':'Overwrite saved version'}</button>
+        </div>
+      </section>
+    </div>}
     {deleteModalOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!deleting)setDeleteModalOpen(false);}}>
       <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title" aria-describedby="delete-design-copy">
         <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
