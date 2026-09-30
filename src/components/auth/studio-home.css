@@ -315,3 +315,44 @@
   .studio-create-action{grid-template-columns:42px minmax(0,1fr)}
   .studio-create-action-icon{width:42px;height:42px}
 }
+
+
+/* Projects are folders; All work is a view, not a fake project. */
+.studio-project-view-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.studio-project-view-actions>span{color:var(--muted);font-size:13px}
+.studio-all-work-link{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:0 12px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--surface);
+  color:var(--muted);
+  font-size:14px;
+  font-weight:650;
+}
+.studio-all-work-link:hover{border-color:var(--accent-line);color:var(--accent)}
+.studio-all-work-link.is-active{
+  background:var(--accent-soft);
+  border-color:var(--accent-line);
+  color:var(--accent);
+}
+.studio-project-folder{
+  box-shadow:none;
+  background:color-mix(in srgb,var(--surface) 94%,var(--panel));
+}
+.studio-project-folder:hover{
+  box-shadow:var(--shadow-soft);
+  transform:translateY(-1px);
+}
+@media(max-width:700px){
+  .studio-project-heading{gap:14px}
+  .studio-project-view-actions{align-items:flex-end;flex-direction:column;gap:7px}
+  .studio-all-work-link{min-height:44px}
+}
