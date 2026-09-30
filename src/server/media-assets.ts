@@ -144,10 +144,16 @@ export async function getMediaAsset(userId:string,id:string):Promise<MediaAssetR
 export async function readMediaAsset(userId:string,id:string){
   const row=await getMediaAsset(userId,id);
   if(!row)return null;
-  const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:row.storage_key}));
+  const object=await readStoredObject(row.storage_key);
+  if(!object)return null;
+  return {row,bytes:object.bytes};
+}
+
+export async function readStoredObject(storageKey:string){
+  const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
   if(!object.Body)return null;
   const bytes=await object.Body.transformToByteArray();
-  return {row,bytes};
+  return {bytes,contentType:object.ContentType||'application/octet-stream'};
 }
 
 export async function deleteMediaAsset(userId:string,id:string){
