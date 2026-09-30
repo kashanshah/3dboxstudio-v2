@@ -821,22 +821,19 @@ function DielinePrototype({
   const bounds = reverseTuckBounds(dimensions);
 
   if (importedDieline) {
-    const points = importedDieline.primitives.flatMap(item => item.kind === 'line'
-      ? [{x:item.x1,y:item.y1},{x:item.x2,y:item.y2}]
-      : item.points);
-    const xs = points.map(point => point.x), ys = points.map(point => point.y);
-    const minX = Math.min(...xs), minY = Math.min(...ys), maxX = Math.max(...xs), maxY = Math.max(...ys);
-    const width = Math.max(1, maxX - minX), height = Math.max(1, maxY - minY);
     return <div className="pro-dieline-stage pro-2d-design-stage">
       <div className="pro-2d-design-toolbar">
         <div><span>Imported dieline</span><strong>{importedDieline.name}</strong></div>
         <button className="pro-2d-remove-layout" type="button" onClick={onClearImportedDieline}><Trash2 size={15}/> Clear dieline</button>
       </div>
       <div className="pro-imported-dieline-wrap">
-        <svg className="pro-imported-dieline" viewBox={`${minX} ${minY} ${width} ${height}`} role="img" aria-label={`Imported dieline ${importedDieline.name}`}>
-          {importedDieline.primitives.map((item,index) => item.kind === 'line'
-            ? <line key={index} x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} className={`imported-dieline-line role-${item.role}`} vectorEffect="non-scaling-stroke" />
-            : <polyline key={index} points={item.points.map(point => `${point.x},${point.y}`).join(' ')} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" {...(item.closed ? { points: [...item.points,item.points[0]].map(point=>`${point.x},${point.y}`).join(' ') } : {})} />)}
+        <svg className="pro-imported-dieline" viewBox={importedDieline.viewBox} role="img" aria-label={`Imported dieline ${importedDieline.name}`}>
+          {importedDieline.primitives.map((item,index) => {
+            if (item.kind === 'line') return <line key={index} x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} className={`imported-dieline-line role-${item.role}`} vectorEffect="non-scaling-stroke" />;
+            if (item.kind === 'path') return <path key={index} d={item.d} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" />;
+            const points = item.closed ? [...item.points,item.points[0]] : item.points;
+            return <polyline key={index} points={points.map(point => `${point.x},${point.y}`).join(' ')} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" />;
+          })}
         </svg>
       </div>
       <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="unknown"/>Unclassified</span><strong>Imported geometry preview · panel/fold mapping to 3D comes next</strong></div>
