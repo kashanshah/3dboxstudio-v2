@@ -216,3 +216,8 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 
 .lovable-original .original-brand-logo{display:block;width:150px;height:auto}
 @media(max-width:700px){.lovable-original .original-brand-logo{width:138px}}
+
+.lovable-original .original-nav-actions{display:flex;align-items:center;gap:8px}
+@media(max-width:560px){
+  .lovable-original .original-nav-actions .account-button{padding-inline:9px;max-width:84px}
+}
