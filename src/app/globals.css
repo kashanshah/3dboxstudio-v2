@@ -97,6 +97,8 @@
 /* Live reverse-tuck engine slice. */
 .carton-engine-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;z-index:1}
 .carton-engine-canvas:active{cursor:grabbing}
+.carton-engine-canvas.is-pan-enabled{cursor:move}
+.carton-engine-canvas.is-pan-enabled:active{cursor:grabbing}
 .pro-3d-stage .pro-grid-floor{z-index:0}.pro-3d-stage .pro-stage-badge,.pro-3d-stage .pro-stage-meta{z-index:3;pointer-events:none}
 .pro-dieline-live{width:min(72%,720px);height:auto;max-height:68%;transform:scale(var(--studio-zoom));position:relative}
 .dl-live{position:absolute!important;border:1.5px solid var(--accent)!important;background:#fff!important;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:8px;min-width:0;overflow:hidden}
