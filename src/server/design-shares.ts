@@ -62,15 +62,21 @@ export async function revokeDesignShare(userId:string,id:string){
  return Boolean(rows[0]);
 }
 
-export async function getPublicShare(id:string):Promise<PublicShare|null>{
+export async function getPublicShare(id:string,countView=true):Promise<PublicShare|null>{
  if(!SHARE_TOKEN_RE.test(id))return null;
  await ensureV2Schema();
  const sql=getSql();
- const native=await sql`
-  UPDATE design_shares SET view_count=view_count+1
-  WHERE id=${id} AND revoked_at IS NULL
-  RETURNING id,name,studio_state,updated_at
- ` as {id:string;name:string;studio_state:unknown;updated_at:string}[];
+ const native=countView
+  ? await sql`
+      UPDATE design_shares SET view_count=view_count+1
+      WHERE id=${id} AND revoked_at IS NULL
+      RETURNING id,name,studio_state,updated_at
+    ` as {id:string;name:string;studio_state:unknown;updated_at:string}[]
+  : await sql`
+      SELECT id,name,studio_state,updated_at FROM design_shares
+      WHERE id=${id} AND revoked_at IS NULL
+      LIMIT 1
+    ` as {id:string;name:string;studio_state:unknown;updated_at:string}[];
  if(native[0]&&validProjectState(native[0].studio_state))return {
   id:native[0].id,name:native[0].name,state:rewriteMediaUrls(native[0].studio_state,id),legacy:false,updatedAt:native[0].updated_at,
  };
