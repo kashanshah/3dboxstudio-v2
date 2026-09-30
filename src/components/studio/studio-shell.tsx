@@ -487,8 +487,10 @@ export function StudioShell() {
               const parsed = parseArtworkTarget(selectedPanel);
               setArtworkScope(parsed.scope);
               setPanel(parsed.panel);
+              setTool('artwork');
+              setInspectorOpen(true);
               setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
-              setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected from the 3D carton`);
+              setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} artwork selected`);
             }}
           />
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>Closed {Math.round(opening)}%</span></div>
