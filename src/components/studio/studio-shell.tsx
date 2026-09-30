@@ -866,6 +866,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setSelectedOutsideLayerId(null);
     setSelectedInsideLayerId(null);
     setFaceAction(null);
+    setWorkflowStep('design');
     setMode('dieline');
     setMessage(`Choose artwork for ${parsed.scope === 'inside' ? 'inside ' : ''}${parsed.panel}`);
 
