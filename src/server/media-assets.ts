@@ -203,13 +203,17 @@ export async function deleteMediaAsset(userId:string,id:string){
   const row=await getMediaAsset(userId,id);
   if(!row)return {deleted:false,reason:'not_found' as const};
 
-  const used=await getSql()`
-    SELECT id,name FROM projects
-    WHERE user_id=${userId} AND studio_state::text LIKE ${'%'+id+'%'}
-    ORDER BY updated_at DESC
-    LIMIT 1
+  // Saved project state is the source of truth for whether an account image may
+  // be physically removed. Return every blocking design so the UI can tell the
+  // user exactly where the image must be removed/replaced first.
+  const usages=await getSql()`
+    SELECT id,name
+    FROM projects
+    WHERE user_id=${userId}
+      AND studio_state::text LIKE ${'%'+id+'%'}
+    ORDER BY updated_at DESC,id ASC
   ` as {id:string;name:string}[];
-  if(used[0]) return {deleted:false,reason:'in_use' as const,project:used[0]};
+  if(usages.length)return {deleted:false,reason:'in_use' as const,projects:usages};
 
   await s3().send(new DeleteObjectCommand({Bucket:bucket(),Key:row.storage_key}));
   await getSql()`DELETE FROM media_assets WHERE id=${id} AND user_id=${userId}`;

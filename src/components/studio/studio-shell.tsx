@@ -1100,25 +1100,29 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setFaceAction(null);
   };
 
-  const removeMediaAsset = async (assetId: string) => {
-    const inUse = [...outsideDielineLayers, ...insideDielineLayers].some(layer => layer.assetId === assetId)
+  const removeMediaAsset = async (assetId: string):Promise<{deleted:boolean;usages?:Array<{id:string;name:string}>;error?:string}> => {
+    const inCurrentDesign = [...outsideDielineLayers, ...insideDielineLayers].some(layer => layer.assetId === assetId)
       || Object.values(artworkByPanel).some(artwork => artwork.assetId === assetId);
-    if (inUse) {
-      setMessage('Remove this image from every layer or panel before deleting it from My Images');
-      return;
+    if (inCurrentDesign) {
+      return {
+        deleted:false,
+        usages:[{id:projectId ?? 'current-design',name:projectName || 'Current design'}],
+        error:'This image is still used in the current design. Remove or replace it there before deleting it from My Images.',
+      };
     }
 
     const asset=mediaAssetsRef.current.find(item=>item.id===assetId);
-    if(!asset)return;
+    if(!asset)return {deleted:false,error:'Image not found.'};
 
     if(asset.url.startsWith('/api/media/')){
       try{
         const response=await fetch(`/api/media/${encodeURIComponent(assetId)}`,{method:'DELETE'});
-        const result=await response.json().catch(()=>({error:'Could not delete artwork.'})) as {error?:string};
-        if(!response.ok)throw new Error(result.error||'Could not delete artwork.');
+        const result=await response.json().catch(()=>({error:'Could not delete artwork.'})) as {error?:string;usages?:Array<{id:string;name:string}>};
+        if(!response.ok){
+          return {deleted:false,error:result.error||'Could not delete artwork.',usages:result.usages};
+        }
       }catch(error){
-        setMessage(error instanceof Error?error.message:'Could not delete artwork.');
-        return;
+        return {deleted:false,error:error instanceof Error?error.message:'Could not delete artwork.'};
       }
     }else if(asset.url.startsWith('blob:')){
       URL.revokeObjectURL(asset.url);
@@ -1126,7 +1130,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
     setMediaAssets(current => current.filter(item => item.id !== assetId));
     if(selectedMediaAssetId===assetId)setSelectedMediaAssetId(null);
-    setMessage('Image removed from My Images');
+    setMessage('Image deleted from My Images');
+    return {deleted:true};
   };
 
   const updateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string, transform: FullDielineTransform) => {
@@ -3041,12 +3046,16 @@ function MediaLibraryModal(props: {
   uploadProgress: MediaUploadProgress|null;
   onDropFiles: (files:File[])=>void;
   onUse: (asset:LocalMediaAsset, options:{ mode:ArtworkMode; scale:number; rotation:number })=>void;
-  onDelete: (assetId:string)=>Promise<void>;
+  onDelete: (assetId:string)=>Promise<{deleted:boolean;usages?:Array<{id:string;name:string}>;error?:string}>;
   onClose: ()=>void;
 }) {
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
   const [dragging, setDragging] = useState(false);
   const [search, setSearch] = useState('');
+  const [deleteConfirmOpen,setDeleteConfirmOpen] = useState(false);
+  const [deleteBusy,setDeleteBusy] = useState(false);
+  const [deleteError,setDeleteError] = useState('');
+  const [deleteUsages,setDeleteUsages] = useState<Array<{id:string;name:string}>>([]);
   const fitMode:ArtworkMode='fit',scale=100,rotation=0;
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
   const targetLabel = props.targetPanel === '__FULL_DIELINE__'
@@ -3167,10 +3176,11 @@ function MediaLibraryModal(props: {
               <span>{usageCount ? `Used on ${usageCount} panel${usageCount===1?'':'s'}` : 'Not used yet'}</span>
               <button
                 className="pro-media-delete-link"
-                disabled={usageCount > 0}
-                title={usageCount > 0 ? 'Remove this artwork from every panel before deleting it' : 'Delete from My Images'}
-                onClick={async () => {
-                  await props.onDelete(selected.id);
+                title="Delete from My Images"
+                onClick={() => {
+                  setDeleteError('');
+                  setDeleteUsages([]);
+                  setDeleteConfirmOpen(true);
                 }}
               ><Trash2 size={14}/> Delete</button>
             </div>
@@ -3182,6 +3192,38 @@ function MediaLibraryModal(props: {
           </div>}
         </aside>
       </div>
+
+      {deleteConfirmOpen && selected && <div className="pro-media-delete-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!deleteBusy){setDeleteConfirmOpen(false);setDeleteError('');setDeleteUsages([]);}}}>
+        <section className="pro-media-delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="media-delete-title">
+          <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
+          <div className="pro-media-delete-confirm-copy">
+            <span>Delete image</span>
+            <h3 id="media-delete-title">Delete “{selected.name}” from My Images?</h3>
+            {deleteUsages.length ? <>
+              <p>This image cannot be deleted because it is still used in:</p>
+              <ul>{deleteUsages.map(item=><li key={item.id}><strong>{item.name}</strong></li>)}</ul>
+              <p>Remove or replace this image in {deleteUsages.length===1?'that design':'those designs'}, save the changes, then try deleting it again.</p>
+            </> : <p>This permanently removes the image from your media library and its stored file. This cannot be undone.</p>}
+            {deleteError && <div className="pro-media-delete-error" role="alert">{deleteError}</div>}
+          </div>
+          <div className="pro-media-delete-confirm-actions">
+            <button type="button" className="pro-secondary-button" disabled={deleteBusy} onClick={()=>{setDeleteConfirmOpen(false);setDeleteError('');setDeleteUsages([]);}}>{deleteUsages.length?'Close':'Cancel'}</button>
+            {!deleteUsages.length && <button type="button" className="pro-danger-button" disabled={deleteBusy} onClick={async()=>{
+              setDeleteBusy(true);
+              setDeleteError('');
+              const result=await props.onDelete(selected.id);
+              setDeleteBusy(false);
+              if(result.deleted){
+                setDeleteConfirmOpen(false);
+                setDeleteUsages([]);
+                return;
+              }
+              setDeleteUsages(result.usages ?? []);
+              setDeleteError(result.usages?.length ? '' : (result.error ?? 'Could not delete image.'));
+            }}>{deleteBusy?'Deleting…':'Delete image'}</button>}
+          </div>
+        </section>
+      </div>}
 
       <footer className="pro-media-modal-footer">
         <span>{props.targetPanel === '__FULL_DIELINE__'
