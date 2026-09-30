@@ -13,6 +13,7 @@ import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type C
 import { artworkCropCss, artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
+import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -56,6 +57,7 @@ export function StudioShell() {
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
   const [importedDieline, setImportedDieline] = useState<ParsedDieline | null>(null);
+  const [dielineMapping, setDielineMapping] = useState<DielineMapping | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dielineFileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
@@ -261,6 +263,7 @@ export function StudioShell() {
         return;
       }
       setImportedDieline(parsed);
+      setDielineMapping(createInitialDielineMapping(parsed));
       setMode('dieline');
       setTool('structure');
       setInspectorOpen(true);
@@ -475,12 +478,14 @@ export function StudioShell() {
         </div> : <DielinePrototype
           panel={panel}
           importedDieline={importedDieline}
+          mapping={dielineMapping}
+          setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
           fullDielineArtwork={fullDielineArtwork}
           artworkScope={artworkScope}
           dimensions={dimensions}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
-          onClearImportedDieline={() => { setImportedDieline(null); setMessage('Imported dieline cleared'); }}
+          onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
           onRemoveFullLayout={() => {
             setFullDielineArtwork(null);
             setMessage('Full-layout artwork removed');
@@ -798,6 +803,8 @@ function Inspector(props: {
 function DielinePrototype({
   panel,
   importedDieline,
+  mapping,
+  setMapping,
   artworkByPanel,
   fullDielineArtwork,
   artworkScope,
@@ -809,6 +816,8 @@ function DielinePrototype({
 }:{
   panel:string;
   importedDieline:ParsedDieline|null;
+  mapping:DielineMapping|null;
+  setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
   artworkByPanel:ArtworkByPanel;
   fullDielineArtwork:ArtworkPlacement | null;
   artworkScope:'outside'|'inside';
@@ -822,23 +831,16 @@ function DielinePrototype({
   const bounds = reverseTuckBounds(dimensions);
 
   if (importedDieline) {
-    return <div className="pro-dieline-stage pro-2d-design-stage">
-      <div className="pro-2d-design-toolbar">
-        <div><span>Imported dieline</span><strong>{importedDieline.name}</strong></div>
-        <button className="pro-2d-remove-layout" type="button" onClick={onClearImportedDieline}><Trash2 size={15}/> Clear dieline</button>
-      </div>
-      <div className="pro-imported-dieline-wrap">
-        <svg className="pro-imported-dieline" viewBox={importedDieline.viewBox} role="img" aria-label={`Imported dieline ${importedDieline.name}`}>
-          {importedDieline.primitives.map((item,index) => {
-            if (item.kind === 'line') return <line key={index} x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} className={`imported-dieline-line role-${item.role}`} vectorEffect="non-scaling-stroke" />;
-            if (item.kind === 'path') return <path key={index} d={item.d} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" />;
-            const points = item.closed ? [...item.points,item.points[0]] : item.points;
-            return <polyline key={index} points={points.map(point => `${point.x},${point.y}`).join(' ')} className={`imported-dieline-line role-${item.role}`} fill="none" vectorEffect="non-scaling-stroke" />;
-          })}
-        </svg>
-      </div>
-      <div className="pro-dieline-legend"><span><i className="cut"/>Cut</span><span><i className="crease"/>Crease</span><span><i className="unknown"/>Unclassified</span><strong>Imported geometry preview · panel/fold mapping to 3D comes next</strong></div>
-    </div>;
+    const currentMapping = mapping ?? createInitialDielineMapping(importedDieline);
+    const progress = mappingProgress(importedDieline, currentMapping);
+    const candidates = panelCandidates(importedDieline);
+    const [selectedPrimitive, setSelectedPrimitive] = [null, () => {}] as const;
+    return <ImportedDielineMapper
+      dieline={importedDieline}
+      mapping={currentMapping}
+      setMapping={setMapping}
+      onClear={onClearImportedDieline}
+    />;
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
