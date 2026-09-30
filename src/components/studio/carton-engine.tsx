@@ -708,9 +708,14 @@ void main() {
   if (uTile) texUv = fract(texUv);
   texUv = uUvCrop.xy + texUv * uUvCrop.zw;
 
-  vec4 base = vec4(uColor, 1.0);
+  vec4 materialBase = vec4(uColor, 1.0);
+  vec4 base = materialBase;
   if (uUseTexture && !(uClipOutside && outside)) {
-    base = texture2D(uTexture, texUv);
+    vec4 artwork = texture2D(uTexture, texUv);
+    // Artwork is a printed layer over the package material. Transparent pixels
+    // reveal the underlying board/finish instead of making the face disappear.
+    base.rgb = mix(materialBase.rgb, artwork.rgb, artwork.a);
+    base.a = 1.0;
   }
 
   vec3 shaded = base.rgb * light;
