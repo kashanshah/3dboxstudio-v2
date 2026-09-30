@@ -1314,3 +1314,46 @@ body{font-size:var(--type-body)}
 .pro-dieline-live .dl-live{pointer-events:none;user-select:none}
 .pro-dieline-live .dl-live .artwork-layer{pointer-events:none}
 .pro-full-artwork-transform{pointer-events:auto}
+
+
+/* Multi-layer 2D dieline composition */
+.pro-live-sync-badge{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 9px;border:1px solid #9bd8b1;border-radius:999px;background:#effbf4;color:#237247;font-size:10px;font-weight:600;white-space:nowrap}
+.pro-live-sync-badge>span{width:6px;height:6px;border-radius:50%;background:#2f9f61;box-shadow:0 0 0 4px #2f9f6118}
+.pro-dieline-workspace{display:grid;grid-template-columns:190px minmax(0,1fr);gap:18px;align-items:center;width:min(1000px,88vw)}
+.pro-dieline-workspace>.pro-dieline-live{width:100%;max-width:760px}
+.pro-dieline-layers-panel{align-self:stretch;min-height:320px;max-height:62vh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-soft);overflow:hidden;z-index:6}
+.pro-dieline-layers-heading{display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid var(--line)}
+.pro-dieline-layers-heading>div{display:flex;align-items:center;gap:7px}
+.pro-dieline-layers-heading span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.pro-dieline-layers-heading strong{display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--panel);font-size:9px}
+.pro-dieline-layers-heading>button{height:28px;padding:0 8px;border:1px solid var(--line)!important;border-radius:6px;display:flex;align-items:center;gap:5px;font-size:9px;font-weight:600;color:var(--ink);background:#fff!important}
+.pro-dieline-layer-list{overflow:auto;padding:7px;display:grid;align-content:start;gap:5px}
+.pro-dieline-layer-list>button{min-width:0;height:50px;padding:5px;border:1px solid transparent!important;border-radius:7px;display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:7px;text-align:left;background:transparent!important}
+.pro-dieline-layer-list>button:hover{background:var(--panel)!important}
+.pro-dieline-layer-list>button.is-selected{border-color:var(--accent-line)!important;background:var(--accent-soft)!important}
+.pro-dieline-layer-list img{width:38px;height:38px;object-fit:contain;border:1px solid var(--line);border-radius:5px;background:#fff}
+.pro-dieline-layer-list button>span{min-width:0;display:grid;gap:2px}
+.pro-dieline-layer-list strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:600}
+.pro-dieline-layer-list small{color:var(--muted);font-size:8px}
+.pro-dieline-layer-list i{font-style:normal;font-size:8px;color:var(--muted)}
+.pro-dieline-layers-empty{display:grid;place-items:center;align-content:center;gap:8px;padding:20px;color:var(--muted);text-align:center;font-size:10px}
+.pro-dieline-layers-empty svg{color:var(--accent)}
+.pro-dieline-layer-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:7px;border-top:1px solid var(--line)}
+.pro-dieline-layer-actions button{height:30px;border:1px solid var(--line)!important;border-radius:5px;display:grid;place-items:center;background:#fff!important;color:var(--muted)}
+.pro-dieline-layer-actions button:hover:not(:disabled){color:var(--accent);border-color:var(--accent-line)!important;background:var(--accent-soft)!important}
+.pro-dieline-layer-actions button:disabled{opacity:.3;cursor:not-allowed}
+.pro-full-artwork-transform{opacity:.96}
+.pro-full-artwork-transform:hover{opacity:1}
+.pro-full-artwork-transform.is-selected{opacity:1}
+.pro-full-artwork-transform:not(.is-selected) .pro-transform-box,.pro-full-artwork-transform:not(.is-selected) .pro-transform-handle{display:none}
+@media(max-width:900px){
+  .pro-dieline-workspace{grid-template-columns:150px minmax(0,1fr);gap:10px;width:94vw}
+  .pro-dieline-layers-panel{min-height:270px}
+}
+@media(max-width:700px){
+  .pro-dieline-workspace{display:block;width:92vw}
+  .pro-dieline-layers-panel{position:absolute;left:8px;right:8px;bottom:42px;min-height:0;max-height:150px;grid-template-rows:auto minmax(0,1fr) auto;z-index:12}
+  .pro-dieline-layer-list{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+  .pro-dieline-layer-list>button{height:44px;grid-template-columns:32px minmax(0,1fr)}
+  .pro-dieline-layer-list img{width:32px;height:32px}
+}
