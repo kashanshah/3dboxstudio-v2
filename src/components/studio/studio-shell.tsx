@@ -651,10 +651,22 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const timeout = window.setTimeout(() => {
       void Promise.all([
         outsideDielineLayers.length
-          ? rasterizeFullDielineLayers(outsideDielineLayers, dimensions)
+          ? rasterizeFullDielineLayers(
+              outsideDielineLayers,
+              dimensions,
+              '',
+              selectedTemplateId,
+              {openingMode,splitTopHingeSide},
+            )
           : Promise.resolve({} as ArtworkByPanel),
         insideDielineLayers.length
-          ? rasterizeFullDielineLayers(insideDielineLayers, dimensions, 'Interior ')
+          ? rasterizeFullDielineLayers(
+              insideDielineLayers,
+              dimensions,
+              'Interior ',
+              selectedTemplateId,
+              {openingMode,splitTopHingeSide},
+            )
           : Promise.resolve({} as ArtworkByPanel),
       ]).then(([outsideMapped, insideMapped]) => {
         if (liveMapTokenRef.current !== token) return;
@@ -668,7 +680,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }, 180);
 
     return () => window.clearTimeout(timeout);
-  }, [outsideDielineLayers, insideDielineLayers, dimensions]);
+  }, [outsideDielineLayers, insideDielineLayers, dimensions, selectedTemplateId, openingMode, splitTopHingeSide]);
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) if(asset.url.startsWith('blob:')) URL.revokeObjectURL(asset.url);
