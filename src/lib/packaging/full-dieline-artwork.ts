@@ -118,15 +118,12 @@ export async function rasterizeFullDielineLayers(
 
     for(const {layer,image} of loaded){
       const physical=sheetTransformToPhysical(layer.transform,bounds);
-      const localCenterX=(physical.centerX-panel.x)*scaleX;
-      const localCenterY=(physical.centerY-panel.y)*scaleY;
-      const widthPx=physical.width*scaleX;
-      const heightPx=physical.height*scaleY;
-
       ctx.save();
-      ctx.translate(localCenterX,localCenterY);
+      // Rotate in physical sheet coordinates before mapping to rounded pixels.
+      ctx.scale(scaleX,scaleY);
+      ctx.translate(physical.centerX-panel.x,physical.centerY-panel.y);
       ctx.rotate(physical.rotation*Math.PI/180);
-      ctx.drawImage(image,-widthPx/2,-heightPx/2,widthPx,heightPx);
+      ctx.drawImage(image,-physical.width/2,-physical.height/2,physical.width,physical.height);
       ctx.restore();
     }
 
@@ -160,9 +157,10 @@ export async function rasterizePanelArtwork(artwork: ArtworkByPanel, dimensions:
     const ctx=canvas.getContext('2d');
     if(!ctx) throw new Error('Canvas is not available');
     const t=value.transform;
-    ctx.translate(canvas.width*t.x/100,canvas.height*t.y/100);
+    ctx.scale(canvas.width/panel.width,canvas.height/panel.height);
+    ctx.translate(panel.width*t.x/100,panel.height*t.y/100);
     ctx.rotate(t.rotation*Math.PI/180);
-    const width=canvas.width*t.width/100,height=canvas.height*t.height/100;
+    const width=panel.width*t.width/100,height=panel.height*t.height/100;
     ctx.drawImage(image,-width/2,-height/2,width,height);
     return [key,{...defaultArtworkPlacement(value.name,canvas.toDataURL('image/png'),value.assetId),panelTexture:true,mode:'fill' as const}] as const;
   }));
