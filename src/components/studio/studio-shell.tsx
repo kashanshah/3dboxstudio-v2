@@ -47,9 +47,13 @@ export function StudioShell() {
   const [zoom, setZoom] = useState(82);
   const [dimensions, setDimensions] = useState<CartonDimensions>(DEFAULT_CARTON_DIMENSIONS);
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>({});
-  const [fullDielineLayers, setFullDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
-  const [selectedFullDielineLayerId, setSelectedFullDielineLayerId] = useState<string | null>(null);
-  const [mappedFullDielineArtwork, setMappedFullDielineArtwork] = useState<ArtworkByPanel>({});
+  const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
+  const [insideDielineLayers, setInsideDielineLayers] = useState<FullDielineArtworkLayer[]>([]);
+  const [selectedOutsideLayerId, setSelectedOutsideLayerId] = useState<string | null>(null);
+  const [selectedInsideLayerId, setSelectedInsideLayerId] = useState<string | null>(null);
+  const [mappedOutsideArtwork, setMappedOutsideArtwork] = useState<ArtworkByPanel>({});
+  const [mappedInsideArtwork, setMappedInsideArtwork] = useState<ArtworkByPanel>({});
+  const [dielineZoom, setDielineZoom] = useState(112);
   const liveMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>([]);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>([]);
@@ -72,8 +76,8 @@ export function StudioShell() {
   const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
-    return { ...mappedFullDielineArtwork, ...artworkByPanel };
-  }, [artworkByPanel, mappedFullDielineArtwork]);
+    return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel };
+  }, [artworkByPanel, mappedOutsideArtwork, mappedInsideArtwork]);
   const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
   const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
     ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
@@ -85,28 +89,27 @@ export function StudioShell() {
 
   useEffect(() => {
     const token = ++liveMapTokenRef.current;
-    if (!fullDielineLayers.length) {
-      const clearTimeoutId = window.setTimeout(() => {
-        if (liveMapTokenRef.current === token) setMappedFullDielineArtwork({});
-      }, 0);
-      return () => window.clearTimeout(clearTimeoutId);
-    }
-
     const timeout = window.setTimeout(() => {
-      void rasterizeFullDielineLayers(fullDielineLayers, dimensions)
-        .then(mapped => {
-          if (liveMapTokenRef.current !== token) return;
-          setMappedFullDielineArtwork(mapped);
-          setMessage('3D preview synced');
-        })
-        .catch(() => {
-          if (liveMapTokenRef.current !== token) return;
-          setMessage('Could not sync artwork to 3D');
-        });
+      void Promise.all([
+        outsideDielineLayers.length
+          ? rasterizeFullDielineLayers(outsideDielineLayers, dimensions)
+          : Promise.resolve({} as ArtworkByPanel),
+        insideDielineLayers.length
+          ? rasterizeFullDielineLayers(insideDielineLayers, dimensions, 'Interior ')
+          : Promise.resolve({} as ArtworkByPanel),
+      ]).then(([outsideMapped, insideMapped]) => {
+        if (liveMapTokenRef.current !== token) return;
+        setMappedOutsideArtwork(outsideMapped);
+        setMappedInsideArtwork(insideMapped);
+        setMessage('3D preview synced');
+      }).catch(() => {
+        if (liveMapTokenRef.current !== token) return;
+        setMessage('Could not sync artwork to 3D');
+      });
     }, 180);
 
     return () => window.clearTimeout(timeout);
-  }, [fullDielineLayers, dimensions]);
+  }, [outsideDielineLayers, insideDielineLayers, dimensions]);
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) URL.revokeObjectURL(asset.url);
