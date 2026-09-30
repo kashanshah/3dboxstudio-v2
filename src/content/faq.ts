@@ -40,6 +40,20 @@ export function faqAnswerPlainText(answer: string): string {
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
+    id: "2d-to-3d-workflow",
+    category: "overview",
+    question: "How does the 2D dieline-to-3D workflow work?",
+    answer:
+      "Start in the 2D Design view by placing artwork over the flat dieline. You can move, resize, and rotate the artwork visually, then apply that exact composition to the package. 3D Box Studio maps the relevant portions of the flat design onto the corresponding 3D panels so you can fold, rotate, and review the finished package without rebuilding the artwork face by face.",
+  },
+  {
+    id: "dieline-artwork-placement",
+    category: "getting-started",
+    question: "Can I upload one large image and position it across the whole dieline?",
+    answer:
+      "Yes. The 2D Design canvas is intended for full-layout composition. Upload an image, position it over the dieline, resize it proportionally, rotate it, and adjust the composition before mapping it to the folded 3D package. Individual panel artwork can still be used later as an override when needed.",
+  },
+  {
     id: "what-is-3d-box-designer",
     category: "overview",
     question: "What is a 3D box designer or packaging simulator?",
@@ -142,7 +156,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "comparison",
     question: "Is 3D Box Studio a free Pacdora alternative?",
     answer:
-      "3D Box Studio is being built as a browser-based packaging design alternative focused on an intuitive 2D/3D workflow. Pacdora currently has a much larger template library and mature production/export tooling. V2 already supports a real foldable reverse-tuck carton, custom dimensions, reusable artwork, inside/outside surfaces, camera controls, and PNG export; more templates and production workflows are being added progressively.",
+      "3D Box Studio is being built as a browser-based packaging design alternative focused on an intuitive 2D-to-3D workflow. Compose artwork on the flat dieline first, then map that exact placement to a foldable 3D package for review. Pacdora currently has a much larger template library and mature production/export tooling; 3D Box Studio is progressively adding more structures, dieline import, and production workflows.",
   },
   {
     id: "download-required",
@@ -184,7 +198,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "comparison",
     question: "What is the difference between a dieline and a 3D box mockup?",
     answer:
-      "A dieline is a flat production file with cut, crease, and bleed lines for the printer—it defines manufacturing geometry. A 3D box mockup is a visual preview showing how finished packaging looks with artwork, materials, and lighting. Use dieline tools (Pacdora, ArtiosCAD, Templatemaker) for print plates; use a 3D mockup tool for client presentations, e-commerce visuals, and design reviews.",
+      "A dieline is the flat structural layout that shows cut, crease, and panel geometry. In 3D Box Studio, that flat layout can also act as the artwork composition canvas: place and transform artwork in 2D, then map that same composition onto the folded 3D package for review. Production-ready die engineering and press proofs should still be validated in your printer or structural CAD workflow.",
   },
   {
     id: "tuck-end-box",

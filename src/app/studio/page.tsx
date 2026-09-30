@@ -3,7 +3,7 @@ import { StudioShell } from '@/components/studio/studio-shell';
 import { site } from '@/lib/site';
 
 const title='Free 3D Box Maker & Packaging Mockup Generator | 3D Box Studio';
-const description='Design cartons and mailer boxes in a free online 3D box maker and packaging simulator. Set custom dimensions, upload artwork, preview openings and materials, then export PNG mockups or share your design.';
+const description='Design cartons in a browser-based 2D-to-3D packaging workflow. Compose artwork on the flat dieline, drag, resize and rotate it, then map that exact layout onto the folded 3D package for review.';
 
 export const metadata: Metadata = {
   title:{absolute:title},
@@ -14,6 +14,6 @@ export const metadata: Metadata = {
 };
 
 export default function Studio() {
-  const schema={'@context':'https://schema.org','@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description,url:new URL('/studio',site.url).toString(),featureList:['Custom box dimensions','Packaging materials','Opening simulation','Per-face artwork upload','Interactive 3D preview','PNG export']};
+  const schema={'@context':'https://schema.org','@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description,url:new URL('/studio',site.url).toString(),featureList:['Custom box dimensions','2D dieline artwork canvas','Free-transform artwork placement','2D composition mapped to 3D panels','Packaging materials','Opening simulation','Interactive 3D preview','PNG export']};
   return <><StudioShell/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
