@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
-  PackageOpen, Search, Share2, Sparkles, ZoomIn, ZoomOut,
+  PackageOpen, RotateCcw, Search, Share2, Sparkles, ZoomIn, ZoomOut,
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -786,6 +786,11 @@ function Inspector(props: {
                 <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <em>{props.measurementUnit}</em>
               </div>
+              <button type="button" className="pro-reset-box-size" title="Restore this template’s default width, height, and depth" onClick={() => {
+                const defaults = selectedTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS;
+                props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
+                props.setMessage('Box size reset to template defaults');
+              }}><RotateCcw size={12} aria-hidden="true" /> Reset size</button>
               <div className="pro-current-box-thickness">
                 <span>Board thickness</span>
                 <label>

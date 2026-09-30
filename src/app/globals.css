@@ -1435,6 +1435,8 @@ body{font-size:var(--type-body)}
   gap:6px;
   align-items:end;
 }
+.pro-reset-box-size{display:inline-flex;align-items:center;justify-self:start;gap:5px;min-height:32px;padding:4px 6px;border:0;border-radius:5px;background:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
+.pro-reset-box-size:hover{color:var(--ink);background:var(--paper)}
 .pro-current-box-size-fields label{min-width:0;display:grid;gap:4px}
 .pro-current-box-size-fields small{color:var(--muted);font-size:9px;font-weight:700;text-transform:uppercase}
 .pro-current-box-size-fields input{
