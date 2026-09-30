@@ -91,7 +91,10 @@ test('finished dimensions define exact 2D panel sizes used for 3D texture crops'
 
     for(const panel of [front,left,right,top,bottom]){
       const raster=panelRasterSize(panel);
-      near(raster.width/raster.height,panel.width/panel.height);
+      assert.ok(
+        Math.abs(raster.width/raster.height-panel.width/panel.height) <= 1/Math.min(raster.width,raster.height),
+        `Raster aspect drifted for ${panel.id}`,
+      );
     }
   }
 });
