@@ -2869,3 +2869,112 @@ body{font-size:var(--type-body)}
   .pro-panel-intro p{font-size:14px}
   .pro-fields input,.pro-current-box-size-fields input,.pro-current-box-thickness input{font-size:16px}
 }
+
+
+/* P0 editor navigation — task-first rail, existing tools preserved in contextual subnavigation. */
+.pro-task-rail{
+  padding:16px 10px;
+  gap:12px;
+}
+.pro-task-rail button{
+  min-height:104px;
+  height:auto;
+  padding:14px 8px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:10px;
+  border-radius:14px;
+}
+.pro-task-rail button>span{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+}
+.pro-task-rail button strong{
+  font-size:14px;
+  line-height:1.15;
+  font-weight:700;
+}
+.pro-task-rail button small{
+  max-width:86px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.25;
+  font-weight:500;
+  text-align:center;
+}
+.pro-task-rail button.is-active small{color:color-mix(in srgb,var(--accent) 72%,var(--muted))}
+.pro-task-rail button.is-active{
+  background:var(--accent-soft);
+  color:var(--accent);
+  box-shadow:inset 3px 0 0 var(--accent);
+}
+
+.pro-inspector-subnav{
+  display:flex;
+  gap:6px;
+  padding:10px 12px;
+  overflow-x:auto;
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 52%,#fff);
+  scrollbar-width:none;
+}
+.pro-inspector-subnav::-webkit-scrollbar{display:none}
+.pro-inspector-subnav button{
+  flex:0 0 auto;
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:0 11px;
+  border:1px solid transparent!important;
+  border-radius:8px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:650;
+}
+.pro-inspector-subnav button:hover{
+  background:#fff!important;
+  border-color:var(--line)!important;
+  color:var(--ink);
+}
+.pro-inspector-subnav button.is-active{
+  background:#fff!important;
+  border-color:var(--accent-line)!important;
+  color:var(--accent);
+  box-shadow:0 1px 2px #1017200a;
+}
+.pro-inspector-subnav + .pro-inspector-content{
+  max-height:calc(100% - 137px);
+}
+
+@media(max-width:1050px){
+  .pro-task-rail button{min-height:94px;padding-inline:6px}
+  .pro-task-rail button strong{font-size:13px}
+  .pro-task-rail button small{font-size:10px;max-width:74px}
+}
+@media(max-width:640px){
+  .pro-mobile-task-dock{
+    grid-template-columns:repeat(3,1fr);
+  }
+  .pro-mobile-task-dock button{
+    min-height:58px;
+    font-size:12px;
+    gap:5px;
+  }
+  .pro-mobile-task-dock button svg{width:21px;height:21px}
+  .pro-inspector-subnav{
+    padding:9px 10px;
+    gap:6px;
+  }
+  .pro-inspector-subnav button{
+    min-height:40px;
+    font-size:13px;
+  }
+  .pro-inspector-subnav + .pro-inspector-content{
+    max-height:calc(100% - 131px);
+  }
+}
