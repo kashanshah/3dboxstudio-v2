@@ -29,6 +29,7 @@ type Props = {
   artworkByPanel: ArtworkByPanel;
   cameraPreset: string;
   zoom: number;
+  viewPan?: {x:number;y:number};
   onZoomChange?: React.Dispatch<React.SetStateAction<number>>;
   lightIntensity?: number;
   onPanelSelect?: (panel: string, point: { x: number; y: number }) => void;
@@ -46,7 +47,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, onZoomChange, lightIntensity = 0.78, onPanelSelect },
+  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, onZoomChange, lightIntensity = 0.78, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -165,10 +166,11 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       yaw,
       pitch,
       zoom,
+      viewPan,
       lightIntensity,
       hoverPanel,
     });
-  }, [dimensions, opening, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, lightIntensity, hoverPanel]);
+  }, [dimensions, opening, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
@@ -239,6 +241,7 @@ type Scene = {
   yaw: number;
   pitch: number;
   zoom: number;
+  viewPan: {x:number;y:number};
   lightIntensity: number;
   hoverPanel: string | null;
 };
@@ -289,6 +292,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
     yaw: -0.55,
     pitch: 0.28,
     zoom: 82,
+    viewPan:{x:0,y:0},
     lightIntensity: 0.78,
     hoverPanel: null,
   };
@@ -298,7 +302,11 @@ function createRenderer(canvas: HTMLCanvasElement) {
     const { width, height, depth } = scene.dimensions;
     const maxDimension = Math.max(width, height, depth);
     const aspect = Math.max(0.1, canvas.width / canvas.height);
-    const viewProjection = studioViewProjection(maxDimension, aspect, scene.yaw, scene.pitch, scene.zoom);
+    const viewProjection = studioViewProjection(
+      maxDimension,aspect,scene.yaw,scene.pitch,scene.zoom,
+      2*scene.viewPan.x/Math.max(1,canvas.clientWidth),
+      -2*scene.viewPan.y/Math.max(1,canvas.clientHeight),
+    );
     const materialBase = materialColor(scene.material);
     const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
     const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
@@ -444,7 +452,11 @@ function createRenderer(canvas: HTMLCanvasElement) {
       const { width, height, depth } = scene.dimensions;
       const maxDimension = Math.max(width, height, depth);
       const aspect = Math.max(0.1, canvas.width / canvas.height);
-      const viewProjection = studioViewProjection(maxDimension, aspect, scene.yaw, scene.pitch, scene.zoom);
+      const viewProjection = studioViewProjection(
+        maxDimension,aspect,scene.yaw,scene.pitch,scene.zoom,
+        2*scene.viewPan.x/Math.max(1,canvas.clientWidth),
+        -2*scene.viewPan.y/Math.max(1,canvas.clientHeight),
+      );
       const materialBase = materialColor(scene.material);
       const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
       const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
@@ -1020,11 +1032,29 @@ function dot3(a:number[],b:number[]) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
 function clamp(value:number,min:number,max:number){ return Math.min(max,Math.max(min,value)); }
 
 /** Shared by drawing and picking. Magnify the lens without moving through the box or clipping distant zoom levels. */
-export function studioViewProjection(maxDimension: number, aspect: number, yaw: number, pitch: number, zoom: number) {
+export function studioViewProjection(
+  maxDimension:number,
+  aspect:number,
+  yaw:number,
+  pitch:number,
+  zoom:number,
+  offsetNdcX=0,
+  offsetNdcY=0,
+) {
   const eye = orbitEye(maxDimension * 2.462, yaw, pitch);
   const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
   // Keep the depth range close to the actual carton. A near plane at 1% of
   // its size loses enough precision to make 0.3–2 mm board edges flicker.
   const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.2), maxDimension * 12, zoom / 82);
-  return multiply4(projection, view);
+  if(!offsetNdcX&&!offsetNdcY)return multiply4(projection,view);
+
+  // Translate after perspective projection so the offset is true screen-space
+  // panning. This lets wheel zoom keep the point under the cursor stationary.
+  const clipTranslation=new Float32Array([
+    1,0,0,0,
+    0,1,0,0,
+    0,0,1,0,
+    offsetNdcX,offsetNdcY,0,1,
+  ]);
+  return multiply4(clipTranslation,multiply4(projection,view));
 }
