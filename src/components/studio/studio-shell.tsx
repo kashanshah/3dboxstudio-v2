@@ -14,7 +14,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
-import { DEFAULT_FULL_DIELINE_TRANSFORM, rasterizeFullDielineLayers, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { createFullDielineTransform, rasterizeFullDielineLayers, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type Mode = '3d' | 'dieline';
@@ -170,16 +170,20 @@ export function StudioShell() {
       const layerId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
         ? crypto.randomUUID()
         : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const bounds = reverseTuckBounds(dimensions);
+      const imageAspect = asset.width && asset.height ? asset.width / asset.height : 1;
       const layer: FullDielineArtworkLayer = {
         id: layerId,
         assetId: asset.id,
         name: asset.name,
         url: asset.url,
-        transform: {
-          ...DEFAULT_FULL_DIELINE_TRANSFORM,
-          width: DEFAULT_FULL_DIELINE_TRANSFORM.width * scale / 100,
-          rotation: options?.rotation ?? 0,
-        },
+        aspectRatio: imageAspect,
+        transform: createFullDielineTransform(
+          imageAspect,
+          bounds.width / bounds.height,
+          scale,
+          options?.rotation ?? 0,
+        ),
       };
       setFullDielineLayers(current => [...current, layer]);
       setSelectedFullDielineLayerId(layerId);
