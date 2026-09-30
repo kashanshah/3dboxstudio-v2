@@ -13,10 +13,11 @@ test('unified command runs database before assets and forwards apply/dry-run', a
     const calls = [], logs = [];
     await runAllMigrations({ args, env, run: async (...call) => calls.push(call), log: message => logs.push(message) });
     const mode = args.length ? '--apply' : '--dry-run';
-    assert.deepEqual(calls, [['./migrate-legacy-users.mjs', mode], ['./legacy-asset-sync.mjs', mode]]);
-    assert.ok(logs.some(line => line.includes('[1/2]')));
-    assert.ok(logs.some(line => line.includes('[2/2]')));
-    assert.match(logs.at(-1), /conversion is still pending/);
+    assert.deepEqual(calls, [['./migrate-legacy-users.mjs', mode], ['./legacy-asset-sync.mjs', mode], ['./migrate-legacy-shares.mjs', mode]]);
+    assert.ok(logs.some(line => line.includes('[1/3]')));
+    assert.ok(logs.some(line => line.includes('[2/3]')));
+    assert.ok(logs.some(line => line.includes('[3/3]')));
+    assert.match(logs.at(-1), /represented in V2-owned storage\/data/);
   }
 });
 

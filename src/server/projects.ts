@@ -73,7 +73,6 @@ export async function getStudioProject(userId:string,id:string):Promise<SavedStu
  const legacy=legacyRows[0];
  if(!legacy)return null;
  const mediaByFace=await ensureLegacyMediaForDesign(userId,legacy.payload);
- const assetBaseUrl=process.env.LEGACY_ASSET_BASE_URL?.trim();
- const converted=legacyDesignToStudioProject({source:legacy.source,sourceId:legacy.source_id,payload:legacy.payload,assetBaseUrl,mediaByFace});
+ const converted=legacyDesignToStudioProject({source:legacy.source,sourceId:legacy.source_id,payload:legacy.payload,mediaByFace});
  return converted?{...converted,workspaceProjectId:null}:null;
 }

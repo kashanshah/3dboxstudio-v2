@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getLegacyShareImageById } from '@/server/design-shares';
-import { readLegacyStoredObject } from '@/server/legacy-media';
+import { getMigratedShareAsset } from '@/server/design-shares';
+import { readStoredObject } from '@/server/media-assets';
 
 export const runtime='nodejs';
 
 export async function GET(_req:Request,{params}:{params:Promise<{id:string;face:string}>}){
  const {id,face}=await params;
  try{
-  const meta=await getLegacyShareImageById(id,face);
+  const meta=await getMigratedShareAsset(id,face);
   if(!meta)return new NextResponse('Not found',{status:404});
-  const object=await readLegacyStoredObject(meta.storageKey);
+  const object=await readStoredObject(meta.storageKey);
   if(!object)return new NextResponse('Not found',{status:404});
   const body=object.bytes.buffer.slice(object.bytes.byteOffset,object.bytes.byteOffset+object.bytes.byteLength) as ArrayBuffer;
   return new NextResponse(body,{status:200,headers:{
@@ -22,7 +22,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string;face:
    ...(meta.mime==='image/svg+xml'?{'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; sandbox"}:{}),
   }});
  }catch(error){
-  console.error('legacy share image read failed',error);
+  console.error('migrated share artwork read failed',error);
   return new NextResponse('Could not load artwork',{status:500});
  }
 }
