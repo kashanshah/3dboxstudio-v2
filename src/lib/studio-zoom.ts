@@ -1,8 +1,10 @@
-/** Proportional steps stay useful at any magnification, without product zoom limits. */
+export const MIN_STUDIO_ZOOM = 5;
+
+/** Keep proportional zoom free above a practical 5% minimum. */
 export function scaleStudioZoom(zoom: number, factor: number) {
   const next = zoom * factor;
-  // Keep transforms valid only at JavaScript's numeric underflow/overflow boundary.
-  return next > 0 && Number.isFinite(next) ? next : zoom;
+  if (!Number.isFinite(next)) return zoom;
+  return Math.max(MIN_STUDIO_ZOOM, next);
 }
 
 export function wheelStudioZoom(zoom: number, deltaY: number, deltaMode = 0, pinch = false) {
