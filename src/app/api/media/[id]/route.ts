@@ -43,7 +43,8 @@ export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>})
     const result=await deleteMediaAsset(user.id,(await params).id);
     if(result.deleted)return NextResponse.json({ok:true});
     if(result.reason==='in_use')return NextResponse.json({
-      error:`This image is used by “${result.project.name}”. Remove it from saved designs before deleting it.`
+      error:'This image is still used by saved designs. Remove or replace it there before deleting it from My Images.',
+      usages:result.projects,
     },{status:409});
     return NextResponse.json({error:'Image not found.'},{status:404});
   }catch(error){
