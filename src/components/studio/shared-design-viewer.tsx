@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Box,Grid3X3,PackageOpen,RotateCcw } from 'lucide-react';
+import { Box,Grid3X3,PackageOpen } from 'lucide-react';
 import { CartonEngine } from '@/components/studio/carton-engine';
 import type { StudioProjectState } from '@/lib/studio-project';
 import { Brand } from '@/components/site-shell';
