@@ -1,4 +1,4 @@
-import type { ArtworkByPanel,ArtworkPlacement } from '@/lib/packaging/artwork';
+import type { ArtworkByPanel,ArtworkPlacement,LocalMediaAsset } from '@/lib/packaging/artwork';
 import type { SavedStudioProject,StudioProjectState,LegacyOpeningMode } from '@/lib/studio-project';
 
 type JsonRecord=Record<string,unknown>;
@@ -41,7 +41,7 @@ function imageName(entry:unknown,fallback:string){const item=record(entry);retur
 function normalizedOpening(value:unknown):LegacyOpeningMode{
  return typeof value==='string'&&OPENINGS.has(value as LegacyOpeningMode)?value as LegacyOpeningMode:'closed';
 }
-export function legacyDesignToStudioProject(args:{source:string;sourceId:string;payload:unknown;assetBaseUrl:string}):SavedStudioProject|null{
+export function legacyDesignToStudioProject(args:{source:string;sourceId:string;payload:unknown;assetBaseUrl?:string;mediaByFace?:Record<string,LocalMediaAsset>}):SavedStudioProject|null{
  const payload=record(args.payload),config=record(payload.config),images=record(payload.images);
  const dims=record(config.dims),unit=typeof config.unit==='string'?config.unit:'cm';
  const openingMode=normalizedOpening(config.opening);
@@ -52,13 +52,16 @@ export function legacyDesignToStudioProject(args:{source:string;sourceId:string;
  const artworkByPanel:ArtworkByPanel={};
  for(const [faceId,label] of Object.entries(FACE_LABELS)){
    const entry=images[faceId];const key=imageKey(entry);if(!key)continue;
+   const media=args.mediaByFace?.[faceId];
+   if(!media&&!args.assetBaseUrl)continue;
    const placement=record(placements[faceId]);
    const placementRotation=Number(placement.rotation);
    const textureRotation=Number(rotations[faceId]);
    const rotation=Number.isFinite(placementRotation)?placementRotation:Number.isFinite(textureRotation)?textureRotation:0;
    const artwork:ArtworkPlacement={
-     name:imageName(entry,`${label} artwork`),
-     url:assetUrl(args.assetBaseUrl,key),
+     ...(media?{assetId:media.id}:{}),
+     name:media?.name??imageName(entry,`${label} artwork`),
+     url:media?.url??assetUrl(args.assetBaseUrl!,key),
      mode:'fill',scale:100,rotation,alignX:0,alignY:0,
      ...(cropOf(placement)?{crop:cropOf(placement)}:{}),
    };
@@ -90,7 +93,7 @@ export function legacyDesignToStudioProject(args:{source:string;sourceId:string;
    artworkByPanel,
    outsideArtworkLayers:[],
    insideArtworkLayers:[],
-   mediaAssets:[],
+   mediaAssets:Array.from(new Map(Object.values(args.mediaByFace??{}).map(asset=>[asset.id,asset])).values()),
    outsideColorMode:'custom',
    insideColorMode:'material',
    outsideCustomColor:finish.color,
