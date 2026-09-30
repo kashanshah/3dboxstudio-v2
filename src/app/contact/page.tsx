@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowUpRight, BookOpen, Bug, Lightbulb, MessageSquareText, BriefcaseBusiness } from 'lucide-react';
 import { ContentHero, ContentPageShell } from '@/components/content-page-shell';
 import { CONTACT_PAGE_DESCRIPTION, CONTACT_PAGE_TITLE, CONTACT_TOPICS } from '@/content/contact';
+import { ContactForm } from '@/components/contact-form';
 
 export const metadata: Metadata = { title: { absolute: CONTACT_PAGE_TITLE }, description: CONTACT_PAGE_DESCRIPTION, alternates: { canonical: '/contact' } };
 
@@ -18,7 +19,7 @@ export default function ContactPage() {
         </div>
         <div className="contact-side-note"><BookOpen size={20}/><h3>Looking for a quick answer?</h3><p>Browse concise guidance on dimensions, artwork, materials, sharing, and export preparation.</p><Link className="content-text-link" href="/faq">Visit the help center <ArrowUpRight size={16}/></Link></div>
       </div>
-      <div className="contact-panel"><p className="content-eyebrow">Send a message</p><h2>Questions, feedback, or a workflow problem?</h2><p>{CONTACT_PAGE_DESCRIPTION}</p><a className="button" href="https://www.3dboxstudio.com/contact">Open the contact form <ArrowUpRight size={17}/></a><p className="contact-panel-note">The existing production contact workflow remains in place while V2 is being prepared for cutover.</p></div>
+      <div className="contact-panel"><p className="content-eyebrow">Send a message</p><h2>Questions, feedback, or a workflow problem?</h2><p>{CONTACT_PAGE_DESCRIPTION}</p><ContactForm /></div>
     </div>
   </ContentPageShell>;
 }
