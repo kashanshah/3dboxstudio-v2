@@ -228,6 +228,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [selectedMediaAssetId, setSelectedMediaAssetId] = useState<string | null>(null);
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(!initialProject);
+  const [designToolsOpen, setDesignToolsOpen] = useState(true);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
   const [importedDieline, setImportedDieline] = useState<ParsedDieline | null>(null);
@@ -733,6 +734,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMode('dieline');
       setTool('artwork');
       setInspectorOpen(false);
+      setDesignToolsOpen(true);
       return;
     }
 
@@ -1688,6 +1690,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           setCanvasPan={setCanvasPan}
           onChooseFullLayout={() => openMediaLibrary('__FULL_DIELINE__')}
           onDropArtworkFiles={handleBoardArtworkDrop}
+          toolsOpen={designToolsOpen}
+          onCloseTools={()=>setDesignToolsOpen(false)}
           onApplyChanges={() => {
             goToWorkflowStep('preview','opening');
             setFaceAction(null);
@@ -1783,7 +1787,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>
 
 
-        <button className="pro-mobile-inspector" onClick={() => { if (tool) setInspectorOpen(true); }} disabled={!tool||workflowStep==='design'}><Sparkles size={14} /> {workflowStep==='box'?'Box settings':workflowStep==='preview'?'Preview settings':'Design tools'}</button>
+        <button className="pro-mobile-inspector" onClick={() => { if(workflowStep==='design'){setDesignToolsOpen(true);return;} if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {workflowStep==='box'?'Box settings':workflowStep==='preview'?'Preview settings':'Design tools'}</button>
         {message !== 'Ready' && <div className={`pro-studio-toast${saveFailed?' is-error':''}`} role="status" aria-live="polite"><span className="pro-status-dot" /> <span>{message}</span></div>}
         <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span title="Finished size: width × height × depth">{family} · W {formatDimension(dimensions.width, measurementUnit)} × H {formatDimension(dimensions.height, measurementUnit)} × D {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
@@ -2432,6 +2436,8 @@ function DielinePrototype({
   setCanvasPan,
   onChooseFullLayout,
   onDropArtworkFiles,
+  toolsOpen,
+  onCloseTools,
   onApplyChanges,
   pdfExportRequest,
   onClearImportedDieline,
@@ -2468,6 +2474,8 @@ function DielinePrototype({
   setCanvasPan:React.Dispatch<React.SetStateAction<{x:number;y:number}>>;
   onChooseFullLayout:()=>void;
   onDropArtworkFiles:(files:File[],point:{x:number;y:number})=>void;
+  toolsOpen:boolean;
+  onCloseTools:()=>void;
   onApplyChanges:()=>void;
   pdfExportRequest:number;
   onClearImportedDieline:()=>void;
@@ -2751,11 +2759,12 @@ function DielinePrototype({
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
     >
-      <aside className="pro-2d-left-panel" aria-label="Design tools">
-        <div className="pro-2d-left-panel-head">
-          <span>Design</span>
-          <strong>Artwork & layers</strong>
+      {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label="Design tools">
+        <div className="pro-inspector-title pro-design-inspector-title">
+          <div><span>Design</span><h2>Artwork & Layers</h2></div>
+          <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label="Close Design tools" title="Close" onClick={onCloseTools}><X size={18}/></button>
         </div>
+        <div className="pro-design-inspector-content">
         <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
           <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
           <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
@@ -2847,7 +2856,8 @@ function DielinePrototype({
             finally { setPrinting(false); }
           }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
         </div>
-      </aside>
+        </div>
+      </aside>}
       <div className="pro-2d-right-preview">{livePreview}</div>
 
       <div
