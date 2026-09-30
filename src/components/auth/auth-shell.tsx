@@ -31,10 +31,6 @@ export function AuthShell({ eyebrow, title, intro, children, footer }: { eyebrow
   );
 }
 
-export function GoogleMark() {
-  return <span className="google-mark" aria-hidden="true"><i /><i /><i /><i /></span>;
-}
-
 export function AuthNotice({ kind = "success", children }: { kind?: "success" | "error" | "info"; children: ReactNode }) {
   return <div className={`auth-notice is-${kind}`} role={kind === "error" ? "alert" : "status"}>{children}</div>;
 }

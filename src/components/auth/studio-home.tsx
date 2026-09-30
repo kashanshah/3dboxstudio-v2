@@ -2,13 +2,14 @@
 import Link from 'next/link';
 import { Box,FilePlus2,Search,Clock3,UserRound,PackageOpen } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
+import { GoogleSignInButton } from './google-sign-in-button';
 import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
 import type { WorkspaceDesign } from '@/server/projects';
 import { PACKAGING_TEMPLATES } from '@/lib/packaging/template-registry';
 import './studio-home.css';
 import './auth-pages.css';
-export function StudioGate({next='/studio'}:{next?:string}){return <main className="studio-auth-gate"><header className="studio-gate-header"><Brand/><Link className="button button-secondary button-small" href={`/login?next=${encodeURIComponent(next)}`}>Sign in</Link></header><div className="studio-gate-body"><section className="studio-gate-content"><div className="studio-gate-preview" aria-hidden="true"><div className="studio-gate-cube">YOUR<br/>NEXT<br/>IDEA</div></div><h1>Your packaging workspace</h1><p>Sign in to create designs, save your artwork, and review your packaging in 3D.</p><div className="studio-gate-actions"><Link className="button button-primary" href={`/signup?next=${encodeURIComponent(next)}`}>Create an account</Link><Link className="button button-secondary" href={`/api/auth/google?next=${encodeURIComponent(next)}`}>Continue with Google</Link></div><p>Already have an account? <Link className="auth-inline-link" href={`/login?next=${encodeURIComponent(next)}`}>Sign in</Link></p></section></div></main>;}
+export function StudioGate({next='/studio'}:{next?:string}){return <main className="studio-auth-gate"><header className="studio-gate-header"><Brand/><GoogleSignInButton next={next}/></header><div className="studio-gate-body"><section className="studio-gate-content"><div className="studio-gate-preview" aria-hidden="true"><div className="studio-gate-cube">YOUR<br/>NEXT<br/>IDEA</div></div><h1>Your packaging workspace</h1><p>Sign in to create designs, save your artwork, and review your packaging in 3D.</p><div className="studio-gate-actions"><Link className="button button-primary" href={`/signup?next=${encodeURIComponent(next)}`}>Create an account</Link><GoogleSignInButton next={next}/></div><p>Already have an account? <Link className="auth-inline-link" href={`/login?next=${encodeURIComponent(next)}`}>Sign in</Link></p></section></div></main>;}
 export function StudioHome({user,designs,total,search,sort,page}:{user:AuthUser;designs:WorkspaceDesign[];total:number;search:string;sort:string;page:number}){
  const firstName=user.name?.split(' ')[0]||'there';
  const pageLink=(target:number)=>`/studio?q=${encodeURIComponent(search)}&sort=${sort}&page=${target}`;
