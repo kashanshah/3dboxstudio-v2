@@ -1677,7 +1677,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
             return <button key={toolId} type="button" className={tool===toolId?'is-active':''} aria-pressed={tool===toolId} onClick={()=>selectTool(toolId)}><Icon size={15}/><span>{item.label}</span></button>;
           })}
         </nav>}
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} workspaceProjectId={workspaceProjectId} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1771,7 +1771,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId}:{initialP
 }
 
 function Inspector(props: {
-  tool: Tool; family: string; setFamily: (v:string)=>void;
+  tool: Tool; workspaceProjectId:string|null; family: string; setFamily: (v:string)=>void;
   selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onImportDieline:()=>void; importedDieline:ParsedDieline|null;
   panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
@@ -2124,21 +2124,24 @@ function Inspector(props: {
     </div>;
   }
 
-  if (tool === 'scene') return <div className="pro-inspector-content">
-    <PanelIntro title="Build a scene" text="Scene Studio is a separate workspace for product photography, composition, lighting, shadows, backgrounds, cameras, and multi-object layouts." />
-    <div className="pro-feature-empty">
-      <Lightbulb size={28}/>
-      <strong>Open Scene Studio</strong>
-      <p>Keep package structure and artwork accurate here, then use saved boxes as reusable objects inside an empty scene.</p>
-      <Link className="pro-primary pro-export-button" href="/scene-studio">Open Scene Studio</Link>
-    </div>
-  </div>;
+  if (tool === 'scene') {
+    const sceneHref=props.workspaceProjectId?`/scene-studio?workspace=${encodeURIComponent(props.workspaceProjectId)}`:'/scene-studio';
+    return <div className="pro-inspector-content">
+      <PanelIntro title="Create a scene" text="Turn this packaging work into a product image with multiple boxes, backgrounds, lighting, shadows and camera composition." />
+      <div className="pro-feature-empty">
+        <Lightbulb size={28}/>
+        <strong>Continue in Scene Studio</strong>
+        <p>Your box design stays reusable here. Scene Studio uses saved packaging as objects without changing the source design.</p>
+        <Link className="pro-primary pro-export-button" href={sceneHref}>Create a scene</Link>
+      </div>
+    </div>;
+  }
 
   return <div className="pro-inspector-content">
-    <PanelIntro title="Export your design" text="Export the current 3D preview or a physical-size 2D artwork layout." />
+    <PanelIntro title="Download your design" text="Download the current 3D preview or prepare a physical-size 2D artwork layout." />
     <div className="pro-export-ready">
       <ImageIcon size={22}/>
-      <div><strong>PNG image</strong><span>Exports the current 3D camera view.</span></div>
+      <div><strong>PNG image</strong><span>Downloads the current 3D camera view.</span></div>
     </div>
     <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/> Download PNG</button>
 
