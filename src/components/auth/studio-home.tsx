@@ -38,9 +38,6 @@ export function StudioHome({
  const scope=activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:'';
  const pageLink=(target:number)=>`/studio?q=${encodeURIComponent(search)}&sort=${sort}&page=${target}${scope}`;
  const createDesignHref=activeProjectId?`/studio/editor?workspace=${encodeURIComponent(activeProjectId)}`:'/studio/editor';
- const defaultProject=projects.find(project=>project.isDefault)??projects[0]??null;
- const sceneProjectId=activeProjectId??defaultProject?.id??null;
- const createSceneHref=sceneProjectId?`/scene-studio?workspace=${encodeURIComponent(sceneProjectId)}`:'/scene-studio';
  const recentDesigns=!search&&sort==='recent'&&page===1?designs.slice(0,4):[];
 
  const createProject=async()=>{
@@ -69,10 +66,10 @@ export function StudioHome({
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
          <span><strong>New box design</strong><small>Choose a box, add artwork, preview it in 3D.</small></span>
        </Link>
-       <Link className="studio-create-action" href={createSceneHref}>
+       <div className="studio-create-action is-coming-soon" aria-disabled="true">
          <span className="studio-create-action-icon"><Clapperboard size={22}/></span>
-         <span><strong>New scene</strong><small>Build a product image using your saved packaging.</small></span>
-       </Link>
+         <span><strong>Scene <em>Coming soon</em></strong><small>Product photography, lighting, backgrounds and multi-box compositions are planned after V2 launch.</small></span>
+       </div>
        <button className="studio-create-project-link" type="button" onClick={()=>setCreatingProject(value=>!value)}><Plus size={17}/> New project</button>
      </div>
    </section>
@@ -121,7 +118,7 @@ export function StudioHome({
    </section>
 
    <section className="studio-library" aria-labelledby="design-library-heading">
-    <div className="studio-section-heading"><div><p>{activeProject?'Inside this project':'Your box designs'}</p><h2 id="design-library-heading">{activeProject?activeProject.name:'All designs'}</h2></div><div className="studio-section-heading-actions">{activeProject&&<Link className="button button-secondary button-small" href={`/scene-studio?workspace=${encodeURIComponent(activeProject.id)}`}>Create scene</Link>}<span>{total} designs</span></div></div>
+    <div className="studio-section-heading"><div><p>{activeProject?'Inside this project':'Your box designs'}</p><h2 id="design-library-heading">{activeProject?activeProject.name:'All designs'}</h2></div><div className="studio-section-heading-actions">{activeProject&&<span className="studio-coming-soon-pill">Scene · Coming soon</span>}<span>{total} designs</span></div></div>
     <form className="studio-library-controls" action="/studio">
       {activeProjectId&&<input type="hidden" name="workspace" value={activeProjectId}/>}
       <label className="studio-search"><Search/><span className="sr-only">Search designs</span><input name="q" defaultValue={search} placeholder="Search your designs" maxLength={80}/></label>
