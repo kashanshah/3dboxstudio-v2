@@ -2799,7 +2799,7 @@ function DielinePrototype({
     >
       {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label="Design tools">
         <div className="pro-inspector-title pro-design-inspector-title">
-          <div><span>Design</span><h2>Artwork & Layers</h2></div>
+          <div><span>Design</span><h2>{artworkScope==='inside'?'Inside artwork':'Outside artwork'}</h2></div>
           <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label="Close Design tools" title="Close" onClick={onCloseTools}><X size={18}/></button>
         </div>
         <div className="pro-design-inspector-content">
@@ -2814,6 +2814,20 @@ function DielinePrototype({
             createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
           )}><Maximize2 size={16}/> Reset selected</button>}
         </div>
+        <div className="pro-design-output">
+          <span>Print output</span>
+          <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
+            if (!printBoardRef.current) return;
+            setPrintError('');setPrinting(true);
+            try { await printDielineLayout(printBoardRef.current,bounds,layers); }
+            catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
+            finally { setPrinting(false); }
+          }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
+        </div>
+        </div>
+      </aside>}
+      <div className="pro-2d-right-preview pro-design-context-stack">
+        {livePreview}
         <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
           <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
@@ -2884,19 +2898,7 @@ function DielinePrototype({
           <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={16}/></button>
         </div>}
         </aside>
-        <div className="pro-design-output">
-          <span>Print output</span>
-          <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
-            if (!printBoardRef.current) return;
-            setPrintError('');setPrinting(true);
-            try { await printDielineLayout(printBoardRef.current,bounds,layers); }
-            catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
-            finally { setPrinting(false); }
-          }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
-        </div>
-        </div>
-      </aside>}
-      <div className="pro-2d-right-preview">{livePreview}</div>
+      </div>
 
       <div
         ref={printBoardRef}
