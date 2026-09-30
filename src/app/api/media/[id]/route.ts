@@ -18,6 +18,9 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
         'Content-Length':String(media.row.byte_size),
         'Cache-Control':'private, max-age=3600, must-revalidate',
         'Content-Disposition':`inline; filename="${media.row.name.replace(/["\\]/g,'_')}"`,
+        'X-Content-Type-Options':'nosniff',
+        'Cross-Origin-Resource-Policy':'same-origin',
+        ...(media.row.mime_type==='image/svg+xml'?{'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; sandbox"}:{}),
       },
     });
   }catch(error){
