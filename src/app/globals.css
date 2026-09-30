@@ -1670,3 +1670,16 @@ body{font-size:var(--type-body)}
   .pro-thickness-input{align-items:stretch;flex-direction:column}
   .pro-thickness-input>div{grid-template-columns:minmax(0,1fr) auto}
 }
+
+
+/* Box thickness belongs with structural dimensions and is visible in Current box. */
+.pro-current-box-thickness{padding-top:8px;border-top:1px dashed var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pro-current-box-thickness>span{color:var(--muted);font-size:10px;font-weight:600}
+.pro-current-box-thickness label{display:flex;align-items:center;gap:6px}
+.pro-current-box-thickness input,.pro-thickness-control-row input{width:82px;height:34px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);padding:0 8px;font:inherit;font-size:12px}
+.pro-current-box-thickness em,.pro-thickness-control-row em{color:var(--muted);font-size:10px;font-style:normal;font-weight:600}
+.pro-thickness-control-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 8px}
+.pro-thickness-control-row>div{display:grid;gap:2px}
+.pro-thickness-control-row strong{font-size:12px}
+.pro-thickness-control-row span{color:var(--muted);font-size:10px}
+.pro-thickness-control-row label{display:flex;align-items:center;gap:6px}

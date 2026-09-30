@@ -708,6 +708,20 @@ function Inspector(props: {
                 <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <em>{props.measurementUnit}</em>
               </div>
+              <div className="pro-current-box-thickness">
+                <span>Board thickness</span>
+                <label>
+                  <input
+                    type="number"
+                    min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
+                    max={props.measurementUnit === 'mm' ? 2 : 0.079}
+                    step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
+                    value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
+                    onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+                  />
+                  <em>{props.measurementUnit}</em>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -750,6 +764,37 @@ function Inspector(props: {
         <span>Try another search or category.</span>
       </div>}
 
+      <div className="pro-card-section pro-box-thickness-card">
+        <SectionTitle title="Board thickness" meta="Box & size" />
+        <div className="pro-thickness-control-row">
+          <div>
+            <strong>Thickness</strong>
+            <span>Physical board edge</span>
+          </div>
+          <label>
+            <input
+              type="number"
+              min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
+              max={props.measurementUnit === 'mm' ? 2 : 0.079}
+              step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
+              value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
+              onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+            />
+            <em>{props.measurementUnit}</em>
+          </label>
+        </div>
+        <input
+          className="pro-range"
+          type="range"
+          min="3"
+          max="20"
+          step="1"
+          value={Math.round(props.dimensions.thickness*10)}
+          onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})}
+        />
+        <p className="pro-help">Controls the visible board edge and the distance between the outside and inside surfaces.</p>
+      </div>
+
       <div className="pro-card-section pro-dieline-import-card">
         <SectionTitle title="Import dieline" meta="SVG / DXF" />
         <p className="pro-help">Use SVG or ASCII DXF for vector dielines. AI, EPS and PDF are not directly supported yet.</p>
@@ -784,8 +829,10 @@ function Inspector(props: {
       <div className="pro-card-section pro-artwork-design-card">
         <div className="pro-artwork-source-head">
           <div>
-            <strong>Design on this side</strong>
-            <span>{selectedArtwork ? 'Your image is ready. Change it or adjust how it sits on the box.' : 'Choose an image to place on this side.'}</span>
+            <strong>{props.artworkScope === 'inside' ? 'Design on inside' : 'Design on outside'}</strong>
+            <span>{selectedArtwork
+              ? `Your ${props.artworkScope} artwork is ready. Change it or adjust how it sits on the package.`
+              : `Choose an image for the ${props.artworkScope} of the package.`}</span>
           </div>
           {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
         </div>
