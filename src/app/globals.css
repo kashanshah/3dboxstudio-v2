@@ -1239,3 +1239,9 @@ body{font-size:var(--type-body)}
   .pro-transform-resize{right:-12px;bottom:-12px}
   .pro-transform-rotate{top:-40px}
 }
+
+
+/* 2D dieline panels are registration guides, never pointer targets. */
+.pro-dieline-live .dl-live{pointer-events:none;user-select:none}
+.pro-dieline-live .dl-live .artwork-layer{pointer-events:none}
+.pro-full-artwork-transform{pointer-events:auto}
