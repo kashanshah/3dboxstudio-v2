@@ -10,7 +10,7 @@ import {
 import { Brand } from '@/components/site-shell';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { artworkCropCss, artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
+import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
