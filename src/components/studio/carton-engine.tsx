@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
+import type { LegacyOpeningMode } from '@/lib/studio-project';
 
 export type CartonEngineHandle = {
   thumbnail: () => string | null;
@@ -20,7 +21,10 @@ export type CartonEngineHandle = {
 
 type Props = {
   dimensions: CartonDimensions;
+  templateId?: string;
   opening: number;
+  openingMode?: LegacyOpeningMode;
+  splitTopHingeSide?: 'side_a' | 'side_b';
   material: string;
   outsideColor?: string | null;
   insideColor?: string | null;
@@ -45,7 +49,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, opening, material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0, onPanelSelect },
+  { dimensions, templateId = 'reverse-tuck-carton', opening, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, lightIntensity = 0, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -156,7 +160,10 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     if (!renderer) return;
     renderer.setScene({
       dimensions,
+      templateId,
       opening,
+      openingMode,
+      splitTopHingeSide,
       material,
       outsideColor,
       insideColor,
@@ -168,7 +175,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       lightIntensity,
       hoverPanel,
     });
-  }, [dimensions, opening, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
+  }, [dimensions, templateId, opening, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
@@ -226,7 +233,10 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 
 type Scene = {
   dimensions: CartonDimensions;
+  templateId: string;
   opening: number;
+  openingMode: LegacyOpeningMode;
+  splitTopHingeSide: 'side_a' | 'side_b';
   material: string;
   outsideColor: string | null;
   insideColor: string | null;
@@ -277,7 +287,10 @@ function createRenderer(canvas: HTMLCanvasElement) {
 
   let scene: Scene = {
     dimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
+    templateId: 'reverse-tuck-carton',
     opening: 18,
+    openingMode: 'closed',
+    splitTopHingeSide: 'side_a',
     material: 'Soft touch',
     outsideColor: null,
     insideColor: null,
@@ -303,7 +316,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
     const materialBase = materialColor(scene.material);
     const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
     const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
-    const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase);
+    const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase,{templateId:scene.templateId,openingMode:scene.openingMode,splitTopHingeSide:scene.splitTopHingeSide});
 
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.enable(gl.DEPTH_TEST);
@@ -453,7 +466,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
       const materialBase = materialColor(scene.material);
       const outsideBase = scene.outsideColor ? hexToRgb(scene.outsideColor) : materialBase;
       const insideBase = scene.insideColor ? hexToRgb(scene.insideColor) : materialInteriorColor(scene.material);
-      const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase)
+      const meshes = buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase,{templateId:scene.templateId,openingMode:scene.openingMode,splitTopHingeSide:scene.splitTopHingeSide})
         .filter(mesh => mesh.panel && mesh.pickCorners);
 
       const hits = meshes.map(mesh => {
@@ -482,7 +495,22 @@ function createRenderer(canvas: HTMLCanvasElement) {
   };
 }
 
+export type BoxMeshOptions={templateId?:string;openingMode?:LegacyOpeningMode;splitTopHingeSide?:'side_a'|'side_b'};
+
 export function buildMeshes(
+  dimensions: CartonDimensions,
+  opening: number,
+  color: [number, number, number],
+  interiorColor: [number, number, number],
+  options:BoxMeshOptions={},
+): Mesh[] {
+  if(options.templateId==='base-box'||options.templateId==='split-top-box'){
+    return buildLegacyBoxMeshes(dimensions,opening,color,interiorColor,options.openingMode??'closed',options.splitTopHingeSide??'side_a',options.templateId==='split-top-box');
+  }
+  return buildReverseTuckMeshes(dimensions,opening,color,interiorColor);
+}
+
+function buildReverseTuckMeshes(
   dimensions: CartonDimensions,
   opening: number,
   color: [number, number, number],
