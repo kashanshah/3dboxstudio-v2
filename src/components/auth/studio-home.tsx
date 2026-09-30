@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect,useRef,useState } from 'react';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Trash2,Move,ExternalLink,X,Check } from 'lucide-react';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Trash2,Move,ExternalLink,X } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { GoogleSignInButton } from './google-sign-in-button';
 import { AccountButton } from './account-button';
