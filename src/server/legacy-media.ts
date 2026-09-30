@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { CopyObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { CopyObjectCommand, GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSql } from '@/server/db';
 import { headStoredObject, type MediaAssetDto } from '@/server/media-assets';
 
@@ -38,6 +38,15 @@ function legacyS3(){
  });
  return client;
 }
+export async function readLegacyStoredObject(sourceStorageKey:string){
+ const sourceBucket=(process.env.LEGACY_AWS_S3_BUCKET||process.env.AWS_S3_BUCKET)?.trim();
+ if(!sourceBucket)throw new Error('Legacy S3 bucket is not configured.');
+ const object=await legacyS3().send(new GetObjectCommand({Bucket:sourceBucket,Key:sourceStorageKey}));
+ if(!object.Body)return null;
+ const bytes=await object.Body.transformToByteArray();
+ return {bytes,contentType:object.ContentType||'application/octet-stream'};
+}
+
 async function ensureCopiedLegacyObject(sourceStorageKey:string,targetStorageKey:string){
  try{return await headStoredObject(targetStorageKey);}catch{}
  const sourceBucket=(process.env.LEGACY_AWS_S3_BUCKET||process.env.AWS_S3_BUCKET)?.trim();
