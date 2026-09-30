@@ -23,6 +23,14 @@ type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export
 type Mode = '3d' | 'dieline';
 type MeasurementUnit = 'mm' | 'in';
 type BaseColorMode = 'material' | 'custom';
+type MediaUploadProgress = {
+  active:boolean;
+  fileName:string;
+  fileIndex:number;
+  totalFiles:number;
+  percent:number;
+  phase:'uploading'|'processing'|'complete';
+};
 
 const MATERIAL_BASE_COLORS: Record<string,{outside:string;inside:string}> = {
   'White board': { outside:'#EBEDF0', inside:'#F5F6F7' },
@@ -55,6 +63,37 @@ async function readUploadDimensions(file:File):Promise<{width:number|null;height
   }
 }
 
+
+function uploadMediaFile(
+  file:File,
+  dimensions:{width:number|null;height:number|null},
+  onProgress:(percent:number,phase:'uploading'|'processing')=>void,
+):Promise<LocalMediaAsset>{
+  return new Promise((resolve,reject)=>{
+    const form=new FormData();
+    form.set('file',file);
+    if(dimensions.width)form.set('width',String(dimensions.width));
+    if(dimensions.height)form.set('height',String(dimensions.height));
+
+    const xhr=new XMLHttpRequest();
+    xhr.open('POST','/api/media');
+    xhr.responseType='json';
+    xhr.upload.onprogress=(event)=>{
+      if(event.lengthComputable){
+        onProgress(Math.max(0,Math.min(99,Math.round(event.loaded/event.total*100))),'uploading');
+      }
+    };
+    xhr.upload.onload=()=>onProgress(100,'processing');
+    xhr.onerror=()=>reject(new Error('Network error while uploading artwork.'));
+    xhr.onabort=()=>reject(new Error('Artwork upload was cancelled.'));
+    xhr.onload=()=>{
+      const result=(xhr.response ?? {}) as {asset?:LocalMediaAsset;error?:string};
+      if(xhr.status>=200&&xhr.status<300&&result.asset)resolve(result.asset);
+      else reject(new Error(result.error||'Could not upload artwork.'));
+    };
+    xhr.send(form);
+  });
+}
 const tools: { id: Tool; label: string; icon: typeof Box }[] = [
   { id: 'structure', label: 'Box & Size', icon: Box },
   { id: 'artwork', label: 'Artwork', icon: ImageIcon },
@@ -108,6 +147,7 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
+  const [mediaUploadProgress,setMediaUploadProgress] = useState<MediaUploadProgress|null>(null);
   const [mediaLibraryTab, setMediaLibraryTab] = useState<'library' | 'upload'>('library');
   const [selectedMediaAssetId, setSelectedMediaAssetId] = useState<string | null>(null);
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
@@ -392,20 +432,24 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       setMessage('Use PNG, JPG, WebP or SVG artwork');
       return;
     }
+    if(mediaUploadProgress?.active)return;
 
+    setMediaLibraryOpen(true);
     setMessage(`Uploading ${imageFiles.length} image${imageFiles.length===1?'':'s'}…`);
     const uploaded: LocalMediaAsset[]=[];
     try{
-      for(const file of imageFiles){
+      for(let index=0;index<imageFiles.length;index++){
+        const file=imageFiles[index];
+        setMediaUploadProgress({
+          active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent:0,phase:'uploading',
+        });
         const dimensions=await readUploadDimensions(file);
-        const form=new FormData();
-        form.set('file',file);
-        if(dimensions.width)form.set('width',String(dimensions.width));
-        if(dimensions.height)form.set('height',String(dimensions.height));
-        const response=await fetch('/api/media',{method:'POST',body:form});
-        const result=await response.json().catch(()=>({error:'Could not upload artwork.'})) as {asset?:LocalMediaAsset;error?:string};
-        if(!response.ok||!result.asset)throw new Error(result.error||'Could not upload artwork.');
-        uploaded.push(result.asset);
+        const asset=await uploadMediaFile(file,dimensions,(percent,phase)=>{
+          setMediaUploadProgress({
+            active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent,phase,
+          });
+        });
+        uploaded.push(asset);
       }
 
       setMediaAssets(current=>{
@@ -415,9 +459,18 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       });
       if(uploaded[0])setSelectedMediaAssetId(uploaded[0].id);
       setMediaLibraryTab('library');
-      setMediaLibraryOpen(true);
+      setMediaUploadProgress({
+        active:false,
+        fileName:uploaded[uploaded.length-1]?.name??'Artwork',
+        fileIndex:imageFiles.length,
+        totalFiles:imageFiles.length,
+        percent:100,
+        phase:'complete',
+      });
+      window.setTimeout(()=>setMediaUploadProgress(null),900);
       setMessage(`${uploaded.length} image${uploaded.length===1?'':'s'} saved to My Images`);
     }catch(error){
+      setMediaUploadProgress(null);
       setMessage(error instanceof Error?error.message:'Could not upload artwork.');
     }
   };
@@ -961,7 +1014,8 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
       setTab={setMediaLibraryTab}
       selectedAssetId={selectedMediaAssetId}
       setSelectedAssetId={setSelectedMediaAssetId}
-      onUpload={() => fileRef.current?.click()}
+      onUpload={() => { if(!mediaUploadProgress?.active) fileRef.current?.click(); }}
+      uploadProgress={mediaUploadProgress}
       onDropFiles={handleArtworkFiles}
       onUse={(asset, options) => applyAssetToPanel(asset, mediaTargetPanel, options)}
       onDelete={removeMediaAsset}
@@ -1948,6 +2002,7 @@ function MediaLibraryModal(props: {
   selectedAssetId: string | null;
   setSelectedAssetId: (id:string|null)=>void;
   onUpload: ()=>void;
+  uploadProgress: MediaUploadProgress|null;
   onDropFiles: (files:File[])=>void;
   onUse: (asset:LocalMediaAsset, options:{ mode:ArtworkMode; scale:number; rotation:number })=>void;
   onDelete: (assetId:string)=>Promise<void>;
@@ -1983,11 +2038,26 @@ function MediaLibraryModal(props: {
         <button aria-label="Close add artwork dialog" onClick={props.onClose}><X size={20}/></button>
       </header>
 
+      {props.uploadProgress && <div className={`pro-media-upload-progress is-${props.uploadProgress.phase}`} role="status" aria-live="polite">
+        <div className="pro-media-upload-progress-head">
+          <div>
+            <strong>{props.uploadProgress.phase==='complete'?'Upload complete':props.uploadProgress.phase==='processing'?'Processing image…':'Uploading image…'}</strong>
+            <span>{props.uploadProgress.fileName}</span>
+          </div>
+          <div>
+            <span>{props.uploadProgress.totalFiles>1?`${props.uploadProgress.fileIndex} of ${props.uploadProgress.totalFiles} · `:''}{props.uploadProgress.percent}%</span>
+          </div>
+        </div>
+        <div className="pro-media-upload-progress-track" aria-hidden="true">
+          <span style={{width:`${props.uploadProgress.percent}%`}}/>
+        </div>
+      </div>}
+
       <div className="pro-media-unified-workspace">
         <div className="pro-media-unified-library">
           <div className="pro-media-browser-toolbar">
             <label className="pro-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search artwork" /></label>
-            <button className="pro-secondary-button" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
+            <button className="pro-secondary-button" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?'Uploading…':'Upload image'}</button>
           </div>
 
           <div
@@ -2006,14 +2076,14 @@ function MediaLibraryModal(props: {
           >
             <Upload size={20}/>
             <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG, WebP or SVG · any image dimensions</span></div>
-            <button type="button" onClick={props.onUpload}>Browse</button>
+            <button type="button" disabled={props.uploadProgress?.active} onClick={props.onUpload}>Browse</button>
           </div>
 
           {filteredAssets.length === 0 ? <div className="pro-media-empty">
             <ImageIcon size={30}/>
             <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
             <p>{props.assets.length ? 'Try another search.' : 'Uploaded images are saved to My Images so you can reuse them in future designs.'}</p>
-            {!props.assets.length && <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Choose image</button>}
+            {!props.assets.length && <button className="pro-primary pro-media-empty-action" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?'Uploading…':'Choose image'}</button>}
           </div> : <div className="pro-media-grid pro-media-unified-grid">
             {filteredAssets.map(asset => {
               const used = Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === asset.id).length;
@@ -2072,7 +2142,7 @@ function MediaLibraryModal(props: {
             <ImageIcon size={32}/>
             <h3>Choose from My Images</h3>
             <p>Select an image you have already uploaded, or add a new one to your reusable account gallery.</p>
-            <button className="pro-primary pro-media-empty-action" onClick={props.onUpload}><Upload size={15}/> Upload image</button>
+            <button className="pro-primary pro-media-empty-action" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?'Uploading…':'Upload image'}</button>
           </div>}
         </aside>
       </div>
