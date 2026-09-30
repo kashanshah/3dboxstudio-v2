@@ -24,7 +24,7 @@ const tools:Array<{id:SceneTool;label:string;icon:typeof Box}>=[
   {id:'export',label:'Export',icon:Download},
 ];
 
-export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
+export function SceneStudio({designs,workspaceProjectId}:{designs:WorkspaceDesign[];workspaceProjectId?:string|null}){
   const [tool,setTool]=useState<SceneTool>('objects');
   const [scene,setScene]=useState<SceneProjectState>(()=>createEmptySceneProject());
   const [selectedId,setSelectedId]=useState<string|null>(null);
@@ -109,7 +109,7 @@ export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
             <span className="scene-empty-icon"><Box size={34}/></span>
             <h1>Start with an empty scene</h1>
             <p>Add a saved box when you are ready, then build the shot around it. Background, lighting and shadows belong to the scene—not to the package artwork.</p>
-            <div><button type="button" onClick={()=>setTool('objects')}><PackagePlus size={17}/> Add a box</button><Link href="/studio/editor">Create a new box</Link></div>
+            <div><button type="button" onClick={()=>setTool('objects')}><PackagePlus size={17}/> Add a box</button><Link href={workspaceProjectId?`/studio/editor?workspace=${encodeURIComponent(workspaceProjectId)}`:'/studio/editor'}>Create a new box</Link></div>
           </div> : <div className="scene-object-board">
             {scene.objects.map((object,index)=><button
               key={object.id}
@@ -132,7 +132,7 @@ export function SceneStudio({designs}:{designs:WorkspaceDesign[]}){
           <TransformGroup title="Position" value={selected.position}/>
           <TransformGroup title="Rotation" value={selected.rotation}/>
           <TransformGroup title="Scale" value={selected.scale}/>
-          <Link className="scene-edit-source" href={`/studio/editor?project=${encodeURIComponent(selected.sourceDesignId)}`}>Edit source box</Link>
+          <Link className="scene-edit-source" href={`/studio/editor?project=${encodeURIComponent(selected.sourceDesignId)}${workspaceProjectId?`&workspace=${encodeURIComponent(workspaceProjectId)}`:''}`}>Edit source box</Link>
         </div>}
       </aside>
     </section>
