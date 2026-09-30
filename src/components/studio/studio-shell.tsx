@@ -1802,11 +1802,12 @@ function Inspector(props: {
   }
 
   if (tool === 'scene') return <div className="pro-inspector-content">
-    <PanelIntro title="Build a scene" text="Arrange multiple packages, backgrounds, and lighting for presentation-ready mockups." />
+    <PanelIntro title="Build a scene" text="Scene Studio is a separate workspace for product photography, composition, lighting, shadows, backgrounds, cameras, and multi-object layouts." />
     <div className="pro-feature-empty">
       <Lightbulb size={28}/>
-      <strong>Scene builder is coming next</strong>
-      <p>For now, keep working with the package itself. Multi-object layouts, lighting, backgrounds, and floor controls will be added here when they are functional.</p>
+      <strong>Open Scene Studio</strong>
+      <p>Keep package structure and artwork accurate here, then use saved boxes as reusable objects inside an empty scene.</p>
+      <Link className="pro-primary pro-export-button" href="/scene-studio">Open Scene Studio</Link>
     </div>
   </div>;
 
