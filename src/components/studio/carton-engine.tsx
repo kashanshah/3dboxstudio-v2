@@ -510,6 +510,72 @@ export function buildMeshes(
   return buildReverseTuckMeshes(dimensions,opening,color,interiorColor);
 }
 
+function buildLegacyBoxMeshes(
+  dimensions:CartonDimensions,
+  opening:number,
+  color:[number,number,number],
+  interiorColor:[number,number,number],
+  openingMode:LegacyOpeningMode,
+  splitTopHingeSide:'side_a'|'side_b',
+  splitTop:boolean,
+):Mesh[]{
+  const d=sanitizeCartonDimensions(dimensions),w=d.width,h=d.height,depth=d.depth;
+  const x0=-w/2,x1=w/2,y0=-h/2,y1=h/2,z0=-depth/2,z1=depth/2;
+  const angle=clamp(opening,0,100)/100*(75*Math.PI/180);
+  const rotateX=(p:number[],pivot:number[],theta:number)=>{
+    const y=p[1]-pivot[1],z=p[2]-pivot[2],c=Math.cos(theta),si=Math.sin(theta);
+    return [p[0],pivot[1]+y*c-z*si,pivot[2]+y*si+z*c];
+  };
+  const rotateY=(p:number[],pivot:number[],theta:number)=>{
+    const x=p[0]-pivot[0],z=p[2]-pivot[2],c=Math.cos(theta),si=Math.sin(theta);
+    return [pivot[0]+x*c+z*si,p[1],pivot[2]-x*si+z*c];
+  };
+  const rotateZ=(p:number[],pivot:number[],theta:number)=>{
+    const x=p[0]-pivot[0],y=p[1]-pivot[1],c=Math.cos(theta),si=Math.sin(theta);
+    return [pivot[0]+x*c-y*si,pivot[1]+x*si+y*c,p[2]];
+  };
+  const transform=(corners:number[][],kind:string)=>{
+    if(kind==='top'){
+      if(openingMode==='lid_from_back')return corners.map(p=>rotateX(p,[0,y1,z0],-angle));
+      if(openingMode==='lid_from_front')return corners.map(p=>rotateX(p,[0,y1,z1],angle));
+      if(openingMode==='lid_from_left')return corners.map(p=>rotateZ(p,[x0,y1,0],angle));
+      if(openingMode==='lid_from_right')return corners.map(p=>rotateZ(p,[x1,y1,0],-angle));
+    }
+    if(kind==='left'&&(openingMode==='door_left'||openingMode==='double_doors'))return corners.map(p=>rotateY(p,[x0,0,z1],angle));
+    if(kind==='right'&&(openingMode==='door_right'||openingMode==='double_doors'))return corners.map(p=>rotateY(p,[x1,0,z1],-angle));
+    return corners;
+  };
+  const panels:{name:string;corners:number[][]}[]=[
+    {name:'Front',corners:[[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1]]},
+    {name:'Back',corners:[[x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0]]},
+    {name:'Left',corners:transform([[x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0]],'left')},
+    {name:'Right',corners:transform([[x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1]],'right')},
+    {name:'Bottom',corners:[[x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1]]},
+  ];
+  if(splitTop){
+    if(splitTopHingeSide==='side_b'){
+      const back=[[x0,y1,z0],[x1,y1,z0],[x1,y1,0],[x0,y1,0]].map(p=>rotateX(p,[0,y1,z0],-angle));
+      const front=[[x0,y1,0],[x1,y1,0],[x1,y1,z1],[x0,y1,z1]].map(p=>rotateX(p,[0,y1,z1],angle));
+      panels.push({name:'Top Left',corners:back},{name:'Top Right',corners:front});
+    }else{
+      const left=[[x0,y1,z1],[0,y1,z1],[0,y1,z0],[x0,y1,z0]].map(p=>rotateZ(p,[x0,y1,0],angle));
+      const right=[[0,y1,z1],[x1,y1,z1],[x1,y1,z0],[0,y1,z0]].map(p=>rotateZ(p,[x1,y1,0],-angle));
+      panels.push({name:'Top Left',corners:left},{name:'Top Right',corners:right});
+    }
+  }else{
+    panels.push({name:'Top',corners:transform([[x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0]],'top')});
+  }
+  const result:Mesh[]=[];
+  for(const panel of panels){
+    const outer=quadFromCorners(panel.corners,color,true,panel.name);
+    result.push(outer);
+    const normal=faceNormal(panel.corners),offset=Math.max(0.02,Math.min(2,d.thickness));
+    const innerCorners=panel.corners.map(p=>[p[0]-normal[0]*offset,p[1]-normal[1]*offset,p[2]-normal[2]*offset]);
+    result.push(quadFromCorners([innerCorners[3],innerCorners[2],innerCorners[1],innerCorners[0]],interiorColor,true,`Interior ${panel.name}`));
+  }
+  return result;
+}
+
 function buildReverseTuckMeshes(
   dimensions: CartonDimensions,
   opening: number,
