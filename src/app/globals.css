@@ -1837,6 +1837,19 @@ body{font-size:var(--type-body)}
 .pro-shared-canvas-control-bar .pro-canvas-bar-play{width:32px;height:32px}
 .pro-shared-canvas-control-bar .pro-canvas-bar-icon:disabled{opacity:.3;cursor:default}
 .pro-shared-canvas-control-bar .pro-canvas-bar-icon.is-active{background:var(--accent-soft);color:var(--accent)}
+/* 3D has more controls than the original grid definition. Keep the whole
+   toolbar in one row and let only the fold range absorb spare width. */
+.pro-shared-canvas-control-bar:not(.is-2d){
+  display:flex;
+  flex-wrap:nowrap;
+  width:min(680px,calc(100% - 24px));
+  align-items:center;
+}
+.pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-icon,
+.pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-play{flex:0 0 32px}
+.pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-divider{flex:0 0 1px;height:22px;align-self:center}
+.pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-label{flex:0 0 auto}
+.pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-range{flex:1 1 120px;min-width:80px;width:auto}
 @media(max-width:560px){
   .pro-shared-canvas-control-bar{grid-template-columns:28px 28px 28px 1px 28px minmax(48px,1fr) 1px 28px;gap:4px}
   .pro-shared-canvas-control-bar .pro-canvas-bar-icon,
