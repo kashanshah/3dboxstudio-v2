@@ -1171,3 +1171,45 @@ body{font-size:var(--type-body)}
 .imported-dieline-line.role-crease{stroke:#177ddc;stroke-dasharray:6 5}
 .pro-dieline-legend .unknown{display:inline-block;width:18px;height:2px;background:#64748b}
 @media(max-width:700px){.pro-imported-dieline-wrap{min-height:300px;padding:14px}.pro-imported-dieline{max-height:58vh}}
+
+
+/* Dieline mapping mode */
+.pro-dieline-mapping-mode{gap:14px}
+.pro-mapping-toolbar small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
+.pro-mapping-toolbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.pro-mapping-ready{display:inline-flex;align-items:center;min-height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px;font-weight:600;background:var(--paper)}
+.pro-mapping-ready.is-ready{border-color:#8ed3aa;background:#effbf4;color:#237247}
+.pro-dieline-mapper-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;min-height:0}
+.pro-imported-dieline-interactive .imported-dieline-line{cursor:pointer;transition:stroke-width .12s,opacity .12s}
+.pro-imported-dieline-interactive .imported-dieline-line:hover,.pro-imported-dieline-interactive .imported-dieline-line.is-selected{stroke-width:2.6}
+.imported-dieline-panel-hit{fill:transparent;stroke:none;cursor:pointer}
+.imported-dieline-panel-hit:hover,.imported-dieline-panel-hit.is-selected{fill:#0075c414}
+.imported-dieline-panel-hit.is-assigned{fill:#2783520d}
+.imported-dieline-panel-label{font-size:9px;font-weight:700;fill:#101720;pointer-events:none;paint-order:stroke;stroke:white;stroke-width:3px;stroke-linejoin:round}
+.pro-dieline-mapping-panel{display:flex;flex-direction:column;gap:14px;padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:auto;max-height:70vh}
+.pro-mapping-summary h3{margin:0 0 7px;font-size:16px}
+.pro-mapping-summary p,.pro-mapping-note{margin:0;color:var(--muted);font-size:11px;line-height:1.55}
+.pro-mapping-progress{height:5px;margin-top:12px;border-radius:99px;background:var(--panel);overflow:hidden}
+.pro-mapping-progress span{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width .2s}
+.pro-mapping-empty{display:grid;place-items:center;gap:7px;min-height:160px;padding:20px;border:1px dashed var(--line);border-radius:10px;text-align:center;color:var(--muted)}
+.pro-mapping-empty strong{color:var(--ink);font-size:13px}
+.pro-mapping-empty span{font-size:11px;max-width:220px}
+.pro-mapping-editor{display:grid;gap:16px}
+.pro-mapping-editor>div:first-child{display:grid;gap:3px}
+.pro-mapping-editor>div:first-child span,.pro-mapping-panel-select>span{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.pro-mapping-editor>div:first-child strong{font-size:14px}
+.pro-mapping-editor fieldset{margin:0;padding:0;border:0}
+.pro-mapping-editor legend{margin-bottom:8px;font-size:12px;font-weight:600}
+.pro-mapping-role-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.pro-mapping-role-grid button{min-height:36px;padding:0 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);font:inherit;font-size:11px;color:var(--muted)}
+.pro-mapping-role-grid button:hover,.pro-mapping-role-grid button.is-active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-hover)}
+.pro-mapping-panel-select{display:grid;gap:7px}
+.pro-mapping-panel-select select{height:40px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);padding:0 9px;font:inherit;font-size:12px}
+.pro-mapping-panel-select small{color:var(--muted);font-size:10px;line-height:1.45}
+.pro-mapping-checklist{display:grid;gap:7px;padding-top:13px;border-top:1px solid var(--line)}
+.pro-mapping-checklist>strong{font-size:12px;margin-bottom:2px}
+.pro-mapping-checklist span{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11px}
+.pro-mapping-checklist span svg{color:var(--line)}
+.pro-mapping-checklist span.is-done{color:#237247}.pro-mapping-checklist span.is-done svg{color:#278352}
+.pro-map-to-3d{width:100%;justify-content:center}.pro-map-to-3d:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:980px){.pro-dieline-mapper-layout{grid-template-columns:1fr}.pro-dieline-mapping-panel{max-height:none}}
