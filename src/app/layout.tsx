@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   title: { default: '3D Box Studio — Packaging, brought to life', template: '%s | 3D Box Studio' },
   description: 'Explore a new way to visualize your packaging. A fresh 3D Box Studio experience, currently in development.',
   robots: { index: site.indexable, follow: site.indexable },
+  icons: { icon: '/favicon.svg' },
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="en"><body>{children}</body></html>;
