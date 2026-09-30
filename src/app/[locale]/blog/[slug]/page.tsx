@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
+import { BlogShareButtons } from '@/components/blog-share-buttons';
 import { FR_BLOG_POSTS } from '@/content/blogLocales/fr';
 import { getBlogPostBySlug } from '@/content/blogPosts';
 import { site } from '@/lib/site';
@@ -43,6 +44,7 @@ export default async function FrenchBlogPost({params}:Props){
  return <><SiteHeader/><main id="main" className="article-shell"><article className="article-page">
   <Link className="article-back" href="/blog"><ArrowLeft size={15}/> Tous les guides</Link>
   <div className="article-heading"><span className="eyebrow">GUIDE 3D BOX STUDIO</span><h1>{translated.title}</h1><p>{translated.description}</p><div className="article-meta"><time dateTime={base.published}>{new Date(base.published+'T00:00:00').toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'})}</time><span>·</span><span>{base.readMinutes} min</span></div></div>
+  <BlogShareButtons title={translated.title} url={canonical} locale="fr"/>
   <img className="article-hero-image" src={`/images/blog/${slug}.webp`} alt={translated.imageAlt??translated.title} width="1200" height="800"/>
   <div className="article-content">{translated.sections.map((section,index)=>{
    if(section.type==='p')return <p key={index}>{inlineText(section.text)}</p>;
