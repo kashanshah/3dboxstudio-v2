@@ -5,13 +5,14 @@ import { PRIVACY_EFFECTIVE_DATE, PRIVACY_PAGE_DESCRIPTION, PRIVACY_PAGE_TITLE, P
 export const metadata: Metadata = { title: { absolute: `${PRIVACY_PAGE_TITLE} | 3D Box Studio` }, description: PRIVACY_PAGE_DESCRIPTION, alternates: { canonical: '/privacy' } };
 
 function slug(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+type PrivacyBodySection = Exclude<PrivacySection, { type: 'h2' }>;
 function groups() {
-  const result: { title: string; id: string; sections: PrivacySection[] }[] = [];
+  const result: { title: string; id: string; sections: PrivacyBodySection[] }[] = [];
   for (const section of PRIVACY_SECTIONS) {
     if (section.type === 'h2') result.push({ title: section.text, id: `privacy-${slug(section.text)}`, sections: [] });
     else {
       if (!result.length) result.push({ title: 'Overview', id: 'privacy-overview', sections: [] });
-      result[result.length - 1].sections.push(section);
+      result[result.length - 1].sections.push(section as PrivacyBodySection);
     }
   }
   return result;

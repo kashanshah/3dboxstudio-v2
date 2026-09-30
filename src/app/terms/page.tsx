@@ -5,13 +5,14 @@ import { TERMS_EFFECTIVE_DATE, TERMS_PAGE_DESCRIPTION, TERMS_PAGE_TITLE, TERMS_S
 export const metadata: Metadata = { title: { absolute: `${TERMS_PAGE_TITLE} | 3D Box Studio` }, description: TERMS_PAGE_DESCRIPTION, alternates: { canonical: '/terms' } };
 
 function slug(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+type TermsBodySection = Exclude<TermsSection, { type: 'h2' }>;
 function groups() {
-  const result: { title: string; id: string; sections: TermsSection[] }[] = [];
+  const result: { title: string; id: string; sections: TermsBodySection[] }[] = [];
   for (const section of TERMS_SECTIONS) {
     if (section.type === 'h2') result.push({ title: section.text, id: `terms-${slug(section.text)}`, sections: [] });
     else {
       if (!result.length) result.push({ title: 'Overview', id: 'terms-overview', sections: [] });
-      result[result.length - 1].sections.push(section);
+      result[result.length - 1].sections.push(section as TermsBodySection);
     }
   }
   return result;
