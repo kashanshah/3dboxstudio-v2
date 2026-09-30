@@ -99,7 +99,16 @@ Users keep their IDs and initial passwords. On subsequent runs, each mutable use
 
 All changes and the successful `legacy_sync_runs` receipt commit in one transaction. Concurrent apply runs serialize with a transaction advisory lock; identity and mirror tables are locked during the apply to prevent signup/update races. Failures roll back all target changes and leave no successful receipt. Rerun safely after fixing the cause. Production applies should run during low traffic because these table locks briefly block V2 account writes. The source continues operating normally; changes committed after the source snapshot appear on the next sync. Final cutover still requires a V1 write freeze followed by a final sync.
 
-The dashboard reports legacy designs from this mirror, plus native V2 projects, using original creation times. This is **record preservation**, not editor conversion: the old design config must be mapped into V2 studio state before old designs are editable. S3 keys are preserved, but files are not copied to V2 storage and old public share URLs are not yet routed by V2. Do not retire the V1 bucket or redirect share links until these separate steps are finished. Synced contacts/replies remain in the mirror; V2 contacts UI continues operating on its native records.
+The dashboard reports legacy designs from this mirror, plus native V2 projects, using original creation times. This is **record preservation**, not editor conversion: the old design config must be mapped into V2 studio state before old designs are editable. Legacy database records preserve their original S3 keys. File copying is handled separately by the repeatable asset sync:
+
+```bash
+npm run sync:legacy-assets
+npm run sync:legacy-assets -- --apply
+```
+
+The asset sync is dry-run by default. It scans the explicitly configured `LEGACY_AWS_S3_PREFIX`, maps each object deterministically under `AWS_S3_PREFIX + LEGACY_ASSET_TARGET_SUBPREFIX` (default `legacy/`), skips destination objects that already match, and copies only missing/changed objects on `--apply`. It never deletes source or V2 objects, so it can be rerun after a week and only the newly missing files need copying. `LEGACY_AWS_S3_BUCKET` may point to a separate V1 bucket; when omitted it uses `AWS_S3_BUCKET`.
+
+The database sync and file sync remain intentionally separate transactions: a failed asset copy cannot roll back the database mirror. Do not retire the V1 bucket or redirect old share links until the asset report shows no failures and legacy design/share conversion has been verified against the copied V2 keys. Synced contacts/replies remain in the mirror; V2 contacts UI continues operating on its native records.
 
 The CLI prints aggregate counts only. User snapshots in the migration ledger contain password hashes and must be protected like the `users` table. Never expose ledger metadata or raw legacy payloads through a public API.
 
