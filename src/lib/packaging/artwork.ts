@@ -12,8 +12,16 @@ export type LocalMediaAsset = {
   createdAt: number;
 };
 
+export type ArtworkCrop = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type ArtworkPlacement = {
   assetId?: string;
+  crop?: ArtworkCrop;
   name: string;
   url: string;
   mode: ArtworkMode;
@@ -55,5 +63,14 @@ export function artworkCss(artwork: ArtworkPlacement) {
       ? `rotate(${artwork.rotation}deg)`
       : `scale(${artwork.scale / 100}) rotate(${artwork.rotation}deg)`,
     transformOrigin: `${positionX} ${positionY}`,
+  } as const;
+}
+
+
+export function artworkCropCss(crop: ArtworkCrop) {
+  return {
+    backgroundSize: `${100 / crop.width}% ${100 / crop.height}%`,
+    backgroundPosition: `${crop.width >= 1 ? 0 : crop.x / (1 - crop.width) * 100}% ${crop.height >= 1 ? 0 : crop.y / (1 - crop.height) * 100}%`,
+    backgroundRepeat: 'no-repeat',
   } as const;
 }

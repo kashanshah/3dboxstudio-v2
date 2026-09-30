@@ -251,6 +251,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
   const uvRotationLocation = gl.getUniformLocation(program, 'uUvRotation');
   const tileLocation = gl.getUniformLocation(program, 'uTile');
   const clipLocation = gl.getUniformLocation(program, 'uClipOutside');
+  const uvCropLocation = gl.getUniformLocation(program, 'uUvCrop');
   const overlayColorLocation = gl.getUniformLocation(program, 'uOverlayColor');
   const overlayAlphaLocation = gl.getUniformLocation(program, 'uOverlayAlpha');
   const outlineAlphaLocation = gl.getUniformLocation(program, 'uOutlineAlpha');
@@ -324,12 +325,19 @@ function createRenderer(canvas: HTMLCanvasElement) {
         gl.uniform1f(uvRotationLocation, placement.rotation * Math.PI / 180);
         gl.uniform1i(tileLocation, placement.mode === 'tile' ? 1 : 0);
         gl.uniform1i(clipLocation, placement.mode === 'fit' ? 1 : 0);
+        const crop = placement.crop;
+        if (crop) {
+          gl.uniform4f(uvCropLocation, crop.x, 1 - crop.y - crop.height, crop.width, crop.height);
+        } else {
+          gl.uniform4f(uvCropLocation, 0, 0, 1, 1);
+        }
       } else {
         gl.uniform2f(uvScaleLocation, 1, 1);
         gl.uniform2f(uvOffsetLocation, 0, 0);
         gl.uniform1f(uvRotationLocation, 0);
         gl.uniform1i(tileLocation, 0);
         gl.uniform1i(clipLocation, 0);
+        gl.uniform4f(uvCropLocation, 0, 0, 1, 1);
       }
 
       const isHovered = !!mesh.panel && mesh.panel === scene.hoverPanel;
@@ -682,6 +690,7 @@ uniform vec2 uUvOffset;
 uniform float uUvRotation;
 uniform bool uTile;
 uniform bool uClipOutside;
+uniform vec4 uUvCrop;
 uniform vec3 uOverlayColor;
 uniform float uOverlayAlpha;
 uniform float uOutlineAlpha;
@@ -697,6 +706,7 @@ void main() {
   vec2 texUv = rotated / uUvScale + vec2(0.5);
   bool outside = texUv.x < 0.0 || texUv.x > 1.0 || texUv.y < 0.0 || texUv.y > 1.0;
   if (uTile) texUv = fract(texUv);
+  texUv = uUvCrop.xy + texUv * uUvCrop.zw;
 
   vec4 base = vec4(uColor, 1.0);
   if (uUseTexture && !(uClipOutside && outside)) {
