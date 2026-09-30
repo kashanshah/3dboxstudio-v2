@@ -421,7 +421,7 @@ export function StudioShell() {
               title={opening >= 50 ? 'Open box' : 'Close box'}
               onClick={() => animateFold(opening >= 50 ? 0 : 100)}
             >
-              <CirclePlay size={19}/>
+              {opening >= 50 ? <PackageOpen size={19}/> : <Box size={19}/>} 
             </button>
             <span className="pro-canvas-bar-label">Open</span>
             <input
