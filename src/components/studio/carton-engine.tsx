@@ -589,6 +589,12 @@ export function buildMeshes(
   const exteriorMeshes: Mesh[] = [];
   const interiorMeshes: Mesh[] = [];
   const edgeMeshes: Mesh[] = [];
+  const edgeGeometryKeys=new Set<string>();
+
+  const edgeGeometryKey=(corners:number[][])=>corners
+    .map(point=>point.map(value=>Math.round(value*1e6)/1e6).join(','))
+    .sort()
+    .join('|');
 
   for (const panel of panels) {
     const exterior = quadFromCorners(panel.corners, panel.surfaceColor, true, panel.name);
@@ -625,9 +631,13 @@ export function buildMeshes(
       // A board edge is one physical surface. Rendering a second reversed
       // quad in exactly the same plane causes depth-buffer contention and
       // flickering/fuzzy seams. Draw one mesh with culling disabled instead.
-      const edgeMesh=quadFromCorners(edgeCorners, edgeColor, false);
-      edgeMesh.doubleSided=true;
-      edgeMeshes.push(edgeMesh);
+      const geometryKey=edgeGeometryKey(edgeCorners);
+      if(!edgeGeometryKeys.has(geometryKey)){
+        edgeGeometryKeys.add(geometryKey);
+        const edgeMesh=quadFromCorners(edgeCorners, edgeColor, false);
+        edgeMesh.doubleSided=true;
+        edgeMeshes.push(edgeMesh);
+      }
     }
   }
 
