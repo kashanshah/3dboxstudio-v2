@@ -8,6 +8,7 @@ import {
   Trash2, Upload, X
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
+import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
 import { DEFAULT_CARTON_DIMENSIONS, reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
@@ -473,6 +474,7 @@ export function StudioShell() {
         <div className="pro-project-copy"><strong>Noma Tea — Spring</strong><span>Local design</span></div>
       </div>
       <div className="pro-header-actions">
+        <AccountButton compact />
         <button className="pro-primary" onClick={() => chooseTool('export')}><Download size={16} /> <span>Export</span></button>
       </div>
     </header>

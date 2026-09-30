@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { AccountButton } from '@/components/auth/account-button';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -52,6 +53,7 @@ export function MarketingStickyHeader() {
       <Brand />
       <nav className="marketing-nav-links" aria-label="Sticky navigation"><NavigationLinks compact /></nav>
       <div className="marketing-header-actions">
+        <AccountButton compact />
         <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
       </div>
     </div>
@@ -65,6 +67,7 @@ export function SiteHeader() {
     <Brand />
     <nav className="marketing-nav-links" aria-label={compact ? 'Sticky navigation' : 'Main navigation'}><NavigationLinks compact={compact} /></nav>
     <div className="marketing-header-actions">
+      <AccountButton compact={compact} />
       <Link className="button marketing-header-cta" href="/studio">Open Studio <ArrowUpRight size={16}/></Link>
       {!compact ? <button className="marketing-menu-button" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? 'Close menu' : 'Open menu'} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button> : null}
     </div>
@@ -73,7 +76,7 @@ export function SiteHeader() {
   return <>
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="marketing-header">{headerContents(false)}
-      {menuOpen ? <nav className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /><Link href="/studio" onClick={() => setMenuOpen(false)}>Open Studio <ArrowUpRight size={16}/></Link></nav> : null}
+      {menuOpen ? <nav className="marketing-mobile-menu" aria-label="Mobile navigation"><NavigationLinks onNavigate={() => setMenuOpen(false)} /><AccountButton/><Link href="/studio" onClick={() => setMenuOpen(false)}>Open Studio <ArrowUpRight size={16}/></Link></nav> : null}
     </header>
     <MarketingStickyHeader />
   </>;

@@ -8,6 +8,8 @@ import '@fontsource/manrope/800.css';
 import './globals.css';
 import './content-pages.css';
 import './contact-form.css';
+import { AuthProvider } from '@/components/auth/auth-provider';
+import { AuthModalHost } from '@/components/auth/auth-modal-host';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
@@ -17,5 +19,5 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.svg' },
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><AuthProvider>{children}<AuthModalHost/></AuthProvider></body></html>;
 }
