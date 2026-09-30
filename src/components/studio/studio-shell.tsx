@@ -1243,9 +1243,24 @@ export function StudioShell({initialProject}:{initialProject?:SavedStudioProject
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
+  const switchMode = (nextMode:Mode) => {
+    if (nextMode === mode) return;
+    setMode(nextMode);
+    setFaceAction(null);
+    setCameraMenuOpen(false);
+
+    // A tool may remain selected in state even after its inspector is no longer
+    // rendered for the new canvas mode. Keep the rail and visible UI in sync:
+    // no open inspector means no active tool.
+    if (inspectorOpen || tool) {
+      setInspectorOpen(false);
+      setTool(null);
+    }
+  };
+
   const viewSwitch = <div className="pro-mode-switch" role="group" aria-label="Canvas mode">
-    <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => { setMode('dieline'); setFaceAction(null); setCameraMenuOpen(false); }}><Grid3X3 size={14} /> 2D Design</button>
-    <button className={mode === '3d' ? 'is-active' : ''} onClick={() => { setMode('3d'); setFaceAction(null); }}><Boxes size={14} /> 3D Preview</button>
+    <button className={mode === 'dieline' ? 'is-active' : ''} onClick={() => switchMode('dieline')}><Grid3X3 size={14} /> 2D Design</button>
+    <button className={mode === '3d' ? 'is-active' : ''} onClick={() => switchMode('3d')}><Boxes size={14} /> 3D Preview</button>
   </div>;
 
   return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
