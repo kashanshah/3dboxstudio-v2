@@ -1065,7 +1065,10 @@ function DielinePrototype({
   onRemoveLayer,
   onMoveLayer,
   artworkScope,
+  onArtworkScopeChange,
   dimensions,
+  zoom,
+  onZoomChange,
   onChooseFullLayout,
   onClearImportedDieline,
 }:{
@@ -1081,7 +1084,10 @@ function DielinePrototype({
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
   artworkScope:'outside'|'inside';
+  onArtworkScopeChange:(scope:'outside'|'inside')=>void;
   dimensions:CartonDimensions;
+  zoom:number;
+  onZoomChange:(zoom:number)=>void;
   onChooseFullLayout:()=>void;
   onClearImportedDieline:()=>void;
 }) {
@@ -1256,9 +1262,13 @@ function DielinePrototype({
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
-    {artworkScope === 'outside' ? <div className="pro-2d-design-toolbar">
-      <div>
-        <span>Artwork layers</span>
+    <div className="pro-2d-design-toolbar">
+      <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
+        <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
+        <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
+      </div>
+      <div className="pro-2d-toolbar-summary">
+        <span>{artworkScope === 'inside' ? 'Inside / reverse side' : 'Outside / front side'}</span>
         <strong>{layers.length ? `${layers.length} layer${layers.length===1?'':'s'} · live 3D sync` : 'No artwork layers yet'}</strong>
       </div>
       <button className="pro-secondary-button" onClick={onChooseFullLayout}><ImageIcon size={16}/> Add artwork</button>
@@ -1267,12 +1277,17 @@ function DielinePrototype({
         createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
       )}><Maximize2 size={15}/> Reset selected</button>}
       <span className="pro-live-sync-badge"><span/> Live 3D</span>
-    </div> : <div className="pro-2d-design-toolbar pro-2d-inside-note">
-      <div><span>Inside design</span><strong>Inside panel overrides remain available from the Artwork inspector.</strong></div>
-    </div>}
+    </div>
 
-    <div className="pro-dieline-workspace">
-      {artworkScope === 'outside' && <aside className="pro-dieline-layers-panel" aria-label="Artwork layers">
+    <div
+      className="pro-dieline-workspace"
+      onWheel={(event)=>{
+        event.preventDefault();
+        const step = event.deltaY > 0 ? -8 : 8;
+        onZoomChange(Math.max(45,Math.min(200,zoom+step)));
+      }}
+    >
+      <aside className="pro-dieline-layers-panel" aria-label={`${artworkScope} artwork layers`}>
         <div className="pro-dieline-layers-heading">
           <div><span>Layers</span><strong>{layers.length}</strong></div>
           <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
@@ -1300,14 +1315,18 @@ function DielinePrototype({
           <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={14}/></button>
           <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={14}/></button>
         </div>}
-      </aside>}
+      </aside>
 
       <div
-        className={`pro-dieline pro-dieline-live${layers.length && artworkScope==='outside' ? ' has-full-layout-editor' : ''}`}
-        style={{aspectRatio:`${bounds.width} / ${bounds.height}`}}
+        className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}`}
+        style={{
+          aspectRatio:`${bounds.width} / ${bounds.height}`,
+          transform:`scale(${zoom/100})`,
+          transformOrigin:'center',
+        }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
       >
-        {artworkScope==='outside' && layers.map((layer,index)=>{
+        {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
             key={layer.id}
@@ -1343,7 +1362,7 @@ function DielinePrototype({
         {cartonPanels.map(item => {
           const panelName=item.label[0]+item.label.slice(1).toLowerCase();
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
-          const hasArtwork=!!explicitArtwork || (layers.length>0 && artworkScope==='outside');
+          const hasArtwork=!!explicitArtwork || layers.length>0;
           return <div
             key={item.id}
             className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''}`}
@@ -1368,7 +1387,15 @@ function DielinePrototype({
       <span><i className="cut"/>Cut</span>
       <span><i className="crease"/>Crease</span>
       <span><i className="bleed"/>Bleed</span>
-      <strong>{layers.length ? 'Corners resize proportionally · side handles resize freely · hold Shift on a side handle to preserve proportions · 3D updates automatically' : 'Add multiple images and compose them directly on the dieline'}</strong>
+      <strong>{layers.length ? 'Corners resize proportionally · side handles resize freely · Shift preserves proportions · 3D updates automatically' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
+    </div>
+
+    <div className="pro-canvas-control-bar pro-2d-canvas-control-bar" aria-label="2D canvas zoom controls">
+      <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={()=>onZoomChange(Math.max(45,zoom-10))}><ZoomOut size={20}/></button>
+      <span className="pro-2d-zoom-value">{Math.round(zoom)}%</span>
+      <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={()=>onZoomChange(Math.min(200,zoom+10))}><ZoomIn size={20}/></button>
+      <span className="pro-canvas-bar-divider"/>
+      <button className="pro-canvas-bar-icon" title="Fit dieline" aria-label="Fit dieline" onClick={()=>onZoomChange(100)}><Maximize2 size={20}/></button>
     </div>
   </div>;
 }
