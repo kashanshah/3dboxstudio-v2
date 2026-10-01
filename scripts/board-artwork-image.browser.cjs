@@ -36,6 +36,7 @@ const {BoardArtworkImage}=require(source);
   const check=async(label)=>{
    await page.waitForFunction(()=>{const img=document.querySelector('#board img');return img&&img.complete&&img.naturalWidth;});
    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   await page.waitForFunction(()=>document.querySelector('#board img').style.visibility==='visible'&&!document.querySelector('#board .board-artwork-status'));
    const rect=await page.locator('#board img').boundingBox();
    assert.ok(Math.abs(rect.width-300)<1&&Math.abs(rect.height-150)<1,`${label}: got ${rect.width} x ${rect.height}, expected 300 x 150`);
    cases++;
@@ -59,9 +60,21 @@ const {BoardArtworkImage}=require(source);
    await route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300"><rect width="100%" height="100%" fill="blue"/></svg>'});
   });
   await page.evaluate(()=>window.update({url:'https://artwork.test/image.svg',aspectRatio:1,width:300,height:150}));
+  await page.waitForFunction(()=>document.querySelector('#board [role="status"]')?.textContent.includes('Loading artwork'));
+  assert.equal(await page.locator('#board img').isVisible(),false);
   await check('delayed cold image load');
   await page.evaluate(()=>window.update({url:document.querySelector('#board img').src,aspectRatio:1,width:600,height:300}));
   await check('dimensions change without another load event');
+  let requests=0;
+  await page.route('https://artwork.test/retry.svg',async route=>{
+   requests++;
+   await route.fulfill(requests===1?{status:503,body:'Unavailable'}:{contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300"><rect width="100%" height="100%" fill="blue"/></svg>'});
+  });
+  await page.evaluate(()=>window.update({url:'https://artwork.test/retry.svg',aspectRatio:1,width:300,height:150}));
+  await page.waitForFunction(()=>document.querySelector('#board [role="alert"]'));
+  assert.equal(await page.locator('#board img').isVisible(),false);
+  await page.locator('#board button').click();
+  await check('failed image retries successfully');
   console.log(`Board image lifecycle passed: ${cases} hydration/cache/remount/source-change/cold-load/dimension cases.`);
  }finally{await browser?.close();fs.rmSync(dir,{recursive:true,force:true});}
 })().catch(err=>{console.error(err);process.exitCode=1;});
