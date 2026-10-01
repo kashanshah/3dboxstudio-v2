@@ -89,7 +89,7 @@ export async function rasterizeFullDielineLayers(
   layers: FullDielineArtworkLayer[],
   dimensions: CartonDimensions,
   panelPrefix = '',
-  templateId = 'reverse-tuck-carton',
+  templateId: string,
   geometryOptions?: TemplateGeometryOptions,
 ): Promise<ArtworkByPanel> {
   if (!layers.length) return {};
@@ -151,7 +151,7 @@ export async function rasterizeFullDielineLayers(
 export async function rasterizePanelArtwork(
   artwork: ArtworkByPanel,
   dimensions: CartonDimensions,
-  templateId = 'reverse-tuck-carton',
+  templateId: string,
   geometryOptions?: TemplateGeometryOptions,
 ): Promise<ArtworkByPanel> {
   const panels=getTemplateGeometry(templateId,dimensions,geometryOptions).panels;
