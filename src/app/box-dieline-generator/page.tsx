@@ -59,6 +59,14 @@ const faqs = [
   {
     "question": "Can I preview the generated dieline as a 3D box?",
     "answer": "Yes. The same structure and artwork can be viewed in the interactive 3D workspace."
+  },
+  {
+    "question": "Can I upload an external dieline into 3D Box Studio?",
+    "answer": "No. The current workflow is based on 3D Box Studio's own supported packaging templates and their dimensions. External dieline importing is intentionally not part of the product right now."
+  },
+  {
+    "question": "Can I export the flat layout as a PDF?",
+    "answer": "The Design workspace can prepare the supported template layout for PDF output. It should still be reviewed against printer and structural requirements before production."
   }
 ];
 
