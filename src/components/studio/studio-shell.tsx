@@ -154,6 +154,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [shareOpen,setShareOpen] = useState(false);
   const [shareBusy,setShareBusy] = useState(false);
   const [shareUrl,setShareUrl] = useState('');
+  const [shareCopied,setShareCopied] = useState(false);
   const [shareId,setShareId] = useState('');
   const [shareError,setShareError] = useState('');
   const [projectTransferMode,setProjectTransferMode] = useState<'move'|'copy'|null>(null);
@@ -1864,7 +1865,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <h2 id="share-design-title">{shareUrl?t("studio.interactive_review_link"):t("studio.could_not_create_link")}</h2>
           <p>{shareUrl?t("studio.anyone_with_this_link_can_view_and_rotate_the_shared_design_they_cannot_edi"):t("studio.the_share_link_was_not_created")}</p>
         </div>
-        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label={t("studio.share_link_2")}/><button type="button" className="pro-secondary-button" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>{t("studio.copy")}</button></div>}
+        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label={t("studio.share_link_2")}/><button type="button" className="pro-secondary-button" onClick={async()=>{try{await navigator.clipboard.writeText(shareUrl);setShareCopied(true);setMessage('Share link copied');window.setTimeout(()=>setShareCopied(false),1800);}catch{setShareCopied(false);setMessage('Could not copy share link');}}}>{shareCopied?<><Check size={15}/> Copied</>:t("studio.copy")}</button></div>}
         {shareError&&<p className="pro-transfer-error" role="alert">{shareError}</p>}
         <div className="pro-confirm-actions">
           {shareUrl&&<button type="button" className="pro-secondary-button is-danger-text" disabled={shareBusy} onClick={()=>void revokeShare()}>{t("studio.disable_link")}</button>}
@@ -1966,6 +1967,7 @@ function Inspector(props: {
 
   const { tool } = props;
   const [structureTab,setStructureTab] = useState<'size'|'templates'>('size');
+  const [exportTab,setExportTab] = useState<'image'|'pdf'>('image');
   if (tool === 'structure') {
     const categories = getPackagingTemplateCategories();
     const query = props.templateSearch.trim().toLowerCase();
@@ -2305,29 +2307,35 @@ function Inspector(props: {
   </div>;
 
   return <div className="pro-inspector-content">
-    <PanelIntro title={t("studio.download_your_design")} text={t("studio.download_the_current_3d_preview_or_prepare_a_physical_size_2d_artwork_layou")} />
-    <div className="pro-export-ready">
-      <ImageIcon size={22}/>
-      <div><strong>{t("studio.png_image")}</strong><span>{t("studio.downloads_the_current_3d_camera_view")}</span></div>
-    </div>
-    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/>{" " + t("studio.download_png")}</button>
+    <PanelIntro title={t("studio.download_your_design")} text="Choose an output format, then download the current design or share an interactive review link." />
 
-    <div className="pro-export-ready pro-export-pdf-ready">
-      <Grid3X3 size={22}/>
-      <div><strong>{t("studio.pdf_dieline")}</strong><span>{t("studio.print_ready") + " "}{props.artworkScope === 'inside' ? t("studio.inside_3") : t("studio.outside_2")}{" " + t("studio.layout_at_the_finished_physical_size")}</span></div>
+    <div className="pro-export-tabs" role="tablist" aria-label="Download format">
+      <button type="button" role="tab" aria-selected={exportTab==='image'} className={exportTab==='image'?'is-active':''} onClick={()=>setExportTab('image')}><ImageIcon size={17}/> Image</button>
+      <button type="button" role="tab" aria-selected={exportTab==='pdf'} className={exportTab==='pdf'?'is-active':''} onClick={()=>setExportTab('pdf')}><Grid3X3 size={17}/> PDF layout</button>
     </div>
-    <button className="pro-secondary-button pro-export-button pro-export-pdf-button" onClick={props.onExportPdf}><Download size={16}/>{" " + t("studio.print_save_pdf")}</button>
 
-    <div className="pro-export-ready">
-      <Share2 size={22}/>
-      <div><strong>{t("studio.share_link_2")}</strong><span>{t("studio.send_a_view_only_interactive_3d_review_link")}</span></div>
-    </div>
-    <button className="pro-secondary-button pro-export-button" disabled={!props.canShare||props.shareBusy} onClick={props.onShare}><Share2 size={16}/> {props.shareBusy?t("studio.preparing_link"):props.canShare?t("studio.copy_share_link"):t("studio.save_design_to_share")}</button>
+    {exportTab==='image' ? <section className="pro-export-tab-panel" role="tabpanel">
+      <div className="pro-export-ready">
+        <ImageIcon size={22}/>
+        <div><strong>{t("studio.png_image")}</strong><span>{t("studio.downloads_the_current_3d_camera_view")}</span></div>
+      </div>
+      <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/>{" " + t("studio.download_png")}</button>
+    </section> : <section className="pro-export-tab-panel" role="tabpanel">
+      <div className="pro-export-ready pro-export-pdf-ready">
+        <Grid3X3 size={22}/>
+        <div><strong>2D PDF layout</strong><span>{props.artworkScope === 'inside' ? t("studio.inside_3") : t("studio.outside_2")}{" artwork layout at the finished physical size. Validate final production requirements with your printer."}</span></div>
+      </div>
+      <button className="pro-primary pro-export-button pro-export-pdf-button" onClick={props.onExportPdf}><Download size={16}/> Print / Save PDF</button>
+    </section>}
+
+    <section className="pro-export-share">
+      <div className="pro-export-share-copy"><Share2 size={20}/><div><strong>{t("studio.share_link_2")}</strong><span>{t("studio.send_a_view_only_interactive_3d_review_link")}</span></div></div>
+      <button className="pro-secondary-button pro-export-share-button" disabled={!props.canShare||props.shareBusy} onClick={props.onShare}><Share2 size={15}/> {props.shareBusy?t("studio.preparing_link"):props.canShare?t("studio.copy_share_link"):t("studio.save_design_to_share")}</button>
+    </section>
 
     <div className="pro-export-coming">
       <span>{t("studio.coming_soon")}</span>
       <div><CirclePlay size={18}/><p><strong>{t("studio.animation")}</strong><small>{t("studio.turntable_and_open_close_video")}</small></p></div>
-      <div><Grid3X3 size={18}/><p><strong>{t("studio.vector_dieline")}</strong><small>{t("studio.svg_and_dxf_export")}</small></p></div>
     </div>
   </div>;
 }

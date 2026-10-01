@@ -135,8 +135,8 @@ export function StudioHome({
        <span>{t("workspace.what_would_you_like_to_create_today")}</span>
      </div>
      <div className="studio-home-welcome-actions">
-      <div className='studio-create-project-link flex justify-end text-end'>
-        <button className="button button-primary" type="button" onClick={()=>setCreatingProject(value=>!value)}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
+      <div className="studio-create-project-link flex justify-end text-end">
+        <button className="button button-primary" type="button" onClick={()=>{setProjectName('');setProjectError('');setCreatingProject(true);}}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
       </div>
       <Link className="studio-create-action is-primary" href={createDesignHref}>
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
@@ -150,11 +150,23 @@ export function StudioHome({
    </section>
    {!user.emailVerified&&<aside className="studio-demo-note"><MailNotice/></aside>}
 
-   {creatingProject&&<section className="studio-project-create" aria-label={t("workspace.create_project")}>
-     <div><h2>{t("workspace.new_project")}</h2><p>{t("workspace.keep_related_designs_and_scenes_together_under_one_umbrella")}</p></div>
-     <div className="studio-project-create-controls"><input value={projectName} maxLength={120} autoFocus placeholder={t("workspace.project_name")} onChange={event=>{setProjectName(event.target.value);setProjectError('');}} onKeyDown={event=>{if(event.key==='Enter')void createProject();}}/><button className="button button-primary button-small" type="button" disabled={projectBusy} onClick={()=>void createProject()}>{projectBusy?t("workspace.creating"):t("workspace.create")}</button><button className="button button-secondary button-small" type="button" onClick={()=>{setCreatingProject(false);setProjectError('');}}>{t("workspace.cancel")}</button></div>
-     {projectError&&<span className="studio-project-create-error">{projectError}</span>}
-   </section>}
+   {creatingProject&&<div className="studio-project-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!projectBusy){setCreatingProject(false);setProjectError('');}}}>
+     <section className="studio-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title" onKeyDown={event=>{if(event.key==='Escape'&&!projectBusy){event.stopPropagation();setCreatingProject(false);setProjectError('');}}}>
+       <header className="studio-project-modal-header">
+         <div><h2 id="new-project-title">{t("workspace.new_project")}</h2><p>{t("workspace.keep_related_designs_and_scenes_together_under_one_umbrella")}</p></div>
+         <button type="button" className="studio-project-modal-close" aria-label={t("workspace.cancel")} disabled={projectBusy} onClick={()=>{setCreatingProject(false);setProjectError('');}}><X size={18}/></button>
+       </header>
+       <label className="studio-project-modal-field">
+         <span>{t("workspace.project_name")}</span>
+         <input value={projectName} maxLength={120} autoFocus placeholder={t("workspace.project_name")} onChange={event=>{setProjectName(event.target.value);setProjectError('');}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();void createProject();}}}/>
+       </label>
+       {projectError&&<span className="studio-project-create-error" role="alert">{projectError}</span>}
+       <div className="studio-project-modal-actions">
+         <button className="button button-secondary" type="button" disabled={projectBusy} onClick={()=>{setCreatingProject(false);setProjectError('');}}>{t("workspace.cancel")}</button>
+         <button className="button button-primary" type="button" disabled={projectBusy||!projectName.trim()} onClick={()=>void createProject()}>{projectBusy?t("workspace.creating"):t("workspace.create")}</button>
+       </div>
+     </section>
+   </div>}
 
    {recentDesigns.length>0&&<section className="studio-recent" aria-labelledby="recent-work-heading">
     <div className="studio-section-heading">
