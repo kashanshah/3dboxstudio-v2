@@ -1,6 +1,7 @@
 import { ensureV2Schema, getSql } from '@/server/db';
 import { ADMIN_DISPLAY_TIME_ZONE, addAdminPeriod, startOfAdminPeriod, adminPeriodStartIso, formatAdminPeriodLabel, adminPeriodKey, type AdminPeriodTrunc } from '@/lib/admin-time-zone';
 import { getStorageStats } from './storage-stats';
+import { getAwsCost } from './aws-cost';
 export type DashboardPeriod='daily'|'weekly'|'monthly'|'quarterly'|'yearly';
 export function parseDashboardPeriod(value?:string):DashboardPeriod{return ['daily','weekly','monthly','quarterly','yearly'].includes(value??'')?value as DashboardPeriod:'daily';}
 const periods:Record<DashboardPeriod,{trunc:AdminPeriodTrunc;count:number}>={daily:{trunc:'day',count:30},weekly:{trunc:'week',count:12},monthly:{trunc:'month',count:12},quarterly:{trunc:'quarter',count:8},yearly:{trunc:'year',count:5}};
@@ -32,6 +33,7 @@ export async function getDashboard(period:DashboardPeriod,includeBlank:boolean){
  const start=addAdminPeriod(startOfAdminPeriod(new Date(),config.trunc),config.trunc,-(config.count-1));
  const spine=Array.from({length:config.count},(_,i)=>{const day=addAdminPeriod(start,config.trunc,i);return {date:adminPeriodKey(day,'day'),label:formatAdminPeriodLabel(day,config.trunc)};});
  const storagePromise=getStorageStats();
+ const costPromise=getAwsCost();
  const result=await sql.query(`${designCte}
  SELECT jsonb_build_object(
  'users',(SELECT jsonb_build_object('total',COUNT(*),'verified',COUNT(*) FILTER(WHERE email_verified_at IS NOT NULL),'last7',COUNT(*) FILTER(WHERE created_at>=NOW()-INTERVAL '7 days'),'last30',COUNT(*) FILTER(WHERE created_at>=NOW()-INTERVAL '30 days')) FROM users),
@@ -50,6 +52,6 @@ export async function getDashboard(period:DashboardPeriod,includeBlank:boolean){
  'imageActivity',(SELECT COALESCE(jsonb_agg(t),'[]') FROM (SELECT to_char(date_trunc($2,timezone($3,created_at)),'YYYY-MM-DD') date,COALESCE(SUM(face_count+preview_count),0) count FROM filtered WHERE created_at>=$4::timestamptz GROUP BY 1 ORDER BY 1)t)
  ) AS metrics`,[includeBlank,config.trunc,ADMIN_DISPLAY_TIME_ZONE,adminPeriodStartIso(start)]);
  const runs=await sql`SELECT source,snapshot_at,completed_at,counts FROM legacy_sync_runs ORDER BY completed_at DESC LIMIT 5`;
- return {metrics:(result as {metrics:Metrics}[])[0].metrics,spine,storage:await storagePromise,runs:runs as {source:string;snapshot_at:string;completed_at:string;counts:Record<string,unknown>}[],timezone:ADMIN_DISPLAY_TIME_ZONE};
+ return {metrics:(result as {metrics:Metrics}[])[0].metrics,spine,storage:await storagePromise,awsCost:await costPromise,runs:runs as {source:string;snapshot_at:string;completed_at:string;counts:Record<string,unknown>}[],timezone:ADMIN_DISPLAY_TIME_ZONE};
 }
 export type DashboardData=Awaited<ReturnType<typeof getDashboard>>;

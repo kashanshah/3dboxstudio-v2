@@ -26,6 +26,7 @@
     "test:board-image-browser": "node scripts/board-artwork-image.browser.cjs"
   },
   "dependencies": {
+    "@aws-sdk/client-cost-explorer": "^3.1143.0",
     "@aws-sdk/client-s3": "^3.1143.0",
     "@aws-sdk/s3-request-presigner": "^3.1143.0",
     "@fontsource/manrope": "5.3.0",

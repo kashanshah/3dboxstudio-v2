@@ -12,6 +12,7 @@
 .admin-chart-tooltip{position:fixed;z-index:30;background:#05070a;color:#f4f7fb;padding:8px;white-space:nowrap;border:1px solid #252b35;border-radius:6px;font-size:11px;line-height:1.35;pointer-events:none}
 .admin-chart-dates{display:flex;justify-content:space-between;margin-top:12px;color:var(--admin-muted);font-size:11px}
 .admin-breakdown{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+.admin-cost-services{margin-top:16px}
 .admin-breakdown li{display:flex;justify-content:space-between;gap:16px;font-size:13px;overflow-wrap:anywhere}
 .admin-dashboard-grid+.admin-panel{margin-top:24px}
 @media(max-width:760px){.admin-dashboard-grid{grid-template-columns:1fr}.admin-dashboard-controls select{font-size:16px}.admin-main{padding:18px}.admin-breakdown li{flex-wrap:wrap}}
