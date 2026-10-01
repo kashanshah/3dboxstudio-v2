@@ -19,5 +19,5 @@ export function isAnalyticsBlockedPath(pathname: string): boolean {
 
 export function setGaDisableFlag(disabled: boolean): void {
   if (typeof window === "undefined" || !GA_MEASUREMENT_ID) return;
-  (window as Window & Record<string, unknown>)[`ga-disable-${GA_MEASUREMENT_ID}`] = disabled;
+  (window as unknown as Record<string, boolean>)[`ga-disable-${GA_MEASUREMENT_ID}`] = disabled;
 }
