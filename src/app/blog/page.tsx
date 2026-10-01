@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { BlogExplorer } from '@/components/blog-explorer';
 import { ContentHero, ContentPageShell, StudioCta } from '@/components/content-page-shell';
-import { BLOG_CATEGORIES, BLOG_INDEX_DESCRIPTION, BLOG_INDEX_TITLE, BLOG_POSTS, getBlogCategory, getBlogCategoryLabel } from '@/content/blogPosts';
+import { BLOG_CATEGORIES, BLOG_INDEX_DESCRIPTION, BLOG_INDEX_TITLE, BLOG_POSTS, getBlogCategory, getBlogCategoryLabel, getBlogPostImagePath } from '@/content/blogPosts';
 
 export const metadata: Metadata = {
   title: { absolute: BLOG_INDEX_TITLE },
@@ -17,7 +17,7 @@ export default function Blog() {
     description: post.description,
     category: getBlogCategoryLabel(getBlogCategory(post.slug)),
     readMinutes: post.readMinutes,
-    image: `/images/blog/${post.slug}.webp`,
+    image: getBlogPostImagePath(post.slug),
   }));
   return <ContentPageShell>
     <ContentHero eyebrow="Packaging guides" title="Ideas worth unboxing." intro={`${BLOG_POSTS.length} practical guides on 3D box design, packaging mockups, folding cartons, mailers, e-commerce visuals, and browser-based packaging workflows.`} />

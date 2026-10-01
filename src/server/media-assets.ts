@@ -3,7 +3,7 @@ import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCom
 import { ensureV2Schema, getSql } from '@/server/db';
 import { optionalEnv, requireEnv } from '@/server/env';
 
-const MAX_MEDIA_BYTES = 15 * 1024 * 1024;
+export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
 const ALLOWED_MEDIA_TYPES = new Set(['image/png','image/jpeg','image/webp','image/svg+xml']);
 
 let client: S3Client | null = null;
@@ -82,10 +82,55 @@ export async function listMediaAssets(userId:string):Promise<MediaAssetDto[]>{
   return rows.map(toDto);
 }
 
+export async function createMediaUpload(userId:string,input:{name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null}){
+  if(!ALLOWED_MEDIA_TYPES.has(input.mimeType)) throw new Error('Use PNG, JPG, WebP or SVG artwork.');
+  if(!Number.isFinite(input.byteSize)||input.byteSize<=0) throw new Error('The selected image is empty.');
+  if(input.byteSize>MAX_MEDIA_BYTES) throw new Error('Artwork must be 100 MB or smaller.');
+
+  const id=randomUUID();
+  const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
+  const prefix=configuredPrefix ? configuredPrefix+'/' : '';
+  const key=`${prefix}users/${userId}/artwork/${id}/${safeFilename(input.name)}`;
+  return {id,key,maxBytes:MAX_MEDIA_BYTES};
+}
+
+export async function finalizeMediaUpload(userId:string,input:{id:string;key:string;name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null}):Promise<MediaAssetDto>{
+  if(!ALLOWED_MEDIA_TYPES.has(input.mimeType)) throw new Error('Unsupported artwork type.');
+  const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
+  const expectedPrefix=`${configuredPrefix ? configuredPrefix+'/' : ''}users/${userId}/artwork/${input.id}/`;
+  if(!input.key.startsWith(expectedPrefix)) throw new Error('Invalid upload key.');
+
+  const head=await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:input.key}));
+  const actualSize=Number(head.ContentLength||0);
+  const actualType=head.ContentType||input.mimeType;
+  if(actualSize<=0||actualSize>MAX_MEDIA_BYTES||actualType!==input.mimeType){
+    await s3().send(new DeleteObjectCommand({Bucket:bucket(),Key:input.key})).catch(()=>{});
+    throw new Error(actualSize>MAX_MEDIA_BYTES?'Artwork must be 100 MB or smaller.':'Uploaded artwork could not be verified.');
+  }
+
+  await ensureV2Schema();
+  const rows=await getSql()`
+    INSERT INTO media_assets(id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint)
+    VALUES(
+      ${input.id},${userId},${input.name.slice(0,255)},${input.mimeType},${actualSize},
+      ${Number.isFinite(input.width)?Math.max(1,Math.round(Number(input.width))):null},
+      ${Number.isFinite(input.height)?Math.max(1,Math.round(Number(input.height))):null},
+      ${input.key},${input.id}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      name=EXCLUDED.name,mime_type=EXCLUDED.mime_type,byte_size=EXCLUDED.byte_size,
+      width=EXCLUDED.width,height=EXCLUDED.height,storage_key=EXCLUDED.storage_key
+    WHERE media_assets.user_id=${userId}
+    RETURNING id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint,created_at
+  ` as MediaAssetRow[];
+  if(!rows[0]) throw new Error('Could not finalize artwork upload.');
+  return toDto(rows[0]);
+}
+
 export async function uploadMediaAsset(userId:string,file:File,input:{width?:number|null;height?:number|null}={}):Promise<MediaAssetDto>{
   if(!ALLOWED_MEDIA_TYPES.has(file.type)) throw new Error('Use PNG, JPG, WebP or SVG artwork.');
   if(file.size<=0) throw new Error('The selected image is empty.');
-  if(file.size>MAX_MEDIA_BYTES) throw new Error('Artwork must be 15 MB or smaller.');
+  if(file.size>MAX_MEDIA_BYTES) throw new Error('Artwork must be 100 MB or smaller.');
 
   const bytes=Buffer.from(await file.arrayBuffer());
   const fingerprint=createHash('sha256').update(bytes).digest('hex');

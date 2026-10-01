@@ -1,11 +1,14 @@
 'use client';
 
+import { useTranslations } from '@/components/i18n/locale-provider';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown,LogOut,UserRound } from 'lucide-react';
 import { useAuth } from './auth-provider';
 
 export function AccountButton({compact=false,className='button button-secondary marketing-header-cta'}:{compact?:boolean;className?:string}){
+  const t = useTranslations();
+
   const auth=useAuth();
   const [open,setOpen]=useState(false);
   const menuRef=useRef<HTMLDivElement>(null);
@@ -22,18 +25,18 @@ export function AccountButton({compact=false,className='button button-secondary 
   const buttonClassName=`${className} account-button${compact?' is-compact':''}`;
 
   if(auth.loading) return <button type="button" disabled className={`${buttonClassName} is-loading`} aria-hidden="true"/>;
-  if(!auth.user) return <button type="button" className={buttonClassName} onClick={()=>auth.openAuth('signin')} aria-label="Sign in"><UserRound size={16}/><span>Sign in</span></button>;
+  if(!auth.user) return <button type="button" className={buttonClassName} onClick={()=>auth.openAuth('signin')} aria-label={t("account.sign_in")}><UserRound size={16}/><span>{t("account.sign_in")}</span></button>;
 
   const label=auth.user.name?.trim()||auth.user.email;
   return <div className="account-menu" ref={menuRef}>
-    <button type="button" className={buttonClassName} aria-label={`Account: ${label}`} aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
+    <button type="button" className={buttonClassName} aria-label={t("account.named_account", { name: label })} aria-expanded={open} onClick={()=>setOpen(v=>!v)}>
       <UserRound size={15}/><span>{label}</span><ChevronDown size={13}/>
     </button>
     {open&&<div className="account-popover">
-      <div><strong>{auth.user.name||'3D Box Studio user'}</strong><span>{auth.user.email}</span></div>
-      <Link href="/accounts" onClick={()=>setOpen(false)}><UserRound size={15}/> Account settings</Link>
-      <Link href="/studio" onClick={()=>setOpen(false)}>Your designs</Link>
-      <button type="button" onClick={async()=>{setOpen(false);await auth.signOut();}}><LogOut size={15}/> Sign out</button>
+      <div><strong>{auth.user.name||t("account.default_user")}</strong><span>{auth.user.email}</span></div>
+      <Link href="/accounts" onClick={()=>setOpen(false)}><UserRound size={15}/>{" " + t("account.account_settings")}</Link>
+      <Link href="/studio" onClick={()=>setOpen(false)}>{t("account.your_designs")}</Link>
+      <button type="button" onClick={async()=>{setOpen(false);await auth.signOut();}}><LogOut size={15}/>{" " + t("account.sign_out")}</button>
     </div>}
   </div>;
 }

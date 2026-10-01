@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
 import { AdaptiveArticleImage } from '@/components/adaptive-article-image';
 import { BlogShareButtons } from '@/components/blog-share-buttons';
-import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel } from '@/content/blogPosts';
+import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel, getBlogPostImagePath } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = getBlogPostBySlug(slug);
   if (!post) return {};
   const path = `/blog/${post.slug}`;
-  const image = `/images/blog/${post.slug}.webp`;
+  const image = getBlogPostImagePath(post.slug);
   return {
     title: { absolute: post.seoTitle ?? `${post.title} | 3D Box Studio` },
     description: post.description,
@@ -69,7 +69,7 @@ export default async function BlogPostPage({ params }: Props) {
     mainEntityOfPage: canonical,
     author: { '@type': 'Organization', name: '3D Box Studio' },
     publisher: { '@type': 'Organization', name: '3D Box Studio' },
-    image: new URL(`/images/blog/${post.slug}.webp`, site.url).toString(),
+    image: new URL(getBlogPostImagePath(post.slug), site.url).toString(),
   };
   const faqSchema = post.faqs?.length ? {
     '@context': 'https://schema.org',
@@ -93,7 +93,7 @@ export default async function BlogPostPage({ params }: Props) {
 
       <BlogShareButtons title={post.title} url={canonical} />
 
-      <AdaptiveArticleImage src={`/images/blog/${post.slug}.webp`} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} />
+      <AdaptiveArticleImage src={getBlogPostImagePath(post.slug)} alt={post.imageAlt ?? `${post.title} — packaging preview thumbnail`} />
 
       <div className="content-article-layout">
         <nav className="content-article-toc" aria-label="On this page"><p>On this page</p>{toc.map((item) => <a href={`#${item.id}`} key={item.id}>{item.text}</a>)}</nav>
@@ -114,7 +114,7 @@ export default async function BlogPostPage({ params }: Props) {
       </div>
     </article>
 
-    {related.length ? <section className="related-section"><p className="content-eyebrow">Keep reading</p><h2>Related packaging guides</h2><div className="content-article-grid">{related.slice(0,3).map((item) => <article className="content-article-card" key={item.slug}><Link href={`/blog/${item.slug}`}><div className="content-article-card-media"><img loading="lazy" src={`/images/blog/${item.slug}.webp`} alt="" width="1200" height="800"/></div><div className="content-article-meta"><span>{getBlogCategoryLabel(getBlogCategory(item.slug))}</span><span>{item.readMinutes} min read</span></div><h3>{item.title}</h3><p>{item.description}</p></Link></article>)}</div></section> : null}
+    {related.length ? <section className="related-section"><p className="content-eyebrow">Keep reading</p><h2>Related packaging guides</h2><div className="content-article-grid">{related.slice(0,3).map((item) => <article className="content-article-card" key={item.slug}><Link href={`/blog/${item.slug}`}><div className="content-article-card-media"><img loading="lazy" src={getBlogPostImagePath(item.slug)} alt="" width="1200" height="800"/></div><div className="content-article-meta"><span>{getBlogCategoryLabel(getBlogCategory(item.slug))}</span><span>{item.readMinutes} min read</span></div><h3>{item.title}</h3><p>{item.description}</p></Link></article>)}</div></section> : null}
 
     <StudioCta title="Put the next packaging concept into motion." />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
