@@ -21,7 +21,7 @@ Module._resolveFilename = function (request, ...args) {
 };
 require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, file);
 
-const { listUsers, listDesigns, listMedia, getUser, getDesign, findListedMedia } = require('../src/server/admin/catalog.ts');
+const { listUsers, listDesigns, listUserDesigns, getDesignPreviewSource, listMedia, getUser, getDesign, findListedMedia } = require('../src/server/admin/catalog.ts');
 const { mediaFileId, storageKeyFromMediaFileId } = require('../src/lib/admin-media.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
 
@@ -30,8 +30,9 @@ test('admin catalog links media to owners and designs without inventing a design
   try {
     await db.exec(LEGACY_SYNC_SCHEMA);
     await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now());
-      CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, created_at timestamptz default now(), updated_at timestamptz default now());
-      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, storage_key text, created_at timestamptz default now());`);
+      CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, created_at timestamptz default now(), updated_at timestamptz default now());
+      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, storage_key text, created_at timestamptz default now());
+      CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz);`);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google'),('u2','no-name@example.com',NULL,NULL,'password')");
     await db.query('INSERT INTO projects(id,name,user_id,studio_state) VALUES($1,$2,$3,$4)', ['p1', 'Studio carton', 'u1', { artworkByPanel: { Front: { url: '/api/media/m2', name: 'box' } } }]);
@@ -40,7 +41,7 @@ test('admin catalog links media to owners and designs without inventing a design
       'm2', 'u1', 'box.png', 'image/png', 'v2/uploads/users/u1/artwork/m2/box.png',
     ]);
     await db.query("INSERT INTO legacy_records(source,entity_type,source_id,payload,source_hash) VALUES('v1','shared_designs',$1,$2,'hash')", ['d1', JSON.stringify({
-      name: 'Mailer', user_id: 'u1', created_at: now, updated_at: now, view_count: 4,
+      name: 'Mailer', user_id: 'u1', created_at: now, updated_at: now, view_count: 4, preview_token: 'previewtoken1',
       images: {
         front: { name: 'front.png', mime: 'image/png', s3Key: 'shares/d1/front.png' },
         back: { name: 'back.png', mime: 'image/png', s3Key: 'shares/d1/back.png' },
@@ -80,6 +81,10 @@ test('admin catalog links media to owners and designs without inventing a design
 
     const designs = await listDesigns();
     assert.equal(designs.total, 3);
+    assert.equal(designs.items.find((design) => design.id === 'v1:d1').previewHref, '/preview/previewtoken1');
+    assert.equal(designs.items.find((design) => design.id === 'v1:d1').thumbnailUrl, '/api/admin/designs/v1%3Ad1/preview');
+    assert.equal(designs.items.find((design) => design.id === 'p1').previewHref, null);
+    assert.equal(designs.items.find((design) => design.id === 'p1').thumbnailUrl, null);
     const mailer = await getDesign('v1:d1');
     assert.equal(mailer.name, 'Mailer');
     assert.equal(mailer.imageCount, 3);
@@ -90,6 +95,13 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(account.email, 'ada@example.com');
     assert.equal(account.designs.length, 2);
     assert.equal(await getUser('missing'), null);
+    const adaDesigns = await listUserDesigns('u1');
+    assert.equal(adaDesigns.total, 2);
+    assert.equal(adaDesigns.items.find((design) => design.id === 'v1:d1').thumbnailUrl, '/api/admin/designs/v1%3Ad1/preview');
+    assert.equal(adaDesigns.items.find((design) => design.id === 'v1:d1').previewHref, '/preview/previewtoken1');
+    assert.equal(adaDesigns.items.find((design) => design.id === 'p1').thumbnailUrl, null);
+    assert.deepEqual(await getDesignPreviewSource('v1:d1'), { storageKey: 'shares/d1/og.png' });
+    assert.equal(await getDesignPreviewSource('missing'), null);
 
     assert.equal((await findListedMedia('shares/d1/front.png')).name, 'front.png');
     assert.equal(await findListedMedia('shares/missing.png'), null);

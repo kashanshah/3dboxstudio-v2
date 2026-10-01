@@ -5,6 +5,7 @@ import { AdminPager } from '@/components/admin/admin-pager';
 import { AdminPageHeader } from '@/components/admin-page-header';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import { adminDesignHref, adminUserHref } from '@/lib/admin-media';
+import { AdminDesignThumb } from '@/components/admin/admin-design-thumb';
 import { AdminSortLink, adminListHref } from '@/components/admin/admin-sort-link';
 import { DESIGN_SORTS, listDesigns, parseAdminDir, parseAdminPage, parseAdminQuery, parseAdminSort } from '@/server/admin/catalog';
 
@@ -38,23 +39,27 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
           <table className="admin-table">
             <thead>
               <tr>
+                <th><span className="sr-only">Thumbnail</span></th>
                 <th aria-sort={sort === 'name' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Name" column="name" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'owner' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Owner" column="owner" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'images' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Images" column="images" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'source' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Source" column="source" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'updated' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Updated" column="updated" sort={sort} dir={dir} numeric href={sortHref} /></th>
+                <th>Preview</th>
               </tr>
             </thead>
             <tbody>
               {result.items.length ? result.items.map((design) => (
                 <tr key={design.id}>
+                  <td><AdminDesignThumb src={design.thumbnailUrl} name={design.name} /></td>
                   <td><Link href={adminDesignHref(design.id)}>{design.name}</Link></td>
                   <td>{design.user ? <Link href={design.user.href}>{design.user.name}</Link> : 'No account'}</td>
                   <td>{design.imageCount.toLocaleString()}</td>
                   <td>{design.legacy ? 'Legacy' : 'V2'}</td>
                   <td>{design.updatedAt ? formatAdminDateTime(design.updatedAt) : '—'}</td>
+                  <td>{design.previewHref ? <a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a> : '—'}</td>
                 </tr>
-              )) : <tr><td colSpan={5}>No designs match this search.</td></tr>}
+              )) : <tr><td colSpan={7}>No designs match this search.</td></tr>}
             </tbody>
           </table>
         </div>

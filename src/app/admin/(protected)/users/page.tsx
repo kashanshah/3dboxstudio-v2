@@ -5,6 +5,7 @@ import { AdminPager } from '@/components/admin/admin-pager';
 import { AdminPageHeader } from '@/components/admin-page-header';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import { adminUserHref } from '@/lib/admin-media';
+import { AdminUserDesignsButton } from '@/components/admin/admin-user-designs-button';
 import { AdminSortLink, adminListHref } from '@/components/admin/admin-sort-link';
 import { listUsers, parseAdminDir, parseAdminPage, parseAdminQuery, parseAdminSort, USER_SORTS } from '@/server/admin/catalog';
 
@@ -50,8 +51,12 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   <td><Link href={adminUserHref(user.id)}>{user.name}</Link></td>
                   <td>{user.email}</td>
                   <td>{user.verified ? 'Yes' : 'No'}</td>
-                  <td>{user.designCount.toLocaleString()}</td>
-                  <td>{user.mediaCount.toLocaleString()}</td>
+                  <td>
+                    <AdminUserDesignsButton userId={user.id} userEmail={user.email} userName={user.name} designCount={user.designCount} />
+                  </td>
+                  <td>
+                    <Link href={`/admin/media?user=${encodeURIComponent(user.id)}`}>{user.mediaCount.toLocaleString()} media</Link>
+                  </td>
                   <td>{user.createdAt ? formatAdminDateTime(user.createdAt) : '—'}</td>
                 </tr>
               )) : <tr><td colSpan={6}>No users match this search.</td></tr>}

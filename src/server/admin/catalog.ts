@@ -21,6 +21,8 @@ export type AdminDesignRow = {
   updatedAt: string | null;
   imageCount: number;
   views: number;
+  previewHref: string | null;
+  thumbnailUrl: string | null;
   user: { id: string; name: string; href: string } | null;
 };
 
@@ -92,8 +94,23 @@ type DesignQueryRow = {
   user_id: string | null;
   user_name: string | null;
   user_email: string | null;
+  public_id?: string | null;
+  preview_token?: string | null;
+  share_id?: string | null;
+  share_preview_token?: string | null;
+  has_preview?: boolean;
   total?: number;
 };
+
+const PUBLIC_TOKEN = /^[0-9A-Za-z]{10,24}$/;
+
+function publicPreviewHref(row: DesignQueryRow): string | null {
+  const token = (row.legacy ? row.preview_token : row.share_preview_token)?.trim();
+  if (token && PUBLIC_TOKEN.test(token)) return `/preview/${encodeURIComponent(token)}`;
+  const studioId = (row.legacy ? row.public_id : row.share_id)?.trim();
+  if (studioId && PUBLIC_TOKEN.test(studioId)) return `/studio/${encodeURIComponent(studioId)}`;
+  return null;
+}
 
 export function parseAdminPage(value?: string): number {
   const page = Number(value);
@@ -191,6 +208,8 @@ function presentDesign(row: DesignQueryRow): AdminDesignRow {
     updatedAt: iso(row.updated_at),
     imageCount: Number(row.image_count || 0),
     views: Number(row.views || 0),
+    previewHref: publicPreviewHref(row),
+    thumbnailUrl: row.has_preview ? `/api/admin/designs/${encodeURIComponent(row.id)}/preview` : null,
     user: row.user_id ? {
       id: row.user_id,
       name: row.user_name?.trim() || row.user_email || 'Unknown user',
@@ -269,6 +288,88 @@ export async function getUser(id: string, list?: { sort?: string; dir?: string }
   return { ...presentUser(user), designs: designs.items };
 }
 
+export type AdminUserDesignItem = {
+  id: string;
+  name: string;
+  legacy: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+  imageCount: number;
+  views: number;
+  thumbnailUrl: string | null;
+  previewHref: string | null;
+  href: string;
+};
+
+export async function listUserDesigns(userId: string, input: { page?: number; pageSize?: number } = {}): Promise<AdminPage<AdminUserDesignItem>> {
+  await ensureV2Schema();
+  const page = input.page && Number.isInteger(input.page) && input.page > 0 ? input.page : 1;
+  const pageSize = input.pageSize && Number.isInteger(input.pageSize) ? Math.min(100, Math.max(1, input.pageSize)) : 100;
+  const offset = (page - 1) * pageSize;
+  const rows = await getSql().query(`
+    WITH ${mediaUsages},
+    designs AS (
+      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views,
+        (NULLIF(preview_image_key, '') IS NOT NULL) AS has_preview,
+        NULL::text AS public_id, NULL::text AS preview_token
+      FROM projects
+      UNION ALL
+      SELECT source || ':' || source_id,
+        COALESCE(NULLIF(payload->>'name',''), 'Untitled'),
+        true,
+        (payload->>'created_at')::timestamptz,
+        COALESCE((payload->>'updated_at')::timestamptz, (payload->>'created_at')::timestamptz),
+        NULLIF(payload->>'user_id',''),
+        COALESCE((payload->>'view_count')::bigint, 0),
+        (NULLIF(COALESCE(payload->>'v2_og_image_key', payload->>'og_image_key'), '') IS NOT NULL),
+        source_id, NULLIF(payload->>'preview_token','')
+      FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
+    )
+    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
+      d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
+      (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
+      COUNT(*) OVER()::int AS total
+    FROM designs d
+    LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
+    WHERE d.user_id=$1
+    ORDER BY d.updated_at DESC NULLS LAST, d.id
+    LIMIT $2 OFFSET $3
+  `, [userId, pageSize, offset]) as Array<DesignQueryRow & { has_preview: boolean }>;
+  return {
+    items: rows.map((row) => ({
+      ...presentDesign(row),
+      thumbnailUrl: row.has_preview ? `/api/admin/designs/${encodeURIComponent(row.id)}/preview` : null,
+      href: adminDesignHref(row.id),
+    })),
+    total: Number(rows[0]?.total ?? 0),
+    page,
+    pageSize,
+  };
+}
+
+export async function getDesignPreviewSource(id: string): Promise<{ dataUrl: string } | { storageKey: string } | null> {
+  await ensureV2Schema();
+  const designId = decodeRouteParam(id).slice(0, 200);
+  if (!designId) return null;
+  const rows = await getSql().query(`
+    SELECT preview, legacy FROM (
+      SELECT preview_image_key AS preview, false AS legacy, 0 AS ord FROM projects WHERE id=$1
+      UNION ALL
+      SELECT COALESCE(NULLIF(payload->>'v2_og_image_key',''), NULLIF(payload->>'og_image_key','')), true, 1
+      FROM legacy_records
+      WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
+    ) sources
+    WHERE NULLIF(preview, '') IS NOT NULL
+    ORDER BY ord
+    LIMIT 1
+  `, [designId]) as { preview: string; legacy: boolean }[];
+  const preview = rows[0]?.preview?.trim();
+  if (!preview) return null;
+  if (preview.startsWith('data:image/')) return { dataUrl: preview };
+  if (preview.includes('..') || preview.includes('\\') || preview.includes('\0')) return null;
+  return { storageKey: preview };
+}
+
 export async function listDesigns(input: { q?: string; page?: number; pageSize?: number; userId?: string; sort?: string; dir?: string } = {}): Promise<AdminPage<AdminDesignRow>> {
   await ensureV2Schema();
   const q = parseAdminQuery(input.q);
@@ -281,7 +382,9 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
   const rows = await getSql().query(`
     WITH ${mediaUsages},
     designs AS (
-      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views
+      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views,
+        NULL::text AS public_id, NULL::text AS preview_token,
+        (NULLIF(preview_image_key, '') IS NOT NULL) AS has_preview
       FROM projects
       UNION ALL
       SELECT source || ':' || source_id,
@@ -290,15 +393,19 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
         (payload->>'created_at')::timestamptz,
         COALESCE((payload->>'updated_at')::timestamptz, (payload->>'created_at')::timestamptz),
         NULLIF(payload->>'user_id',''),
-        COALESCE((payload->>'view_count')::bigint, 0)
+        COALESCE((payload->>'view_count')::bigint, 0),
+        source_id, NULLIF(payload->>'preview_token',''),
+        (NULLIF(COALESCE(payload->>'v2_og_image_key', payload->>'og_image_key'), '') IS NOT NULL)
       FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
     )
-    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views,
+    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
+      d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
       (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
       d.user_id, u.name AS user_name, u.email AS user_email,
       COUNT(*) OVER()::int AS total
     FROM designs d
     LEFT JOIN users u ON u.id=d.user_id
+    LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
     WHERE ($1='' OR d.user_id=$1)
       AND ($2='' OR strpos(lower(COALESCE(d.name,'')), lower($2))>0 OR strpos(lower(COALESCE(u.name,'')), lower($2))>0 OR strpos(lower(COALESCE(u.email,'')), lower($2))>0)
     ORDER BY ${orderSql(DESIGN_SORT_SQL[sort], dir, 'd.id')}
