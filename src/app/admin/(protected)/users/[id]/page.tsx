@@ -5,6 +5,7 @@ import { AdminPageHeader } from '@/components/admin-page-header';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import { adminDesignHref } from '@/lib/admin-media';
 import { AdminDesignThumb } from '@/components/admin/admin-design-thumb';
+import { AdminUserProjectsButton } from '@/components/admin/admin-user-projects-button';
 import { AdminSortLink, adminListHref } from '@/components/admin/admin-sort-link';
 import { DESIGN_SORTS, getUser, parseAdminDir, parseAdminSort } from '@/server/admin/catalog';
 
@@ -32,7 +33,7 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
           <div><dt>Verified</dt><dd>{user.verified ? 'Yes' : 'No'}</dd></div>
           <div><dt>Signup</dt><dd>{user.signupMethod}</dd></div>
           <div><dt>Joined</dt><dd>{user.createdAt ? formatAdminDateTime(user.createdAt) : '—'}</dd></div>
-          <div><dt>Projects</dt><dd>{user.projectCount.toLocaleString()}</dd></div>
+          <div><dt>Projects</dt><dd><AdminUserProjectsButton userId={user.id} userEmail={user.email} userName={user.name} projectCount={user.projectCount} /></dd></div>
           <div><dt>Designs</dt><dd><Link href={`/admin/designs?user=${encodeURIComponent(user.id)}`}>{user.designCount.toLocaleString()}</Link></dd></div>
           <div><dt>Media</dt><dd><Link href={`/admin/media?user=${encodeURIComponent(user.id)}`}>{user.mediaCount.toLocaleString()}</Link></dd></div>
         </dl>

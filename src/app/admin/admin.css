@@ -34,8 +34,13 @@
 .admin-user-designs-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .admin-user-designs-id{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--admin-muted);font-size:11px}
 .admin-user-designs-copy .admin-muted{font-size:12px}
+.admin-user-projects-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.admin-user-projects-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 10px;border:1px solid var(--admin-line);border-radius:10px;background:#0d1117}
+.admin-user-projects-list .admin-user-designs-name{display:flex;align-items:center;gap:8px;min-width:0}
+.admin-user-projects-list .admin-user-designs-name>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-user-project-badge{flex:none;display:inline-flex;align-items:center;padding:2px 7px;border:1px solid var(--admin-line);border-radius:999px;color:var(--admin-muted);font-size:11px;font-weight:650}
 .admin-design-thumb{width:72px;height:48px;display:grid;place-items:center;overflow:hidden;border:1px solid var(--admin-line);border-radius:6px;background:#05070a;color:var(--admin-muted);font-size:11px;font-weight:700}
 .admin-design-thumb img{width:100%;height:100%;object-fit:contain;display:block}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .admin-link-stack{display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:flex-end}
-@media(max-width:640px){.admin-user-designs-list li{grid-template-columns:56px minmax(0,1fr)}.admin-user-designs-preview{width:56px;height:40px}.admin-user-designs-list li>.admin-link{grid-column:2}}
+@media(max-width:640px){.admin-user-designs-list li{grid-template-columns:56px minmax(0,1fr)}.admin-user-designs-preview{width:56px;height:40px}.admin-user-designs-list li>.admin-link,.admin-user-projects-list li>.admin-link{grid-column:2}}
