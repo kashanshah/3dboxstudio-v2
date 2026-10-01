@@ -2009,49 +2009,53 @@ function Inspector(props: {
       <PanelIntro title="Choose your box" text="Pick the packaging style, then set the finished size of the box." />
 
       <div className="pro-structure-current">
-        <span>Current box</span>
         <div>
-          <TemplateVisual template={selectedTemplate} dimensions={props.dimensions} compact />
+          <div style={{gridColumn: 'span 2'}}>
+          <span>Current box</span>
           <div>
-            <strong>{selectedTemplate.name}</strong>
-            <small>{selectedTemplate.category} · Ready to edit</small>
-            <div className="pro-current-box-size">
-              <div className="pro-current-box-size-head">
-                <span>Finished size</span>
-                <div className="pro-unit-switch" role="group" aria-label="Measurement unit">
-                  <button type="button" className={props.measurementUnit === 'mm' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('mm')}>mm</button>
-                  <button type="button" className={props.measurementUnit === 'in' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('in')}>in</button>
+            {/* <TemplateVisual template={selectedTemplate} dimensions={props.dimensions} compact /> */}
+            <div>
+              <strong>{selectedTemplate.name}</strong>
+              <small>{selectedTemplate.category} · Ready to edit</small>
+              <div className="pro-current-box-size">
+                <div className="pro-current-box-size-head">
+                  <span>Finished size</span>
+                  <div className="pro-unit-switch" role="group" aria-label="Measurement unit">
+                    <button type="button" className={props.measurementUnit === 'mm' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('mm')}>mm</button>
+                    <button type="button" className={props.measurementUnit === 'in' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('in')}>in</button>
+                  </div>
+                </div>
+                <div className="pro-current-box-size-fields" aria-label="Finished box size">
+                  <label><small>W</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                  <i>×</i>
+                  <label><small>H</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                  <i>×</i>
+                  <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                  <em>{props.measurementUnit}</em>
+                </div>
+                <button type="button" className="pro-reset-box-size" title="Restore this template’s default width, height, and depth" onClick={() => {
+                  const defaults = selectedTemplate.defaultDimensions;
+                  if(!defaults){props.setMessage('This template does not define default dimensions');return;}
+                  props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
+                  props.setMessage('Box size reset to template defaults');
+                }}><RotateCcw size={12} aria-hidden="true" /> Reset size</button>
+                <div className="pro-current-box-thickness">
+                  <span>Board thickness</span>
+                  <label>
+                    <input
+                      type="number"
+                      min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
+                      max={props.measurementUnit === 'mm' ? 2 : 0.079}
+                      step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
+                      value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
+                      onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+                    />
+                    <em>{props.measurementUnit}</em>
+                  </label>
                 </div>
               </div>
-              <div className="pro-current-box-size-fields" aria-label="Finished box size">
-                <label><small>W</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
-                <i>×</i>
-                <label><small>H</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
-                <i>×</i>
-                <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
-                <em>{props.measurementUnit}</em>
-              </div>
-              <button type="button" className="pro-reset-box-size" title="Restore this template’s default width, height, and depth" onClick={() => {
-                const defaults = selectedTemplate.defaultDimensions;
-                if(!defaults){props.setMessage('This template does not define default dimensions');return;}
-                props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
-                props.setMessage('Box size reset to template defaults');
-              }}><RotateCcw size={12} aria-hidden="true" /> Reset size</button>
-              <div className="pro-current-box-thickness">
-                <span>Board thickness</span>
-                <label>
-                  <input
-                    type="number"
-                    min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
-                    max={props.measurementUnit === 'mm' ? 2 : 0.079}
-                    step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
-                    value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
-                    onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
-                  />
-                  <em>{props.measurementUnit}</em>
-                </label>
-              </div>
             </div>
+          </div>
           </div>
         </div>
       </div>
