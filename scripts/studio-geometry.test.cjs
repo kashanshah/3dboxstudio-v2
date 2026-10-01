@@ -366,3 +366,104 @@ test('split-top 3D halves meet along the depth centre and hinge from front/back 
   assert.ok(a.some(point=>Math.abs(point[2])<1e-6));
   assert.ok(b.some(point=>Math.abs(point[2])<1e-6));
 });
+
+
+const {getReadyPackagingTemplates,getDefaultPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
+const {
+  getTemplateRuntime,
+  getTemplateGeometry,
+  getTemplateAssemblyState,
+  templateAssemblyValuesForProgress,
+}=require('../src/lib/packaging/template-runtime.ts');
+
+test('every ready template has a matching runtime and real default dimensions',()=>{
+  const ready=getReadyPackagingTemplates();
+  assert.ok(ready.length>0);
+  assert.ok(getDefaultPackagingTemplate());
+  assert.equal(ready.filter(template=>template.isDefault).length,1,'exactly one ready template should be the default');
+
+  for(const template of ready){
+    const runtime=getTemplateRuntime(template.id);
+    assert.ok(runtime,`${template.id} is ready but has no runtime`);
+    assert.equal(runtime.structureKey,template.structureKey);
+    assert.equal(runtime.rendererKey,template.rendererKey);
+    assert.ok(template.defaultDimensions,`${template.id} is ready but has no default dimensions`);
+
+    const geometry=getTemplateGeometry(template.id,template.defaultDimensions,{
+      openingMode:runtime.assembly.defaultOpeningMode,
+      splitTopHingeSide:'side_a',
+    });
+    assert.ok(geometry.panels.length>=6,`${template.id} has incomplete dieline geometry`);
+    assert.ok(geometry.bounds.width>0&&geometry.bounds.height>0);
+    assert.ok(geometry.panels.every(panel=>[panel.x,panel.y,panel.width,panel.height].every(Number.isFinite)));
+
+    const meshes=buildMeshes(template.defaultDimensions,0,[1,1,1],[.8,.8,.8],{
+      templateId:template.id,
+      formation:100,
+      openingMode:runtime.assembly.defaultOpeningMode,
+      splitTopHingeSide:'side_a',
+    });
+    const exterior=new Set(meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel));
+    for(const region of template.artworkRegions.filter(region=>region.surface==='outside')){
+      assert.ok(exterior.has(region.panelId),`${template.id} is missing 3D artwork surface ${region.panelId}`);
+    }
+  }
+});
+
+test('template geometry never silently falls back to another template',()=>{
+  assert.equal(getTemplateRuntime('not-a-template'),null);
+  assert.throws(
+    ()=>getTemplateGeometry('not-a-template',{width:100,height:100,depth:100,thickness:.5}),
+    /No runtime is registered/,
+  );
+});
+
+test('dimension changes flow through each ready template runtime',()=>{
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const d=template.defaultDimensions;
+    const options={openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'};
+    const a=getTemplateGeometry(template.id,d,options);
+    const changed={...d,width:d.width*1.17,height:d.height*.83,depth:d.depth*1.11};
+    const b=getTemplateGeometry(template.id,changed,options);
+    assert.notDeepEqual(a.bounds,b.bounds,`${template.id} ignored changed dimensions`);
+    const front=b.panels.find(panel=>panel.label==='FRONT');
+    assert.ok(front,`${template.id} has no FRONT panel`);
+    near(front.width,changed.width);
+    near(front.height,changed.height);
+  }
+});
+
+test('assembly progress is provided by each template runtime',()=>{
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    for(const progress of [0,35,70,100]){
+      const values=templateAssemblyValuesForProgress(template.id,progress,runtime.assembly.defaultOpeningMode);
+      const state=getTemplateAssemblyState(template.id,{
+        formation:values.formation,
+        opening:values.opening,
+        openingMode:runtime.assembly.defaultOpeningMode,
+      });
+      near(state.progress,progress);
+      assert.equal(state.control,runtime.assembly.control);
+    }
+  }
+});
+
+test('generic Studio paths contain no template-id geometry shortcuts',()=>{
+  const genericFiles=[
+    'src/components/studio/studio-shell.tsx',
+    'src/components/studio/shared-design-viewer.tsx',
+    'src/components/studio/template-visual.tsx',
+    'src/lib/packaging/full-dieline-artwork.ts',
+    'src/lib/studio-project.ts',
+  ];
+  const forbiddenTemplateIds=['reverse-tuck-carton','base-box','split-top-box'];
+  for(const relative of genericFiles){
+    const source=fs.readFileSync(path.resolve(__dirname,'..',relative),'utf8');
+    for(const id of forbiddenTemplateIds){
+      assert.equal(source.includes(id),false,`${relative} hard-codes template id ${id}`);
+    }
+    assert.equal(/reverseTuck(?:Panels|Bounds|FoldState)/.test(source),false,`${relative} bypasses the template runtime`);
+  }
+});
