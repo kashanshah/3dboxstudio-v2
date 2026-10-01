@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ensureV2Schema, getSql } from '@/server/db';
 import { optionalEnv, requireEnv } from '@/server/env';
 
@@ -91,7 +92,14 @@ export async function createMediaUpload(userId:string,input:{name:string;mimeTyp
   const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
   const prefix=configuredPrefix ? configuredPrefix+'/' : '';
   const key=`${prefix}users/${userId}/artwork/${id}/${safeFilename(input.name)}`;
-  return {id,key,maxBytes:MAX_MEDIA_BYTES};
+  const uploadUrl=await getSignedUrl(s3(),new PutObjectCommand({
+    Bucket:bucket(),
+    Key:key,
+    ContentType:input.mimeType,
+    CacheControl:'private, max-age=3600',
+    Metadata:{userId,assetId:id},
+  }),{expiresIn:15*60});
+  return {id,key,uploadUrl,maxBytes:MAX_MEDIA_BYTES};
 }
 
 export async function finalizeMediaUpload(userId:string,input:{id:string;key:string;name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null}):Promise<MediaAssetDto>{
