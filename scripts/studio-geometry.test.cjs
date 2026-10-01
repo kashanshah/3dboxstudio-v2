@@ -406,6 +406,7 @@ test('every ready template has a matching runtime and real default dimensions',(
     assert.ok(runtime,`${template.id} is ready but has no runtime`);
     assert.equal(runtime.structureKey,template.structureKey);
     assert.equal(runtime.rendererKey,template.rendererKey);
+    assert.equal(typeof runtime.buildMeshes,'function',`${template.id} is missing its template-owned mesh builder`);
     assert.ok(template.defaultDimensions,`${template.id} is ready but has no default dimensions`);
 
     const geometry=getTemplateGeometry(template.id,template.defaultDimensions,{
@@ -474,6 +475,7 @@ test('generic Studio paths contain no template-id geometry shortcuts',()=>{
     'src/components/studio/studio-shell.tsx',
     'src/components/studio/shared-design-viewer.tsx',
     'src/components/studio/template-visual.tsx',
+    'src/components/studio/carton-engine.tsx',
     'src/lib/packaging/full-dieline-artwork.ts',
     'src/lib/studio-project.ts',
   ];
@@ -486,6 +488,37 @@ test('generic Studio paths contain no template-id geometry shortcuts',()=>{
     assert.equal(/reverseTuck(?:Panels|Bounds|FoldState)/.test(source),false,`${relative} bypasses the template runtime`);
   }
 });
+
+test('shared carton engine delegates geometry instead of registering template renderers',()=>{
+  const source=fs.readFileSync(path.resolve(__dirname,'../src/components/studio/carton-engine.tsx'),'utf8');
+  for(const rendererKey of ['reverse-tuck-v1','base-box-v1','split-top-box-v1']){
+    assert.equal(source.includes(rendererKey),false,`shared renderer hard-codes ${rendererKey}`);
+  }
+  for(const implementation of ['buildReverseTuckMeshes','buildLegacyBoxMeshes','buildBaseBoxTemplateMeshes','buildSplitTopTemplateMeshes']){
+    assert.equal(source.includes(implementation),false,`shared renderer contains template implementation ${implementation}`);
+  }
+  assert.match(source,/runtime\.buildMeshes\s*\(/,'shared renderer must delegate through the active template runtime');
+});
+
+test('ready templates keep runtime, geometry and renderer ownership in template modules',()=>{
+  const folders={
+    'reverse-tuck-carton':'reverse-tuck',
+    'base-box':'base-box',
+    'split-top-box':'split-top',
+  };
+  for(const template of getReadyPackagingTemplates()){
+    const folder=folders[template.id];
+    assert.ok(folder,`ready template ${template.id} has no isolated module assertion`);
+    const root=path.resolve(__dirname,'../src/lib/packaging/templates',folder);
+    const runtime=fs.readFileSync(path.join(root,'runtime.ts'),'utf8');
+    const geometry=fs.readFileSync(path.join(root,'geometry.ts'),'utf8');
+    const renderer=fs.readFileSync(path.join(root,'renderer.ts'),'utf8');
+    assert.match(runtime,/buildMeshes:/,`${template.id} runtime does not own its mesh builder registration`);
+    assert.ok(geometry.length>0,`${template.id} geometry entry point is empty`);
+    assert.match(renderer,/TemplateMeshBuilder/,`${template.id} renderer does not implement the shared mesh contract`);
+  }
+});
+
 
 
 test('split bottom flaps have independent artwork keys and preserve legacy full-bottom UVs',()=>{
