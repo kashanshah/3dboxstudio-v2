@@ -56,11 +56,12 @@ export function artworkCss(artwork: ArtworkPlacement) {
   const positionX = artwork.alignX === -1 ? 'left' : artwork.alignX === 1 ? 'right' : 'center';
   const positionY = artwork.alignY === -1 ? 'top' : artwork.alignY === 1 ? 'bottom' : 'center';
 
+  const cropStyle = artwork.crop ? artworkCropCss(artwork.crop) : {};
   return {
     backgroundImage: `url("${artwork.url}")`,
     backgroundPosition: `${positionX} ${positionY}`,
     backgroundRepeat: artwork.mode === 'tile' ? 'repeat' : 'no-repeat',
-    backgroundSize: artwork.mode === 'fill'
+    backgroundSize: artwork.panelTexture ? '100% 100%' : artwork.mode === 'fill'
       ? 'cover'
       : artwork.mode === 'fit'
         ? 'contain'
@@ -69,6 +70,7 @@ export function artworkCss(artwork: ArtworkPlacement) {
       ? `rotate(${artwork.rotation}deg)`
       : `scale(${artwork.scale / 100}) rotate(${artwork.rotation}deg)`,
     transformOrigin: `${positionX} ${positionY}`,
+    ...cropStyle,
   } as const;
 }
 

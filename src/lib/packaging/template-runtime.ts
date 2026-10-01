@@ -14,6 +14,15 @@ export type TemplateGeometryOptions = {
   splitTopHingeSide?: 'side_a' | 'side_b';
 };
 
+export type TemplateAssemblyControl = 'none' | 'opening-mechanism' | 'split-direction';
+
+export type TemplateAssemblyRuntime = {
+  control: TemplateAssemblyControl;
+  defaultOpeningMode: LegacyOpeningMode;
+  legacyOpeningAsFormation?: boolean;
+  hasOpeningStage: (openingMode: LegacyOpeningMode) => boolean;
+};
+
 export type TemplateRuntime = {
   templateId: string;
   structureKey: string;
@@ -21,6 +30,7 @@ export type TemplateRuntime = {
   sanitizeParameters: (dimensions: CartonDimensions) => CartonDimensions;
   getDielinePanels: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielinePanel[];
   getDielineBounds: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => {width:number;height:number};
+  assembly: TemplateAssemblyRuntime;
   getFoldState?: typeof reverseTuckFoldState;
 };
 
@@ -32,6 +42,11 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     sanitizeParameters: sanitizeCartonDimensions,
     getDielinePanels: (dimensions,options) => baseBoxPanels(dimensions,options?.openingMode ?? 'closed'),
     getDielineBounds: (dimensions,options) => baseBoxBounds(dimensions,options?.openingMode ?? 'closed'),
+    assembly: {
+      control:'opening-mechanism',
+      defaultOpeningMode:'closed',
+      hasOpeningStage: openingMode => openingMode !== 'closed',
+    },
   }],
   ['split-top-box', {
     templateId: 'split-top-box',
@@ -40,6 +55,11 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     sanitizeParameters: sanitizeCartonDimensions,
     getDielinePanels: (dimensions,options) => splitTopBoxPanels(dimensions,options?.splitTopHingeSide ?? 'side_a'),
     getDielineBounds: (dimensions,options) => splitTopBoxBounds(dimensions,options?.splitTopHingeSide ?? 'side_a'),
+    assembly: {
+      control:'split-direction',
+      defaultOpeningMode:'top_split_meet_center',
+      hasOpeningStage: () => true,
+    },
   }],
   ['reverse-tuck-carton', {
     templateId: 'reverse-tuck-carton',
@@ -48,6 +68,12 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     sanitizeParameters: sanitizeCartonDimensions,
     getDielinePanels: dimensions => reverseTuckPanels(dimensions),
     getDielineBounds: dimensions => reverseTuckBounds(dimensions),
+    assembly: {
+      control:'none',
+      defaultOpeningMode:'closed',
+      legacyOpeningAsFormation:true,
+      hasOpeningStage: () => false,
+    },
     getFoldState: reverseTuckFoldState,
   }],
 ]);
@@ -63,12 +89,55 @@ export function getTemplateRuntime(templateId: string) {
   return runtime;
 }
 
+export function requireTemplateRuntime(templateId:string){
+  const runtime=getTemplateRuntime(templateId);
+  if(!runtime)throw new Error(`No runtime is registered for template: ${templateId}`);
+  return runtime;
+}
+
 export function getTemplateGeometry(templateId:string,dimensions:CartonDimensions,options?:TemplateGeometryOptions){
-  const runtime=getTemplateRuntime(templateId) ?? getTemplateRuntime('reverse-tuck-carton')!;
+  const runtime=requireTemplateRuntime(templateId);
+  const sanitized=runtime.sanitizeParameters(dimensions);
   return {
-    panels:runtime.getDielinePanels(dimensions,options),
-    bounds:runtime.getDielineBounds(dimensions,options),
+    panels:runtime.getDielinePanels(sanitized,options),
+    bounds:runtime.getDielineBounds(sanitized,options),
   };
+}
+
+export function getTemplateAssemblyState(
+  templateId:string,
+  input:{formation:number;opening:number;openingMode:LegacyOpeningMode},
+){
+  const assembly=requireTemplateRuntime(templateId).assembly;
+  const hasOpeningStage=assembly.hasOpeningStage(input.openingMode);
+  const progress=!hasOpeningStage
+    ? input.formation
+    : input.formation < 99.999
+      ? input.formation * 0.7
+      : 70 + (100-input.opening) * 0.3;
+  const stage=progress<=1
+    ? 'Flat dieline'
+    : hasOpeningStage && progress>=69 && progress<=71
+      ? 'Assembled · open'
+      : progress<70
+        ? 'Forming box'
+        : progress<99
+          ? 'Closing package'
+          : 'Closed package';
+  return {progress,stage,hasOpeningStage,control:assembly.control};
+}
+
+export function templateAssemblyValuesForProgress(
+  templateId:string,
+  value:number,
+  openingMode:LegacyOpeningMode,
+){
+  const next=Math.max(0,Math.min(100,value));
+  const assembly=requireTemplateRuntime(templateId).assembly;
+  const hasOpeningStage=assembly.hasOpeningStage(openingMode);
+  if(!hasOpeningStage)return {formation:next,opening:0};
+  if(next<=70)return {formation:next/70*100,opening:100};
+  return {formation:100,opening:(100-next)/30*100};
 }
 
 export function registerTemplateRuntime(runtime: TemplateRuntime) {
