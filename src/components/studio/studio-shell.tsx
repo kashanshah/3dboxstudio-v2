@@ -649,8 +649,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           ? rasterizeFullDielineLayers(
               outsideDielineLayers,
               dimensions,
-              '',
               selectedTemplateId,
+              '',
               {openingMode,splitTopHingeSide},
             )
           : Promise.resolve({} as ArtworkByPanel),
@@ -658,8 +658,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           ? rasterizeFullDielineLayers(
               insideDielineLayers,
               dimensions,
-              'Interior ',
               selectedTemplateId,
+              'Interior ',
               {openingMode,splitTopHingeSide},
             )
           : Promise.resolve({} as ArtworkByPanel),
