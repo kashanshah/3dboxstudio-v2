@@ -135,7 +135,10 @@ export function StudioHome({
        <span>{t("workspace.what_would_you_like_to_create_today")}</span>
      </div>
      <div className="studio-home-welcome-actions">
-       <Link className="studio-create-action is-primary" href={createDesignHref}>
+      <div className='studio-create-project-link flex justify-end text-end'>
+        <button className="button button-primary" type="button" onClick={()=>setCreatingProject(value=>!value)}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
+      </div>
+      <Link className="studio-create-action is-primary" href={createDesignHref}>
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
          <span><strong>{t("workspace.new_box_design")}</strong><small>{t("workspace.choose_a_box_add_artwork_preview_it_in_3d")}</small></span>
        </Link>
@@ -143,7 +146,6 @@ export function StudioHome({
          <span className="studio-create-action-icon"><Clapperboard size={22}/></span>
          <span><strong>{t("workspace.scene") + " "}<em>{t("workspace.coming_soon")}</em></strong><small>{t("workspace.product_photography_lighting_backgrounds_and_multi_box_compositions_are_pla")}</small></span>
        </div>
-       <button className="studio-create-project-link" type="button" onClick={()=>setCreatingProject(value=>!value)}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
      </div>
    </section>
    {!user.emailVerified&&<aside className="studio-demo-note"><MailNotice/></aside>}
