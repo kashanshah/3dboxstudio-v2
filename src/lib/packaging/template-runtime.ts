@@ -8,6 +8,10 @@ import {
 import { baseBoxBounds, baseBoxPanels, splitTopBoxBounds, splitTopBoxPanels, type DielinePanel } from '@/lib/packaging/box-structures';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
+import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
+import { buildBaseBoxTemplateMeshes } from '@/lib/packaging/templates/base-box/renderer';
+import { buildSplitTopTemplateMeshes } from '@/lib/packaging/templates/split-top/renderer';
+import { buildReverseTuckTemplateMeshes } from '@/lib/packaging/templates/reverse-tuck/renderer';
 
 export type TemplateGeometryOptions = {
   openingMode?: LegacyOpeningMode;
@@ -30,6 +34,7 @@ export type TemplateRuntime = {
   sanitizeParameters: (dimensions: CartonDimensions) => CartonDimensions;
   getDielinePanels: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielinePanel[];
   getDielineBounds: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => {width:number;height:number};
+  buildMeshes: TemplateMeshBuilder;
   assembly: TemplateAssemblyRuntime;
   getFoldState?: typeof reverseTuckFoldState;
 };
@@ -42,6 +47,7 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     sanitizeParameters: sanitizeCartonDimensions,
     getDielinePanels: (dimensions,options) => baseBoxPanels(dimensions,options?.openingMode ?? 'closed'),
     getDielineBounds: (dimensions,options) => baseBoxBounds(dimensions,options?.openingMode ?? 'closed'),
+    buildMeshes: buildBaseBoxTemplateMeshes,
     assembly: {
       control:'opening-mechanism',
       defaultOpeningMode:'closed',
@@ -55,6 +61,7 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     sanitizeParameters: sanitizeCartonDimensions,
     getDielinePanels: (dimensions,options) => splitTopBoxPanels(dimensions,options?.splitTopHingeSide ?? 'side_a'),
     getDielineBounds: (dimensions,options) => splitTopBoxBounds(dimensions,options?.splitTopHingeSide ?? 'side_a'),
+    buildMeshes: buildSplitTopTemplateMeshes,
     assembly: {
       control:'split-direction',
       defaultOpeningMode:'top_split_meet_center',
@@ -68,6 +75,7 @@ const runtimeMap = new Map<string, TemplateRuntime>([
     sanitizeParameters: sanitizeCartonDimensions,
     getDielinePanels: dimensions => reverseTuckPanels(dimensions),
     getDielineBounds: dimensions => reverseTuckBounds(dimensions),
+    buildMeshes: buildReverseTuckTemplateMeshes,
     assembly: {
       control:'none',
       defaultOpeningMode:'closed',
