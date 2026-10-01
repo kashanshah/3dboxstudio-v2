@@ -614,7 +614,7 @@ function buildLegacyBoxMeshes(
 
   const bodyCorners=(name:string)=>transformAll(flatCornerMap.get(name)??[],p=>bodyTransform(name,p));
   const frontCorners=bodyCorners('Front');
-  let backCorners=bodyCorners('Back');
+  const backCorners=bodyCorners('Back');
   let leftCorners=bodyCorners('Left');
   let rightCorners=bodyCorners('Right');
 
