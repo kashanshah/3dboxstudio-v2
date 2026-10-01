@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { AdminMediaBrowser } from '@/components/admin/admin-media-browser';
 import { AdminPageHeader } from '@/components/admin-page-header';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
+import { decodeRouteParam } from '@/lib/route-params';
 import { getDesign } from '@/server/admin/catalog';
 
 export const metadata: Metadata = { title: 'Admin — Design' };
@@ -11,8 +12,8 @@ export const metadata: Metadata = { title: 'Admin — Design' };
 type Props = { params: Promise<{ id: string }> };
 
 export default async function AdminDesignPage({ params }: Props) {
-  const { id } = await params;
-  const design = await getDesign(id);
+  const { id: rawId } = await params;
+  const design = await getDesign(decodeRouteParam(rawId));
   if (!design) notFound();
 
   return (

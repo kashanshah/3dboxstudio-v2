@@ -1,5 +1,6 @@
 import { ensureV2Schema, getSql } from '@/server/db';
 import { adminDesignHref, adminUserHref, isCatalogMediaKey, mediaFileId, type AdminMediaItem } from '@/lib/admin-media';
+import { decodeRouteParam } from '@/lib/route-params';
 
 export type AdminUserRow = {
   id: string;
@@ -308,6 +309,7 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
 
 export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
   await ensureV2Schema();
+  const designId = decodeRouteParam(id);
   const rows = await getSql().query(`
     WITH ${mediaUsages},
     designs AS (
@@ -330,10 +332,10 @@ export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
     FROM designs d
     LEFT JOIN users u ON u.id=d.user_id
     LIMIT 1
-  `, [id]) as DesignQueryRow[];
+  `, [designId]) as DesignQueryRow[];
   const design = rows[0];
   if (!design) return null;
-  const media = await listMedia({ designId: id, page: 1, pageSize: 100 });
+  const media = await listMedia({ designId, page: 1, pageSize: 100 });
   return { ...presentDesign(design), images: media.items };
 }
 
