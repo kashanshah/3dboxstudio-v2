@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { defaultLocale, localeDirection } from '@/lib/i18n/config';
 import { LocaleProvider } from '@/components/i18n/locale-provider';
 import { translate } from '@/lib/i18n';
@@ -12,6 +13,9 @@ import './globals.css';
 import './content-pages.css';
 import './contact-form.css';
 import { AuthProvider } from '@/components/auth/auth-provider';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { PostHogAnalytics } from '@/components/analytics/PostHogAnalytics';
+import { AnalyticsPageView } from '@/components/analytics/AnalyticsPageView';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
@@ -20,6 +24,20 @@ export const metadata: Metadata = {
   robots: { index: site.indexable, follow: site.indexable },
   icons: { icon: '/favicon.svg' },
 };
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang={defaultLocale} dir={localeDirection(defaultLocale)}><body><LocaleProvider><AuthProvider>{children}</AuthProvider></LocaleProvider></body></html>;
+  return (
+    <html lang={defaultLocale} dir={localeDirection(defaultLocale)}>
+      <body>
+        <GoogleAnalytics />
+        <PostHogAnalytics />
+        <Suspense fallback={null}>
+          <AnalyticsPageView />
+        </Suspense>
+        <LocaleProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </LocaleProvider>
+      </body>
+    </html>
+  );
 }
