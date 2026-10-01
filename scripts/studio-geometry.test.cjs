@@ -507,7 +507,7 @@ test('base-box formation uses rigid crease rotations at every percentage',()=>{
   const d={width:240,height:100,depth:160,thickness:.5};
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
   const samePoint=(a,b,label)=>a.forEach((v,i)=>near(v,b[i],label));
-  for(const formation of [0,10,25,50,75,90,100]){
+  for(const formation of Array.from({length:101},(_,index)=>index)){
     const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{
       templateId:'base-box',formation,openingMode:'lid_from_back',
     });
@@ -559,6 +559,92 @@ test('flat box state is the exact dieline plane for every opening mode',()=>{
     const exterior=meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior '));
     for(const mesh of exterior){
       for(const point of mesh.pickCorners)near(point[2],d.depth/2);
+    }
+  }
+});
+
+
+test('split-top body follows the production crease chain from flat dieline to formed box',()=>{
+  const d={width:475,height:225,depth:255,thickness:.5};
+  const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
+  const same=(a,b,label)=>a.forEach((v,i)=>assert.ok(Math.abs(v-b[i])<1e-6,`${label}: ${a} != ${b}`));
+
+  for(const formation of [0,10,25,50,75,90,100]){
+    const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{
+      templateId:'split-top-box',
+      formation,
+      openingMode:'top_split_meet_center',
+      splitTopHingeSide:'side_b',
+    });
+    const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
+    const front=by('Front'),right=by('Right'),back=by('Back'),left=by('Left');
+
+    // Every body panel remains rigid.
+    near(distance(front[0],front[1]),d.width);
+    near(distance(front[0],front[3]),d.height);
+    near(distance(right[0],right[1]),d.depth);
+    near(distance(right[0],right[3]),d.height);
+    near(distance(back[0],back[1]),d.width);
+    near(distance(back[0],back[3]),d.height);
+    near(distance(left[0],left[1]),d.depth);
+    near(distance(left[0],left[3]),d.height);
+
+    // Every scored crease remains coincident throughout the fold.
+    same(front[1],right[0],`front/right lower crease at ${formation}%`);
+    same(front[2],right[3],`front/right upper crease at ${formation}%`);
+    same(right[1],back[0],`right/back lower crease at ${formation}%`);
+    same(right[2],back[3],`right/back upper crease at ${formation}%`);
+    same(back[1],left[0],`back/left lower crease at ${formation}%`);
+    same(back[2],left[3],`back/left upper crease at ${formation}%`);
+
+    if(formation===0){
+      for(const panel of [front,right,back,left]){
+        for(const point of panel)near(point[2],d.depth/2);
+      }
+    }
+    if(formation===100){
+      // The free edge of Left reaches Front's left edge only at full erection.
+      same(left[1],front[0],'closed body lower seam');
+      same(left[2],front[3],'closed body upper seam');
+    }
+  }
+});
+
+test('split-top assembly timeline is physically staged from dieline through flap closure',()=>{
+  const d={width:475,height:225,depth:255,thickness:.5};
+  const {templateAssemblyValuesForProgress}=require('../src/lib/packaging/template-runtime.ts');
+  const points=Array.from({length:101},(_,index)=>index);
+
+  for(const splitTopHingeSide of ['side_a','side_b']){
+    for(const progress of points){
+      const values=templateAssemblyValuesForProgress('split-top-box',progress,'top_split_meet_center');
+      const meshes=buildMeshes(d,values.opening,[1,1,1],[.8,.8,.8],{
+        templateId:'split-top-box',
+        formation:values.formation,
+        openingMode:'top_split_meet_center',
+        splitTopHingeSide,
+      });
+      const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
+      const front=by('Front'),right=by('Right'),back=by('Back'),left=by('Left');
+      const topLeft=by('Top Left'),topRight=by('Top Right');
+
+      // Body topology must never disconnect while the slider advances.
+      front[1].forEach((v,i)=>near(v,right[0][i]));
+      right[1].forEach((v,i)=>near(v,back[0][i]));
+      back[1].forEach((v,i)=>near(v,left[0][i]));
+
+      const parents=splitTopHingeSide==='side_a'?[left,right]:[front,back];
+      for(const [flap,parent] of [[topLeft,parents[0]],[topRight,parents[1]]]){
+        flap[0].forEach((v,i)=>near(v,parent[3][i]));
+        flap[1].forEach((v,i)=>near(v,parent[2][i]));
+      }
+
+      if(progress<=70){
+        // Closure remains fully open while the body erects.
+        near(values.opening,100);
+      }else{
+        near(values.formation,100);
+      }
     }
   }
 });
