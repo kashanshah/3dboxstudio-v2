@@ -5169,3 +5169,70 @@ body{font-size:var(--type-body)}
   line-height:1;
   white-space:nowrap;
 }
+
+/* Download panel tabs */
+.pro-export-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:4px;
+  margin:2px 0 16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--panel);
+}
+.pro-export-tabs button{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:13px;
+  font-weight:700;
+  cursor:pointer;
+}
+.pro-export-tabs button:hover{color:var(--ink)}
+.pro-export-tabs button.is-active{
+  background:var(--paper);
+  color:var(--accent);
+  box-shadow:0 1px 3px rgba(15,23,42,.08);
+}
+.pro-export-tab-panel{min-height:176px}
+.pro-export-tab-panel .pro-export-ready{margin:0 0 12px}
+.pro-export-tab-panel .pro-export-button{
+  min-height:48px;
+  margin:0;
+  font-size:14px;
+}
+.pro-export-share{
+  margin-top:20px;
+  padding-top:18px;
+  border-top:1px solid var(--line);
+}
+.pro-export-share-copy{
+  display:grid;
+  grid-template-columns:32px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+}
+.pro-export-share-copy>svg{color:var(--accent);justify-self:center}
+.pro-export-share-copy strong{display:block;font-size:14px}
+.pro-export-share-copy span{display:block;margin-top:3px;color:var(--muted);font-size:12px;line-height:1.45}
+.pro-export-share-button{
+  width:100%;
+  min-height:42px;
+  justify-content:center;
+  margin-top:12px;
+  font-weight:650;
+}
+.pro-export-pdf-ready{margin-top:0}
+.pro-export-coming{margin-top:20px}
+@media(max-width:640px){
+  .pro-export-tabs button{min-height:44px;font-size:12px}
+  .pro-export-tab-panel{min-height:0}
+}
