@@ -467,3 +467,18 @@ test('generic Studio paths contain no template-id geometry shortcuts',()=>{
     assert.equal(/reverseTuck(?:Panels|Bounds|FoldState)/.test(source),false,`${relative} bypasses the template runtime`);
   }
 });
+
+
+test('split bottom flaps have independent artwork keys and preserve legacy full-bottom UVs',()=>{
+ const dimensions={width:240,height:100,depth:160,thickness:.5};
+ const panels=getTemplateGeometry('split-top-box',dimensions).panels;
+ assert.equal(new Set(panels.map(panel=>panel.label)).size,panels.length);
+ const meshes=buildMeshes(dimensions,0,[1,1,1],[1,1,1],{templateId:'split-top-box',formation:100});
+ for(const [name,y] of [['Bottom Front',.5],['Bottom Back',0]]){
+  const mesh=meshes.find(mesh=>mesh.panel===name);
+  assert.ok(mesh);
+  assert.equal(mesh.fallbackPanel,'Bottom');
+  assert.deepEqual(mesh.fallbackUv,[0,y,1,.5]);
+  near(mesh.faceAspect,dimensions.width/(dimensions.depth/2));
+ }
+});
