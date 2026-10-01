@@ -575,5 +575,8 @@ export const en = {
   "studio.studio": "Studio",
   "studio.area_tools": "{area} tools",
   "account.named_account": "Account: {name}",
-  "account.default_user": "3D Box Studio user"
+  "account.default_user": "3D Box Studio user",
+  "studio.design_view": "Design view",
+  "studio.templates": "Templates",
+  "studio.browse_packaging_templates_and_switch_the_current_box": "Browse packaging templates and switch the current box."
 } as const;
