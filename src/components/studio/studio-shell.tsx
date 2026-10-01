@@ -1,5 +1,8 @@
 'use client';
 
+import type { MessageKey } from '@/lib/i18n';
+import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
+import { useTranslations } from '@/components/i18n/locale-provider';
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
@@ -122,25 +125,27 @@ function uploadMediaFile(
     xhr.send(form);
   });
 }
-const tools: { id: Tool; label: string; icon: typeof Box }[] = [
-  { id: 'structure', label: 'Box & Size', icon: Box },
-  { id: 'artwork', label: 'Artwork', icon: ImageIcon },
-  { id: 'material', label: 'Material & Finish', icon: Layers3 },
-  { id: 'opening', label: 'Open / Close', icon: PackageOpen },
-  { id: 'scene', label: 'Scene', icon: Lightbulb },
-  { id: 'export', label: 'Download', icon: Download },
+const tools: { id: Tool; label: MessageKey; icon: typeof Box }[] = [
+  { id: 'structure', label: "studio.box_size", icon: Box },
+  { id: 'artwork', label: "studio.artwork", icon: ImageIcon },
+  { id: 'material', label: "studio.material_finish", icon: Layers3 },
+  { id: 'opening', label: "studio.open_close", icon: PackageOpen },
+  { id: 'scene', label: "studio.scene", icon: Lightbulb },
+  { id: 'export', label: "studio.download", icon: Download },
 ];
 
-const studioAreas: { id: StudioArea; label: string; helper: string; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
-  { id: 'box', label: 'Box', helper: 'Structure, size & finish', icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
-  { id: 'design', label: 'Design', helper: 'Artwork & print layout', icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
-  { id: 'preview', label: 'Preview & Download', helper: '3D review & output', icon: Boxes, defaultTool: 'opening', tools: ['opening','scene','export'] },
+const studioAreas: { id: StudioArea; label: MessageKey; helper: MessageKey; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
+  { id: 'box', label: "studio.box", helper: "studio.structure_size_finish", icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
+  { id: 'design', label: "studio.design_2", helper: "studio.artwork_print_layout", icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
+  { id: 'preview', label: "studio.preview_download", helper: "studio.3d_review_output", icon: Boxes, defaultTool: 'opening', tools: ['opening','scene','export'] },
 ];
 
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
 export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string} = {}) {
+  const t = useTranslations();
+
   const initial = initialProject?.state;
   const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
@@ -573,7 +578,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     };
   },[mode]);
 
-  const activeLabel = tools.find(item => item.id === tool)?.label ?? 'Tools';
+  const activeToolKey = tools.find(item => item.id === tool)?.label;
+  const activeLabel = t(activeToolKey ?? 'studio.tools');
   const hasArtwork = outsideDielineLayers.length > 0 || insideDielineLayers.length > 0 || Object.keys(artworkByPanel).length > 0;
   const boxReady = Boolean(selectedTemplateId) && dimensions.width > 0 && dimensions.height > 0 && dimensions.depth > 0;
   const designReady = hasArtwork;
@@ -714,12 +720,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   const chooseTemplate = (template: PackagingTemplateDefinition) => {
     if (template.status !== 'ready') {
-      setMessage(`${template.name} is in the catalog, but its real geometry is not ready yet`);
+      setMessage(`${getPackagingTemplateCopy(template, t).name} is in the catalog, but its real geometry is not ready yet`);
       return;
     }
     const runtime=getTemplateRuntime(template.id);
     if(!runtime){
-      setMessage(`${template.name} does not have a registered Studio runtime yet`);
+      setMessage(`${getPackagingTemplateCopy(template, t).name} does not have a registered Studio runtime yet`);
       return;
     }
     setSelectedTemplateId(template.id);
@@ -729,7 +735,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setSplitTopHingeSide('side_a');
     setOpeningValue(0);
     if (template.defaultDimensions) setDimensions(runtime.sanitizeParameters(template.defaultDimensions));
-    setMessage(`${template.name} selected`);
+    setMessage(`${getPackagingTemplateCopy(template, t).name} selected`);
   };
 
   const selectTool = (id: Tool) => {
@@ -1523,35 +1529,35 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><input ref={projectNameRef} aria-label="Design name" value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">Your designs</Link></div>
+        <div className="pro-project-copy"><input ref={projectNameRef} aria-label={t("studio.design_name")} value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">{t("studio.your_designs")}</Link></div>
         <div className="pro-file-menu" ref={fileMenuRef}>
-          <button type="button" className="pro-file-menu-trigger" aria-label="File actions" title="File actions" aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
+          <button type="button" className="pro-file-menu-trigger" aria-label={t("studio.file_actions")} title={t("studio.file_actions")} aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
           {fileMenuOpen&&<div className="pro-file-menu-popover" role="menu">
-            <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign();}}><Download size={15}/><span><strong>Save</strong><small>⌘/Ctrl + S</small></span></button>
-            <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>Save a copy</strong><small>Create an independent design</small></span></button>
-            <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('move')}><Move size={15}/><span><strong>Move to Project…</strong><small>Keep this design, change its project</small></span></button>
-            <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('copy')}><Copy size={15}/><span><strong>Copy to Project…</strong><small>Create an independent copy elsewhere</small></span></button>
-            <button type="button" role="menuitem" disabled={!projectId||saving||shareBusy} onClick={()=>void shareDesign()}><Share2 size={15}/><span><strong>Share link…</strong><small>{projectId?'Create a view-only review link':'Save this design first'}</small></span></button>
-            <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?'Remove from favourites':'Add to favourites'}</strong><small>{projectId?'Keep important files handy':'Save this design first'}</small></span></button>
-            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>Rename</strong><small>Edit the file name</small></span></button>
+            <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign();}}><Download size={15}/><span><strong>{t("studio.save")}</strong><small>{t("studio.ctrl_s")}</small></span></button>
+            <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>{t("studio.save_a_copy")}</strong><small>{t("studio.create_an_independent_design")}</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('move')}><Move size={15}/><span><strong>{t("studio.move_to_project")}</strong><small>{t("studio.keep_this_design_change_its_project")}</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('copy')}><Copy size={15}/><span><strong>{t("studio.copy_to_project")}</strong><small>{t("studio.create_an_independent_copy_elsewhere")}</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId||saving||shareBusy} onClick={()=>void shareDesign()}><Share2 size={15}/><span><strong>{t("studio.share_link")}</strong><small>{projectId?t("studio.create_a_view_only_review_link"):t("studio.save_this_design_first")}</small></span></button>
+            <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?t("studio.remove_from_favourites"):t("studio.add_to_favourites")}</strong><small>{projectId?t("studio.keep_important_files_handy"):t("studio.save_this_design_first")}</small></span></button>
+            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>{t("studio.rename")}</strong><small>{t("studio.edit_the_file_name")}</small></span></button>
             <span className="pro-file-menu-separator" aria-hidden="true"/>
-            <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>{setFileMenuOpen(false);setDeleteModalOpen(true);}}><Trash2 size={18}/><span><strong>Delete</strong><small>{projectId?'Permanently delete this design':'Nothing saved yet'}</small></span></button>
+            <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>{setFileMenuOpen(false);setDeleteModalOpen(true);}}><Trash2 size={18}/><span><strong>{t("studio.delete")}</strong><small>{projectId?t("studio.permanently_delete_this_design"):t("studio.nothing_saved_yet")}</small></span></button>
           </div>}
         </div>
       </div>
       <div className="pro-header-actions">
-        <div className="pro-header-history" role="group" aria-label="Edit history">
-          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canUndo} onClick={undoStudioAction} aria-label="Undo" title="Undo · Ctrl/⌘+Z"><Undo2 size={17}/></button>
-          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canRedo} onClick={redoStudioAction} aria-label="Redo" title="Redo · Ctrl/⌘+Shift+Z"><Redo2 size={17}/></button>
+        <div className="pro-header-history" role="group" aria-label={t("studio.edit_history")}>
+          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canUndo} onClick={undoStudioAction} aria-label={t("studio.undo")} title={t("studio.undo_ctrl_z")}><Undo2 size={17}/></button>
+          <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canRedo} onClick={redoStudioAction} aria-label={t("studio.redo")} title={t("studio.redo_ctrl_shift_z")}><Redo2 size={17}/></button>
         </div>
-        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?'Autosave is on. Click to save now.':'Save this design'} onClick={()=>void saveDesign()}>{saving?'Saving…':saveFailed?'Not saved · Retry':!projectId?'Save':hasUnsavedChanges?'Unsaved changes':'Saved'}</button>
-        <button className="pro-secondary pro-header-share" disabled={shareBusy} title="Share this design" onClick={()=>void shareDesign()}><Share2 size={16}/><span>Share</span></button>
+        <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?t("studio.autosave_is_on_click_to_save_now"):t("studio.save_this_design")} onClick={()=>void saveDesign()}>{saving?t("studio.saving"):saveFailed?t("studio.not_saved_retry"):!projectId?t("studio.save"):hasUnsavedChanges?t("studio.unsaved_changes"):t("studio.saved_2")}</button>
+        <button className="pro-secondary pro-header-share" disabled={shareBusy} title={t("studio.share_this_design")} onClick={()=>void shareDesign()}><Share2 size={16}/><span>{t("studio.share")}</span></button>
         <AccountButton compact className="pro-secondary" />
       </div>
     </header>
 
     <div className={`pro-workflow-row is-${workflowStep}`}>
-      <nav className="pro-workflow-nav" aria-label="Box design workflow">
+      <nav className="pro-workflow-nav" aria-label={t("studio.box_design_workflow")}>
         {studioAreas.map((area,index)=>{
           const Icon=area.icon;
           const ready=area.id==='box'?boxReady:area.id==='design'?designReady:false;
@@ -1561,33 +1567,33 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             className={`pro-workflow-step${workflowStep===area.id?' is-active':''}`}
             aria-current={workflowStep===area.id?'step':undefined}
             onClick={()=>goToWorkflowStep(area.id)}
-            title={area.helper}
+            title={t(area.helper)}
           >
             <span className="pro-workflow-step-number">{index+1}</span>
             <span className="pro-workflow-step-icon"><Icon size={20}/>{ready&&<i><Check size={10}/></i>}</span>
-            <span className="pro-workflow-step-copy"><b>{area.label}</b><small>{area.helper}</small></span>
+            <span className="pro-workflow-step-copy"><b>{t(area.label)}</b><small>{t(area.helper)}</small></span>
           </button>;
         })}
       </nav>
-      {workflowStep==='design' && <div className="pro-workflow-view-switch" role="group" aria-label="Design view">
-        <button type="button" className={mode==='dieline'?'is-active':''} aria-pressed={mode==='dieline'} onClick={()=>{setMode('dieline');setFaceAction(null);setPanEnabled(false);}}>Design canvas</button>
-        <button type="button" className={mode==='3d'?'is-active':''} aria-pressed={mode==='3d'} onClick={()=>{setMode('3d');setFaceAction(null);setPanEnabled(false);}}><Boxes size={16}/> Preview in 3D</button>
+      {workflowStep==='design' && <div className="pro-workflow-view-switch" role="group" aria-label={t("studio.design_view")}>
+        <button type="button" className={mode==='dieline'?'is-active':''} aria-pressed={mode==='dieline'} onClick={()=>{setMode('dieline');setFaceAction(null);setPanEnabled(false);}}>{t("studio.design_canvas")}</button>
+        <button type="button" className={mode==='3d'?'is-active':''} aria-pressed={mode==='3d'} onClick={()=>{setMode('3d');setFaceAction(null);setPanEnabled(false);}}><Boxes size={16}/>{" " + t("studio.preview_in_3d")}</button>
       </div>}
       {workflowStep!=='design' && mode === '3d' && <div className="pro-camera-menu pro-workflow-camera" ref={cameraMenuRef}>
         <button
           type="button"
           aria-haspopup="menu"
-          aria-label="Camera angle"
-          title="Choose camera angle"
+          aria-label={t("studio.camera_angle")}
+          title={t("studio.choose_camera_angle")}
           aria-expanded={cameraMenuOpen}
           onClick={() => setCameraMenuOpen(open => !open)}
         >
           <Camera size={16} />
-          <span>Camera Angle</span>
-          <small>{camera==='LegacyPerspective'?'Perspective':camera}</small>
+          <span>{t("studio.camera_angle_2")}</span>
+          <small>{camera==='LegacyPerspective'?t("studio.perspective"):camera}</small>
           <ChevronDown size={14} className={cameraMenuOpen ? 'is-open' : ''} />
         </button>
-        {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label="Camera angles">
+        {cameraMenuOpen && <div className="pro-camera-popover pro-camera-angle-grid" role="menu" aria-label={t("studio.camera_angles")}>
           {cameras.map(item => <button
             key={item}
             type="button"
@@ -1607,26 +1613,26 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     </div>
 
     <div className="pro-studio-body">
-      <nav className={`pro-studio-tool-rail is-${workflowStep}`} aria-label={`${activeAreaConfig?.label ?? 'Studio'} tools`}>
+      <nav className={`pro-studio-tool-rail is-${workflowStep}`} aria-label={t('studio.area_tools', { area: t(activeAreaConfig?.label ?? 'studio.studio') })}>
         {workflowStep==='box' && <>
-          <button type="button" className={tool==='structure'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('structure')}><Box size={22}/><span>Box & Size</span></button>
-          <button type="button" className={tool==='material'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('material')}><Layers3 size={22}/><span>Material & Finish</span></button>
+          <button type="button" className={tool==='structure'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('structure')}><Box size={22}/><span>{t("studio.box_size")}</span></button>
+          <button type="button" className={tool==='material'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('material')}><Layers3 size={22}/><span>{t("studio.material_finish")}</span></button>
         </>}
         {workflowStep==='design' && <>
-          <button type="button" className={artworkScope==='outside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>Outside</span></button>
-          <button type="button" className={artworkScope==='inside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>Inside</span></button>
+          <button type="button" className={artworkScope==='outside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.outside")}</span></button>
+          <button type="button" className={artworkScope==='inside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.inside")}</span></button>
         </>}
         {workflowStep==='preview' && <>
-          <button type="button" className={tool==='opening'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('opening')}><PackageOpen size={22}/><span>Open / Close</span></button>
-          <button type="button" className={tool==='scene'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('scene')}><Lightbulb size={22}/><span>Scene</span></button>
-          <button type="button" className={tool==='export'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('export')}><Download size={22}/><span>Download</span></button>
+          <button type="button" className={tool==='opening'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('opening')}><PackageOpen size={22}/><span>{t("studio.open_close")}</span></button>
+          <button type="button" className={tool==='scene'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('scene')}><Lightbulb size={22}/><span>{t("studio.scene")}</span></button>
+          <button type="button" className={tool==='export'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('export')}><Download size={22}/><span>{t("studio.download")}</span></button>
         </>}
       </nav>
-      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?'Packaging design workspace':workflowStep==='box'?'Box setup workspace':'3D preview and download workspace'}>
+      <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?t("studio.packaging_design_workspace"):workflowStep==='box'?t("studio.box_setup_workspace"):t("studio.3d_preview_and_download_workspace")}>
 
         <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
           <div className="pro-grid-floor" />
-          <div className="pro-stage-badge"><span/> Drag to rotate</div>
+          <div className="pro-stage-badge"><span/>{" " + t("studio.drag_to_rotate")}</div>
           <CartonEngine
             ref={engineRef}
             dimensions={dimensions}
@@ -1677,24 +1683,17 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 setFaceAction(null);
                 setMessage(`Adjust ${parsed.panel} artwork freely across the 2D board`);
               }}>
-                <ImageIcon size={13} />
-                Edit / adjust image
-              </button>
+                <ImageIcon size={13} />{t("studio.edit_adjust_image")}</button>
               <button onClick={() => openPanelMediaFrom3D(faceAction.panel)}>
-                <Upload size={13} />
-                Replace artwork
-              </button>
+                <Upload size={13} />{t("studio.replace_artwork")}</button>
             </> : <button onClick={() => openPanelMediaFrom3D(faceAction.panel)}>
-              <Upload size={13} />
-              Add artwork
-            </button>}
+              <Upload size={13} />{t("studio.add_artwork")}</button>}
             {artworkByPanel[faceAction.panel] && <button
               className="pro-face-action-remove"
               onClick={() => removeArtwork(faceAction.panel)}
             >
-              <Trash2 size={13} /> Remove artwork
-            </button>}
-            <button className="pro-face-action-close" aria-label="Dismiss face action" onClick={() => setFaceAction(null)}><X size={12}/></button>
+              <Trash2 size={13} />{" " + t("studio.remove_artwork")}</button>}
+            <button className="pro-face-action-close" aria-label={t("studio.dismiss_face_action")} onClick={() => setFaceAction(null)}><X size={12}/></button>
           </div>}
         </div>
         <div className={`pro-view-pane${mode === 'dieline' ? ' is-active' : ''}`} inert={mode !== 'dieline'} aria-hidden={mode !== 'dieline'}>
@@ -1738,16 +1737,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             setMessage('Artwork changes applied — reviewing in 3D');
           }}
           livePreview={
-          <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label="Live 3D artwork preview">
-            <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/> Live 3D <ChevronDown size={14}/></button>
+          <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label={t("studio.live_3d_artwork_preview")}>
+            <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/>{" " + t("studio.live_3d") + " "}<ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
               <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
-                <div className="pro-artwork-preview-fold-head"><span>Assembly</span><strong>{Math.round(assemblyProgress)}%</strong></div>
+                <div className="pro-artwork-preview-fold-head"><span>{t("studio.assembly")}</span><strong>{Math.round(assemblyProgress)}%</strong></div>
                 <div className="pro-artwork-preview-fold-row">
-                  <span>Flat</span>
-                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label="Assemble or flatten box in 3D preview" onChange={e=>{if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);foldAnimationRef.current=null;setAssemblyProgress(Number(e.target.value));}}/>
-                  <span>Closed</span>
+                  <span>{t("studio.flat")}</span>
+                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label={t("studio.assemble_or_flatten_box_in_3d_preview")} onChange={e=>{if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);foldAnimationRef.current=null;setAssemblyProgress(Number(e.target.value));}}/>
+                  <span>{t("studio.closed")}</span>
                 </div>
               </div>
             </>}
@@ -1759,15 +1758,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         />
 
         </div>
-          <div className={`pro-canvas-control-bar pro-shared-canvas-control-bar${mode==='dieline'?' is-2d':''}`} aria-label="Canvas controls">
-            <button className="pro-canvas-bar-icon" title="Undo (Ctrl/⌘+Z)" aria-label="Undo last change" disabled={!historyStatus.canUndo} onClick={undoStudioAction}><Undo2 size={18}/></button>
-            <button className="pro-canvas-bar-icon" title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo last change" disabled={!historyStatus.canRedo} onClick={redoStudioAction}><Redo2 size={18}/></button>
+          <div className={`pro-canvas-control-bar pro-shared-canvas-control-bar${mode==='dieline'?' is-2d':''}`} aria-label={t("studio.canvas_controls")}>
+            <button className="pro-canvas-bar-icon" title={t("studio.undo_ctrl_z_2")} aria-label={t("studio.undo_last_change")} disabled={!historyStatus.canUndo} onClick={undoStudioAction}><Undo2 size={18}/></button>
+            <button className="pro-canvas-bar-icon" title={t("studio.redo_ctrl_shift_z_2")} aria-label={t("studio.redo_last_change")} disabled={!historyStatus.canRedo} onClick={redoStudioAction}><Redo2 size={18}/></button>
             <span className="pro-canvas-bar-divider" aria-hidden="true"/>
-            <button className={`pro-canvas-bar-icon${(panEnabled || temporarySpacePanActive) ? ' is-active' : ''}`} title={mode==='3d'?'Pan 3D view · hold Space for temporary hand tool':'Drag 2D board · hold Space for temporary hand tool'} aria-label={mode==='3d'?'Pan 3D view':'Drag 2D board'} aria-pressed={panEnabled || temporarySpacePanActive} disabled={mode==='dieline' && !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
-            <button className="pro-canvas-bar-icon" title="Zoom out" aria-label="Zoom out" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
+            <button className={`pro-canvas-bar-icon${(panEnabled || temporarySpacePanActive) ? ' is-active' : ''}`} title={mode==='3d'?t("studio.pan_3d_view_hold_space_for_temporary_hand_tool"):t("studio.drag_2d_board_hold_space_for_temporary_hand_tool")} aria-label={mode==='3d'?t("studio.pan_3d_view"):t("studio.drag_2d_board")} aria-pressed={panEnabled || temporarySpacePanActive} disabled={mode==='dieline' && !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
+            <button className="pro-canvas-bar-icon" title={t("studio.zoom_out")} aria-label={t("studio.zoom_out")} onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
             </button>
-            <button className="pro-canvas-bar-icon" title="Zoom in" aria-label="Zoom in" onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1.1))}>
+            <button className="pro-canvas-bar-icon" title={t("studio.zoom_in")} aria-label={t("studio.zoom_in")} onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1.1))}>
               <ZoomIn size={20}/>
             </button>
             {mode === 'dieline' && <>
@@ -1778,13 +1777,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-divider" />
               <button
                 className="pro-canvas-bar-play"
-                aria-label={assemblyProgress>=50?'Flatten box':'Assemble and close box'}
-                title={assemblyProgress>=50?'Flatten box':'Assemble and close box'}
+                aria-label={assemblyProgress>=50?t("studio.flatten_box"):t("studio.assemble_and_close_box")}
+                title={assemblyProgress>=50?t("studio.flatten_box"):t("studio.assemble_and_close_box")}
                 onClick={() => animateFold(assemblyProgress >= 50 ? 0 : 100)}
               >
                 {assemblyProgress>=50?<Grid3X3 size={19}/>:<Box size={19}/>}
               </button>
-              <span className="pro-canvas-bar-label">Flat</span>
+              <span className="pro-canvas-bar-label">{t("studio.flat")}</span>
               <input
                 className="pro-canvas-bar-range"
                 type="range"
@@ -1792,20 +1791,20 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 max="100"
                 step="1"
                 value={Math.round(assemblyProgress)}
-                aria-label="Assemble or flatten box"
+                aria-label={t("studio.assemble_or_flatten_box")}
                 onChange={e => {
                   if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
                   foldAnimationRef.current = null;
                   setAssemblyProgress(Number(e.target.value));
                 }}
               />
-              <span className="pro-canvas-bar-label">Closed</span>
+              <span className="pro-canvas-bar-label">{t("studio.closed")}</span>
               <span className="pro-canvas-bar-divider" />
             </>}
             <button
               className="pro-canvas-bar-icon"
-              title="Fit view"
-              aria-label="Fit view"
+              title={t("studio.fit_view")}
+              aria-label={t("studio.fit_view")}
               onClick={() => {
                 if (mode === '3d') {
                   zoomRef.current=82;
@@ -1826,16 +1825,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>
 
 
-        <button className="pro-mobile-inspector" onClick={() => { if(workflowStep==='design'){setDesignToolsOpen(true);return;} if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {workflowStep==='box'?'Box settings':workflowStep==='preview'?'Preview settings':'Design tools'}</button>
+        <button className="pro-mobile-inspector" onClick={() => { if(workflowStep==='design'){setDesignToolsOpen(true);return;} if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {workflowStep==='box'?t("studio.box_settings"):workflowStep==='preview'?t("studio.preview_settings"):t("studio.design_tools")}</button>
         {message !== 'Ready' && <div className={`pro-studio-toast${saveFailed?' is-error':''}`} role="status" aria-live="polite"><span className="pro-status-dot" /> <span>{message}</span></div>}
-        <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span title="Finished size: width × height × depth">{family} · W {formatDimension(dimensions.width, measurementUnit)} × H {formatDimension(dimensions.height, measurementUnit)} × D {formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
+        <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span title={t("studio.finished_size_width_height_depth")}>{family}{" " + t("studio.w") + " "}{formatDimension(dimensions.width, measurementUnit)}{" " + t("studio.h") + " "}{formatDimension(dimensions.height, measurementUnit)}{" " + t("studio.d") + " "}{formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
       <aside className={`pro-inspector is-workflow-${workflowStep} ${inspectorOpen ? 'is-open' : ''}`}>
-        <div className="pro-inspector-title"><div><span>{activeAreaConfig?.label ?? 'Inspector'}</span><h2>{activeLabel}</h2></div><button
+        <div className="pro-inspector-title"><div><span>{t(activeAreaConfig?.label ?? 'studio.inspector')}</span><h2>{activeLabel}</h2></div><button
   className="pro-inspector-close"
-  aria-label="Close tool panel"
-  title="Close"
+  aria-label={t("studio.close_tool_panel")}
+  title={t("studio.close")}
   onClick={() => {
     setInspectorOpen(false);
     setTool(null);
@@ -1848,26 +1847,26 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     {templatePreview && <div className="pro-template-preview-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setTemplatePreview(null);}}>
       <section className="pro-template-preview-modal" role="dialog" aria-modal="true" aria-labelledby="template-preview-title">
         <header>
-          <div><span>Packaging template</span><h2 id="template-preview-title">{templatePreview.name}</h2><p>{templatePreview.category}</p></div>
-          <button type="button" aria-label="Close template preview" onClick={()=>setTemplatePreview(null)}><X size={20}/></button>
+          <div><span>{t("studio.packaging_template")}</span><h2 id="template-preview-title">{getPackagingTemplateCopy(templatePreview, t).name}</h2><p>{getPackagingTemplateCopy(templatePreview, t).category}</p></div>
+          <button type="button" aria-label={t("studio.close_template_preview")} onClick={()=>setTemplatePreview(null)}><X size={20}/></button>
         </header>
         <div className="pro-template-preview-body">
           <div className="pro-template-preview-art"><TemplateVisual template={templatePreview}/></div>
           <div className="pro-template-preview-details">
-            <span>Structure preview</span>
-            <strong>{templatePreview.shortName}</strong>
-            <p>Review the structure before replacing the current box template.</p>
+            <span>{t("studio.structure_preview")}</span>
+            <strong>{getPackagingTemplateCopy(templatePreview, t).shortName}</strong>
+            <p>{t("studio.review_the_structure_before_replacing_the_current_box_template")}</p>
             {templatePreview.defaultDimensions && <dl>
-              <div><dt>Width</dt><dd>{formatDimension(templatePreview.defaultDimensions.width,measurementUnit)} {measurementUnit}</dd></div>
-              <div><dt>Height</dt><dd>{formatDimension(templatePreview.defaultDimensions.height,measurementUnit)} {measurementUnit}</dd></div>
-              <div><dt>Depth</dt><dd>{formatDimension(templatePreview.defaultDimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
+              <div><dt>{t("studio.width")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.width,measurementUnit)} {measurementUnit}</dd></div>
+              <div><dt>{t("studio.height")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.height,measurementUnit)} {measurementUnit}</dd></div>
+              <div><dt>{t("studio.depth")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
             </dl>}
           </div>
         </div>
         <footer>
-          <button type="button" className="pro-secondary-button" onClick={()=>setTemplatePreview(null)}>Cancel</button>
+          <button type="button" className="pro-secondary-button" onClick={()=>setTemplatePreview(null)}>{t("studio.cancel")}</button>
           <button type="button" className="pro-primary" disabled={templatePreview.status!=='ready'} onClick={()=>{chooseTemplate(templatePreview);setTemplatePreview(null);}}>
-            {templatePreview.status==='ready'?'Use this template':'Coming soon'}
+            {templatePreview.status==='ready'?t("studio.use_this_template"):t("studio.coming_soon")}
           </button>
         </footer>
       </section>
@@ -1894,49 +1893,49 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     {shareOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!shareBusy)setShareOpen(false);}}>
       <section className="pro-confirm-modal pro-share-modal" role="dialog" aria-modal="true" aria-labelledby="share-design-title">
         <div className="pro-confirm-copy">
-          <span>Share design</span>
-          <h2 id="share-design-title">{shareUrl?'Interactive review link':'Could not create link'}</h2>
-          <p>{shareUrl?'Anyone with this link can view and rotate the shared design. They cannot edit your saved file.':'The share link was not created.'}</p>
+          <span>{t("studio.share_design")}</span>
+          <h2 id="share-design-title">{shareUrl?t("studio.interactive_review_link"):t("studio.could_not_create_link")}</h2>
+          <p>{shareUrl?t("studio.anyone_with_this_link_can_view_and_rotate_the_shared_design_they_cannot_edi"):t("studio.the_share_link_was_not_created")}</p>
         </div>
-        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label="Share link"/><button type="button" className="pro-secondary-button" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>Copy</button></div>}
+        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label={t("studio.share_link_2")}/><button type="button" className="pro-secondary-button" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>{t("studio.copy")}</button></div>}
         {shareError&&<p className="pro-transfer-error" role="alert">{shareError}</p>}
         <div className="pro-confirm-actions">
-          {shareUrl&&<button type="button" className="pro-secondary-button is-danger-text" disabled={shareBusy} onClick={()=>void revokeShare()}>Disable link</button>}
-          <button type="button" className="pro-primary" disabled={shareBusy} onClick={()=>setShareOpen(false)}>Done</button>
+          {shareUrl&&<button type="button" className="pro-secondary-button is-danger-text" disabled={shareBusy} onClick={()=>void revokeShare()}>{t("studio.disable_link")}</button>}
+          <button type="button" className="pro-primary" disabled={shareBusy} onClick={()=>setShareOpen(false)}>{t("studio.done")}</button>
         </div>
       </section>
     </div>}
     {projectTransferMode && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!transferBusy)setProjectTransferMode(null);}}>
       <section className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
         <div className="pro-confirm-copy">
-          <span>Organize design</span>
-          <h2 id="organize-design-title">{projectTransferMode==='move'?'Move to Project':'Copy to Project'}</h2>
+          <span>{t("studio.organize_design")}</span>
+          <h2 id="organize-design-title">{projectTransferMode==='move'?t("studio.move_to_project_2"):t("studio.copy_to_project_2")}</h2>
           <p>{projectTransferMode==='move'
-            ? 'Move this same design to another project. Its design ID and revision history stay the same.'
-            : 'Create a new independent copy in another project. The original stays where it is.'}</p>
+            ? t("studio.move_this_same_design_to_another_project_its_design_id_and_revision_history")
+            : t("studio.create_a_new_independent_copy_in_another_project_the_original_stays_where_i")}</p>
         </div>
-        <div className="pro-transfer-mode" role="radiogroup" aria-label="Transfer type">
-          <button type="button" role="radio" aria-checked={projectTransferMode==='move'} className={projectTransferMode==='move'?'is-active':''} disabled={transferBusy} onClick={()=>setProjectTransferMode('move')}><Move size={16}/><span><strong>Move</strong><small>Same design</small></span></button>
-          <button type="button" role="radio" aria-checked={projectTransferMode==='copy'} className={projectTransferMode==='copy'?'is-active':''} disabled={transferBusy} onClick={()=>setProjectTransferMode('copy')}><Copy size={16}/><span><strong>Copy</strong><small>New independent design</small></span></button>
+        <div className="pro-transfer-mode" role="radiogroup" aria-label={t("studio.transfer_type")}>
+          <button type="button" role="radio" aria-checked={projectTransferMode==='move'} className={projectTransferMode==='move'?'is-active':''} disabled={transferBusy} onClick={()=>setProjectTransferMode('move')}><Move size={16}/><span><strong>{t("studio.move")}</strong><small>{t("studio.same_design")}</small></span></button>
+          <button type="button" role="radio" aria-checked={projectTransferMode==='copy'} className={projectTransferMode==='copy'?'is-active':''} disabled={transferBusy} onClick={()=>setProjectTransferMode('copy')}><Copy size={16}/><span><strong>{t("studio.copy")}</strong><small>{t("studio.new_independent_design")}</small></span></button>
         </div>
         <div className="pro-transfer-destination">
-          <label>Destination project</label>
-          {transferLoading?<div className="pro-transfer-loading"><span/><span/><span/></div>:projectOptions.length?<div className="pro-transfer-project-list" role="radiogroup" aria-label="Destination project">
+          <label>{t("studio.destination_project")}</label>
+          {transferLoading?<div className="pro-transfer-loading"><span/><span/><span/></div>:projectOptions.length?<div className="pro-transfer-project-list" role="radiogroup" aria-label={t("studio.destination_project")}>
             {projectOptions.map(project=><button key={project.id} type="button" role="radio" aria-checked={transferProjectId===project.id} className={transferProjectId===project.id?'is-selected':''} disabled={transferBusy} onClick={()=>setTransferProjectId(project.id)}>
               <span className="pro-transfer-project-icon"><Layers3 size={17}/></span>
-              <span className="pro-transfer-project-copy"><strong>{project.name}</strong><small>{project.designCount} design{project.designCount===1?'':'s'} · {project.sceneCount} scene{project.sceneCount===1?'':'s'}</small></span>
+              <span className="pro-transfer-project-copy"><strong>{project.name}</strong><small>{project.designCount}{" " + t("studio.design")}{project.designCount===1?'':t("studio.s")} · {project.sceneCount}{" " + t("studio.scene_2")}{project.sceneCount===1?'':t("studio.s")}</small></span>
               {transferProjectId===project.id&&<Check size={17}/>}
             </button>)}
-          </div>:<div className="pro-transfer-empty"><strong>No other projects yet</strong><p>Create another project before moving or copying this design.</p><Link href="/studio">Go to Projects</Link></div>}
+          </div>:<div className="pro-transfer-empty"><strong>{t("studio.no_other_projects_yet")}</strong><p>{t("studio.create_another_project_before_moving_or_copying_this_design")}</p><Link href="/studio">{t("studio.go_to_projects")}</Link></div>}
         </div>
         {transferProjectId&&<div className="pro-transfer-summary">
           {projectTransferMode==='move'
-            ? <><strong>{projectName}</strong><span>will move to {projectOptions.find(project=>project.id===transferProjectId)?.name}. The same design remains open.</span></>
-            : <><strong>{projectName} copy</strong><span>will be created in {projectOptions.find(project=>project.id===transferProjectId)?.name}. You will keep editing the original.</span></>}
+            ? <><strong>{projectName}</strong><span>{t("studio.will_move_to") + " "}{projectOptions.find(project=>project.id===transferProjectId)?.name}{t("studio.the_same_design_remains_open")}</span></>
+            : <><strong>{projectName}{" " + t("studio.copy_2")}</strong><span>{t("studio.will_be_created_in") + " "}{projectOptions.find(project=>project.id===transferProjectId)?.name}{t("studio.you_will_keep_editing_the_original")}</span></>}
         </div>}
         {transferError&&<p className="pro-transfer-error" role="alert">{transferError}</p>}
         <div className="pro-confirm-actions">
-          <button type="button" className="pro-secondary-button" disabled={transferBusy} onClick={()=>setProjectTransferMode(null)}>Cancel</button>
+          <button type="button" className="pro-secondary-button" disabled={transferBusy} onClick={()=>setProjectTransferMode(null)}>{t("studio.cancel")}</button>
           <button type="button" className="pro-primary" disabled={transferBusy||transferLoading||!transferProjectId} onClick={()=>void submitProjectTransfer()}>
             {transferBusy?(projectTransferMode==='move'?'Moving…':'Copying…'):(projectTransferMode==='move'?'Move design':'Copy design')}
           </button>
@@ -1947,13 +1946,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="overwrite-design-title" aria-describedby="overwrite-design-copy">
         <div className="pro-confirm-icon is-warning"><RotateCcw size={22}/></div>
         <div className="pro-confirm-copy">
-          <span>Save conflict</span>
-          <h2 id="overwrite-design-title">Overwrite the newer saved version?</h2>
-          <p id="overwrite-design-copy">This design has changed since you opened it. Overwriting will replace the newer saved version with the version currently open in this Studio.</p>
+          <span>{t("studio.save_conflict")}</span>
+          <h2 id="overwrite-design-title">{t("studio.overwrite_the_newer_saved_version")}</h2>
+          <p id="overwrite-design-copy">{t("studio.this_design_has_changed_since_you_opened_it_overwriting_will_replace_the_ne")}</p>
         </div>
         <div className="pro-confirm-actions">
-          <button type="button" className="pro-secondary-button" disabled={saving} onClick={()=>setSaveConflictOpen(false)}>Cancel</button>
-          <button type="button" className="pro-danger-button" disabled={saving} onClick={()=>{setSaveConflictOpen(false);void saveDesign(false,true);}}>{saving?'Overwriting…':'Overwrite saved version'}</button>
+          <button type="button" className="pro-secondary-button" disabled={saving} onClick={()=>setSaveConflictOpen(false)}>{t("studio.cancel")}</button>
+          <button type="button" className="pro-danger-button" disabled={saving} onClick={()=>{setSaveConflictOpen(false);void saveDesign(false,true);}}>{saving?t("studio.overwriting"):t("studio.overwrite_saved_version")}</button>
         </div>
       </section>
     </div>}
@@ -1961,13 +1960,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title" aria-describedby="delete-design-copy">
         <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
         <div className="pro-confirm-copy">
-          <span>Delete design</span>
-          <h2 id="delete-design-title">Delete “{projectName}”?</h2>
-          <p id="delete-design-copy">This design will be permanently deleted from your workspace. This action cannot be undone.</p>
+          <span>{t("studio.delete_design")}</span>
+          <h2 id="delete-design-title">{t("studio.delete_2")}{projectName}”?</h2>
+          <p id="delete-design-copy">{t("studio.this_design_will_be_permanently_deleted_from_your_workspace_this_action_can")}</p>
         </div>
         <div className="pro-confirm-actions">
-          <button type="button" className="pro-secondary-button" disabled={deleting} onClick={()=>setDeleteModalOpen(false)}>Cancel</button>
-          <button type="button" className="pro-danger-button" disabled={deleting} onClick={()=>void deleteDesign()}>{deleting?'Deleting…':'Delete design'}</button>
+          <button type="button" className="pro-secondary-button" disabled={deleting} onClick={()=>setDeleteModalOpen(false)}>{t("studio.cancel")}</button>
+          <button type="button" className="pro-danger-button" disabled={deleting} onClick={()=>void deleteDesign()}>{deleting?t("studio.deleting"):t("studio.delete_design")}</button>
         </div>
       </section>
     </div>}
@@ -1996,6 +1995,8 @@ function Inspector(props: {
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
   onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
+  const t = useTranslations();
+
   const { tool } = props;
   const [structureTab,setStructureTab] = useState<'size'|'templates'>('size');
   if (tool === 'structure') {
@@ -2010,55 +2011,55 @@ function Inspector(props: {
     const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
 
     return <div className="pro-inspector-content pro-structure-content">
-      <div className="pro-structure-tabs" role="tablist" aria-label="Box settings">
+      <div className="pro-structure-tabs" role="tablist" aria-label={t("studio.box_settings")}>
         <button
           type="button"
           role="tab"
           aria-selected={structureTab === 'size'}
           className={structureTab === 'size' ? 'is-active' : ''}
           onClick={()=>setStructureTab('size')}
-        >Box & Size</button>
+        >{t("studio.box_size")}</button>
         <button
           type="button"
           role="tab"
           aria-selected={structureTab === 'templates'}
           className={structureTab === 'templates' ? 'is-active' : ''}
           onClick={()=>setStructureTab('templates')}
-        >Templates</button>
+        >{t("studio.templates")}</button>
       </div>
 
       {structureTab === 'size' ? <>
       <div className="pro-structure-current">
-        <span>Current box</span>
+        <span>{t("studio.current_box")}</span>
         <div>
           <TemplateVisual template={selectedTemplate} dimensions={props.dimensions} compact />
           <div>
-            <strong>{selectedTemplate.name}</strong>
-            <small>{selectedTemplate.category} · Ready to edit</small>
+            <strong>{getPackagingTemplateCopy(selectedTemplate, t).name}</strong>
+            <small>{getPackagingTemplateCopy(selectedTemplate, t).category}{" " + t("studio.ready_to_edit")}</small>
             <div className="pro-current-box-size">
               <div className="pro-current-box-size-head">
-                <span>Finished size</span>
-                <div className="pro-unit-switch" role="group" aria-label="Measurement unit">
-                  <button type="button" className={props.measurementUnit === 'mm' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('mm')}>mm</button>
-                  <button type="button" className={props.measurementUnit === 'in' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('in')}>in</button>
+                <span>{t("studio.finished_size")}</span>
+                <div className="pro-unit-switch" role="group" aria-label={t("studio.measurement_unit")}>
+                  <button type="button" className={props.measurementUnit === 'mm' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('mm')}>{t("studio.mm")}</button>
+                  <button type="button" className={props.measurementUnit === 'in' ? 'is-active' : ''} onClick={()=>props.setMeasurementUnit('in')}>{t("studio.in")}</button>
                 </div>
               </div>
-              <div className="pro-current-box-size-fields" aria-label="Finished box size">
-                <label><small>W</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+              <div className="pro-current-box-size-fields" aria-label={t("studio.finished_box_size")}>
+                <label><small>{t("studio.w_2")}</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <i>×</i>
-                <label><small>H</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                <label><small>{t("studio.h_2")}</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <i>×</i>
-                <label><small>D</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                <label><small>{t("studio.d_2")}</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
                 <em>{props.measurementUnit}</em>
               </div>
-              <button type="button" className="pro-reset-box-size" title="Restore this template’s default width, height, and depth" onClick={() => {
+              <button type="button" className="pro-reset-box-size" title={t("studio.restore_this_template_s_default_width_height_and_depth")} onClick={() => {
                 const defaults = selectedTemplate.defaultDimensions;
                 if(!defaults){props.setMessage('This template does not define default dimensions');return;}
                 props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
                 props.setMessage('Box size reset to template defaults');
-              }}><RotateCcw size={12} aria-hidden="true" /> Reset size</button>
+              }}><RotateCcw size={12} aria-hidden="true" />{" " + t("studio.reset_size")}</button>
               <div className="pro-current-box-thickness">
-                <span>Board thickness</span>
+                <span>{t("studio.board_thickness")}</span>
                 <label>
                   <input
                     type="number"
@@ -2076,14 +2077,14 @@ function Inspector(props: {
         </div>
       </div>
       </> : <>
-      <PanelIntro title="Choose your box" text="Browse packaging templates and switch the current box." />
+      <PanelIntro title={t("studio.choose_your_box")} text={t("studio.browse_packaging_templates_and_switch_the_current_box")} />
 
       <label className="pro-search pro-structure-search">
         <Search size={18}/>
-        <input value={props.templateSearch} onChange={e=>props.setTemplateSearch(e.target.value)} placeholder="Search packaging templates" />
+        <input value={props.templateSearch} onChange={e=>props.setTemplateSearch(e.target.value)} placeholder={t("studio.search_packaging_templates")} />
       </label>
 
-      <div className="pro-structure-categories" aria-label="Template categories">
+      <div className="pro-structure-categories" aria-label={t("studio.template_categories")}>
         {categories.map(category => <button
           key={category}
           className={props.templateCategory === category ? 'is-active' : ''}
@@ -2101,28 +2102,28 @@ function Inspector(props: {
           >
             <TemplateVisual template={template} />
             <div className="pro-template-card-copy">
-              <strong>{template.shortName}</strong>
-              <span>{template.category}</span>
+              <strong>{getPackagingTemplateCopy(template, t).shortName}</strong>
+              <span>{getPackagingTemplateCopy(template, t).category}</span>
             </div>
-            <small className={template.status === 'ready' ? 'is-ready' : ''}>{template.status === 'ready' ? 'Ready' : 'Coming soon'}</small>
+            <small className={template.status === 'ready' ? 'is-ready' : ''}>{template.status === 'ready' ? t("studio.ready") : t("studio.coming_soon")}</small>
           </button>;
         })}
       </div>
 
       {templates.length === 0 && <div className="pro-template-empty">
         <Search size={24}/>
-        <strong>No templates found</strong>
-        <span>Try another search or category.</span>
+        <strong>{t("studio.no_templates_found")}</strong>
+        <span>{t("studio.try_another_search_or_category")}</span>
       </div>}
       </>}
 
       {structureTab === 'size' ? <>
       <div className="pro-card-section pro-box-thickness-card">
-        <SectionTitle title="Board thickness" meta="Box & size" />
+        <SectionTitle title={t("studio.board_thickness")} meta="Box & size" />
         <div className="pro-thickness-control-row">
           <div>
-            <strong>Thickness</strong>
-            <span>Physical board edge</span>
+            <strong>{t("studio.thickness")}</strong>
+            <span>{t("studio.physical_board_edge")}</span>
           </div>
           <label>
             <input
@@ -2145,21 +2146,21 @@ function Inspector(props: {
           value={Math.round(props.dimensions.thickness*10)}
           onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})}
         />
-        <p className="pro-help">Controls the visible board edge and the distance between the outside and inside surfaces.</p>
+        <p className="pro-help">{t("studio.controls_the_visible_board_edge_and_the_distance_between_the_outside_and_in")}</p>
       </div>
 
       <button className="pro-next-step-button" type="button" onClick={()=>props.onOpenMediaLibrary(undefined,'upload')}>
-        <span><strong>Next: add your design</strong><small>Upload artwork and place it on your box.</small></span>
+        <span><strong>{t("studio.next_add_your_design")}</strong><small>{t("studio.upload_artwork_and_place_it_on_your_box")}</small></span>
         <ImageIcon size={18}/>
       </button>
 
       <div className="pro-card-section pro-dieline-import-card">
-        <SectionTitle title="Import dieline" meta="SVG / DXF" />
-        <p className="pro-help">Use SVG or ASCII DXF for vector dielines. AI, EPS and PDF are not directly supported yet.</p>
-        <button className="pro-wide-button" type="button" onClick={props.onImportDieline}><Upload size={16}/> Import SVG or DXF</button>
+        <SectionTitle title={t("studio.import_dieline")} meta="SVG / DXF" />
+        <p className="pro-help">{t("studio.use_svg_or_ascii_dxf_for_vector_dielines_ai_eps_and_pdf_are_not_directly_su")}</p>
+        <button className="pro-wide-button" type="button" onClick={props.onImportDieline}><Upload size={16}/>{" " + t("studio.import_svg_or_dxf")}</button>
         {props.importedDieline ? <div className="pro-dieline-import-status">
           <strong>{props.importedDieline.name}</strong>
-          <span>{props.importedDieline.format.toUpperCase()} · {props.importedDieline.primitives.length} vector elements · {Math.round(props.importedDieline.width)} × {Math.round(props.importedDieline.height)}</span>
+          <span>{props.importedDieline.format.toUpperCase()} · {props.importedDieline.primitives.length}{" " + t("studio.vector_elements") + " "}{Math.round(props.importedDieline.width)} × {Math.round(props.importedDieline.height)}</span>
           {props.importedDieline.warnings.map(warning => <small key={warning}>{warning}</small>)}
         </div> : null}
       </div>
@@ -2172,62 +2173,62 @@ function Inspector(props: {
     const selectedKey = props.artworkScope === 'inside' ? `Interior ${props.panel}` : props.panel;
     const selectedArtwork = props.artworkByPanel[selectedKey];
     return <div className="pro-inspector-content">
-      <PanelIntro title="Place your design" text="Click any side of the box or dieline, then choose or upload artwork for that surface." />
+      <PanelIntro title={t("studio.place_your_design")} text={t("studio.click_any_side_of_the_box_or_dieline_then_choose_or_upload_artwork_for_that")} />
 
       <div className="pro-artwork-context">
         <div>
-          <span>Selected surface</span>
-          <strong>{props.artworkScope === 'inside' ? 'Inside ' : ''}{props.panel}</strong>
+          <span>{t("studio.selected_surface")}</span>
+          <strong>{props.artworkScope === 'inside' ? t("studio.inside_2") : ''}{props.panel}</strong>
         </div>
-        <div className="pro-scope-switch" role="group" aria-label="Artwork side">
-          <button className={props.artworkScope === 'outside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('outside')}>Outside</button>
-          <button className={props.artworkScope === 'inside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('inside')}>Inside</button>
+        <div className="pro-scope-switch" role="group" aria-label={t("studio.artwork_side")}>
+          <button className={props.artworkScope === 'outside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('outside')}>{t("studio.outside")}</button>
+          <button className={props.artworkScope === 'inside' ? 'is-active' : ''} onClick={() => props.setArtworkScope('inside')}>{t("studio.inside")}</button>
         </div>
       </div>
 
       <div className="pro-card-section pro-artwork-design-card">
         <div className="pro-artwork-source-head">
           <div>
-            <strong>{props.artworkScope === 'inside' ? 'Design on inside' : 'Design on outside'}</strong>
+            <strong>{props.artworkScope === 'inside' ? t("studio.design_on_inside") : t("studio.design_on_outside")}</strong>
             <span>{selectedArtwork
               ? `Your ${props.artworkScope} artwork is ready. Change it or adjust how it sits on the package.`
               : `Choose an image for the ${props.artworkScope} of the package.`}</span>
           </div>
-          {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length} saved</small>}
+          {props.mediaAssets.length > 0 && <small>{props.mediaAssets.length}{" " + t("studio.saved")}</small>}
         </div>
 
         {selectedArtwork && <div className="pro-current-artwork">
           <div className="pro-current-artwork-preview"><span className="artwork-layer" style={artworkCss(selectedArtwork)} /></div>
           <div className="pro-current-artwork-copy">
             <b>{selectedArtwork.name}</b>
-            <small>{props.artworkScope === 'inside' ? 'Inside ' : ''}{props.panel}</small>
+            <small>{props.artworkScope === 'inside' ? t("studio.inside_2") : ''}{props.panel}</small>
           </div>
-          <button className="pro-current-artwork-remove" aria-label="Remove artwork" onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
+          <button className="pro-current-artwork-remove" aria-label={t("studio.remove_artwork")} onClick={() => props.onRemoveArtwork(selectedKey)}><Trash2 size={15}/></button>
         </div>}
 
         <div className="pro-artwork-choice-row pro-artwork-choice-single">
           <button className="pro-artwork-source-primary" onClick={() => props.onOpenMediaLibrary(selectedKey)}>
             <span className="pro-artwork-source-icon"><ImageIcon size={17}/></span>
             <span>
-              <b>{selectedArtwork ? 'Change image' : 'Choose image'}</b>
-              <small>{props.mediaAssets.length > 0 ? 'Browse your media library' : 'Upload your first image'}</small>
+              <b>{selectedArtwork ? t("studio.change_image") : t("studio.choose_image")}</b>
+              <small>{props.mediaAssets.length > 0 ? t("studio.browse_your_media_library") : t("studio.upload_your_first_image")}</small>
             </span>
             <ChevronDown size={16}/>
           </button>
         </div>
 
-        <p className="pro-help">Drag the image on the board to move it. Use the handles to resize and rotate; hold Shift to resize freely.</p>
+        <p className="pro-help">{t("studio.drag_the_image_on_the_board_to_move_it_use_the_handles_to_resize_and_rotate")}</p>
       </div>
     </div>;
   }
 
   if (tool === 'material') return <div className="pro-inspector-content">
-    <PanelIntro title="Material & finish" text="Choose the board or surface treatment, then fine-tune the physical material settings." />
+    <PanelIntro title={t("studio.material_finish_2")} text={t("studio.choose_the_board_or_surface_treatment_then_fine_tune_the_physical_material_")} />
     <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
 
     <div className="pro-card-section pro-base-color-card">
-      <SectionTitle title="Base color" meta="Inside / outside" />
-      <p className="pro-help">Color is independent from finish. Keep the material default, or override either side—for example, a white box can still be matte, glossy, or soft-touch.</p>
+      <SectionTitle title={t("studio.base_color")} meta="Inside / outside" />
+      <p className="pro-help">{t("studio.color_is_independent_from_finish_keep_the_material_default_or_override_eith")}</p>
 
       {(['outside','inside'] as const).map(side => {
         const mode = side === 'outside' ? props.outsideColorMode : props.insideColorMode;
@@ -2239,8 +2240,8 @@ function Inspector(props: {
         return <div className="pro-surface-color-row" key={side}>
           <div className="pro-surface-color-head">
             <div>
-              <span>{side === 'outside' ? 'Outside color' : 'Inside color'}</span>
-              <strong>{mode === 'material' ? 'Material default' : customColor.toUpperCase()}</strong>
+              <span>{side === 'outside' ? t("studio.outside_color") : t("studio.inside_color")}</span>
+              <strong>{mode === 'material' ? t("studio.material_default") : customColor.toUpperCase()}</strong>
             </div>
             <span className="pro-color-swatch" style={{background:shownColor}} aria-hidden="true"/>
           </div>
@@ -2250,7 +2251,7 @@ function Inspector(props: {
               type="button"
               className={mode === 'material' ? 'is-active' : ''}
               onClick={()=>setMode('material')}
-            >Material default</button>
+            >{t("studio.material_default")}</button>
             <button
               type="button"
               className={mode === 'custom' ? 'is-active' : ''}
@@ -2258,7 +2259,7 @@ function Inspector(props: {
                 if (mode !== 'custom') setCustomColor(materialColor);
                 setMode('custom');
               }}
-            >Custom</button>
+            >{t("studio.custom")}</button>
           </div>
 
           {mode === 'custom' && <div className="pro-color-picker-row">
@@ -2269,7 +2270,7 @@ function Inspector(props: {
                 onChange={e=>setCustomColor(e.target.value.toUpperCase())}
                 aria-label={`Choose ${side} box color`}
               />
-              <span>Select color</span>
+              <span>{t("studio.select_color")}</span>
             </label>
             <input
               className="pro-color-hex"
@@ -2289,17 +2290,17 @@ function Inspector(props: {
       })}
     </div>
 
-    <div className="pro-callout"><Sparkles size={16}/><span>More detailed finish controls like gloss, roughness, foil, and print effects will appear here as they become functional.</span></div>
+    <div className="pro-callout"><Sparkles size={16}/><span>{t("studio.more_detailed_finish_controls_like_gloss_roughness_foil_and_print_effects_w")}</span></div>
   </div>;
 
   if (tool === 'opening') {
     const runtime=getTemplateRuntime(props.selectedTemplateId);
     const assemblyControl=runtime?.assembly.control ?? 'none';
     return <div className="pro-inspector-content">
-      <PanelIntro title="Assemble your box" text="Use one control from the flat dieline through assembly and, where the package opens, all the way to fully closed." />
+      <PanelIntro title={t("studio.assemble_your_box")} text={t("studio.use_one_control_from_the_flat_dieline_through_assembly_and_where_the_packag")} />
       {assemblyControl!=='none' && <div className="pro-card-section">
         {assemblyControl==='split-direction' ? <StudioDropdown
-          label="Split direction"
+          label={t("studio.split_direction")}
           value={props.splitTopHingeSide}
           options={[
             {value:'side_a',label:'Left + right top panels'},
@@ -2307,7 +2308,7 @@ function Inspector(props: {
           ]}
           onChange={value=>props.setSplitTopHingeSide(value as 'side_a'|'side_b')}
         /> : <StudioDropdown
-          label="Opening mechanism"
+          label={t("studio.opening_mechanism")}
           value={props.openingMode}
           options={[
             {value:'closed',label:'Closed / fixed'},
@@ -2323,49 +2324,49 @@ function Inspector(props: {
         />}
       </div>}
       <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading"><div><span>Assembly</span><strong>{props.assemblyStage}</strong></div><b>{Math.round(props.assemblyProgress)}%</b></div>
-        <input className="pro-range pro-fold-range" aria-label="Assemble or flatten box" type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
-        <div className="pro-fold-endpoints"><span>Flat</span><span>Closed</span></div>
-        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.assemblyProgress >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.assemblyProgress >= 50 ? 'Flatten box' : 'Assemble & close'}</button>
+        <div className="pro-fold-heading"><div><span>{t("studio.assembly")}</span><strong>{props.assemblyStage}</strong></div><b>{Math.round(props.assemblyProgress)}%</b></div>
+        <input className="pro-range pro-fold-range" aria-label={t("studio.assemble_or_flatten_box")} type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
+        <div className="pro-fold-endpoints"><span>{t("studio.flat")}</span><span>{t("studio.closed")}</span></div>
+        <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.assemblyProgress >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.assemblyProgress >= 50 ? t("studio.flatten_box") : t("studio.assemble_close")}</button>
       </div>
-      <div className="pro-callout"><Sparkles size={16}/><span>{props.hasOpeningStage?'The box passes through its fully assembled/open state before the final lid or door closure.':'The same Flat → Closed control is used across all box templates.'}</span></div>
+      <div className="pro-callout"><Sparkles size={16}/><span>{props.hasOpeningStage?t("studio.the_box_passes_through_its_fully_assembled_open_state_before_the_final_lid_"):t("studio.the_same_flat_closed_control_is_used_across_all_box_templates")}</span></div>
     </div>;
   }
 
   if (tool === 'scene') return <div className="pro-inspector-content">
-    <PanelIntro title="Scene Studio" text="Product photography scenes are planned for a later V2 release." />
+    <PanelIntro title={t("studio.scene_studio")} text={t("studio.product_photography_scenes_are_planned_for_a_later_v2_release")} />
     <div className="pro-feature-empty pro-coming-soon-panel">
       <Lightbulb size={28}/>
-      <span className="pro-coming-soon-badge">Coming soon</span>
-      <strong>Create product photography scenes</strong>
-      <p>Backgrounds, lighting, shadows, cameras and multi-box compositions will arrive after the core Box Studio launch.</p>
+      <span className="pro-coming-soon-badge">{t("studio.coming_soon")}</span>
+      <strong>{t("studio.create_product_photography_scenes")}</strong>
+      <p>{t("studio.backgrounds_lighting_shadows_cameras_and_multi_box_compositions_will_arrive")}</p>
     </div>
   </div>;
 
   return <div className="pro-inspector-content">
-    <PanelIntro title="Download your design" text="Download the current 3D preview or prepare a physical-size 2D artwork layout." />
+    <PanelIntro title={t("studio.download_your_design")} text={t("studio.download_the_current_3d_preview_or_prepare_a_physical_size_2d_artwork_layou")} />
     <div className="pro-export-ready">
       <ImageIcon size={22}/>
-      <div><strong>PNG image</strong><span>Downloads the current 3D camera view.</span></div>
+      <div><strong>{t("studio.png_image")}</strong><span>{t("studio.downloads_the_current_3d_camera_view")}</span></div>
     </div>
-    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/> Download PNG</button>
+    <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/>{" " + t("studio.download_png")}</button>
 
     <div className="pro-export-ready pro-export-pdf-ready">
       <Grid3X3 size={22}/>
-      <div><strong>PDF dieline</strong><span>Print-ready {props.artworkScope === 'inside' ? 'inside' : 'outside'} layout at the finished physical size.</span></div>
+      <div><strong>{t("studio.pdf_dieline")}</strong><span>{t("studio.print_ready") + " "}{props.artworkScope === 'inside' ? t("studio.inside_3") : t("studio.outside_2")}{" " + t("studio.layout_at_the_finished_physical_size")}</span></div>
     </div>
-    <button className="pro-secondary-button pro-export-button pro-export-pdf-button" onClick={props.onExportPdf}><Download size={16}/> Print / Save PDF</button>
+    <button className="pro-secondary-button pro-export-button pro-export-pdf-button" onClick={props.onExportPdf}><Download size={16}/>{" " + t("studio.print_save_pdf")}</button>
 
     <div className="pro-export-ready">
       <Share2 size={22}/>
-      <div><strong>Share link</strong><span>Send a view-only interactive 3D review link.</span></div>
+      <div><strong>{t("studio.share_link_2")}</strong><span>{t("studio.send_a_view_only_interactive_3d_review_link")}</span></div>
     </div>
-    <button className="pro-secondary-button pro-export-button" disabled={!props.canShare||props.shareBusy} onClick={props.onShare}><Share2 size={16}/> {props.shareBusy?'Preparing link…':props.canShare?'Copy share link':'Save design to share'}</button>
+    <button className="pro-secondary-button pro-export-button" disabled={!props.canShare||props.shareBusy} onClick={props.onShare}><Share2 size={16}/> {props.shareBusy?t("studio.preparing_link"):props.canShare?t("studio.copy_share_link"):t("studio.save_design_to_share")}</button>
 
     <div className="pro-export-coming">
-      <span>Coming soon</span>
-      <div><CirclePlay size={18}/><p><strong>Animation</strong><small>Turntable and open / close video</small></p></div>
-      <div><Grid3X3 size={18}/><p><strong>Vector dieline</strong><small>SVG and DXF export</small></p></div>
+      <span>{t("studio.coming_soon")}</span>
+      <div><CirclePlay size={18}/><p><strong>{t("studio.animation")}</strong><small>{t("studio.turntable_and_open_close_video")}</small></p></div>
+      <div><Grid3X3 size={18}/><p><strong>{t("studio.vector_dieline")}</strong><small>{t("studio.svg_and_dxf_export")}</small></p></div>
     </div>
   </div>;
 }
@@ -2381,6 +2382,8 @@ function ImportedDielineMapper({
   setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
   onClear:()=>void;
 }) {
+  const t = useTranslations();
+
   const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number | null>(null);
   const candidates = panelCandidates(dieline);
   const progress = mappingProgress(dieline, mapping);
@@ -2403,13 +2406,13 @@ function ImportedDielineMapper({
   return <div className="pro-dieline-stage pro-2d-design-stage pro-dieline-mapping-mode">
     <div className="pro-2d-design-toolbar pro-mapping-toolbar">
       <div>
-        <span>Dieline mapping</span>
+        <span>{t("studio.dieline_mapping")}</span>
         <strong>{dieline.name}</strong>
-        <small>{progress.assignedPanels}/{progress.panelCandidates} panel regions assigned · {progress.unresolvedLines} unresolved vector element{progress.unresolvedLines===1?'':'s'}</small>
+        <small>{progress.assignedPanels}/{progress.panelCandidates}{" " + t("studio.panel_regions_assigned") + " "}{progress.unresolvedLines}{" " + t("studio.unresolved_vector_element")}{progress.unresolvedLines===1?'':t("studio.s")}</small>
       </div>
       <div className="pro-mapping-toolbar-actions">
-        <span className={progress.readyFor3D ? 'pro-mapping-ready is-ready' : 'pro-mapping-ready'}>{progress.readyFor3D ? 'Ready for 3D mapping' : 'Mapping incomplete'}</span>
-        <button className="pro-2d-remove-layout" type="button" onClick={onClear}><Trash2 size={15}/> Clear dieline</button>
+        <span className={progress.readyFor3D ? 'pro-mapping-ready is-ready' : 'pro-mapping-ready'}>{progress.readyFor3D ? t("studio.ready_for_3d_mapping") : t("studio.mapping_incomplete")}</span>
+        <button className="pro-2d-remove-layout" type="button" onClick={onClear}><Trash2 size={15}/>{" " + t("studio.clear_dieline")}</button>
       </div>
     </div>
 
@@ -2449,51 +2452,50 @@ function ImportedDielineMapper({
 
       <aside className="pro-dieline-mapping-panel">
         <div className="pro-mapping-summary">
-          <h3>Map this dieline</h3>
-          <p>Click a vector element or closed panel region, then classify it. Auto-detected roles are already prefilled where the file contained useful layer names.</p>
+          <h3>{t("studio.map_this_dieline")}</h3>
+          <p>{t("studio.click_a_vector_element_or_closed_panel_region_then_classify_it_auto_detecte")}</p>
           <div className="pro-mapping-progress"><span style={{width:`${progress.panelCandidates ? Math.round(progress.assignedPanels/progress.panelCandidates*100) : 0}%`}}/></div>
         </div>
 
         {selectedPrimitiveIndex == null || !selectedPrimitive ? <div className="pro-mapping-empty">
           <Grid3X3 size={24}/>
-          <strong>Select geometry</strong>
-          <span>Choose a line or closed region in the preview to classify it.</span>
+          <strong>{t("studio.select_geometry")}</strong>
+          <span>{t("studio.choose_a_line_or_closed_region_in_the_preview_to_classify_it")}</span>
         </div> : <div className="pro-mapping-editor">
-          <div><span>Selected</span><strong>{primitiveSummary(selectedPrimitive)} #{selectedPrimitiveIndex+1}</strong></div>
+          <div><span>{t("studio.selected")}</span><strong>{primitiveSummary(selectedPrimitive)} #{selectedPrimitiveIndex+1}</strong></div>
 
           <fieldset>
-            <legend>Line role</legend>
+            <legend>{t("studio.line_role")}</legend>
             <div className="pro-mapping-role-grid">
               {(['cut','crease','ignore','unknown'] as DielineLineRole[]).map(role => <button
                 type="button"
                 key={role}
                 className={(mapping.lineRoles[selectedPrimitiveIndex]??'unknown')===role?'is-active':''}
                 onClick={()=>setLineRole(selectedPrimitiveIndex,role)}
-              >{role==='cut'?'Cut':role==='crease'?'Crease / fold':role==='ignore'?'Ignore':'Unclassified'}</button>)}
+              >{role==='cut'?t("studio.cut"):role==='crease'?t("studio.crease_fold"):role==='ignore'?t("studio.ignore"):t("studio.unclassified")}</button>)}
             </div>
           </fieldset>
 
           {selectedPanelCandidate ? <label className="pro-mapping-panel-select">
-            <span>Panel assignment</span>
+            <span>{t("studio.panel_assignment")}</span>
             <select value={mapping.panelNames[selectedPrimitiveIndex]??''} onChange={e=>setPanelName(selectedPrimitiveIndex,e.target.value as DielinePanelName|'')}>
-              <option value="">Unassigned</option>
+              <option value="">{t("studio.unassigned")}</option>
               {(['Front','Back','Left','Right','Top','Bottom','Glue','Other'] as DielinePanelName[]).map(name=><option key={name} value={name}>{name}</option>)}
             </select>
-            <small>Closed vector regions are treated as panel candidates in this first mapper.</small>
-          </label> : <p className="pro-mapping-note">This geometry is not a closed panel candidate. Classify it as Cut, Crease, Ignore, or leave it unresolved.</p>}
+            <small>{t("studio.closed_vector_regions_are_treated_as_panel_candidates_in_this_first_mapper")}</small>
+          </label> : <p className="pro-mapping-note">{t("studio.this_geometry_is_not_a_closed_panel_candidate_classify_it_as_cut_crease_ign")}</p>}
         </div>}
 
         <div className="pro-mapping-checklist">
-          <strong>Mapping checklist</strong>
-          <span className={progress.assignedPanels>=4?'is-done':''}><Check size={14}/> Assign at least 4 panel regions</span>
-          <span className={progress.unresolvedLines===0?'is-done':''}><Check size={14}/> Resolve all vector elements</span>
-          <span className={progress.readyFor3D?'is-done':''}><Check size={14}/> Structure ready for 3D conversion</span>
+          <strong>{t("studio.mapping_checklist")}</strong>
+          <span className={progress.assignedPanels>=4?'is-done':''}><Check size={14}/>{" " + t("studio.assign_at_least_4_panel_regions")}</span>
+          <span className={progress.unresolvedLines===0?'is-done':''}><Check size={14}/>{" " + t("studio.resolve_all_vector_elements")}</span>
+          <span className={progress.readyFor3D?'is-done':''}><Check size={14}/>{" " + t("studio.structure_ready_for_3d_conversion")}</span>
         </div>
 
         <button className="pro-primary pro-map-to-3d" type="button" disabled={!progress.readyFor3D} onClick={()=>{}}>
-          <Boxes size={16}/> Generate 3D structure
-        </button>
-        <p className="pro-mapping-note">3D generation is intentionally disabled until the mapping is complete. The actual arbitrary-geometry folding engine is the next implementation step.</p>
+          <Boxes size={16}/>{" " + t("studio.generate_3d_structure")}</button>
+        <p className="pro-mapping-note">{t("studio.3d_generation_is_intentionally_disabled_until_the_mapping_is_complete_the_a")}</p>
       </aside>
     </div>
   </div>;
@@ -2576,6 +2578,8 @@ function DielinePrototype({
   livePreview:React.ReactNode;
   viewSwitch:React.ReactNode;
 }) {
+  const t = useTranslations();
+
   const printBoardRef=useRef<HTMLDivElement>(null);
   const [printError,setPrintError]=useState('');
   const [printing,setPrinting]=useState(false);
@@ -2608,7 +2612,7 @@ function DielinePrototype({
   const selectedPanelArtwork=!selectedLayer ? artworkByPanel[selectedPanelKey] : null;
   const selectedPanelGeometry=!selectedLayer ? cartonPanels.find(item=>item.label.toLowerCase()===selectedPanel.toLowerCase()) ?? null : null;
   const selectedPanelAsset=selectedPanelArtwork ? mediaAssets.find(asset=>asset.id===selectedPanelArtwork.assetId) : null;
-  const selectedPanelLayer=useMemo<FullDielineArtworkLayer|null>(()=>{
+  const selectedPanelLayer: FullDielineArtworkLayer | null = (()=>{
     if(!selectedPanelArtwork || !selectedPanelGeometry)return null;
     const imageAspect=selectedPanelAsset?.width && selectedPanelAsset.height ? selectedPanelAsset.width/selectedPanelAsset.height : 1;
     const faceAspect=selectedPanelGeometry.width/selectedPanelGeometry.height;
@@ -2630,7 +2634,7 @@ function DielinePrototype({
       rotation:selectedPanelArtwork.rotation,
     };
     return {id:`panel:${selectedPanelKey}`,name:selectedPanelArtwork.name,url:selectedPanelArtwork.url,aspectRatio:imageAspect,transform};
-  },[selectedPanelArtwork,selectedPanelGeometry,selectedPanelAsset,selectedPanelKey]);
+  })();
   const activeTransformLayer=selectedLayer ?? selectedPanelLayer;
   const activeTransformWidth=selectedLayer ? bounds.width : (selectedPanelGeometry?.width ?? bounds.width);
   const activeTransformHeight=selectedLayer ? bounds.height : (selectedPanelGeometry?.height ?? bounds.height);
@@ -2878,25 +2882,25 @@ function DielinePrototype({
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
     >
-      {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label="Design tools">
+      {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label={t("studio.design_tools")}>
         <div className="pro-inspector-title pro-design-inspector-title">
-          <div><span>Design</span><h2>{artworkScope==='inside'?'Inside artwork':'Outside artwork'}</h2></div>
-          <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label="Close Design tools" title="Close" onClick={onCloseTools}><X size={18}/></button>
+          <div><span>{t("studio.design_2")}</span><h2>{artworkScope==='inside'?t("studio.inside_artwork"):t("studio.outside_artwork")}</h2></div>
+          <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label={t("studio.close_design_tools")} title={t("studio.close")} onClick={onCloseTools}><X size={18}/></button>
         </div>
         <div className="pro-design-inspector-content">
-          <div className="pro-dieline-surface-switch" role="group" aria-label="Printed side">
-            <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>Outside</button>
-            <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>Inside</button>
+          <div className="pro-dieline-surface-switch" role="group" aria-label={t("studio.printed_side")}>
+            <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>{t("studio.outside")}</button>
+            <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>{t("studio.inside")}</button>
           </div>
 
           <div className="pro-2d-left-actions">
-            <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/> Add artwork</button>
+            <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/>{" " + t("studio.add_artwork")}</button>
           </div>
 
           <aside className="pro-dieline-layers-panel pro-design-left-layers" aria-label={`${artworkScope} artwork layers`}>
             <div className="pro-dieline-layers-heading">
-              <div><span>Layers</span><strong>{layers.length+sideArtwork.length}</strong></div>
-              <button type="button" onClick={onChooseFullLayout}><Upload size={14}/> Add</button>
+              <div><span>{t("studio.layers")}</span><strong>{layers.length+sideArtwork.length}</strong></div>
+              <button type="button" onClick={onChooseFullLayout}><Upload size={14}/>{" " + t("studio.add")}</button>
             </div>
 
             {layers.length ? <div className="pro-dieline-layer-list">
@@ -2908,7 +2912,7 @@ function DielinePrototype({
                   key={layer.id}
                   className={`${selected?'is-selected':''}${dropTargetId===layer.id?' is-drop-target':''}`}
                   onClick={()=>onSelectLayer(layer.id)}
-                  title="Drag to change layer order"
+                  title={t("studio.drag_to_change_layer_order")}
                   draggable
                   onDragStart={event=>{
                     draggingLayerId.current=layer.id;
@@ -2935,64 +2939,64 @@ function DielinePrototype({
                 >
                   <img src={layer.url} alt="" draggable={false}/>
                   <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
-                  <i>{realIndex===layers.length-1?'Top':realIndex+1}</i>
+                  <i>{realIndex===layers.length-1?t("studio.top"):realIndex+1}</i>
                 </button>;
               })}
-            </div> : sideArtwork.length ? null : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>Add artwork to start composing.</span></div>}
+            </div> : sideArtwork.length ? null : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>{t("studio.add_artwork_to_start_composing")}</span></div>}
 
             {sideArtwork.length>0 && <div className="pro-dieline-layer-list">{sideArtwork.map(([key,artwork])=><button key={key} type="button" className={selectedPanel===key.replace('Interior ','') && !selectedLayerId?'is-selected':''} onClick={()=>onPanelSelect(key.replace('Interior ',''))}><img src={artwork.url} alt=""/><span><strong>{artwork.name}</strong><small>{key}</small></span></button>)}</div>}
 
             {selectedLayer && <div className="pro-dieline-layer-actions">
-              <button type="button" title="Bring forward" aria-label="Bring selected layer forward" disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={16}/></button>
-              <button type="button" title="Send backward" aria-label="Send selected layer backward" disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={16}/></button>
-              <button type="button" title="Duplicate" aria-label="Duplicate selected layer" onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={16}/></button>
-              <button type="button" title="Delete" aria-label="Delete selected layer" onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={16}/></button>
+              <button type="button" title={t("studio.bring_forward")} aria-label={t("studio.bring_selected_layer_forward")} disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={16}/></button>
+              <button type="button" title={t("studio.send_backward")} aria-label={t("studio.send_selected_layer_backward")} disabled={layers[0]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,-1)}><ArrowDown size={16}/></button>
+              <button type="button" title={t("studio.duplicate")} aria-label={t("studio.duplicate_selected_layer")} onClick={()=>onDuplicateLayer(selectedLayer.id)}><Copy size={16}/></button>
+              <button type="button" title={t("studio.delete")} aria-label={t("studio.delete_selected_layer")} onClick={()=>onRemoveLayer(selectedLayer.id)}><Trash2 size={16}/></button>
             </div>}
           </aside>
 
           <div className="pro-design-output">
-            <span>Print output</span>
+            <span>{t("studio.print_output")}</span>
             <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
               if (!printBoardRef.current) return;
               setPrintError('');setPrinting(true);
               try { await printDielineLayout(printBoardRef.current,bounds,layers); }
               catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
               finally { setPrinting(false); }
-            }}><Download size={16}/> {printing?'Preparing PDF…':'Print / Save PDF'}</button>
+            }}><Download size={16}/> {printing?t("studio.preparing_pdf"):t("studio.print_save_pdf")}</button>
           </div>
         </div>
       </aside>}
 
       <div className="pro-2d-right-preview pro-design-context-stack">
         {livePreview}
-        <aside className={`pro-design-transform-panel${activeTransformLayer?' has-selection':''}`} aria-label="Artwork properties">
+        <aside className={`pro-design-transform-panel${activeTransformLayer?' has-selection':''}`} aria-label={t("studio.artwork_properties")}>
           {activeTransformLayer ? <>
             <div className="pro-design-transform-panel-head">
-              <div><span>Transform</span><strong>Exact placement</strong></div>
+              <div><span>{t("studio.transform")}</span><strong>{t("studio.exact_placement")}</strong></div>
               <button type="button" className="pro-secondary-button" onClick={() => onUpdateLayer(
                 activeTransformLayer.id,
                 createFullDielineTransform(activeTransformLayer.aspectRatio, activeTransformWidth / activeTransformHeight),
-              )}><Maximize2 size={15}/> Reset</button>
+              )}><Maximize2 size={15}/>{" " + t("studio.reset")}</button>
             </div>
 
-            <section className="pro-precision-transform" aria-label="Selected artwork transform">
+            <section className="pro-precision-transform" aria-label={t("studio.selected_artwork_transform")}>
               <div className="pro-precision-transform-head">
-                <span>Selected artwork</span>
-                <span>Free movement</span>
+                <span>{t("studio.selected_artwork")}</span>
+                <span>{t("studio.free_movement")}</span>
               </div>
               <div className="pro-precision-transform-grid">
-                <label><span>X</span><input key={`x-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,x:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>Y</span><input key={`y-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,y:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>W</span><input key={`w-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,width:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>H</span><input key={`h-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,height:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
-                <label className="is-rotation"><span><RotateCw size={13}/> Rotation</span><input key={`r-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(activeTransformLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
+                <label><span>{t("studio.x")}</span><input key={`x-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,x:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>{t("studio.y")}</span><input key={`y-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,y:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>{t("studio.w_2")}</span><input key={`w-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,width:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>{t("studio.h_2")}</span><input key={`h-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,height:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
+                <label className="is-rotation"><span><RotateCw size={13}/>{" " + t("studio.rotation")}</span><input key={`r-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(activeTransformLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
               </div>
-              <p>Drag freely. Hold <kbd>Shift</kbd> while rotating for 15° steps.</p>
+              <p>{t("studio.drag_freely_hold") + " "}<kbd>{t("studio.shift")}</kbd>{" " + t("studio.while_rotating_for_15_steps")}</p>
             </section>
           </> : <div className="pro-design-transform-empty">
             <Move size={22}/>
-            <strong>Select an artwork layer</strong>
-            <span>Choose a layer on the left or directly on the dieline to edit its position, size, and rotation.</span>
+            <strong>{t("studio.select_an_artwork_layer")}</strong>
+            <span>{t("studio.choose_a_layer_on_the_left_or_directly_on_the_dieline_to_edit_its_position_")}</span>
           </div>}
         </aside>
       </div>
@@ -3067,7 +3071,7 @@ function DielinePrototype({
                 aria-label={`Resize selected artwork from ${handle}`}
                 onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}
               />)}
-              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label="Rotate selected artwork" title="Rotate freely · hold Shift to snap to 15° increments" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
+              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={t("studio.rotate_selected_artwork")} title={t("studio.rotate_freely_hold_shift_to_snap_to_15_increments")} onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
               {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
             </>}
           </div>;
@@ -3107,7 +3111,7 @@ function DielinePrototype({
               onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture}>
               <span className="pro-transform-box" aria-hidden="true"/>
               {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} type="button" className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`} aria-label={`Resize ${selectedPanel} artwork from ${handle}`} onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}/>)}
-              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={`Rotate ${selectedPanel} artwork`} title="Rotate · snaps near 15° increments" onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
+              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={`Rotate ${selectedPanel} artwork`} title={t("studio.rotate_snaps_near_15_increments")} onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
               {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
             </div>
           </div>;
@@ -3116,10 +3120,10 @@ function DielinePrototype({
     </div>
 
     <div className="pro-dieline-legend">
-      <span><i className="cut"/>Cut</span>
-      <span><i className="crease"/>Crease</span>
-      <span><i className="bleed"/>Bleed</span>
-      <strong>{layers.length ? 'Drag freely · hold Shift while resizing to change proportions · hold Shift while rotating for 15° steps' : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
+      <span><i className="cut"/>{t("studio.cut")}</span>
+      <span><i className="crease"/>{t("studio.crease")}</span>
+      <span><i className="bleed"/>{t("studio.bleed")}</span>
+      <strong>{layers.length ? t("studio.drag_freely_hold_shift_while_resizing_to_change_proportions_hold_shift_whil") : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
     </div>
 
   </div>;
@@ -3141,6 +3145,8 @@ function MediaLibraryModal(props: {
   onDelete: (assetId:string)=>Promise<{deleted:boolean;usages?:Array<{id:string;name:string}>;error?:string}>;
   onClose: ()=>void;
 }) {
+  const t = useTranslations();
+
   const selected = props.assets.find(asset => asset.id === props.selectedAssetId) ?? null;
   const [dragging, setDragging] = useState(false);
   const [search, setSearch] = useState('');
@@ -3165,20 +3171,20 @@ function MediaLibraryModal(props: {
   return <div className="pro-media-modal-backdrop" role="presentation" onMouseDown={(event) => {
     if (event.target === event.currentTarget) props.onClose();
   }}>
-    <section className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label="Add artwork">
+    <section className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label={t("studio.add_artwork")}>
       <header className="pro-media-modal-header">
         <div>
-          <span>My Images</span>
-          <h2>Add artwork</h2>
-          <p>Reuse images from your account or upload a new one, then position it directly on the 2D board.</p>
+          <span>{t("studio.my_images")}</span>
+          <h2>{t("studio.add_artwork")}</h2>
+          <p>{t("studio.reuse_images_from_your_account_or_upload_a_new_one_then_position_it_directl")}</p>
         </div>
-        <button aria-label="Close add artwork dialog" onClick={props.onClose}><X size={20}/></button>
+        <button aria-label={t("studio.close_add_artwork_dialog")} onClick={props.onClose}><X size={20}/></button>
       </header>
 
       {props.uploadProgress && <div className={`pro-media-upload-progress is-${props.uploadProgress.phase}`} role="status" aria-live="polite">
         <div className="pro-media-upload-progress-head">
           <div>
-            <strong>{props.uploadProgress.phase==='complete'?'Upload complete':props.uploadProgress.phase==='processing'?'Processing image…':'Uploading image…'}</strong>
+            <strong>{props.uploadProgress.phase==='complete'?t("studio.upload_complete"):props.uploadProgress.phase==='processing'?t("studio.processing_image"):t("studio.uploading_image")}</strong>
             <span>{props.uploadProgress.fileName}</span>
           </div>
           <div>
@@ -3193,8 +3199,8 @@ function MediaLibraryModal(props: {
       <div className="pro-media-unified-workspace">
         <div className="pro-media-unified-library">
           <div className="pro-media-browser-toolbar">
-            <label className="pro-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search artwork" /></label>
-            <button className="pro-secondary-button" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?'Uploading…':'Upload image'}</button>
+            <label className="pro-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={t("studio.search_artwork")} /></label>
+            <button className="pro-secondary-button" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?t("studio.uploading"):t("studio.upload_image")}</button>
           </div>
 
           <div
@@ -3212,15 +3218,15 @@ function MediaLibraryModal(props: {
             }}
           >
             <Upload size={20}/>
-            <div><strong>{dragging ? 'Drop it here' : 'Drop artwork here'}</strong><span>PNG, JPG, WebP or SVG · any image dimensions</span></div>
-            <button type="button" disabled={props.uploadProgress?.active} onClick={props.onUpload}>Browse</button>
+            <div><strong>{dragging ? t("studio.drop_it_here") : t("studio.drop_artwork_here")}</strong><span>{t("studio.png_jpg_webp_or_svg_any_image_dimensions")}</span></div>
+            <button type="button" disabled={props.uploadProgress?.active} onClick={props.onUpload}>{t("studio.browse")}</button>
           </div>
 
           {filteredAssets.length === 0 ? <div className="pro-media-empty">
             <ImageIcon size={30}/>
-            <h3>{props.assets.length ? 'No matching artwork' : 'Upload your first image'}</h3>
-            <p>{props.assets.length ? 'Try another search.' : 'Uploaded images are saved to My Images so you can reuse them in future designs.'}</p>
-            {!props.assets.length && <button className="pro-primary pro-media-empty-action" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?'Uploading…':'Choose image'}</button>}
+            <h3>{props.assets.length ? t("studio.no_matching_artwork") : t("studio.upload_your_first_image")}</h3>
+            <p>{props.assets.length ? t("studio.try_another_search") : t("studio.uploaded_images_are_saved_to_my_images_so_you_can_reuse_them_in_future_desi")}</p>
+            {!props.assets.length && <button className="pro-primary pro-media-empty-action" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?t("studio.uploading"):t("studio.choose_image")}</button>}
           </div> : <div className="pro-media-grid pro-media-unified-grid">
             {filteredAssets.map(asset => {
               const used = Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === asset.id).length;
@@ -3242,8 +3248,8 @@ function MediaLibraryModal(props: {
         <aside className="pro-media-unified-editor">
           {selected ? <>
             <div className="pro-media-editor-heading">
-              <div><span>Place on</span><strong>{targetLabel}</strong></div>
-              <button type="button" className="pro-media-replace" onClick={props.onUpload}><Upload size={14}/> Replace</button>
+              <div><span>{t("studio.place_on")}</span><strong>{targetLabel}</strong></div>
+              <button type="button" className="pro-media-replace" onClick={props.onUpload}><Upload size={14}/>{" " + t("studio.replace")}</button>
             </div>
 
             <div className="pro-media-placement-preview">
@@ -3261,26 +3267,26 @@ function MediaLibraryModal(props: {
               </div>
             </div>
 
-            <div className="pro-media-canvas-handoff"><Move size={16}/><p><strong>Place it on the board</strong><span>Drag, resize and rotate directly in 2D Design after adding.</span></p></div>
+            <div className="pro-media-canvas-handoff"><Move size={16}/><p><strong>{t("studio.place_it_on_the_board")}</strong><span>{t("studio.drag_resize_and_rotate_directly_in_2d_design_after_adding")}</span></p></div>
 
             <div className="pro-media-editor-meta">
               <span>{selected.mimeType.replace('image/','').toUpperCase()}</span>
-              <span>{usageCount ? `Used on ${usageCount} panel${usageCount===1?'':'s'}` : 'Not used yet'}</span>
+              <span>{usageCount ? `Used on ${usageCount} panel${usageCount===1?'':'s'}` : t("studio.not_used_yet")}</span>
               <button
                 className="pro-media-delete-link"
-                title="Delete from My Images"
+                title={t("studio.delete_from_my_images")}
                 onClick={() => {
                   setDeleteError('');
                   setDeleteUsages([]);
                   setDeleteConfirmOpen(true);
                 }}
-              ><Trash2 size={14}/> Delete</button>
+              ><Trash2 size={14}/>{" " + t("studio.delete")}</button>
             </div>
           </> : <div className="pro-media-editor-empty">
             <ImageIcon size={32}/>
-            <h3>Choose from My Images</h3>
-            <p>Select an image you have already uploaded, or add a new one to your reusable account gallery.</p>
-            <button className="pro-primary pro-media-empty-action" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?'Uploading…':'Upload image'}</button>
+            <h3>{t("studio.choose_from_my_images")}</h3>
+            <p>{t("studio.select_an_image_you_have_already_uploaded_or_add_a_new_one_to_your_reusable")}</p>
+            <button className="pro-primary pro-media-empty-action" disabled={props.uploadProgress?.active} onClick={props.onUpload}><Upload size={15}/> {props.uploadProgress?.active?t("studio.uploading"):t("studio.upload_image")}</button>
           </div>}
         </aside>
       </div>
@@ -3289,17 +3295,17 @@ function MediaLibraryModal(props: {
         <section className="pro-media-delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="media-delete-title">
           <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
           <div className="pro-media-delete-confirm-copy">
-            <span>Delete image</span>
-            <h3 id="media-delete-title">Delete “{selected.name}” from My Images?</h3>
+            <span>{t("studio.delete_image")}</span>
+            <h3 id="media-delete-title">{t("studio.delete_2")}{selected.name}{t("studio.from_my_images")}</h3>
             {deleteUsages.length ? <>
-              <p>This image cannot be deleted because it is still used in:</p>
+              <p>{t("studio.this_image_cannot_be_deleted_because_it_is_still_used_in")}</p>
               <ul>{deleteUsages.map(item=><li key={item.id}><strong>{item.name}</strong></li>)}</ul>
-              <p>Remove or replace this image in {deleteUsages.length===1?'that design':'those designs'}, save the changes, then try deleting it again.</p>
-            </> : <p>This permanently removes the image from your media library and its stored file. This cannot be undone.</p>}
+              <p>{t("studio.remove_or_replace_this_image_in") + " "}{deleteUsages.length===1?t("studio.that_design"):t("studio.those_designs")}{t("studio.save_the_changes_then_try_deleting_it_again")}</p>
+            </> : <p>{t("studio.this_permanently_removes_the_image_from_your_media_library_and_its_stored_f")}</p>}
             {deleteError && <div className="pro-media-delete-error" role="alert">{deleteError}</div>}
           </div>
           <div className="pro-media-delete-confirm-actions">
-            <button type="button" className="pro-secondary-button" disabled={deleteBusy} onClick={()=>{setDeleteConfirmOpen(false);setDeleteError('');setDeleteUsages([]);}}>{deleteUsages.length?'Close':'Cancel'}</button>
+            <button type="button" className="pro-secondary-button" disabled={deleteBusy} onClick={()=>{setDeleteConfirmOpen(false);setDeleteError('');setDeleteUsages([]);}}>{deleteUsages.length?t("studio.close"):t("studio.cancel")}</button>
             {!deleteUsages.length && <button type="button" className="pro-danger-button" disabled={deleteBusy} onClick={async()=>{
               setDeleteBusy(true);
               setDeleteError('');
@@ -3312,7 +3318,7 @@ function MediaLibraryModal(props: {
               }
               setDeleteUsages(result.usages ?? []);
               setDeleteError(result.usages?.length ? '' : (result.error ?? 'Could not delete image.'));
-            }}>{deleteBusy?'Deleting…':'Delete image'}</button>}
+            }}>{deleteBusy?t("studio.deleting"):t("studio.delete_image")}</button>}
           </div>
         </section>
       </div>}
@@ -3322,9 +3328,9 @@ function MediaLibraryModal(props: {
           ? `You can continue moving and resizing this artwork on the ${props.targetScope} 2D dieline.`
           : `Adding artwork to ${targetLabel}.`}</span>
         <div>
-          <button className="pro-secondary-button" onClick={props.onClose}>Cancel</button>
+          <button className="pro-secondary-button" onClick={props.onClose}>{t("studio.cancel")}</button>
           <button className="pro-primary" disabled={!selected} onClick={() => selected && props.onUse(selected,{mode:fitMode,scale,rotation})}>
-            {props.targetPanel === '__FULL_DIELINE__' ? 'Add to dieline' : `Add to ${targetLabel}`}
+            {props.targetPanel === '__FULL_DIELINE__' ? t("studio.add_to_dieline") : `Add to ${targetLabel}`}
           </button>
         </div>
       </footer>

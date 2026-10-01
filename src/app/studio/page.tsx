@@ -1,17 +1,18 @@
+import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { StudioHome,StudioGate } from '@/components/auth/studio-home';
 import { getCurrentUser } from '@/server/auth/session';
 import { getWorkspaceDesigns } from '@/server/projects';
 import { listWorkspaceProjects } from '@/server/workspace-projects';
 
-const title='Free 3D Box Maker & Packaging Mockup Generator | 3D Box Studio';
-const description='Design cartons and mailer boxes in a free online 3D box maker and packaging simulator. Set custom dimensions, upload artwork, preview openings and materials, then export PNG mockups or share your design.';
+const title=translate("metadata.studio.free_3d_box_maker_packaging_mockup_generator_3d_box_studio");
+const description=translate("metadata.studio.design_cartons_and_mailer_boxes_in_a_free_online_3d_box_maker_and_packaging");
 
 export const metadata: Metadata = {
   title:{absolute:title},
   description,
   keywords:['3d box designer','3d box maker','free 3d box maker','online box designer','packaging mockup generator','free packaging mockup','3d packaging simulator','carton mockup','folding carton mockup','mailer box mockup','product box mockup','box design software','packaging box designer','pacdora alternative','3d box studio'],
-  alternates:{canonical:'/studio',languages:{en:'/studio',fr:'/fr/studio',es:'/es/studio',de:'/de/studio','x-default':'/studio'}},
+  alternates:{canonical:'/studio'},
   openGraph:{title,description,type:'website',url:'/studio'},
 };
 
