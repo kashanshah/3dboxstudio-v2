@@ -4327,11 +4327,17 @@ body{font-size:var(--type-body)}
   font-weight:700;
   white-space:nowrap;
   cursor:pointer;
+  transition:background .16s ease,color .16s ease,box-shadow .16s ease;
 }
-.pro-workflow-view-switch button.is-active{
-  background:var(--brand);
+.pro-workflow-view-switch button:hover{
+  background:var(--paper);
+  color:var(--ink);
+}
+.pro-workflow-view-switch button.is-active,
+.pro-workflow-view-switch button.is-active:hover{
+  background:var(--accent);
   color:#fff;
-  box-shadow:0 1px 4px rgba(16,23,32,.12);
+  box-shadow:0 1px 4px rgba(0,117,196,.22);
 }
 .pro-workflow-camera>button{
   min-height:44px;
