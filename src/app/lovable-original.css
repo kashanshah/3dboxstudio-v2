@@ -83,7 +83,7 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .lovable-original .hero-canvas .package-cube{scale:.67}
 .lovable-original .workflow-section{ padding: 110px max(20px,calc((100vw - 1180px)/2)); background:var(--foreground); color:var(--background); }
 .lovable-original .section-intro{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:62px}
-.lovable-original .section-intro .eyebrow{color:color-mix(in oklab,var(--background) 50%,transparent)}
+.lovable-original .workflow-section .section-intro .eyebrow{color:color-mix(in oklab,var(--background) 64%,transparent)}
 .lovable-original .section-intro h2{max-width:590px;margin:0;font-size:clamp(38px,5vw,64px);line-height:1;letter-spacing:-.045em}
 .lovable-original .workflow-grid{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid color-mix(in oklab,var(--background) 18%,transparent)}
 .lovable-original .workflow-grid article{position:relative;padding:26px 38px 10px 0;border-right:1px solid color-mix(in oklab,var(--background) 18%,transparent)}
@@ -393,4 +393,85 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
   .dieline-visual{grid-template-columns:1fr;min-height:0}
   .dieline-visual>svg{transform:rotate(90deg);justify-self:center}
   .dieline-sheet,.dieline-box{height:260px}
+}
+
+/* Eyebrow contrast: keep labels readable on all light marketing sections. */
+.lovable-original .eyebrow{
+  color:#245f9e;
+  font-size:11px;
+  line-height:1.35;
+  font-weight:800;
+  letter-spacing:.14em;
+}
+.lovable-original .workflow-section .eyebrow,
+.lovable-original .save-share-section .eyebrow{
+  color:#9ec7f5;
+}
+
+/* FAQ layout scales cleanly from 4 to 12+ questions. */
+.answer-section{
+  align-items:start;
+}
+.answer-intro{
+  position:sticky;
+  top:108px;
+  align-self:start;
+}
+.answer-intro .seo-home-links{
+  margin-top:28px;
+}
+.answer-accordion{
+  border-top:1px solid #dfe6ee;
+}
+.answer-accordion details{
+  border-bottom:1px solid #dfe6ee;
+  padding:0;
+}
+.answer-accordion summary{
+  list-style:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  min-height:76px;
+  padding:20px 2px;
+  font-size:17px;
+  line-height:1.35;
+  font-weight:700;
+  color:#243142;
+}
+.answer-accordion summary::-webkit-details-marker{display:none}
+.answer-accordion summary i{
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  display:grid;
+  place-items:center;
+  border:1px solid #d7e1eb;
+  border-radius:999px;
+  font-style:normal;
+  font-size:18px;
+  line-height:1;
+  color:#0f67e8;
+  background:#fff;
+  transition:transform .2s ease,background .2s ease;
+}
+.answer-accordion details[open] summary i{
+  transform:rotate(45deg);
+  background:#eef5ff;
+}
+.answer-accordion details>p{
+  max-width:760px;
+  margin:-4px 48px 22px 2px;
+  color:#667085;
+  font-size:15px;
+  line-height:1.68;
+}
+@media(max-width:1050px){
+  .answer-intro{position:static}
+}
+@media(max-width:700px){
+  .answer-accordion summary{min-height:68px;font-size:16px;padding:17px 0}
+  .answer-accordion details>p{margin:0 42px 19px 0}
 }
