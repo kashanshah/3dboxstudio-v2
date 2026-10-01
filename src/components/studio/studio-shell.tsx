@@ -95,36 +95,30 @@ async function readUploadDimensions(file:File):Promise<{width:number|null;height
 }
 
 
-function uploadMediaFile(
+async function uploadMediaFile(
   file:File,
   dimensions:{width:number|null;height:number|null},
   onProgress:(percent:number,phase:'uploading'|'processing')=>void,
 ):Promise<LocalMediaAsset>{
-  return new Promise((resolve,reject)=>{
-    const form=new FormData();
-    form.set('file',file);
-    if(dimensions.width)form.set('width',String(dimensions.width));
-    if(dimensions.height)form.set('height',String(dimensions.height));
+  if(file.size>100*1024*1024)throw new Error('Artwork must be 100 MB or smaller.');
+  const prepare=await fetch('/api/media',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    action:'prepare',name:file.name,mimeType:file.type,byteSize:file.size,width:dimensions.width,height:dimensions.height,
+  })});
+  const prepared=await prepare.json() as {id?:string;key?:string;uploadUrl?:string;error?:string};
+  if(!prepare.ok||!prepared.id||!prepared.key||!prepared.uploadUrl)throw new Error(prepared.error||'Could not prepare artwork upload.');
 
-    const xhr=new XMLHttpRequest();
-    xhr.open('POST','/api/media');
-    xhr.responseType='json';
-    xhr.upload.onprogress=(event)=>{
-      if(event.lengthComputable){
-        onProgress(Math.max(0,Math.min(99,Math.round(event.loaded/event.total*100))),'uploading');
-      }
-    };
-    xhr.upload.onload=()=>onProgress(100,'processing');
-    xhr.onerror=()=>reject(new Error('Network error while uploading artwork.'));
-    xhr.onabort=()=>reject(new Error('Artwork upload was cancelled.'));
-    xhr.onload=()=>{
-      const result=(xhr.response ?? {}) as {asset?:LocalMediaAsset;error?:string};
-      if(xhr.status>=200&&xhr.status<300&&result.asset)resolve(result.asset);
-      else reject(new Error(result.error||'Could not upload artwork.'));
-    };
-    xhr.send(form);
-  });
+  const uploadResponse=await fetch(prepared.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+  if(!uploadResponse.ok)throw new Error('Storage rejected the artwork upload.');
+  onProgress(100,'processing');
+
+  const finalize=await fetch('/api/media',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    action:'finalize',id:prepared.id,key:prepared.key,name:file.name,mimeType:file.type,byteSize:file.size,width:dimensions.width,height:dimensions.height,
+  })});
+  const result=await finalize.json() as {asset?:LocalMediaAsset;error?:string};
+  if(!finalize.ok||!result.asset)throw new Error(result.error||'Could not finalize artwork upload.');
+  return result.asset;
 }
+
 const tools: { id: Tool; label: MessageKey; icon: typeof Box }[] = [
   { id: 'structure', label: "studio.box_size", icon: Box },
   { id: 'artwork', label: "studio.artwork", icon: ImageIcon },
