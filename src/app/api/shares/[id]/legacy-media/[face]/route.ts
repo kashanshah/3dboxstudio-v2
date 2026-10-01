@@ -1,3 +1,4 @@
+import { inlineContentDisposition } from '@/server/media-response-headers';
 import { NextResponse } from 'next/server';
 import { getMigratedShareAsset } from '@/server/design-shares';
 import { readStoredObject } from '@/server/media-assets';
@@ -16,7 +17,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string;face:
    'Content-Type':meta.mime||object.contentType,
    'Content-Length':String(object.bytes.byteLength),
    'Cache-Control':'public, max-age=3600, stale-while-revalidate=86400',
-   'Content-Disposition':`inline; filename="${meta.name.replace(/["\\]/g,'_')}"`,
+   'Content-Disposition': inlineContentDisposition(meta.name),
    'X-Content-Type-Options':'nosniff',
    'Cross-Origin-Resource-Policy':'same-origin',
    ...(meta.mime==='image/svg+xml'?{'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; sandbox"}:{}),

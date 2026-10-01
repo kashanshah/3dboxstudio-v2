@@ -1,3 +1,4 @@
+import { inlineContentDisposition } from '@/server/media-response-headers';
 import { NextResponse } from 'next/server';
 import { storageKeyFromMediaFileId } from '@/lib/admin-media';
 import { requireAdminApi } from '@/server/admin/auth';
@@ -24,7 +25,7 @@ export async function GET(req: Request) {
         'Content-Type': mime || 'application/octet-stream',
         'Content-Length': String(object.bytes.byteLength),
         'Cache-Control': 'private, max-age=300',
-        'Content-Disposition': `inline; filename="${listed.name.replace(/["\\]/g, '_')}"`,
+        'Content-Disposition': inlineContentDisposition(listed.name),
         'X-Content-Type-Options': 'nosniff',
         ...(mime === 'image/svg+xml' ? { 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox" } : {}),
       },

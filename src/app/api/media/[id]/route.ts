@@ -1,3 +1,4 @@
+import { inlineContentDisposition } from '@/server/media-response-headers';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
@@ -21,7 +22,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
         'Content-Type':media.row.mime_type,
         'Content-Length':String(media.bytes.byteLength),
         'Cache-Control':'private, max-age=3600, must-revalidate',
-        'Content-Disposition':`inline; filename="${media.row.name.replace(/["\\]/g,'_')}"`,
+        'Content-Disposition': inlineContentDisposition(media.row.name),
         'X-Content-Type-Options':'nosniff',
         'Cross-Origin-Resource-Policy':'same-origin',
         ...(media.row.mime_type==='image/svg+xml'?{'Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; sandbox"}:{}),
