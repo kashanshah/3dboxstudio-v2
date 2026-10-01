@@ -32,6 +32,7 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
           <div><dt>Verified</dt><dd>{user.verified ? 'Yes' : 'No'}</dd></div>
           <div><dt>Signup</dt><dd>{user.signupMethod}</dd></div>
           <div><dt>Joined</dt><dd>{user.createdAt ? formatAdminDateTime(user.createdAt) : '—'}</dd></div>
+          <div><dt>Projects</dt><dd>{user.projectCount.toLocaleString()}</dd></div>
           <div><dt>Designs</dt><dd><Link href={`/admin/designs?user=${encodeURIComponent(user.id)}`}>{user.designCount.toLocaleString()}</Link></dd></div>
           <div><dt>Media</dt><dd><Link href={`/admin/media?user=${encodeURIComponent(user.id)}`}>{user.mediaCount.toLocaleString()}</Link></dd></div>
         </dl>

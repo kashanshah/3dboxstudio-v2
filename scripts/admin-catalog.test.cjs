@@ -30,11 +30,13 @@ test('admin catalog links media to owners and designs without inventing a design
   try {
     await db.exec(LEGACY_SYNC_SCHEMA);
     await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now());
+      CREATE TABLE workspace_projects(id text primary key, user_id text not null, name text not null, is_default boolean not null default false, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, storage_key text, created_at timestamptz default now());
       CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz);`);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google'),('u2','no-name@example.com',NULL,NULL,'password')");
+    await db.query("INSERT INTO workspace_projects(id,user_id,name,is_default) VALUES('wp1','u1','My Project',TRUE),('wp2','u1','Client work',FALSE),('wp3','u2','My Project',TRUE)");
     await db.query('INSERT INTO projects(id,name,user_id,studio_state) VALUES($1,$2,$3,$4)', ['p1', 'Studio carton', 'u1', { artworkByPanel: { Front: { url: '/api/media/m2', name: 'box' } } }]);
     await db.query('INSERT INTO media_assets(id,user_id,name,mime_type,storage_key) VALUES($1,$2,$3,$4,$5),($6,$7,$8,$9,$10)', [
       'm1', 'u1', 'loose.png', 'image/png', 'v2/uploads/users/u1/artwork/m1/loose.png',
@@ -69,11 +71,14 @@ test('admin catalog links media to owners and designs without inventing a design
 
     const users = await listUsers();
     assert.equal(users.total, 2);
+    assert.equal(users.items.find((user) => user.id === 'u1').projectCount, 2);
     assert.equal(users.items.find((user) => user.id === 'u1').designCount, 2);
     assert.equal(users.items.find((user) => user.id === 'u1').mediaCount, 5);
+    assert.equal(users.items.find((user) => user.id === 'u2').projectCount, 1);
     assert.equal(users.items.find((user) => user.id === 'u2').name, 'no-name@example.com');
     assert.deepEqual((await listUsers({ sort: 'name', dir: 'asc' })).items.map((user) => user.id), ['u1', 'u2']);
     assert.equal((await listUsers({ sort: 'designs', dir: 'asc' })).items[0].id, 'u2');
+    assert.equal((await listUsers({ sort: 'projects', dir: 'asc' })).items[0].id, 'u2');
     assert.equal((await listUsers({ sort: 'not-a-column', dir: 'sideways' })).items.length, 2);
     assert.equal((await listDesigns({ sort: 'name', dir: 'asc' })).items[0].name, 'Anonymous box');
     assert.equal((await listMedia({ sort: 'name', dir: 'asc', pageSize: 50 })).items[0].name, 'anon.png');
@@ -93,6 +98,7 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(await getDesign('missing'), null);
     const account = await getUser('u1');
     assert.equal(account.email, 'ada@example.com');
+    assert.equal(account.projectCount, 2);
     assert.equal(account.designs.length, 2);
     assert.equal(await getUser('missing'), null);
     const adaDesigns = await listUserDesigns('u1');
