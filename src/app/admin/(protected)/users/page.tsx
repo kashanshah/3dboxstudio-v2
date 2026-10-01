@@ -6,6 +6,7 @@ import { AdminPageHeader } from '@/components/admin-page-header';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import { adminUserHref } from '@/lib/admin-media';
 import { AdminUserDesignsButton } from '@/components/admin/admin-user-designs-button';
+import { AdminUserProjectsButton } from '@/components/admin/admin-user-projects-button';
 import { AdminSortLink, adminListHref } from '@/components/admin/admin-sort-link';
 import { listUsers, parseAdminDir, parseAdminPage, parseAdminQuery, parseAdminSort, USER_SORTS } from '@/server/admin/catalog';
 
@@ -52,7 +53,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   <td><Link href={adminUserHref(user.id)}>{user.name}</Link></td>
                   <td>{user.email}</td>
                   <td>{user.verified ? 'Yes' : 'No'}</td>
-                  <td>{user.projectCount.toLocaleString()}</td>
+                  <td>
+                    <AdminUserProjectsButton userId={user.id} userEmail={user.email} userName={user.name} projectCount={user.projectCount} />
+                  </td>
                   <td>
                     <AdminUserDesignsButton userId={user.id} userEmail={user.email} userName={user.name} designCount={user.designCount} />
                   </td>

@@ -416,6 +416,67 @@ export async function listUserDesigns(userId: string, input: { page?: number; pa
   };
 }
 
+export type AdminUserProjectItem = {
+  id: string;
+  name: string;
+  isDefault: boolean;
+  designCount: number;
+  sceneCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+  href: string;
+};
+
+export async function listUserProjects(userId: string, input: { page?: number; pageSize?: number } = {}): Promise<AdminPage<AdminUserProjectItem>> {
+  await ensureV2Schema();
+  const page = input.page && Number.isInteger(input.page) && input.page > 0 ? input.page : 1;
+  const pageSize = input.pageSize && Number.isInteger(input.pageSize) ? Math.min(100, Math.max(1, input.pageSize)) : 100;
+  const offset = (page - 1) * pageSize;
+  const rows = await getSql().query(`
+    SELECT
+      wp.id, wp.name, wp.is_default, wp.created_at,
+      GREATEST(
+        wp.updated_at,
+        COALESCE(MAX(d.updated_at), wp.updated_at),
+        COALESCE(MAX(s.updated_at), wp.updated_at)
+      ) AS updated_at,
+      COUNT(DISTINCT d.id)::int AS design_count,
+      COUNT(DISTINCT s.id)::int AS scene_count,
+      COUNT(*) OVER()::int AS total
+    FROM workspace_projects wp
+    LEFT JOIN projects d ON d.workspace_project_id=wp.id
+    LEFT JOIN scenes s ON s.workspace_project_id=wp.id
+    WHERE wp.user_id=$1
+    GROUP BY wp.id
+    ORDER BY wp.is_default DESC, updated_at DESC NULLS LAST, wp.id
+    LIMIT $2 OFFSET $3
+  `, [userId, pageSize, offset]) as {
+    id: string;
+    name: string | null;
+    is_default: boolean;
+    created_at: string | Date | null;
+    updated_at: string | Date | null;
+    design_count: number;
+    scene_count: number;
+    total: number;
+  }[];
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      name: row.name?.trim() || 'Untitled project',
+      isDefault: Boolean(row.is_default),
+      designCount: Number(row.design_count || 0),
+      sceneCount: Number(row.scene_count || 0),
+      createdAt: iso(row.created_at),
+      updatedAt: iso(row.updated_at),
+      href: `/admin/designs?user=${encodeURIComponent(userId)}`,
+    })),
+    total: Number(rows[0]?.total ?? 0),
+    page,
+    pageSize,
+  };
+}
+
 export async function getDesignPreviewSource(id: string): Promise<{ dataUrl: string } | { storageKey: string } | null> {
   await ensureV2Schema();
   const designId = decodeRouteParam(id).slice(0, 200);
