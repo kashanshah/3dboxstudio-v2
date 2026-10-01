@@ -35,6 +35,7 @@ export async function runAllMigrations({ args = [], env = process.env, run = run
     ['Users, Google identities, designs, contacts and replies', './migrate-legacy-users.mjs'],
     ['Legacy S3 assets', './legacy-asset-sync.mjs'],
     ['Legacy share links and V2 storage references', './migrate-legacy-shares.mjs'],
+    ['Legacy face orientation fidelity repair', './repair-legacy-orientations.mjs'],
   ];
   for (const [index, [label, script]] of steps.entries()) {
     const started = Date.now();
@@ -44,7 +45,7 @@ export async function runAllMigrations({ args = [], env = process.env, run = run
     finally { clearInterval(heartbeat); }
     log(`[${index + 1}/${steps.length}] Finished: ${label} (${Math.round((Date.now() - started) / 1000)}s)`);
   }
-  log('All migration stages completed. Legacy users, records, assets and share links are now represented in V2-owned storage/data.');
+  log('All migration stages completed. Legacy users, records, assets, share links and face orientations are now represented faithfully in V2-owned storage/data.');
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
