@@ -31,24 +31,13 @@ const homeAlternates = {
   'x-default': '/',
 };
 
-const studioAlternates = {
-  en: '/studio',
-  fr: '/fr/studio',
-  es: '/es/studio',
-  de: '/de/studio',
-  'x-default': '/studio',
-};
-
 function getEntries(): SitemapEntry[] {
   const staticEntries: SitemapEntry[] = [
     { path: '/', changeFrequency: 'weekly', priority: 1, alternates: homeAlternates },
     { path: '/fr', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
     { path: '/es', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
     { path: '/de', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
-    { path: '/studio', changeFrequency: 'weekly', priority: 0.95, alternates: studioAlternates },
-    { path: '/fr/studio', changeFrequency: 'weekly', priority: 0.75, alternates: studioAlternates },
-    { path: '/es/studio', changeFrequency: 'weekly', priority: 0.75, alternates: studioAlternates },
-    { path: '/de/studio', changeFrequency: 'weekly', priority: 0.75, alternates: studioAlternates },
+    { path: '/studio', changeFrequency: 'weekly', priority: 0.95 },
     { path: '/faq', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/contact', changeFrequency: 'monthly', priority: 0.5 },
     { path: '/blog', changeFrequency: 'weekly', priority: 0.8 },

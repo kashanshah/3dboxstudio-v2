@@ -1,11 +1,12 @@
+import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { OriginalHome } from '@/components/original-home';
 import { FAQ_ITEMS, faqAnswerPlainText } from '@/content/faq';
 import { site } from '@/lib/site';
 import './lovable-original.css';
 
-const title='Free 3D Box Designer & Packaging Mockup Generator | 3D Box Studio';
-const description='Free online 3D box designer and packaging mockup generator. Explore packaging templates, set custom dimensions, place artwork, open and close the structure in 3D, and export a PNG preview in your browser.';
+const title=translate("metadata.home.free_3d_box_designer_packaging_mockup_generator_3d_box_studio");
+const description=translate("metadata.home.free_online_3d_box_designer_and_packaging_mockup_generator_explore_packagin");
 
 export const metadata: Metadata = {
   title:{absolute:title},

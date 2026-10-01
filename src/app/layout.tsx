@@ -1,3 +1,6 @@
+import { defaultLocale, localeDirection } from '@/lib/i18n/config';
+import { LocaleProvider } from '@/components/i18n/locale-provider';
+import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { site } from '@/lib/site';
 import '@fontsource/manrope/400.css';
@@ -12,11 +15,11 @@ import { AuthProvider } from '@/components/auth/auth-provider';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
-  title: { default: '3D Box Studio — Packaging, brought to life', template: '%s | 3D Box Studio' },
-  description: 'Explore a new way to visualize your packaging. A fresh 3D Box Studio experience, currently in development.',
+  title: { default: translate('metadata.site_title'), template: '%s | 3D Box Studio' },
+  description: translate('metadata.site_description'),
   robots: { index: site.indexable, follow: site.indexable },
   icons: { icon: '/favicon.svg' },
 };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><AuthProvider>{children}</AuthProvider></body></html>;
+  return <html lang={defaultLocale} dir={localeDirection(defaultLocale)}><body><LocaleProvider><AuthProvider>{children}</AuthProvider></LocaleProvider></body></html>;
 }
