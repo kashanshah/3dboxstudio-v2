@@ -116,7 +116,10 @@ function buildReverseTuckMeshes(
     surfaceColor: [number, number, number];
     aspect: number;
   }> = [
-    { name: 'Glue', corners: glueCorners, surfaceColor: color, aspect: glueWidth/h },
+    // Once the back wall reaches its final fold, it covers the glue flap.
+    // Keeping both surfaces coplanar makes the depth buffer alternate between
+    // the unprinted flap and the printed back artwork (a visible grey strip).
+    ...(fold.back < 0.999 ? [{ name: 'Glue', corners: glueCorners, surfaceColor: color, aspect: glueWidth/h }] : []),
     { name: 'Front', corners: frontCorners, surfaceColor: color, aspect: w / h },
     { name: 'Left', corners: leftCorners, surfaceColor: color, aspect: d / h },
     { name: 'Right', corners: rightCorners, surfaceColor: color, aspect: d / h },
