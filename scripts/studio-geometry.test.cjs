@@ -257,11 +257,15 @@ test('base box and split-top nets preserve finished face dimensions',()=>{
   assert.equal(base.find(panel=>panel.id==='left').width,160);
   assert.equal(base.find(panel=>panel.id==='top').height,160);
   assert.equal(splitA.filter(panel=>panel.id.startsWith('top')).length,2);
+  assert.equal(splitA.find(panel=>panel.id==='topLeft').width,160);
+  assert.equal(splitA.find(panel=>panel.id==='topLeft').height,120);
+  assert.equal(splitA.find(panel=>panel.id==='topRight').width,160);
+  assert.equal(splitA.find(panel=>panel.id==='topRight').height,120);
+  assert.equal(splitB.find(panel=>panel.id==='topLeft').width,240);
+  assert.equal(splitB.find(panel=>panel.id==='topLeft').height,80);
+  assert.equal(splitB.find(panel=>panel.id==='topRight').width,240);
+  assert.equal(splitB.find(panel=>panel.id==='topRight').height,80);
   for(const split of [splitA,splitB]){
-    assert.equal(split.find(panel=>panel.id==='topLeft').width,240);
-    assert.equal(split.find(panel=>panel.id==='topLeft').height,80);
-    assert.equal(split.find(panel=>panel.id==='topRight').width,240);
-    assert.equal(split.find(panel=>panel.id==='topRight').height,80);
     assert.equal(split.filter(panel=>panel.id.startsWith('bottom')).length,2);
     assert.equal(split.find(panel=>panel.id==='bottomFront').width,240);
     assert.equal(split.find(panel=>panel.id==='bottomBack').width,240);
@@ -326,9 +330,9 @@ test('base-box lid variants attach the top face to the matching body panel',()=>
 });
 
 
-test('split-top net matches the production major/minor panel sequence',()=>{
+test('split-top front/back axis matches the production major/minor panel sequence',()=>{
   const d={width:475,height:225,depth:255,thickness:.5};
-  const panels=splitTopBoxPanels(d,'side_a');
+  const panels=splitTopBoxPanels(d,'side_b');
   const glue=panels.find(panel=>panel.id==='glue');
   const front=panels.find(panel=>panel.id==='front');
   const right=panels.find(panel=>panel.id==='right');
@@ -354,17 +358,32 @@ test('split-top net matches the production major/minor panel sequence',()=>{
   assert.equal(bottomBack.y,back.y+back.height);
 });
 
-test('split-top 3D halves meet along the depth centre and hinge from front/back edges',()=>{
+test('split-top 3D closes around the selected physical hinge axis',()=>{
   const d={width:475,height:225,depth:255,thickness:.5};
-  const closed=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center'});
-  const a=closed.find(mesh=>mesh.panel==='Top Left').pickCorners;
-  const b=closed.find(mesh=>mesh.panel==='Top Right').pickCorners;
-  near(Math.abs(a[0][0]-a[1][0]),d.width);
-  near(Math.abs(b[0][0]-b[1][0]),d.width);
-  assert.ok(a.some(point=>Math.abs(point[2]-d.depth/2)<1e-6));
-  assert.ok(b.some(point=>Math.abs(point[2]+d.depth/2)<1e-6));
-  assert.ok(a.some(point=>Math.abs(point[2])<1e-6));
-  assert.ok(b.some(point=>Math.abs(point[2])<1e-6));
+
+  const sideA=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{
+    templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a',
+  });
+  const left=sideA.find(mesh=>mesh.panel==='Top Left').pickCorners;
+  const right=sideA.find(mesh=>mesh.panel==='Top Right').pickCorners;
+  near(Math.abs(left[0][2]-left[1][2]),d.depth);
+  near(Math.abs(right[0][2]-right[1][2]),d.depth);
+  assert.ok(left.some(point=>Math.abs(point[0]+d.width/2)<1e-6));
+  assert.ok(right.some(point=>Math.abs(point[0]-d.width/2)<1e-6));
+  assert.ok(left.some(point=>Math.abs(point[0])<1e-6));
+  assert.ok(right.some(point=>Math.abs(point[0])<1e-6));
+
+  const sideB=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{
+    templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_b',
+  });
+  const front=sideB.find(mesh=>mesh.panel==='Top Left').pickCorners;
+  const back=sideB.find(mesh=>mesh.panel==='Top Right').pickCorners;
+  near(Math.abs(front[0][0]-front[1][0]),d.width);
+  near(Math.abs(back[0][0]-back[1][0]),d.width);
+  assert.ok(front.some(point=>Math.abs(point[2]-d.depth/2)<1e-6));
+  assert.ok(back.some(point=>Math.abs(point[2]+d.depth/2)<1e-6));
+  assert.ok(front.some(point=>Math.abs(point[2])<1e-6));
+  assert.ok(back.some(point=>Math.abs(point[2])<1e-6));
 });
 
 
@@ -512,23 +531,24 @@ test('base-box formation uses rigid crease rotations at every percentage',()=>{
   }
 });
 
-test('closure flaps remain rigid and hinged throughout opening percentages',()=>{
+test('closure flaps remain rigid and hinged throughout opening percentages on both split axes',()=>{
   const d={width:400,height:300,depth:300,thickness:.5};
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
-  for(const opening of [0,10,25,50,75,90,100]){
+  for(const splitTopHingeSide of ['side_a','side_b'])for(const opening of [0,10,25,50,75,90,100]){
     const meshes=buildMeshes(d,opening,[1,1,1],[.8,.8,.8],{
-      templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',
+      templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide,
     });
     const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
-    const front=by('Front'),back=by('Back'),topFront=by('Top Left'),topBack=by('Top Right');
-    near(distance(topFront[0],topFront[1]),d.width);
-    near(distance(topFront[0],topFront[3]),d.depth/2);
-    near(distance(topBack[0],topBack[1]),d.width);
-    near(distance(topBack[0],topBack[3]),d.depth/2);
-    topFront[0].forEach((v,i)=>near(v,front[3][i]));
-    topFront[1].forEach((v,i)=>near(v,front[2][i]));
-    topBack[0].forEach((v,i)=>near(v,back[3][i]));
-    topBack[1].forEach((v,i)=>near(v,back[2][i]));
+    const topLeft=by('Top Left'),topRight=by('Top Right');
+    const parents=splitTopHingeSide==='side_a'?[by('Left'),by('Right')]:[by('Front'),by('Back')];
+    const hingeSpan=splitTopHingeSide==='side_a'?d.depth:d.width;
+    const flapReach=splitTopHingeSide==='side_a'?d.width/2:d.depth/2;
+    for(const [flap,parent] of [[topLeft,parents[0]],[topRight,parents[1]]]){
+      near(distance(flap[0],flap[1]),hingeSpan);
+      near(distance(flap[0],flap[3]),flapReach);
+      flap[0].forEach((v,i)=>near(v,parent[3][i]));
+      flap[1].forEach((v,i)=>near(v,parent[2][i]));
+    }
   }
 });
 
