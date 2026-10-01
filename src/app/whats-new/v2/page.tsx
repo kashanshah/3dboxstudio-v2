@@ -59,7 +59,7 @@ export default function V2WhatsNewPage(){
       <div className={styles.heroMedia}>
         <div className={styles.mediaBar}><span/><span/><span/><b>Flat → assembled</b></div>
         <video autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/studio-preview-3d.png" aria-label="3DBoxStudio V2 box flatten and assemble animation">
-          <source src="/images/v2-launch/flatten-assemble-2.mp4" type="video/mp4"/>
+          <source src="/animations/flatten-assemble-2.mp4" type="video/mp4"/>
         </video>
       </div>
     </section>
