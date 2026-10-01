@@ -15,7 +15,7 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
   module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,file);
 };
 const {buildMeshes}=require('../src/components/studio/carton-engine.tsx');
-const {reverseTuckPanels,reverseTuckBounds,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
+const {reverseTuckPanels,reverseTuckBounds,reverseTuckFoldState,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
 const {dielineRasterSize,panelRasterSize,sheetTransformToPhysical}=require('../src/lib/packaging/full-dieline-artwork.ts');
 const fixtures=[
   {width:47.5*25.4,height:22.5*25.4,depth:25.5*25.4,thickness:.5},
@@ -33,6 +33,10 @@ test('entered physical dimensions survive in both the net and all folded meshes'
       for(const panel of panels){
         const name=panel.label[0]+panel.label.slice(1).toLowerCase();
         const mesh=meshes.find(item=>item.panel===name);
+        if(name==='Glue' && closure>=68){
+          assert.equal(mesh,undefined,'covered glue flap must not compete with the back artwork');
+          continue;
+        }
         assert.ok(mesh,`${name} is missing from 3D`);
         near(mesh.faceAspect,panel.width/panel.height);
         const c=mesh.pickCorners;
@@ -692,7 +696,14 @@ test('reverse tuck glue strip follows its own physical hinge in the correct dire
   for(const progress of Array.from({length:101},(_,index)=>index)){
     const meshes=buildMeshes(d,progress,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:progress});
     const left=meshes.find(mesh=>mesh.panel==='Left').pickCorners;
-    const glue=meshes.find(mesh=>mesh.panel==='Glue').pickCorners;
+    const glueMesh=meshes.find(mesh=>mesh.panel==='Glue');
+    if(reverseTuckFoldState(progress).back>=.999){
+      assert.equal(glueMesh,undefined,'glue is hidden when covered by the back panel');
+      assert.equal(meshes.find(mesh=>mesh.panel==='Interior Glue'),undefined);
+      assert.ok(meshes.find(mesh=>mesh.panel==='Back'),'printed back remains visible');
+      continue;
+    }
+    const glue=glueMesh.pickCorners;
 
     // The scored Left/Glue crease must remain connected for the whole fold.
     glue[1].forEach((value,i)=>near(value,left[0][i]));
@@ -708,8 +719,6 @@ test('reverse tuck glue strip follows its own physical hinge in the correct dire
   assert.ok(flatGlue[0][0]<flatGlue[1][0],'flat glue flap must extend outward from the left panel');
 
   const closed=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:100});
-  const closedGlue=closed.find(mesh=>mesh.panel==='Glue').pickCorners;
-  const closedBack=closed.find(mesh=>mesh.panel==='Back').pickCorners;
-  assert.ok(closedGlue[0][0]>closedGlue[1][0],'closed glue flap must fold inward toward the back panel');
-  for(const point of closedGlue)near(point[2],closedBack[0][2]);
+  assert.equal(closed.find(mesh=>mesh.panel==='Glue'),undefined);
+  assert.equal(closed.find(mesh=>mesh.panel==='Interior Glue'),undefined);
 });
