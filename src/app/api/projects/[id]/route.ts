@@ -4,6 +4,7 @@ import { ensureV2Schema,getSql } from '@/server/db';
 import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
 import { moveDesignToWorkspaceProject } from '@/server/workspace-projects';
+import { captureServerEvent } from '@/lib/posthog-server';
 
 export async function PUT(req:Request,{params}:{params:Promise<{id:string}>}){
   return saveProject(req,(await params).id);
@@ -37,5 +38,6 @@ export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>})
   const {id}=await params;
   const rows=await getSql()`DELETE FROM projects WHERE id=${id} AND user_id=${user.id} RETURNING id` as {id:string}[];
   if(!rows.length)return NextResponse.json({error:'Design not found.'},{status:404});
+  await captureServerEvent(user.id,'design_deleted',{design_id:id});
   return NextResponse.json({deleted:true});
 }

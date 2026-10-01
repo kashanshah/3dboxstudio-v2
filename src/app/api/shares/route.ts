@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
 import { upsertDesignShare } from '@/server/design-shares';
+import { captureServerEvent,captureServerException } from '@/lib/posthog-server';
+import { emitPostHogLog } from '@/lib/posthog-logs';
 
 export async function POST(req:Request){
   const denied=guardAuthAction(req,'design-share',30,5*60_000);if(denied)return denied;
@@ -17,8 +19,11 @@ export async function POST(req:Request){
     if(!project)return NextResponse.json({error:'Design not found.'},{status:404});
     const share=await upsertDesignShare(user.id,{projectId:project.id,name:project.name,state:project.studio_state});
     const path=`/studio/${encodeURIComponent(share.id)}`;
+    await captureServerEvent(user.id,'design_shared',{design_id:project.id,share_id:share.id});
+    emitPostHogLog('Design share completed',{event:'design.share',posthogDistinctId:user.id,design_id:project.id,share_id:share.id,status:'success'});
     return NextResponse.json({share:{id:share.id,path,updatedAt:share.updated_at}});
   }catch(error){
+    await captureServerException(error,user.id);
     return NextResponse.json({error:error instanceof Error?error.message:'Could not create share link.'},{status:400});
   }
 }

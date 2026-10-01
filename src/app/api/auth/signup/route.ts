@@ -5,6 +5,7 @@ import { cleanName,isValidEmail,passwordError } from '@/server/auth/validation';
 import { createEmailUser,getUserByEmail,toPublicUser } from '@/server/auth/users';
 import { issueEmailAction } from '@/server/auth/email-actions';
 import { createSession,setSessionCookie } from '@/server/auth/session';
+import { captureServerUserEvent } from '@/lib/posthog-server';
 
 export const runtime='nodejs';
 
@@ -22,5 +23,6 @@ export async function POST(req:Request){
   const token=await createSession(user.id);
   await setSessionCookie(token);
   const verificationSent=await issueEmailAction(user,'verify').catch(()=>false);
+  await captureServerUserEvent(user.id,'user_signed_up',{method:'password',verification_sent:verificationSent},{email:user.email,name:user.name,signup_method:user.signup_method});
   return NextResponse.json({user:toPublicUser(user),verificationSent},{status:201});
 }

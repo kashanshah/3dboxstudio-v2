@@ -5,6 +5,8 @@ import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
 import { validProjectState } from '@/lib/studio-project';
 import { resolveWorkspaceProjectId } from '@/server/workspace-projects';
+import { captureServerEvent } from '@/lib/posthog-server';
+import { emitPostHogLog } from '@/lib/posthog-logs';
 export async function saveProject(req:Request,id?:string){
  const denied=guardAuthAction(req,'save-project',60);if(denied)return denied;
  await ensureV2Schema();const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to save your design.'},{status:401});
@@ -22,5 +24,9 @@ export async function saveProject(req:Request,id?:string){
  }
  else {id=randomUUID();rows=await sql`INSERT INTO projects(id,user_id,name,studio_state,preview_image_key,workspace_project_id) VALUES(${id},${user.id},${body.name.trim()},${JSON.stringify(body.state)}::jsonb,${body.preview},${workspaceProjectId}) RETURNING id,updated_at,revision,workspace_project_id`;}
  if(!(rows as unknown[]).length)return NextResponse.json({error:'The design was changed elsewhere or is no longer available. Reload before saving.'},{status:409});
- return NextResponse.json({project:(rows as {id:string;updated_at:string;revision:number;workspace_project_id:string}[])[0]});
+ const project=(rows as {id:string;updated_at:string;revision:number;workspace_project_id:string}[])[0];
+ const saveType=project.revision===1?'created':'updated';
+ await captureServerEvent(user.id,'design_saved',{design_id:project.id,save_type:saveType,revision:project.revision,template_id:body.state.templateId});
+ emitPostHogLog('Design persistence completed',{event:'design.persistence',posthogDistinctId:user.id,design_id:project.id,save_type:saveType,revision:project.revision,template_id:body.state.templateId,status:'success'});
+ return NextResponse.json({project});
 }

@@ -14,7 +14,6 @@ import './content-pages.css';
 import './contact-form.css';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
-import { PostHogAnalytics } from '@/components/analytics/PostHogAnalytics';
 import { AnalyticsPageView } from '@/components/analytics/AnalyticsPageView';
 import { AnalyticsRouteGuard } from '@/components/analytics/AnalyticsRouteGuard';
 
@@ -32,7 +31,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <AnalyticsRouteGuard />
         <GoogleAnalytics />
-        <PostHogAnalytics />
         <Suspense fallback={null}>
           <AnalyticsPageView />
         </Suspense>

@@ -5,6 +5,7 @@ import { getUserByEmail,toPublicUser } from '@/server/auth/users';
 import { verifyPassword } from '@/server/auth/password';
 import { createSession,setSessionCookie } from '@/server/auth/session';
 import { isValidEmail } from '@/server/auth/validation';
+import { captureServerUserEvent } from '@/lib/posthog-server';
 
 export const runtime='nodejs';
 
@@ -26,5 +27,6 @@ export async function POST(req:Request){
   }
   const token=await createSession(user.id);
   await setSessionCookie(token);
+  await captureServerUserEvent(user.id,'user_logged_in',{method:'password'},{email:user.email,name:user.name,signup_method:user.signup_method});
   return NextResponse.json({user:toPublicUser(user)});
 }
