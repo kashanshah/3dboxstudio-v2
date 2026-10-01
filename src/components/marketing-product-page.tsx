@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import "./marketing-product-page.css";
@@ -16,6 +17,7 @@ export function MarketingProductPage({
   sections,
   faqs,
   note,
+  heroAside,
 }: {
   eyebrow: string;
   title: string;
@@ -26,18 +28,22 @@ export function MarketingProductPage({
   sections: MarketingPageSection[];
   faqs: MarketingPageFaq[];
   note?: string;
+  heroAside?: ReactNode;
 }) {
   return <>
     <SiteHeader />
     <main id="main" className="marketing-product-page">
-      <section className="mpp-hero">
-        <span className="mpp-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-        <p>{intro}</p>
-        <div className="mpp-actions">
-          <Link className="mpp-primary" href="/studio">{primaryCta}<ArrowRight /></Link>
-          {secondaryHref && secondaryLabel ? <Link className="mpp-secondary" href={secondaryHref}>{secondaryLabel}</Link> : null}
+      <section className={`mpp-hero${heroAside ? " has-aside" : ""}`}>
+        <div className="mpp-hero-copy">
+          <span className="mpp-eyebrow">{eyebrow}</span>
+          <h1>{title}</h1>
+          <p>{intro}</p>
+          <div className="mpp-actions">
+            <Link className="mpp-primary" href="/studio">{primaryCta}<ArrowRight /></Link>
+            {secondaryHref && secondaryLabel ? <Link className="mpp-secondary" href={secondaryHref}>{secondaryLabel}</Link> : null}
+          </div>
         </div>
+        {heroAside ? <div className="mpp-hero-aside">{heroAside}</div> : null}
       </section>
 
       <section className="mpp-studio-proof">
@@ -59,9 +65,17 @@ export function MarketingProductPage({
       {note ? <section className="mpp-note"><Info/><div><b>Important limitation</b><p>{note}</p></div></section> : null}
 
       <section className="mpp-faq">
-        <span className="mpp-eyebrow">Frequently asked questions</span>
-        <h2>Direct answers before you start.</h2>
-        <div>{faqs.map(item=><article key={item.question}><h3>{item.question}</h3><p>{item.answer}</p></article>)}</div>
+        <div className="mpp-faq-intro">
+          <span className="mpp-eyebrow">Frequently asked questions</span>
+          <h2>Direct answers before you start.</h2>
+          <p>Useful details about this workflow, its current capabilities, and where production validation still matters.</p>
+        </div>
+        <div className="mpp-faq-list">
+          {faqs.map((item,index)=><details key={item.question} open={index===0}>
+            <summary><span>{String(index+1).padStart(2,"0")}</span><strong>{item.question}</strong><i aria-hidden="true">+</i></summary>
+            <p>{item.answer}</p>
+          </details>)}
+        </div>
       </section>
 
       <section className="mpp-bottom">
