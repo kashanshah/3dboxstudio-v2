@@ -74,6 +74,14 @@ const faqs = [
   {
     "question": "Can I save designs?",
     "answer": "Yes. Account-based projects can be saved and reopened, and preview links can be shared for review."
+  },
+  {
+    "question": "Can I prepare a flat-layout PDF?",
+    "answer": "Yes. The 2D Design workspace can prepare the current supported template layout for PDF output. Treat that output as part of the design/review workflow and validate production requirements before manufacturing."
+  },
+  {
+    "question": "Does 3D Box Studio work entirely in the browser?",
+    "answer": "Yes. The V2 workflow runs in a modern browser; no desktop application is required."
   }
 ];
 
