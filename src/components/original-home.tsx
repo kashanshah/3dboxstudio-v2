@@ -145,9 +145,11 @@ export function OriginalHome() {
         <Button variant="outline" asChild><Link href="/features">Explore all Studio features <ArrowRight/></Link></Button>
       </div>
       <div className="studio-live-frame">
-        <div className="studio-frame-bar"><span/><span/><span/><b>Live Studio preview</b><Link href="/studio">Open full Studio <ArrowRight/></Link></div>
-        <iframe src="/studio" title="Live preview of the actual 3D Box Studio interface" loading="lazy" />
-        <p className="studio-frame-caption">This is the real Studio interface embedded from the product—not an illustrated dashboard.</p>
+        <div className="studio-frame-bar"><span/><span/><span/><b>Actual V2 workflow</b><Link href="/whats-new/v2">What’s new in V2 <ArrowRight/></Link></div>
+        <video className="studio-proof-video" autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/studio-preview-3d.png" aria-label="3DBoxStudio V2 box flatten and assemble animation">
+          <source src="/images/v2-launch/flatten-assemble-2.mp4" type="video/mp4"/>
+        </video>
+        <p className="studio-frame-caption">Current V2 Studio footage showing the same package moving between flat and assembled views.</p>
       </div>
     </section>
 
