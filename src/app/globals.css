@@ -4299,6 +4299,40 @@ body{font-size:var(--type-body)}
   flex:0 0 auto;
   margin-left:auto;
 }
+.pro-workflow-view-switch{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  flex:0 0 auto;
+  margin-left:auto;
+  padding:4px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:rgba(255,255,255,.9);
+  box-shadow:0 2px 10px rgba(16,23,32,.05);
+}
+.pro-workflow-view-switch button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:36px;
+  padding:0 13px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.pro-workflow-view-switch button.is-active{
+  background:var(--brand);
+  color:#fff;
+  box-shadow:0 1px 4px rgba(16,23,32,.12);
+}
 .pro-workflow-camera>button{
   min-height:44px;
   padding:0 14px;
@@ -4336,6 +4370,8 @@ body{font-size:var(--type-body)}
   .pro-workflow-camera>button small{
     display:none;
   }
+  .pro-workflow-view-switch button{padding:0 10px;}
+  .pro-workflow-view-switch button svg{display:none;}
   .pro-workflow-camera>button{
     width:44px;
     padding:0;

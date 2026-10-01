@@ -1569,7 +1569,11 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </button>;
         })}
       </nav>
-      {mode === '3d' && <div className="pro-camera-menu pro-workflow-camera" ref={cameraMenuRef}>
+      {workflowStep==='design' && <div className="pro-workflow-view-switch" role="group" aria-label="Design view">
+        <button type="button" className={mode==='dieline'?'is-active':''} aria-pressed={mode==='dieline'} onClick={()=>{setMode('dieline');setFaceAction(null);setPanEnabled(false);}}>Design canvas</button>
+        <button type="button" className={mode==='3d'?'is-active':''} aria-pressed={mode==='3d'} onClick={()=>{setMode('3d');setFaceAction(null);setPanEnabled(false);}}><Boxes size={16}/> Preview in 3D</button>
+      </div>}
+      {workflowStep!=='design' && mode === '3d' && <div className="pro-camera-menu pro-workflow-camera" ref={cameraMenuRef}>
         <button
           type="button"
           aria-haspopup="menu"
@@ -1611,7 +1615,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         {workflowStep==='design' && <>
           <button type="button" className={artworkScope==='outside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>Outside</span></button>
           <button type="button" className={artworkScope==='inside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>Inside</span></button>
-          <button type="button" className={designToolsOpen?'is-active':''} onClick={()=>{setTool('artwork');setDesignToolsOpen(true);}}><Upload size={22}/><span>Images</span></button>
         </>}
         {workflowStep==='preview' && <>
           <button type="button" className={tool==='opening'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('opening')}><PackageOpen size={22}/><span>Open / Close</span></button>
@@ -2601,6 +2604,36 @@ function DielinePrototype({
   },[pdfExportRequest,dimensions,layers,selectedTemplateId,openingMode,splitTopHingeSide]);
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
+  const selectedPanelKey=artworkScope==='inside'? `Interior ${selectedPanel}`:selectedPanel;
+  const selectedPanelArtwork=!selectedLayer ? artworkByPanel[selectedPanelKey] : null;
+  const selectedPanelGeometry=!selectedLayer ? cartonPanels.find(item=>item.label.toLowerCase()===selectedPanel.toLowerCase()) ?? null : null;
+  const selectedPanelAsset=selectedPanelArtwork ? mediaAssets.find(asset=>asset.id===selectedPanelArtwork.assetId) : null;
+  const selectedPanelLayer=useMemo<FullDielineArtworkLayer|null>(()=>{
+    if(!selectedPanelArtwork || !selectedPanelGeometry)return null;
+    const imageAspect=selectedPanelAsset?.width && selectedPanelAsset.height ? selectedPanelAsset.width/selectedPanelAsset.height : 1;
+    const faceAspect=selectedPanelGeometry.width/selectedPanelGeometry.height;
+    let width=100,height=100;
+    if(selectedPanelArtwork.mode==='fill'){
+      if(imageAspect>faceAspect)width=100*imageAspect/faceAspect;
+      else height=100*faceAspect/imageAspect;
+    }else{
+      if(imageAspect>faceAspect)height=100*faceAspect/imageAspect;
+      else width=100*imageAspect/faceAspect;
+    }
+    width*=selectedPanelArtwork.scale/100;
+    height*=selectedPanelArtwork.scale/100;
+    const transform=selectedPanelArtwork.transform ?? {
+      x:50+(100-width)/2*selectedPanelArtwork.alignX,
+      y:50+(100-height)/2*selectedPanelArtwork.alignY,
+      width,
+      height,
+      rotation:selectedPanelArtwork.rotation,
+    };
+    return {id:`panel:${selectedPanelKey}`,name:selectedPanelArtwork.name,url:selectedPanelArtwork.url,aspectRatio:imageAspect,transform};
+  },[selectedPanelArtwork,selectedPanelGeometry,selectedPanelAsset,selectedPanelKey]);
+  const activeTransformLayer=selectedLayer ?? selectedPanelLayer;
+  const activeTransformWidth=selectedLayer ? bounds.width : (selectedPanelGeometry?.width ?? bounds.width);
+  const activeTransformHeight=selectedLayer ? bounds.height : (selectedPanelGeometry?.height ?? bounds.height);
   const draggingLayerId = useRef<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [boardFileDragActive,setBoardFileDragActive]=useState(false);
@@ -2809,11 +2842,6 @@ function DielinePrototype({
   }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
-    <div className="pro-2d-design-toolbar">
-      <span>Design canvas</span>
-      <button type="button" className="pro-apply-artwork-button" onClick={onApplyChanges}><Boxes size={17}/> Preview in 3D</button>
-    </div>
-
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
     <div
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
@@ -2937,13 +2965,13 @@ function DielinePrototype({
 
       <div className="pro-2d-right-preview pro-design-context-stack">
         {livePreview}
-        <aside className={`pro-design-transform-panel${selectedLayer?' has-selection':''}`} aria-label="Artwork properties">
-          {selectedLayer ? <>
+        <aside className={`pro-design-transform-panel${activeTransformLayer?' has-selection':''}`} aria-label="Artwork properties">
+          {activeTransformLayer ? <>
             <div className="pro-design-transform-panel-head">
               <div><span>Transform</span><strong>Exact placement</strong></div>
               <button type="button" className="pro-secondary-button" onClick={() => onUpdateLayer(
-                selectedLayer.id,
-                createFullDielineTransform(selectedLayer.aspectRatio, bounds.width / bounds.height),
+                activeTransformLayer.id,
+                createFullDielineTransform(activeTransformLayer.aspectRatio, activeTransformWidth / activeTransformHeight),
               )}><Maximize2 size={15}/> Reset</button>
             </div>
 
@@ -2953,11 +2981,11 @@ function DielinePrototype({
                 <span>Free movement</span>
               </div>
               <div className="pro-precision-transform-grid">
-                <label><span>X</span><input key={`x-${selectedLayer.id}-${Math.round(selectedLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,x:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>Y</span><input key={`y-${selectedLayer.id}-${Math.round(selectedLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.height*selectedLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,y:fromDisplayUnit(value)/bounds.height*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>W</span><input key={`w-${selectedLayer.id}-${Math.round(selectedLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.width*selectedLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,width:fromDisplayUnit(value)/bounds.width*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>H</span><input key={`h-${selectedLayer.id}-${Math.round(selectedLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(bounds.height*selectedLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,height:fromDisplayUnit(value)/bounds.height*100});}}/><small>{measurementUnit}</small></label>
-                <label className="is-rotation"><span><RotateCw size={13}/> Rotation</span><input key={`r-${selectedLayer.id}-${Math.round(selectedLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(selectedLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(selectedLayer.id,{...selectedLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
+                <label><span>X</span><input key={`x-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,x:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>Y</span><input key={`y-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,y:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>W</span><input key={`w-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,width:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>H</span><input key={`h-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,height:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
+                <label className="is-rotation"><span><RotateCw size={13}/> Rotation</span><input key={`r-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(activeTransformLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
               </div>
               <p>Drag freely. Hold <kbd>Shift</kbd> while rotating for 15° steps.</p>
             </section>
