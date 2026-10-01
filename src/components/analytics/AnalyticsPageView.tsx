@@ -8,6 +8,7 @@ import { ANALYTICS_ENABLED, isAnalyticsBlockedPath } from "@/lib/analytics/polic
 export function AnalyticsPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const previousLocation = useRef<string | null>(null);
   const lastKey = useRef<string | null>(null);
 
   useEffect(() => {
@@ -25,7 +26,10 @@ export function AnalyticsPageView() {
     trackEvent("page_view", {
       page_path: pagePath,
       page_location: window.location.href,
+      page_title: document.title,
+      page_referrer: previousLocation.current ?? document.referrer,
     });
+    previousLocation.current = window.location.href;
   }, [pathname, searchParams]);
 
   return null;
