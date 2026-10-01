@@ -26,7 +26,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [{ source: '/:path*', headers: [
-      ...(process.env.SITE_INDEXABLE !== 'true' ? [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] : []),
+      ...((process.env.SITE_INDEXABLE === 'false' || (process.env.SITE_INDEXABLE == null && process.env.VERCEL_ENV !== 'production')) ? [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] : []),
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
     ] }];
