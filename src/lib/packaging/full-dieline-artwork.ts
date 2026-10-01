@@ -88,8 +88,8 @@ export function panelRasterSize(
 export async function rasterizeFullDielineLayers(
   layers: FullDielineArtworkLayer[],
   dimensions: CartonDimensions,
-  panelPrefix = '',
   templateId: string,
+  panelPrefix = '',
   geometryOptions?: TemplateGeometryOptions,
 ): Promise<ArtworkByPanel> {
   if (!layers.length) return {};
