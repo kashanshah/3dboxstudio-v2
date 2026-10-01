@@ -11,7 +11,11 @@ export function AnalyticsPageView() {
   const lastKey = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!ANALYTICS_ENABLED || !pathname || isAnalyticsBlockedPath(pathname)) return;
+    if (!ANALYTICS_ENABLED || !pathname) return;
+    if (isAnalyticsBlockedPath(pathname)) {
+      lastKey.current = null;
+      return;
+    }
 
     const query = searchParams.toString();
     const pagePath = query ? `${pathname}?${query}` : pathname;

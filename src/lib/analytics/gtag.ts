@@ -1,4 +1,4 @@
-import { ANALYTICS_DEBUG, GA_MEASUREMENT_ID } from "./policy";
+import { ANALYTICS_DEBUG, GA_ENABLED, GA_MEASUREMENT_ID, isAnalyticsBlockedPath } from "./policy";
 
 type GtagWindow = Window & {
   dataLayer?: IArguments[];
@@ -13,7 +13,7 @@ function getWindow(): GtagWindow | undefined {
 
 export function ensureGtagInitialized(): boolean {
   const w = getWindow();
-  if (!w || !GA_MEASUREMENT_ID) return false;
+  if (!w || !GA_ENABLED || isAnalyticsBlockedPath(w.location.pathname)) return false;
 
   w.dataLayer = w.dataLayer ?? [];
   if (!w.gtag) {
@@ -35,7 +35,6 @@ export function ensureGtagInitialized(): boolean {
 
 export function sendGaEvent(eventName: string, properties: Record<string, unknown> = {}): void {
   const w = getWindow();
-  if (!w || !GA_MEASUREMENT_ID) return;
-  ensureGtagInitialized();
+  if (!w || !ensureGtagInitialized()) return;
   w.gtag?.("event", eventName, properties);
 }

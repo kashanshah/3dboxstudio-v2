@@ -16,6 +16,7 @@ import { AuthProvider } from '@/components/auth/auth-provider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { PostHogAnalytics } from '@/components/analytics/PostHogAnalytics';
 import { AnalyticsPageView } from '@/components/analytics/AnalyticsPageView';
+import { AnalyticsRouteGuard } from '@/components/analytics/AnalyticsRouteGuard';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang={defaultLocale} dir={localeDirection(defaultLocale)}>
       <body>
+        <AnalyticsRouteGuard />
         <GoogleAnalytics />
         <PostHogAnalytics />
         <Suspense fallback={null}>
