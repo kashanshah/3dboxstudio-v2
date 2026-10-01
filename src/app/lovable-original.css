@@ -317,7 +317,7 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .studio-frame-bar>b{margin-left:8px;color:#344054}
 .studio-frame-bar a{margin-left:auto;display:flex;align-items:center;gap:5px;color:#0f67e8;text-decoration:none;font-weight:650}
 .studio-frame-bar svg{width:15px}
-.studio-live-frame iframe{width:100%;height:560px;border:0;background:#f3f6fa;display:block}
+.studio-live-frame iframe,.studio-proof-video{width:100%;height:560px;border:0;background:#f3f6fa;display:block}.studio-proof-video{object-fit:cover}
 .studio-frame-caption{margin:0;padding:12px 16px 15px;color:#7a8696;font-size:12px;line-height:1.5;border-top:1px solid #edf1f5}
 .feature-story{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;border-top:1px solid #edf1f5}
 .feature-story.reverse .feature-story-copy{order:2}
@@ -380,14 +380,14 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 @media (max-width:1050px){
   .studio-proof-section,.feature-story,.save-share-section,.dieline-section,.answer-section{grid-template-columns:1fr;gap:42px}
   .feature-story.reverse .feature-story-copy{order:0}
-  .studio-live-frame iframe{height:500px}
+  .studio-live-frame iframe,.studio-proof-video{height:500px}
   .capability-grid,.use-case-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .save-share-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (max-width:700px){
   .capability-band,.studio-proof-section,.feature-story,.save-share-section,.dieline-section,.use-cases-section,.answer-section{padding:68px 20px}
   .capability-grid,.use-case-grid,.save-share-grid,.answer-grid{grid-template-columns:1fr}
-  .studio-live-frame iframe{height:430px}
+  .studio-live-frame iframe,.studio-proof-video{height:430px}
   .studio-frame-bar b{display:none}.studio-frame-bar a{font-size:0}.studio-frame-bar a svg{width:18px}
   .feature-story-copy h2,.studio-proof-copy h2,.save-share-section h2,.dieline-copy h2,.answer-section h2,.use-cases-section h2{font-size:38px}
   .dieline-visual{grid-template-columns:1fr;min-height:0}
