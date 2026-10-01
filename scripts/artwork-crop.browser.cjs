@@ -105,7 +105,9 @@ const runtime = `const modules={${Object.entries(modules).map(([id, code]) => `$
         document.body.style.cssText='margin:0;background:white';
         document.body.innerHTML=`<div id="board" style="position:relative;overflow:hidden;width:${bounds.width*scale}px;height:${bounds.height*scale}px"><div style="position:absolute;left:${t.x}%;top:${t.y}%;width:${t.width}%;height:${t.height}%;transform:translate(-50%,-50%) rotate(${t.rotation}deg);transform-origin:center">${html}</div></div>`;
       }, {html:imageHtml,bounds:data.bounds,scale,t:transform});
-      await page.locator('img').evaluate(img=>img.decode());
+      // This parity fixture renders static markup without hydration. Reveal the
+      // decoded bitmap explicitly; loading lifecycle is tested separately.
+      await page.locator('img').evaluate(async img=>{await img.decode();img.style.visibility='visible';document.querySelectorAll('.board-artwork-status').forEach(status=>status.remove());});
       const screenshot=await page.locator('#board').screenshot();
       const result=await page.evaluate(async ({screenshot,data,scale})=>{
         const decode=async url=>{const img=new Image();img.src=url;await img.decode();const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;const ctx=c.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0);return {pixels:ctx.getImageData(0,0,c.width,c.height).data,w:c.width,h:c.height};};
