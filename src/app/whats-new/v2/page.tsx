@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Box, CheckCircle2, Layers3, LayoutGrid, Share2, Sparkles } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import { site } from '@/lib/site';
 import styles from './page.module.css';
+import { ZoomGallery, ZoomImage } from './zoom-image';
 
 const title='What’s New in 3DBoxStudio V2';
 const description='Explore the new 3DBoxStudio V2 workflow: box setup, dieline artwork, live 3D review, Projects with multiple Box Designs, sharing, exports, and what is coming next.';
@@ -40,7 +40,7 @@ export default function V2WhatsNewPage(){
     {'@type':'FAQPage',mainEntity:faqs.map(([question,answer])=>({'@type':'Question',name:question,acceptedAnswer:{'@type':'Answer',text:answer}}))}
   ]};
 
-  return <><SiteHeader/><main id="main" className={styles.page}>
+  return <><SiteHeader/><main id="main" className={styles.page}><ZoomGallery>
     <section className={styles.hero}>
       <div className={styles.heroCopy}>
         <span className={styles.kicker}><Sparkles size={15}/> 3DBoxStudio V2</span>
@@ -58,7 +58,7 @@ export default function V2WhatsNewPage(){
       </div>
       <div className={styles.heroMedia}>
         <div className={styles.mediaBar}><span/><span/><span/><b>Flat → assembled</b></div>
-        <video autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/studio-preview-3d.png" aria-label="3DBoxStudio V2 box flatten and assemble animation">
+        <video autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/flatten-assemble-poster.png" aria-label="3DBoxStudio V2 box flatten and assemble animation">
           <source src="/animations/flatten-assemble-2.mp4" type="video/mp4"/>
         </video>
       </div>
@@ -78,7 +78,7 @@ export default function V2WhatsNewPage(){
           <h3>{step.title}</h3>
           <p>{step.body}</p>
         </div>
-        <figure><Image src={step.image} alt={step.alt} width={2048} height={1150} sizes="(max-width: 820px) 1200px, 62vw"/></figure>
+        <figure><ZoomImage src={step.image} alt={step.alt} width={2048} height={1150} sizes="(max-width: 760px) 980px, (max-width: 1100px) 58vw, 920px"/></figure>
       </article>)}
     </section>
 
@@ -89,7 +89,7 @@ export default function V2WhatsNewPage(){
           <h2>Preview more than geometry.</h2>
           <p>Switch between White board, Kraft, Soft touch, Matte coated, Gloss coated, and Foil, then control inside and outside color independently.</p>
         </div>
-        <div className={styles.portraitMedia}><Image src="/images/v2-launch/studio-material-finish.png" alt="Material and Finish panel in 3DBoxStudio V2" width={1016} height={2016} sizes="(max-width: 820px) 90vw, 38vw"/></div>
+        <div className={styles.portraitMedia}><ZoomImage src="/images/v2-launch/studio-material-finish.png" alt="Material and Finish panel in 3DBoxStudio V2" width={1016} height={2016} sizes="(max-width: 820px) 90vw, 38vw"/></div>
       </article>
       <article>
         <div className={styles.detailCopy}>
@@ -97,7 +97,7 @@ export default function V2WhatsNewPage(){
           <h2>Move the review forward.</h2>
           <p>Download the current 3D camera view as a PNG, create a view-only interactive share link, or use the flat-layout print / PDF workflow from the Design workspace.</p>
         </div>
-        <div className={styles.portraitMedia}><Image src="/images/v2-launch/studio-download.png" alt="Download and Share panel in 3DBoxStudio V2" width={1066} height={2022} sizes="(max-width: 820px) 90vw, 38vw"/></div>
+        <div className={styles.portraitMedia}><ZoomImage src="/images/v2-launch/studio-download.png" alt="Download and Share panel in 3DBoxStudio V2" width={1066} height={2022} sizes="(max-width: 820px) 90vw, 38vw"/></div>
       </article>
     </section>
 
@@ -112,7 +112,7 @@ export default function V2WhatsNewPage(){
           <div><span>Box Design A</span><span>Box Design B</span><span>Box Design C</span></div>
         </div>
       </div>
-      <figure className={styles.projectsMedia}><Image src="/images/v2-launch/studio-design-empty.png" alt="Clean 3DBoxStudio V2 dieline design workspace" width={2048} height={1149} sizes="(max-width: 820px) 1200px, 55vw"/></figure>
+      <figure className={styles.projectsMedia}><ZoomImage src="/images/v2-launch/studio-design-empty.png" alt="Clean 3DBoxStudio V2 dieline design workspace" width={2048} height={1149} sizes="(max-width: 760px) 920px, (max-width: 1100px) 100vw, 720px"/></figure>
     </section>
 
     <section className={styles.roadmap}>
@@ -143,7 +143,7 @@ export default function V2WhatsNewPage(){
         <h2>Design flat. Review in 3D. Keep moving.</h2>
         <p>Artwork placement stays connected to the package you are reviewing instead of becoming a separate perspective mockup to rebuild after every change.</p>
       </div>
-      <figure><Image src="/images/v2-launch/studio-design-artwork.png" alt="Populated package dieline with artwork and synchronized live 3D preview" width={2048} height={1144} sizes="(max-width: 820px) 1200px, 90vw"/></figure>
+      <figure><ZoomImage src="/images/v2-launch/studio-design-artwork.png" alt="Populated package dieline with artwork and synchronized live 3D preview" width={2048} height={1144} sizes="(max-width: 760px) 980px, (max-width: 1100px) 100vw, 860px"/></figure>
     </section>
 
     <section id="faq" className={styles.faq}>
@@ -157,5 +157,5 @@ export default function V2WhatsNewPage(){
       <p>Choose a structure, set the size, place the artwork, and inspect the result in 3D.</p>
       <Link className={styles.primaryCta} href="/studio?ref=v2-whats-new&cta=closing">Open 3DBoxStudio <ArrowRight size={18}/></Link>
     </section>
-  </main><SiteFooter/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  </ZoomGallery></main><SiteFooter/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

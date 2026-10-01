@@ -2,6 +2,10 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: {
+    // Source screenshots are 2048px wide. The default 3840 candidate was cached as a truncated PNG and painted as an empty frame.
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+  },
   async redirects() {
     return [
       { source: '/en', destination: '/', permanent: true },
