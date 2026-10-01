@@ -131,7 +131,7 @@ export async function rasterizeFullDielineLayers(
       ctx.restore();
     }
 
-    const panelName = panel.label[0] + panel.label.slice(1).toLowerCase();
+    const panelName = panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
     result[`${panelPrefix}${panelName}`] = {
       ...defaultArtworkPlacement(compositeName, panelCanvas.toDataURL('image/png')),
       panelTexture: true,
