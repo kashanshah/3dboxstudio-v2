@@ -1,17 +1,9 @@
-import {
-  reverseTuckBounds,
-  reverseTuckFoldState,
-  reverseTuckPanels,
-  sanitizeCartonDimensions,
-  type CartonDimensions,
-} from '@/lib/packaging/reverse-tuck';
-import { baseBoxBounds, baseBoxPanels, splitTopBoxBounds, splitTopBoxPanels, type DielinePanel } from '@/lib/packaging/box-structures';
+import { reverseTuckFoldState, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import type { DielinePanel } from '@/lib/packaging/box-structures';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
 import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
-import { buildBaseBoxTemplateMeshes } from '@/lib/packaging/templates/base-box/renderer';
-import { buildSplitTopTemplateMeshes } from '@/lib/packaging/templates/split-top/renderer';
-import { buildReverseTuckTemplateMeshes } from '@/lib/packaging/templates/reverse-tuck/renderer';
+import { BUILT_IN_TEMPLATE_RUNTIMES } from '@/lib/packaging/templates';
 
 export type TemplateGeometryOptions = {
   openingMode?: LegacyOpeningMode;
@@ -39,52 +31,9 @@ export type TemplateRuntime = {
   getFoldState?: typeof reverseTuckFoldState;
 };
 
-const runtimeMap = new Map<string, TemplateRuntime>([
-  ['base-box', {
-    templateId: 'base-box',
-    structureKey: 'base-box-v1',
-    rendererKey: 'base-box-v1',
-    sanitizeParameters: sanitizeCartonDimensions,
-    getDielinePanels: (dimensions,options) => baseBoxPanels(dimensions,options?.openingMode ?? 'closed'),
-    getDielineBounds: (dimensions,options) => baseBoxBounds(dimensions,options?.openingMode ?? 'closed'),
-    buildMeshes: buildBaseBoxTemplateMeshes,
-    assembly: {
-      control:'opening-mechanism',
-      defaultOpeningMode:'closed',
-      hasOpeningStage: openingMode => openingMode !== 'closed',
-    },
-  }],
-  ['split-top-box', {
-    templateId: 'split-top-box',
-    structureKey: 'split-top-box-v1',
-    rendererKey: 'split-top-box-v1',
-    sanitizeParameters: sanitizeCartonDimensions,
-    getDielinePanels: (dimensions,options) => splitTopBoxPanels(dimensions,options?.splitTopHingeSide ?? 'side_a'),
-    getDielineBounds: (dimensions,options) => splitTopBoxBounds(dimensions,options?.splitTopHingeSide ?? 'side_a'),
-    buildMeshes: buildSplitTopTemplateMeshes,
-    assembly: {
-      control:'split-direction',
-      defaultOpeningMode:'top_split_meet_center',
-      hasOpeningStage: () => true,
-    },
-  }],
-  ['reverse-tuck-carton', {
-    templateId: 'reverse-tuck-carton',
-    structureKey: 'reverse-tuck-v1',
-    rendererKey: 'reverse-tuck-v1',
-    sanitizeParameters: sanitizeCartonDimensions,
-    getDielinePanels: dimensions => reverseTuckPanels(dimensions),
-    getDielineBounds: dimensions => reverseTuckBounds(dimensions),
-    buildMeshes: buildReverseTuckTemplateMeshes,
-    assembly: {
-      control:'none',
-      defaultOpeningMode:'closed',
-      legacyOpeningAsFormation:true,
-      hasOpeningStage: () => false,
-    },
-    getFoldState: reverseTuckFoldState,
-  }],
-]);
+const runtimeMap=new Map<string,TemplateRuntime>(
+  BUILT_IN_TEMPLATE_RUNTIMES.map(runtime=>[runtime.templateId,runtime]),
+);
 
 export function getTemplateRuntime(templateId: string) {
   const template = getPackagingTemplate(templateId);
