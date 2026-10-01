@@ -76,6 +76,22 @@ export const HOME_FAQS = [
   {
     question: "Does 3D Box Studio replace structural packaging CAD or printer proofs?",
     answer: "No. It is designed for packaging design, visualization, and review. Final manufacturing files, structural tolerances, material behavior, and press requirements should still be validated in the appropriate production workflow."
+  },
+  {
+    question: "Do I need to install software?",
+    answer: "No. 3D Box Studio runs in a modern browser. A current desktop browser with hardware-accelerated WebGL gives the best editing and 3D experience."
+  },
+  {
+    question: "What materials and finishes can I preview?",
+    answer: "The current Studio includes visual presets such as white board, kraft, soft touch, matte coated, gloss coated, and foil, plus outside and inside color controls."
+  },
+  {
+    question: "Can I use exported mockups commercially?",
+    answer: "Yes. You can use exports from your own designs in client work, presentations, marketing, and e-commerce planning as long as you have the rights to the artwork and other assets you upload."
+  },
+  {
+    question: "Can I use the previews for Amazon or Shopify?",
+    answer: "PNG previews can help with concept work, internal approvals, and listing planning. Before publishing, verify that the final image meets the current requirements of the marketplace you are using."
   }
 ];
 
