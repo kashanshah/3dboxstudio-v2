@@ -366,7 +366,7 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .dieline-sheet i{position:absolute;border:2px dashed #6f8daa}
 .dl-a{left:16%;top:34%;width:26%;height:32%}.dl-b{left:42%;top:34%;width:26%;height:32%}.dl-c{left:68%;top:34%;width:16%;height:32%}.dl-d{left:42%;top:15%;width:26%;height:19%}.dl-e{left:42%;top:66%;width:26%;height:19%}
 .dieline-sheet span{position:absolute;bottom:16px;left:18px;text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:#8291a3}
-.dieline-box{height:300px;border-radius:22px;background:#e8eef5;display:grid;place-items:center}
+.dieline-box{position:relative;height:300px;border-radius:22px;background:#e8eef5;display:grid;place-items:center}
 .use-cases-section .section-intro{max-width:800px;margin:0 auto;text-align:center}
 .use-case-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:48px}
 .use-case-grid article{border-top:1px solid #dfe6ee;padding:22px 10px 6px 0}
