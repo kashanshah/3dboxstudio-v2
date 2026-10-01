@@ -57,7 +57,7 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
                   <td>{design.imageCount.toLocaleString()}</td>
                   <td>{design.legacy ? 'Legacy' : 'V2'}</td>
                   <td>{design.updatedAt ? formatAdminDateTime(design.updatedAt) : '—'}</td>
-                  <td>{design.previewHref ? <a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a> : '—'}</td>
+                  <td><a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a></td>
                 </tr>
               )) : <tr><td colSpan={7}>No designs match this search.</td></tr>}
             </tbody>

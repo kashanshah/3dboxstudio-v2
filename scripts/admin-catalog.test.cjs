@@ -21,7 +21,7 @@ Module._resolveFilename = function (request, ...args) {
 };
 require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, file);
 
-const { listUsers, listDesigns, listUserDesigns, getDesignPreviewSource, listMedia, getUser, getDesign, findListedMedia } = require('../src/server/admin/catalog.ts');
+const { listUsers, listDesigns, listUserDesigns, getDesignPreviewSource, listMedia, getUser, getDesign, findListedMedia, getAdminDesignView } = require('../src/server/admin/catalog.ts');
 const { mediaFileId, storageKeyFromMediaFileId } = require('../src/lib/admin-media.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
 
@@ -88,8 +88,9 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(designs.total, 3);
     assert.equal(designs.items.find((design) => design.id === 'v1:d1').previewHref, '/preview/previewtoken1');
     assert.equal(designs.items.find((design) => design.id === 'v1:d1').thumbnailUrl, '/api/admin/designs/v1%3Ad1/preview');
-    assert.equal(designs.items.find((design) => design.id === 'p1').previewHref, null);
-    assert.equal(designs.items.find((design) => design.id === 'p1').thumbnailUrl, null);
+    assert.equal(designs.items.find((design) => design.id === 'p1').previewHref, '/admin/designs/p1/view');
+    assert.equal(designs.items.find((design) => design.id === 'p1').thumbnailUrl, `/api/admin/media/file?id=${encodeURIComponent(mediaFileId('v2/uploads/users/u1/artwork/m2/box.png'))}`);
+    assert.equal(designs.items.find((design) => design.id === 'v1:d2').previewHref, '/admin/designs/v1%3Ad2/view');
     const mailer = await getDesign('v1:d1');
     assert.equal(mailer.name, 'Mailer');
     assert.equal(mailer.imageCount, 3);
@@ -105,9 +106,16 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(adaDesigns.total, 2);
     assert.equal(adaDesigns.items.find((design) => design.id === 'v1:d1').thumbnailUrl, '/api/admin/designs/v1%3Ad1/preview');
     assert.equal(adaDesigns.items.find((design) => design.id === 'v1:d1').previewHref, '/preview/previewtoken1');
-    assert.equal(adaDesigns.items.find((design) => design.id === 'p1').thumbnailUrl, null);
+    assert.equal(adaDesigns.items.find((design) => design.id === 'p1').thumbnailUrl, `/api/admin/media/file?id=${encodeURIComponent(mediaFileId('v2/uploads/users/u1/artwork/m2/box.png'))}`);
+    assert.equal(adaDesigns.items.find((design) => design.id === 'p1').previewHref, '/admin/designs/p1/view');
     assert.deepEqual(await getDesignPreviewSource('v1:d1'), { storageKey: 'shares/d1/og.png' });
     assert.equal(await getDesignPreviewSource('missing'), null);
+    const legacyView = await getAdminDesignView('v1:d1');
+    assert.equal(legacyView?.legacy, true);
+    assert.equal(legacyView?.name, 'Mailer');
+    assert.match(legacyView?.state.artworkByPanel.Front.url || '', /\/api\/admin\/designs\/v1%3Ad1\/legacy-media\/front$/);
+    assert.equal(await getAdminDesignView('p1'), null);
+    assert.equal(await getAdminDesignView('missing'), null);
 
     assert.equal((await findListedMedia('shares/d1/front.png')).name, 'front.png');
     assert.equal(await findListedMedia('shares/missing.png'), null);

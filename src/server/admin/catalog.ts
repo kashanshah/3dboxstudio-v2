@@ -1,6 +1,9 @@
 import { ensureV2Schema, getSql } from '@/server/db';
-import { adminDesignHref, adminUserHref, isCatalogMediaKey, mediaFileId, type AdminMediaItem } from '@/lib/admin-media';
+import { adminDesignHref, adminDesignViewHref, adminUserHref, isCatalogMediaKey, mediaFileId, type AdminMediaItem } from '@/lib/admin-media';
+import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
+import type { LocalMediaAsset } from '@/lib/packaging/artwork';
 import { decodeRouteParam } from '@/lib/route-params';
+import { validProjectState, type StudioProjectState } from '@/lib/studio-project';
 
 export type AdminUserRow = {
   id: string;
@@ -22,7 +25,7 @@ export type AdminDesignRow = {
   updatedAt: string | null;
   imageCount: number;
   views: number;
-  previewHref: string | null;
+  previewHref: string;
   thumbnailUrl: string | null;
   user: { id: string; name: string; href: string } | null;
 };
@@ -100,10 +103,13 @@ type DesignQueryRow = {
   share_id?: string | null;
   share_preview_token?: string | null;
   has_preview?: boolean;
+  thumb_storage_key?: string | null;
   total?: number;
 };
 
 const PUBLIC_TOKEN = /^[0-9A-Za-z]{10,24}$/;
+const ASSET_ID = /^[A-Za-z0-9-]+$/;
+const FACE_ID = /^[A-Za-z][A-Za-z0-9]*$/;
 
 function publicPreviewHref(row: DesignQueryRow): string | null {
   const token = (row.legacy ? row.preview_token : row.share_preview_token)?.trim();
@@ -111,6 +117,63 @@ function publicPreviewHref(row: DesignQueryRow): string | null {
   const studioId = (row.legacy ? row.public_id : row.share_id)?.trim();
   if (studioId && PUBLIC_TOKEN.test(studioId)) return `/studio/${encodeURIComponent(studioId)}`;
   return null;
+}
+
+function designPreviewHref(row: DesignQueryRow): string {
+  return publicPreviewHref(row) ?? adminDesignViewHref(row.id);
+}
+
+function designThumbnailUrl(row: DesignQueryRow): string | null {
+  if (row.has_preview) return `/api/admin/designs/${encodeURIComponent(row.id)}/preview`;
+  const key = row.thumb_storage_key?.trim();
+  if (key && isCatalogMediaKey(key)) return `/api/admin/media/file?id=${encodeURIComponent(mediaFileId(key))}`;
+  return null;
+}
+
+function rewriteAdminMediaUrls(state: StudioProjectState, designId: string): StudioProjectState {
+  const encoded = encodeURIComponent(designId);
+  const rewrite = (url: string, assetId?: string) => (
+    assetId && url.startsWith('/api/media/')
+      ? `/api/admin/designs/${encoded}/media/${encodeURIComponent(assetId)}`
+      : url
+  );
+  return {
+    ...state,
+    artworkByPanel: Object.fromEntries(Object.entries(state.artworkByPanel).map(([key, item]) => [key, { ...item, url: rewrite(item.url, item.assetId) }])),
+    outsideArtworkLayers: state.outsideArtworkLayers.map((item) => ({ ...item, url: rewrite(item.url, item.assetId) })),
+    insideArtworkLayers: state.insideArtworkLayers.map((item) => ({ ...item, url: rewrite(item.url, item.assetId) })),
+    mediaAssets: state.mediaAssets.map((item) => ({ ...item, url: rewrite(item.url, item.id) })),
+  };
+}
+
+function jsonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function adminLegacyMediaByFace(designId: string, payloadValue: unknown): Record<string, LocalMediaAsset> {
+  const payload = jsonRecord(payloadValue);
+  const images = jsonRecord(payload.images);
+  const encoded = encodeURIComponent(designId);
+  return Object.fromEntries(Object.entries(images).flatMap(([faceId, value]) => {
+    if (!FACE_ID.test(faceId)) return [];
+    const entry = jsonRecord(value);
+    const storageKey = typeof entry.v2StorageKey === 'string' ? entry.v2StorageKey : '';
+    const sourceKey = typeof entry.s3Key === 'string' ? entry.s3Key : typeof entry.s3_key === 'string' ? entry.s3_key : '';
+    if (!storageKey && !sourceKey) return [];
+    const name = typeof entry.name === 'string' && entry.name ? entry.name : `${faceId}-artwork`;
+    const mime = typeof entry.mime === 'string' && entry.mime ? entry.mime : 'image/png';
+    return [[faceId, {
+      id: `legacy-share-${faceId}`,
+      name,
+      url: `/api/admin/designs/${encoded}/legacy-media/${encodeURIComponent(faceId)}`,
+      mimeType: mime,
+      byteSize: 0,
+      width: null,
+      height: null,
+      fingerprint: storageKey || sourceKey,
+      createdAt: 0,
+    }]];
+  }));
 }
 
 export function parseAdminPage(value?: string): number {
@@ -210,8 +273,8 @@ function presentDesign(row: DesignQueryRow): AdminDesignRow {
     updatedAt: iso(row.updated_at),
     imageCount: Number(row.image_count || 0),
     views: Number(row.views || 0),
-    previewHref: publicPreviewHref(row),
-    thumbnailUrl: row.has_preview ? `/api/admin/designs/${encodeURIComponent(row.id)}/preview` : null,
+    previewHref: designPreviewHref(row),
+    thumbnailUrl: designThumbnailUrl(row),
     user: row.user_id ? {
       id: row.user_id,
       name: row.user_name?.trim() || row.user_email || 'Unknown user',
@@ -303,7 +366,7 @@ export type AdminUserDesignItem = {
   imageCount: number;
   views: number;
   thumbnailUrl: string | null;
-  previewHref: string | null;
+  previewHref: string;
   href: string;
 };
 
@@ -334,17 +397,17 @@ export async function listUserDesigns(userId: string, input: { page?: number; pa
     SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
       d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
       (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
+      (SELECT storage_key FROM usages WHERE design_id=d.id ORDER BY created_at DESC NULLS LAST, storage_key LIMIT 1) AS thumb_storage_key,
       COUNT(*) OVER()::int AS total
     FROM designs d
     LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
     WHERE d.user_id=$1
     ORDER BY d.updated_at DESC NULLS LAST, d.id
     LIMIT $2 OFFSET $3
-  `, [userId, pageSize, offset]) as Array<DesignQueryRow & { has_preview: boolean }>;
+  `, [userId, pageSize, offset]) as DesignQueryRow[];
   return {
     items: rows.map((row) => ({
       ...presentDesign(row),
-      thumbnailUrl: row.has_preview ? `/api/admin/designs/${encodeURIComponent(row.id)}/preview` : null,
       href: adminDesignHref(row.id),
     })),
     total: Number(rows[0]?.total ?? 0),
@@ -407,6 +470,7 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
     SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
       d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
       (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
+      (SELECT storage_key FROM usages WHERE design_id=d.id ORDER BY created_at DESC NULLS LAST, storage_key LIMIT 1) AS thumb_storage_key,
       d.user_id, u.name AS user_name, u.email AS user_email,
       COUNT(*) OVER()::int AS total
     FROM designs d
@@ -426,7 +490,9 @@ export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
   const rows = await getSql().query(`
     WITH ${mediaUsages},
     designs AS (
-      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views
+      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views,
+        (NULLIF(preview_image_key, '') IS NOT NULL) AS has_preview,
+        NULL::text AS public_id, NULL::text AS preview_token
       FROM projects WHERE id=$1
       UNION ALL
       SELECT source || ':' || source_id,
@@ -435,21 +501,132 @@ export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
         (payload->>'created_at')::timestamptz,
         COALESCE((payload->>'updated_at')::timestamptz, (payload->>'created_at')::timestamptz),
         NULLIF(payload->>'user_id',''),
-        COALESCE((payload->>'view_count')::bigint, 0)
+        COALESCE((payload->>'view_count')::bigint, 0),
+        (NULLIF(COALESCE(payload->>'v2_og_image_key', payload->>'og_image_key'), '') IS NOT NULL),
+        source_id, NULLIF(payload->>'preview_token','')
       FROM legacy_records
       WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
     )
-    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views,
+    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
+      d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
       (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
+      (SELECT storage_key FROM usages WHERE design_id=d.id ORDER BY created_at DESC NULLS LAST, storage_key LIMIT 1) AS thumb_storage_key,
       d.user_id, u.name AS user_name, u.email AS user_email
     FROM designs d
     LEFT JOIN users u ON u.id=d.user_id
+    LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
     LIMIT 1
   `, [designId]) as DesignQueryRow[];
   const design = rows[0];
   if (!design) return null;
   const media = await listMedia({ designId, page: 1, pageSize: 100 });
   return { ...presentDesign(design), images: media.items };
+}
+
+export type AdminDesignView = {
+  id: string;
+  name: string;
+  legacy: boolean;
+  state: StudioProjectState;
+};
+
+export async function getAdminDesignView(id: string): Promise<AdminDesignView | null> {
+  await ensureV2Schema();
+  const designId = decodeRouteParam(id).slice(0, 200);
+  if (!designId) return null;
+  const sql = getSql();
+  const projectRows = await sql.query(`
+    SELECT id, name, studio_state FROM projects WHERE id=$1 LIMIT 1
+  `, [designId]) as { id: string; name: string | null; studio_state: unknown }[];
+  const project = projectRows[0];
+  if (project && validProjectState(project.studio_state)) {
+    return {
+      id: project.id,
+      name: project.name?.trim() || 'Untitled',
+      legacy: Boolean(project.studio_state.legacySourceId),
+      state: rewriteAdminMediaUrls(project.studio_state, project.id),
+    };
+  }
+  const legacyRows = await sql.query(`
+    SELECT source, source_id, payload
+    FROM legacy_records
+    WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
+    LIMIT 1
+  `, [designId]) as { source: string; source_id: string; payload: unknown }[];
+  const legacy = legacyRows[0];
+  if (!legacy) return null;
+  const converted = legacyDesignToStudioProject({
+    source: legacy.source,
+    sourceId: legacy.source_id,
+    payload: legacy.payload,
+    mediaByFace: adminLegacyMediaByFace(designId, legacy.payload),
+  });
+  if (!converted || !validProjectState(converted.state)) return null;
+  return {
+    id: designId,
+    name: converted.name,
+    legacy: true,
+    state: converted.state,
+  };
+}
+
+export async function getAdminDesignMedia(id: string, assetId: string): Promise<{ storage_key: string; mime_type: string; name: string } | null> {
+  const designId = decodeRouteParam(id).slice(0, 200);
+  if (!designId || !ASSET_ID.test(assetId)) return null;
+  await ensureV2Schema();
+  const rows = await getSql().query(`
+    SELECT p.studio_state, ma.storage_key, ma.mime_type, ma.name
+    FROM projects p
+    JOIN media_assets ma ON ma.user_id=p.user_id AND ma.id=$2
+    WHERE p.id=$1
+    LIMIT 1
+  `, [designId, assetId]) as { studio_state: unknown; storage_key: string; mime_type: string; name: string }[];
+  const row = rows[0];
+  if (!row || !validProjectState(row.studio_state)) return null;
+  const ids = new Set([
+    ...row.studio_state.mediaAssets.map((item) => item.id),
+    ...Object.values(row.studio_state.artworkByPanel).map((item) => item.assetId).filter(Boolean),
+    ...row.studio_state.outsideArtworkLayers.map((item) => item.assetId).filter(Boolean),
+    ...row.studio_state.insideArtworkLayers.map((item) => item.assetId).filter(Boolean),
+  ]);
+  return ids.has(assetId) ? row : null;
+}
+
+export async function getAdminDesignLegacyMedia(id: string, faceId: string): Promise<{ storageKey: string; mime: string; name: string } | null> {
+  const designId = decodeRouteParam(id).slice(0, 200);
+  if (!designId || !FACE_ID.test(faceId)) return null;
+  await ensureV2Schema();
+  const sql = getSql();
+  const legacyRows = await sql.query(`
+    SELECT source, source_id, payload
+    FROM legacy_records
+    WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
+    LIMIT 1
+  `, [designId]) as { source: string; source_id: string; payload: unknown }[];
+  const legacy = legacyRows[0];
+  if (!legacy) return null;
+  const payload = jsonRecord(legacy.payload);
+  const images = jsonRecord(payload.images);
+  const entry = jsonRecord(images[faceId]);
+  let storageKey = typeof entry.v2StorageKey === 'string' ? entry.v2StorageKey : '';
+  if (!storageKey) {
+    const sourceKey = typeof entry.s3Key === 'string' ? entry.s3Key : typeof entry.s3_key === 'string' ? entry.s3_key : '';
+    if (!sourceKey) return null;
+    const { ensureLegacyStoredObject } = await import('@/server/media-assets');
+    storageKey = await ensureLegacyStoredObject(sourceKey);
+    const nextEntry = { ...entry, v2StorageKey: storageKey };
+    const nextPayload = { ...payload, images: { ...images, [faceId]: nextEntry } };
+    await sql.query(`
+      UPDATE legacy_records
+      SET payload=$1::jsonb
+      WHERE source=$2 AND entity_type='shared_designs' AND source_id=$3
+    `, [JSON.stringify(nextPayload), legacy.source, legacy.source_id]);
+  }
+  return {
+    storageKey,
+    mime: typeof entry.mime === 'string' && entry.mime ? entry.mime : 'image/png',
+    name: typeof entry.name === 'string' && entry.name ? entry.name : `${faceId}-artwork`,
+  };
 }
 
 export async function listMedia(input: { q?: string; page?: number; pageSize?: number; userId?: string; designId?: string; sort?: string; dir?: string } = {}): Promise<AdminPage<AdminMediaItem>> {
