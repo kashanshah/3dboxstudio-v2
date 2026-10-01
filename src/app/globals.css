@@ -4407,7 +4407,7 @@ body{font-size:var(--type-body)}
 .pro-design-inspector-shell{
   top:12px!important;
   left:12px!important;
-  bottom:12px!important;
+  bottom:42px!important;
   width:min(384px,calc(100vw - 36px))!important;
   padding:0!important;
   gap:0!important;
