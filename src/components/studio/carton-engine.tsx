@@ -823,16 +823,26 @@ function buildReverseTuckMeshes(
   ];
 
   const glueWidth=footprint.find(item=>item.id==='glue')!.width;
-  const glueAngle=wallAngle+backAngle;
-  const glueFarX=leftOuterX-glueWidth*Math.cos(glueAngle);
-  const glueFarZ=leftOuterZ+glueWidth*Math.sin(glueAngle);
-  // The glue strip sits inside the back wall when fully folded.
-  const glueInset=t*fold.back*2;
+  // The glue strip is physically attached to the free edge of the Left panel.
+  // It must first follow the Left wall around the Front/Left crease, then make
+  // its own second hinge rotation around the Left/Glue crease toward the Back.
+  // Computing those as two rigid rotations keeps the fold direction correct
+  // at every intermediate percentage instead of deriving one combined angle.
+  const rotateYPoint=(p:number[],pivot:number[],theta:number)=>{
+    const x=p[0]-pivot[0],z=p[2]-pivot[2],c=Math.cos(theta),si=Math.sin(theta);
+    return [pivot[0]+x*c+z*si,p[1],pivot[2]-x*si+z*c];
+  };
+  const frontLeftHinge=[x0,0,zFront];
+  const glueHingeFlat=[x0-d,0,zFront];
+  const glueFarFlat=[x0-d-glueWidth,0,zFront];
+  const glueHingeAfterWall=rotateYPoint(glueHingeFlat,frontLeftHinge,-wallAngle);
+  const glueFarAfterWall=rotateYPoint(glueFarFlat,frontLeftHinge,-wallAngle);
+  const glueFarAfterGlueFold=rotateYPoint(glueFarAfterWall,glueHingeAfterWall,-backAngle);
   const glueCorners=[
-    [glueFarX,y0,glueFarZ+glueInset],
-    [leftOuterX,y0,leftOuterZ+glueInset],
-    [leftOuterX,y1,leftOuterZ+glueInset],
-    [glueFarX,y1,glueFarZ+glueInset],
+    [glueFarAfterGlueFold[0],y0,glueFarAfterGlueFold[2]],
+    [glueHingeAfterWall[0],y0,glueHingeAfterWall[2]],
+    [glueHingeAfterWall[0],y1,glueHingeAfterWall[2]],
+    [glueFarAfterGlueFold[0],y1,glueFarAfterGlueFold[2]],
   ];
 
   const panels: Array<{
