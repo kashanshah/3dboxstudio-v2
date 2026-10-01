@@ -5132,3 +5132,12 @@ body{font-size:var(--type-body)}
     font-size:15px;
   }
 }
+
+/* Photoshop-style artwork layer controls. */
+.pro-layer-visibility{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:6px;color:var(--muted);cursor:pointer}
+.pro-layer-visibility:hover{background:var(--panel);color:var(--ink)}
+.pro-layer-opacity-control{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.pro-layer-opacity-control>div{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:11px}
+.pro-layer-opacity-control>div span{color:var(--muted);font-weight:650}
+.pro-layer-opacity-control>div strong{color:var(--ink);font-size:11px}
+.pro-layer-opacity-control input{width:100%;accent-color:var(--accent)}
