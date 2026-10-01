@@ -6,10 +6,13 @@ import { CartonEngine } from '@/components/studio/carton-engine';
 import type { StudioProjectState } from '@/lib/studio-project';
 import { Brand } from '@/components/site-shell';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
+import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 
 export function SharedDesignViewer({name,state,legacy}:{name:string;state:StudioProjectState;legacy:boolean}){
-  const initialFormation=state.formation ?? (state.templateId==='reverse-tuck-carton'?state.opening:100);
-  const [opening,setOpening]=useState(state.templateId==='reverse-tuck-carton'&&state.formation===undefined?0:state.opening);
+  const runtime=getTemplateRuntime(state.templateId);
+  if(!runtime)throw new Error(`No runtime is registered for template: ${state.templateId}`);
+  const initialFormation=state.formation ?? (runtime.assembly.legacyOpeningAsFormation?state.opening:100);
+  const [opening,setOpening]=useState(runtime.assembly.legacyOpeningAsFormation&&state.formation===undefined?0:state.opening);
   const [formation,setFormation]=useState(initialFormation);
   const legacyFraming=legacy||Boolean(state.legacySourceId);
   const initialZoom=legacyFraming?57.34:82;
@@ -40,37 +43,14 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
     return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);};
   },[]);
 
-  const hasOpeningStage=state.templateId!=='reverse-tuck-carton'
-    && (state.templateId==='split-top-box' || state.openingMode!=='closed');
-  const assemblyProgress=state.templateId==='reverse-tuck-carton'||!hasOpeningStage
-    ? formation
-    : formation<99.999
-      ? formation*.7
-      : 70+(100-opening)*.3;
+  const assemblyState=getTemplateAssemblyState(state.templateId,{formation,opening,openingMode:state.openingMode});
+  const assemblyProgress=assemblyState.progress;
+  const stage=assemblyState.stage;
   const setAssemblyProgress=(value:number)=>{
-    const next=Math.max(0,Math.min(100,value));
-    if(state.templateId==='reverse-tuck-carton'||!hasOpeningStage){
-      setFormation(next);
-      if(state.templateId!=='reverse-tuck-carton')setOpening(0);
-      return;
-    }
-    if(next<=70){
-      setFormation(next/70*100);
-      setOpening(100);
-    }else{
-      setFormation(100);
-      setOpening((100-next)/30*100);
-    }
+    const next=templateAssemblyValuesForProgress(state.templateId,value,state.openingMode);
+    setFormation(next.formation);
+    setOpening(next.opening);
   };
-  const stage=assemblyProgress<=1
-    ? 'Flat dieline'
-    : hasOpeningStage&&assemblyProgress>=69&&assemblyProgress<=71
-      ? 'Assembled · open'
-      : assemblyProgress<70
-        ? 'Forming box'
-        : assemblyProgress<99
-          ? 'Closing package'
-          : 'Closed package';
 
   const applyZoom=(next:number,clientX?:number,clientY?:number)=>{
     const rect=canvasWrapRef.current?.getBoundingClientRect();
