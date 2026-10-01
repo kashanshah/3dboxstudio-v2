@@ -1164,11 +1164,16 @@ body{font-size:var(--type-body)}
 
 
 /* Unified Add Artwork dialog */
-.pro-media-modal-unified{width:min(1180px,calc(100vw - 48px));height:min(800px,calc(100dvh - 48px));grid-template-rows:auto minmax(0,1fr) auto}
+.pro-media-modal-unified{width:min(1180px,calc(100vw - 48px));height:min(800px,calc(100dvh - 48px));grid-template-rows:auto auto minmax(0,1fr) auto}
+/* Reserve the optional progress row even when no upload is active. */
+.pro-media-modal-unified>.pro-media-modal-header{grid-row:1}
+.pro-media-modal-unified>.pro-media-upload-progress{grid-row:2}
+.pro-media-modal-unified>.pro-media-unified-workspace{grid-row:3}
+.pro-media-modal-unified>.pro-media-modal-footer{grid-row:4}
 .pro-media-modal-unified .pro-media-modal-header{height:auto;min-height:84px;padding-block:14px}
 .pro-media-modal-unified .pro-media-modal-header p{margin:5px 0 0;color:var(--muted);font-size:12px}
-.pro-media-unified-workspace{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px}
-.pro-media-unified-library{min-width:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);border-right:1px solid var(--line)}
+.pro-media-unified-workspace{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;overflow:auto}
+.pro-media-unified-library{min-width:0;min-height:0;overflow:auto;display:grid;grid-template-rows:auto auto minmax(0,1fr);border-right:1px solid var(--line)}
 .pro-media-inline-dropzone{margin:12px 16px 0;min-height:72px;padding:11px 12px;border:1px dashed var(--accent-line);border-radius:10px;background:#f8fbff;display:flex;align-items:center;gap:10px;color:var(--muted)}
 .pro-media-inline-dropzone.is-dragging{border-color:var(--accent);background:var(--accent-soft)}
 .pro-media-inline-dropzone>svg{color:var(--accent);flex:0 0 auto}
@@ -1218,6 +1223,9 @@ body{font-size:var(--type-body)}
 @media(max-width:900px){
   .pro-media-unified-workspace{grid-template-columns:1fr}
   .pro-media-unified-library{border-right:0;border-bottom:1px solid var(--line);max-height:48vh}
+  /* The editor already explains how to add the first image. Keep this pane
+     compact so the empty gallery cannot squeeze into the drop zone. */
+  .pro-media-unified-library .pro-media-empty.is-no-assets{display:none}
   .pro-media-unified-editor{max-height:42vh}
   .pro-media-modal-unified{height:calc(100dvh - 16px);width:100%}
 }
