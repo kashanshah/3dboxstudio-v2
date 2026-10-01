@@ -6,15 +6,16 @@ import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import { site } from '@/lib/site';
 import styles from './page.module.css';
 
-const title='What’s New in 3DBoxStudio V2';
-const description='Explore the new 3DBoxStudio V2 workflow: box setup, dieline artwork, live 3D review, Projects with multiple Box Designs, sharing, exports, and what is coming next.';
+const title='3DBoxStudio V2 – 3D Packaging Design, Dielines & Box Mockups';
+const description='Explore 3DBoxStudio V2: design packaging on a dieline, preview boxes in 3D, manage multiple Box Designs in Projects, share reviews, export mockups, and see what is coming next.';
 
 export const metadata:Metadata={
   title,
   description,
   alternates:{canonical:'/whats-new/v2'},
   openGraph:{title,description,type:'website',url:'/whats-new/v2'},
-  twitter:{card:'summary_large_image',title,description}
+  twitter:{card:'summary_large_image',title,description},
+  robots:{index:true,follow:true}
 };
 
 const faqs=[
@@ -36,7 +37,7 @@ const workflow=[
 export default function V2WhatsNewPage(){
   const origin=site.url.toString().replace(/\/$/,'');
   const schema={'@context':'https://schema.org','@graph':[
-    {'@type':'WebPage',name:title,description,url:origin+'/whats-new/v2',isPartOf:{'@type':'WebSite',name:'3DBoxStudio',url:origin+'/'},about:{'@type':'SoftwareApplication',name:'3DBoxStudio',applicationCategory:'DesignApplication'}},
+    {'@type':'WebPage',name:title,description,url:origin+'/whats-new/v2',dateModified:'2026-10-01',isPartOf:{'@type':'WebSite',name:'3DBoxStudio',url:origin+'/'},about:{'@type':'SoftwareApplication',name:'3DBoxStudio',applicationCategory:'DesignApplication',operatingSystem:'Any',url:origin+'/studio'}},
     {'@type':'FAQPage',mainEntity:faqs.map(([question,answer])=>({'@type':'Question',name:question,acceptedAnswer:{'@type':'Answer',text:answer}}))}
   ]};
 
