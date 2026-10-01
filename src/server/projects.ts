@@ -2,6 +2,7 @@ import { ensureV2Schema,getSql } from './db';
 import type { SavedStudioProject } from '@/lib/studio-project';
 import { validProjectState } from '@/lib/studio-project';
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
+import { decodeRouteParam } from '@/lib/route-params';
 import { ensureLegacyMediaForDesign } from '@/server/legacy-media';
 
 export type WorkspaceDesign={id:string;name:string;updatedAt:string;preview:string|null;legacy:boolean;href:string|null;favorite:boolean;workspaceProjectId:string|null};
@@ -53,13 +54,14 @@ export async function getWorkspaceDesigns(userId:string,search='',sort='recent',
 
 export async function getStudioProject(userId:string,id:string):Promise<SavedStudioProject|null>{
  await ensureV2Schema();const sql=getSql();
- const rows=await sql`SELECT id,name,studio_state,updated_at,is_favorite,revision,workspace_project_id FROM projects WHERE id=${id} AND user_id=${userId} LIMIT 1` as {id:string;name:string;studio_state:unknown;updated_at:string;is_favorite:boolean;revision:number;workspace_project_id:string|null}[];
+ const projectId=decodeRouteParam(id);
+ const rows=await sql`SELECT id,name,studio_state,updated_at,is_favorite,revision,workspace_project_id FROM projects WHERE id=${projectId} AND user_id=${userId} LIMIT 1` as {id:string;name:string;studio_state:unknown;updated_at:string;is_favorite:boolean;revision:number;workspace_project_id:string|null}[];
  const row=rows[0];
  if(row&&validProjectState(row.studio_state))return {
   id:row.id,name:row.name,state:row.studio_state,updatedAt:row.updated_at,favorite:row.is_favorite,revision:row.revision,workspaceProjectId:row.workspace_project_id,
  };
 
- const legacyRows=await sql`SELECT source,source_id,payload FROM legacy_records WHERE source||':'||source_id=${id} AND entity_type='shared_designs' AND deleted_at IS NULL AND payload->>'user_id'=${userId} LIMIT 1` as {source:string;source_id:string;payload:unknown}[];
+ const legacyRows=await sql`SELECT source,source_id,payload FROM legacy_records WHERE source||':'||source_id=${projectId} AND entity_type='shared_designs' AND deleted_at IS NULL AND payload->>'user_id'=${userId} LIMIT 1` as {source:string;source_id:string;payload:unknown}[];
  const legacy=legacyRows[0];
  if(!legacy)return null;
  const mediaByFace=await ensureLegacyMediaForDesign(userId,legacy.payload);

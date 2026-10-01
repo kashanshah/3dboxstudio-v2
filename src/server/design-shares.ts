@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { ensureV2Schema,getSql } from '@/server/db';
 import { validProjectState,type StudioProjectState } from '@/lib/studio-project';
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
+import { decodeRouteParam } from '@/lib/route-params';
 import { ensureLegacyStoredObject } from '@/server/media-assets';
 
 const SHARE_TOKEN_RE=/^[0-9A-Za-z]{10,24}$/;
@@ -269,10 +270,11 @@ export async function getShareMedia(id:string,assetId:string){
 
 export async function getLegacyDesignThumbnail(id:string){
  await ensureV2Schema();
+ const designId=decodeRouteParam(id);
  const rows=await getSql()`
   SELECT payload->>'v2_og_image_key' AS storage_key
   FROM legacy_records
-  WHERE source||':'||source_id=${id}
+  WHERE source||':'||source_id=${designId}
     AND entity_type='shared_designs'
     AND deleted_at IS NULL
   LIMIT 1
