@@ -74,7 +74,7 @@
 .content-article-body li{padding:5px 0}
 .content-article-body a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 .content-article-callout{margin:42px 0;padding:26px 28px;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;background:var(--accent-soft);color:var(--ink);line-height:1.7}
-.content-article-cta{margin:34px 0}.content-article-cta .button{font-weight:600}
+.content-article-cta{margin:34px 0}.content-article-body .content-article-cta .button{font-weight:600;color:#fff;text-decoration:none}.content-article-body .content-article-cta .button:hover{color:#fff}.content-article-body .content-article-cta .button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .content-article-faq{margin-top:64px}
 .content-article-faq details{border-top:1px solid var(--line);padding:20px 0}
 .content-article-faq details:last-child{border-bottom:1px solid var(--line)}
