@@ -3052,7 +3052,7 @@ function MediaLibraryModal(props: {
             <button type="button" disabled={props.uploadProgress?.active} onClick={props.onUpload}>{t("studio.browse")}</button>
           </div>
 
-          {filteredAssets.length === 0 ? <div className="pro-media-empty">
+          {filteredAssets.length === 0 ? <div className={`pro-media-empty ${props.assets.length ? '' : 'is-no-assets'}`}>
             <ImageIcon size={30}/>
             <h3>{props.assets.length ? t("studio.no_matching_artwork") : t("studio.upload_your_first_image")}</h3>
             <p>{props.assets.length ? t("studio.try_another_search") : t("studio.uploaded_images_are_saved_to_my_images_so_you_can_reuse_them_in_future_desi")}</p>

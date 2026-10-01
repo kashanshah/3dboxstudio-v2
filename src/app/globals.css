@@ -1223,6 +1223,9 @@ body{font-size:var(--type-body)}
 @media(max-width:900px){
   .pro-media-unified-workspace{grid-template-columns:1fr}
   .pro-media-unified-library{border-right:0;border-bottom:1px solid var(--line);max-height:48vh}
+  /* The editor already explains how to add the first image. Keep this pane
+     compact so the empty gallery cannot squeeze into the drop zone. */
+  .pro-media-unified-library .pro-media-empty.is-no-assets{display:none}
   .pro-media-unified-editor{max-height:42vh}
   .pro-media-modal-unified{height:calc(100dvh - 16px);width:100%}
 }
