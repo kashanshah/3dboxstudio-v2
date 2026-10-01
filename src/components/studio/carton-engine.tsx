@@ -300,8 +300,9 @@ function createRenderer(canvas: HTMLCanvasElement) {
   const defaultTemplate=getDefaultPackagingTemplate();
   if(!defaultTemplate)throw new Error('No default packaging template is configured.');
   const defaultRuntime=requireTemplateRuntime(defaultTemplate.id);
+  if(!defaultTemplate.defaultDimensions)throw new Error(`Default template ${defaultTemplate.id} is missing dimensions.`);
   let scene: Scene = {
-    dimensions: defaultRuntime.sanitizeParameters(defaultTemplate.defaultDimensions ?? { width: 120, height: 180, depth: 55, thickness: 0.5 }),
+    dimensions: defaultRuntime.sanitizeParameters(defaultTemplate.defaultDimensions),
     templateId: defaultTemplate.id,
     opening: 0,
     formation: 100,
