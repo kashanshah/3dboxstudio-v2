@@ -301,7 +301,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     historySerializedRef.current = historySerialized;
   }, [historySnapshot, historySerialized]);
 
-  const applyHistorySnapshot = useCallback((snapshot:StudioHistorySnapshot, messageText:string) => {
+  const applyHistorySnapshot = (snapshot:StudioHistorySnapshot, messageText:string) => {
     if (historyTimerRef.current !== null) {
       window.clearTimeout(historyTimerRef.current);
       historyTimerRef.current = null;
@@ -328,7 +328,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setFaceAction(null);
     setCameraMenuOpen(false);
     setMessage(messageText);
-  }, []);
+  };
 
   const commitCurrentHistory = useCallback(() => {
     if (historyTimerRef.current !== null) {
@@ -422,18 +422,18 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onHistoryKeyDown);
   }, [redoStudioAction, undoStudioAction]);
 
-  const setOpening = useCallback((value: number) => {
+  const setOpening = (value: number) => {
     const next = Math.max(0, Math.min(100, value));
     setOpeningValue(next);
     setFaceAction(null);
     setCameraMenuOpen(false);
-  }, []);
-  const setFormation = useCallback((value:number)=>{
+  };
+  const setFormation = (value:number)=>{
     const next=Math.max(0,Math.min(100,value));
     setFormationValue(next);
     setFaceAction(null);
     setCameraMenuOpen(false);
-  },[]);
+  };
 
   const assemblyState = getTemplateAssemblyState(selectedTemplateId,{formation,opening,openingMode});
   const hasOpeningStage = assemblyState.hasOpeningStage;
