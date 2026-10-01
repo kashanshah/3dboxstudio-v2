@@ -125,21 +125,48 @@ test('artwork upload counts finalized files, but rejected uploads never produce 
 });
 
 test('saves count confirmed persistence and distinguish autosaves; rejected saves are not successes',async()=>{
-  for(const mode of ['manual','autosave','failed']) {
-    const context={saveInFlightRef:{current:false},engineRef:{current:{thumbnail:()=> 'data:image/png;base64,x'}},
+  for(const mode of ['manual','autosave','failed','create','create-failed','unconfirmed']) {
+    const creating=mode.startsWith('create'),failed=mode.includes('failed'),requests=[],closed=[],errors=[];
+    const context={newDesignOpen:creating||mode==='unconfirmed',saveInFlightRef:{current:false},engineRef:{current:{thumbnail:()=> 'data:image/png;base64,x'}},
       artworkByPanel:{},outsideDielineLayers:[],insideDielineLayers:[],mediaAssets:[],selectedTemplateId:'reverse-tuck',
       dimensions:{width:10,height:20,length:30},material:'Kraft',opening:0,formation:100,openingMode:'closed',splitTopHingeSide:'side_a',measurementUnit:'mm',
       initial:undefined,outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'',insideCustomColor:'',projectName:'Private name',
-      projectRevision:1,workspaceProjectId:'private-workspace',projectId:'private-project',historySerialized:'{}',saveFingerprint:'{}',
+      projectRevision:creating?undefined:1,workspaceProjectId:'private-workspace',projectId:creating?undefined:'private-project',historySerialized:'{}',saveFingerprint:'{}',
       lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},Blob,
-      fetch:async()=>({ok:mode!=='failed',status:mode==='failed'?409:200,json:async()=>({project:{id:'private-project',revision:2}})})};
+      window:{history:{replaceState:()=>{}}},setNewDesignOpen:open=>closed.push(open),setNewDesignError:error=>errors.push(error),
+      fetch:async(url,request)=>{requests.push({url,...request});return {ok:!failed,status:failed?(creating?500:409):200,json:async()=>failed?{error:'Service unavailable'}:{project:{id:'private-project',revision:creating?1:2}}};}};
     for(const setter of ['setSaving','setSaveFailed','setProjectId','setProjectRevision','setWorkspaceProjectId','setSaveConflictOpen','setHasUnsavedChanges','setMessage'])context[setter]=()=>{};
     const {handler,events}=callback('saveDesign',context);
-    const saved=await handler(false,false,undefined,false,mode==='autosave');
-    assert.equal(saved,mode!=='failed');
-    assert.equal(events.length,mode==='failed'?0:1);
-    if(saved){assert.equal(events[0][0],'project_saved');assert.equal(events[0][1].save_mode,mode);assert.ok(!JSON.stringify(events).includes('private'));}
+    const saved=await handler(false,false,undefined,false,mode==='autosave','manual',creating);
+    assert.equal(saved,!failed&&mode!=='unconfirmed');
+    assert.equal(events.length,saved?1:0);
+    if(saved){assert.equal(events[0][0],'project_saved');assert.equal(events[0][1].save_mode,creating?'manual':mode);assert.ok(!JSON.stringify(events).includes('private'));}
+    if(mode==='unconfirmed')assert.equal(requests.length,0);
+    if(creating){
+      assert.equal(requests[0].method,'POST');assert.equal(requests[0].url,'/api/projects');
+      const body=JSON.parse(requests[0].body);
+      assert.equal(body.name,'Private name');assert.equal(body.workspaceProjectId,'private-workspace');
+      assert.deepEqual(closed,failed?[]:[false]);
+      if(failed){
+        assert.ok(errors.at(-1));
+        context.fetch=async()=>({ok:true,json:async()=>({project:{id:'retry',revision:1}})});
+        const retry=callback('saveDesign',context);
+        assert.equal(await retry.handler(false,false,undefined,false,false,'manual',true),true);
+        assert.deepEqual(closed,[false]);
+      }
+    }
   }
+});
+
+test('new design defaults count all projects and use the requested project or My Project',()=>{
+  const exports={};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/new-design.ts'),'utf8')),{exports});
+  const projects=[{id:'mine',isDefault:true,designCount:2},{id:'client',isDefault:false,designCount:4}];
+  assert.equal(exports.newDesignDefaults(projects,'client').name,'Box Design 7');
+  assert.equal(exports.newDesignDefaults(projects,'client').workspaceProjectId,'client');
+  assert.equal(exports.newDesignDefaults(projects).workspaceProjectId,'mine');
+  assert.equal(exports.newDesignDefaults(projects,'other-users-project').workspaceProjectId,'mine');
+  assert.equal(exports.newDesignDefaults([{id:'mine',isDefault:true,designCount:0}]).name,'Box Design 1');
 });
 
 test('pageview effect deduplicates replay, updates SPA referrer, and excludes admin',()=>{
