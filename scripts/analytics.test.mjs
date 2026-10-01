@@ -19,7 +19,19 @@ function analytics({env={},window={location:{pathname:'/studio/editor'}},console
     vm.runInNewContext(transpile(fs.readFileSync(file,'utf8')), {
       exports, process:{env:{NODE_ENV:'production',NEXT_PUBLIC_GA_MEASUREMENT_ID:'G-TEST',NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN:'ph-test',...env}},
       window,console:logger,
-      require: name => load(path.resolve(path.dirname(file),name+'.ts')),
+      require: name => {
+        if (name === 'posthog-js') return {
+          capture(eventName, properties) {
+            if (typeof window.posthog?.capture === 'function') {
+              window.posthog.capture(eventName, properties);
+              return;
+            }
+            window.__posthogCaptureQueue = window.__posthogCaptureQueue ?? [];
+            window.__posthogCaptureQueue.push([eventName, properties]);
+          },
+        };
+        return load(path.resolve(path.dirname(file), name + '.ts'));
+      },
     },{filename:file});
     return exports;
   }

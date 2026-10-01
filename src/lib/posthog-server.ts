@@ -4,7 +4,8 @@ export function createPostHogClient():PostHog|null{
   const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
   const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
   if(!token||!host){
-    if(process.env.NODE_ENV!=='production'){
+    const runningTests=process.env.NODE_ENV==='test'||process.env.NODE_TEST_CONTEXT!==undefined;
+    if(process.env.NODE_ENV!=='production'&&!runningTests){
       const variable=!token?'NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN':'NEXT_PUBLIC_POSTHOG_HOST';
       throw new Error(`${variable} variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${variable} is configured`);
     }

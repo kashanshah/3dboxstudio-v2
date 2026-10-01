@@ -6,10 +6,13 @@ import { after } from 'next/server';
 
 const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
 const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
+// node:test sets NODE_TEST_CONTEXT in worker processes and does not set NODE_ENV.
+const runningTests=process.env.NODE_ENV==='test'||process.env.NODE_TEST_CONTEXT!==undefined;
 
-if((!token||!host)&&process.env.NODE_ENV!=='production'){
-  const variable=!token?'NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN':'NEXT_PUBLIC_POSTHOG_HOST';
-  throw new Error(`${variable} environment variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${variable} is configured`);
+function missingPostHogConfig():string|null{
+  if(token&&host)return null;
+  if(process.env.NODE_ENV==='production'||runningTests)return null;
+  return !token?'NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN':'NEXT_PUBLIC_POSTHOG_HOST';
 }
 
 export const posthogLogProvider=token&&host?new LoggerProvider({
@@ -28,6 +31,8 @@ export const posthogLogProvider=token&&host?new LoggerProvider({
 const posthogLogger=posthogLogProvider?.getLogger('3dboxstudio-product-operations');
 
 export function registerPostHogLogs():void{
+  const variable=missingPostHogConfig();
+  if(variable)throw new Error(`${variable} environment variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${variable} is configured`);
   if(posthogLogProvider)logs.setGlobalLoggerProvider(posthogLogProvider);
 }
 
