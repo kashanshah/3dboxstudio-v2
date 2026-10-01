@@ -1,5 +1,6 @@
 'use client';
 
+import { trackEvent } from '@/lib/analytics';
 import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
 import { useTranslations } from '@/components/i18n/locale-provider';
@@ -182,6 +183,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   if(!initialRuntime) throw new Error(`No runtime is registered for template: ${initialTemplate.id}`);
   const [family, setFamily] = useState(initialTemplate.name);
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate.id);
+  const studioOpenTracked = useRef(false);
+  useEffect(() => {
+    if (studioOpenTracked.current) return;
+    studioOpenTracked.current = true;
+    const context = {template_id:initialTemplate.id, app_version:'v2', user_status:'signed_in'};
+    trackEvent('studio_open', context);
+    if (initialProject) trackEvent('project_reopened', context);
+  }, [initialProject, initialTemplate.id]);
   const [templateSearch, setTemplateSearch] = useState('');
   const [templateCategory, setTemplateCategory] = useState('All');
   const [templatePreview,setTemplatePreview] = useState<PackagingTemplateDefinition|null>(null);
@@ -718,6 +727,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMessage(`${getPackagingTemplateCopy(template, t).name} does not have a registered Studio runtime yet`);
       return;
     }
+    trackEvent('template_selected', {template_id:template.id, app_version:'v2'});
     setSelectedTemplateId(template.id);
     setFamily(template.name);
     setFormation(100);
@@ -916,6 +926,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent,phase,
           });
         });
+        trackEvent('artwork_uploaded', {template_id:selectedTemplateId, app_version:'v2', file_type:file.type, file_size_bytes:file.size, upload_surface:'media_library'});
         uploaded.push(asset);
       }
 
@@ -964,6 +975,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         const asset=await uploadMediaFile(file,imageDimensions,(percent,phase)=>{
           setMediaUploadProgress({active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent,phase});
         });
+        trackEvent('artwork_uploaded', {template_id:selectedTemplateId, app_version:'v2', file_type:file.type, file_size_bytes:file.size, upload_surface:'dieline_drop'});
         uploaded.push(asset);
       }
 
@@ -1232,7 +1244,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false, quiet=false) => {
+  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false, quiet=false, saveTrigger:'manual'|'share'|'move'='manual') => {
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
     if (saveInFlightRef.current) return false;
@@ -1291,6 +1303,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         autosaveBlockedFingerprintRef.current=null;
         setHasUnsavedChanges(false);
       }
+      trackEvent('project_saved', {template_id:selectedTemplateId, app_version:'v2', save_mode:quiet?'autosave':saveAsCopy?'copy':saveTrigger, is_new:!targetProjectId});
       if(!quiet)setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
       return true;
     } catch(error) {
@@ -1391,7 +1404,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTransferBusy(true);setTransferError('');
     try{
       if(projectTransferMode==='move'){
-        const saved=await saveDesign(false);
+        const saved=await saveDesign(false,false,undefined,false,false,'move');
         if(!saved)throw new Error('Save the latest changes before moving this design.');
         const response=await fetch(`/api/projects/${projectId}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({workspaceProjectId:transferProjectId})});
         const result=await response.json().catch(()=>({error:'Could not move this design.'}));
@@ -1430,12 +1443,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     if(shareBusy)return;
     setShareBusy(true);setShareError('');
     try{
-      const saved=await saveDesign(false);
+      const saved=await saveDesign(false,false,undefined,false,false,'share');
       if(!saved)throw new Error('Save the latest changes before sharing.');
       const response=await fetch('/api/shares',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({projectId})});
       const result=await response.json().catch(()=>({error:'Could not create share link.'}));
       if(!response.ok)throw new Error(result.error||'Could not create share link.');
       const url=new URL(result.share.path,window.location.origin).toString();
+      trackEvent('share_created', {template_id:selectedTemplateId, app_version:'v2', share_method:'link'});
       setShareId(result.share.id);setShareUrl(url);setShareOpen(true);
       try{await navigator.clipboard.writeText(url);setMessage('Share link copied');}
       catch{setMessage('Share link ready');}
@@ -1489,8 +1503,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMessage('Preview is ready — download from the output panel');
       return;
     }
-    const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
-    setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
+    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'png', export_resolution:'viewport'};
+    trackEvent('export_clicked', context);
+    try {
+      const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
+      trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
+      setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
+    } catch {
+      trackEvent('export_failed', {...context, failure_category:'render_error'});
+      setMessage('Could not export the PNG. Please try again.');
+    }
   };
 
   return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
@@ -2433,10 +2455,16 @@ function DielinePrototype({
     const exportBounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
     setPrintError('');
     setPrinting(true);
+    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'pdf', artwork_scope:artworkScope};
+    trackEvent('export_clicked', context);
     void printDielineLayout(board,exportBounds,layers)
-      .catch(error=>setPrintError(error instanceof Error?error.message:'Could not prepare the PDF layout.'))
+      .then(()=>trackEvent('pdf_print_dialog_opened', context))
+      .catch(error=>{
+        trackEvent('export_failed', {...context, failure_category:'print_preparation'});
+        setPrintError(error instanceof Error?error.message:'Could not prepare the PDF layout.');
+      })
       .finally(()=>setPrinting(false));
-  },[pdfExportRequest,dimensions,layers,selectedTemplateId,openingMode,splitTopHingeSide]);
+  },[pdfExportRequest,dimensions,layers,selectedTemplateId,openingMode,splitTopHingeSide,artworkScope]);
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const selectedPanelKey=artworkScope==='inside'? `Interior ${selectedPanel}`:selectedPanel;

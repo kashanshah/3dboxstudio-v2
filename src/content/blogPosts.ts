@@ -126,6 +126,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Learn what a 3D box designer does, how it differs from CAD die-line tools, and when a free browser-based box maker like 3D Box Studio fits your workflow.",
     published: "2025-06-01",
+    updated: "2026-10-01",
     readMinutes: 6,
     keywords: [
       "3d box designer",
@@ -174,7 +175,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "3D Box Studio is a free 3D box designer with PBR materials, HDRI lighting, per-face artwork upload, and JSON export. Create a free account, set your dimensions, and start iterating in minutes.",
+        text: "3D Box Studio is a free browser-based 3D box designer. Choose a supported template, set dimensions and materials, position artwork on the flat dieline, and review the assembled package in 3D. Create a free account to save designs and share previews.",
       },
     ],
   },
@@ -184,6 +185,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "3D box simulation lets teams test proportions, openings, and artwork before physical samples. See when simulation beats static mockups and how to use it in your review process.",
     published: "2025-06-08",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "3d box simulation",
@@ -231,7 +233,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio, enter your carton dimensions, pick a material preset, upload face artwork, and use the opening controls to simulate lid and flap behavior. Export a PNG for your deck or record a short viewport video for Slack or email reviews.",
+        text: "Open 3D Box Studio, choose a supported packaging template, enter dimensions, and place artwork on the flat layout. Use the template’s opening controls to review lid and flap behavior. Export a PNG for your deck or share a view-only preview for an interactive review.",
       },
     ],
   },
@@ -300,6 +302,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Step-by-step workflow for using a 3D box design maker to turn Illustrator exports into an interactive carton preview your client can approve.",
     published: "2025-06-22",
+    updated: "2026-10-01",
     readMinutes: 7,
     keywords: [
       "3d box design maker",
@@ -314,11 +317,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Step 1 — Gather face artwork",
+        text: "Step 1 — Gather packaging artwork",
       },
       {
         type: "p",
-        text: "Export each panel as PNG or JPG from Illustrator, Figma, or Photoshop. Name files by face (front, back, left, right, top, bottom) so placement is obvious when you upload.",
+        text: "Export your packaging artwork as PNG, JPG, WebP, or SVG from Illustrator, Figma, or Photoshop. Use a full-layout image or separate graphic elements, then position them as layers on the generated dieline.",
       },
       {
         type: "h2",
@@ -326,15 +329,15 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Enter the finished box size in millimeters, centimeters, or inches. Match the outer dimensions your structural spec calls for—even if the preview is not a certified die-line, correct scale makes typography and logo sizing trustworthy.",
+        text: "Enter the finished box size in millimeters or inches. Match the dimensions specified by your packaging supplier, then validate final geometry and tolerances before production. The preview helps you review proportions and artwork placement.",
       },
       {
         type: "h2",
-        text: "Step 3 — Choose material and environment",
+        text: "Step 3 — Choose a material finish",
       },
       {
         type: "p",
-        text: "Pick kraft, white carton, gloss or matte plastic, corrugated, or metallic foil. Switch HDRI environments (studio, warehouse, sunset) to match how the box will appear in marketing photography.",
+        text: "Choose an available finish such as Kraft, White board, Soft touch, Matte coated, Gloss coated, or Foil. Review how your artwork reads against the material in the 3D preview; validate real print colors and finishes with physical proofs.",
       },
       {
         type: "h2",
@@ -342,7 +345,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Use lid-from-back, split-top flaps, or door-left panel modes to simulate unboxing. Regulatory copy and tamper-evident seals often hide behind flaps—opening animation catches those issues early.",
+        text: "Use the supported template’s opening controls to review lids and flaps from closed to open. Check whether important artwork stays visible and clear around folds, then confirm structural details with your packaging supplier.",
       },
       {
         type: "h2",
@@ -350,7 +353,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Export a high-resolution PNG for email or slide decks. For internal backups, use Export JSON so a colleague can import the exact same scene. Record a short MP4 if motion helps sell the concept.",
+        text: "Export a viewport PNG for email or slide decks. Save the design to your account so you can reopen and revise it, and send a view-only share link when a colleague needs to inspect the package interactively. Use Print / Save PDF for the current flat layout when useful for discussion.",
       },
       {
         type: "h2",
@@ -368,6 +371,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Create product listing images and A+ content visuals with a free 3D mailer mockup—no photo studio required. A practical guide for Amazon and Shopify sellers.",
     published: "2025-07-01",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "ecommerce box mockup",
@@ -400,7 +404,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Set your mailer or carton dimensions to match your supplier spec. Upload front, back, and side artwork exported from Canva or Illustrator. Switch to a clean studio HDRI, orbit to a three-quarter hero angle, and export a PNG. Most marketplaces want a white or neutral background—warehouse and studio presets in 3D Box Studio work well.",
+        text: "Choose a supported mailer or carton template and set dimensions from your supplier’s specification. Place artwork from Canva or Illustrator on the flat layout, review the package at a three-quarter angle, and export a PNG for your listing draft. Check the marketplace’s current image requirements before publishing.",
       },
       {
         type: "h2",
@@ -416,7 +420,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio, pick corrugated or white carton, drop in your label art, and export a viewport PNG in minutes. No render farm—just a shareable mockup you can drop into a listing draft or supplier email.",
+        text: "Open 3D Box Studio, choose a supported template and material finish, place label artwork on the flat layout, and export a viewport PNG. Use it in a listing draft or supplier email, and confirm final marketplace image requirements before publishing.",
       },
     ],
   },
@@ -426,6 +430,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "How beauty and skincare brands use free 3D box previews to test premium cartons, foil accents, and shelf presence before committing to print runs.",
     published: "2025-07-08",
+    updated: "2026-10-01",
     readMinutes: 6,
     keywords: [
       "cosmetics packaging mockup",
@@ -458,7 +463,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "In 3D Box Studio, try white carton for standard folding boxes, metallic foil for premium lines, and gloss or matte plastic presets when your comp uses laminated board. Swap HDRI from studio to sunset to approximate warm boutique lighting vs. cold drugstore fluorescents.",
+        text: "In 3D Box Studio, try White board for folding cartons, Foil for a premium visual treatment, or Matte coated and Gloss coated for finish comparisons. Use the preview to discuss graphic hierarchy and contrast; approve actual materials, colors, and finishes with your printer.",
       },
       {
         type: "h2",
@@ -474,7 +479,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Upload per-face artwork, set exact carton dimensions in millimeters, and share PNG exports with your agency or print partner. Free, browser-based, and private—your files stay local until you export.",
+        text: "Set your carton dimensions in millimeters, upload artwork to My Images, and position it on the dieline. Share PNG previews or a view-only link with your agency or print partner. Uploaded images and saved designs are stored in your account; share links let others view the design.",
       },
     ],
   },
@@ -484,6 +489,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Prepress and packaging printers can use free 3D box previews to reduce revision cycles and help customers visualize cartons before plates are made.",
     published: "2025-07-15",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "print shop packaging",
@@ -520,11 +526,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Fast handoff with JSON export",
+        text: "Fast handoff with saved designs and preview links",
       },
       {
         type: "p",
-        text: "When a customer revises artwork, they can export JSON from 3D Box Studio and send it back. Your prepress team imports the same scene to verify the update without rebuilding from scratch. That alone can shave a day off email chains.",
+        text: "When a customer revises artwork, save the updated design and share its view-only preview link. The prepress team can inspect the assembled package without recreating the mockup. Pair the preview with validated production artwork and printer specifications.",
       },
       {
         type: "h2",
@@ -542,6 +548,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "DTC brands and subscription box companies can simulate mailer openings, insert visibility, and branded interiors before the first fulfillment run.",
     published: "2025-07-22",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "subscription box mockup",
@@ -565,7 +572,7 @@ export const BLOG_POSTS: BlogPost[] = [
           "Split-top flaps for shipper-style mailers",
           "Whether the logo on the inside lid frames the product",
           "Corrugated kraft vs. white glossy exterior for brand tone",
-          "Viewport MP4 recordings for pitch decks and investor updates",
+          "Open and closed PNG previews for pitch decks and investor updates",
         ],
       },
       {
@@ -590,7 +597,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio, choose a mailer proportion, upload exterior and interior faces, and record a short viewport video for your team Slack. Free and instant—perfect for seasonal box refreshes.",
+        text: "Open 3D Box Studio, choose a supported mailer template, and place outside and inside artwork on the flat layout. Send a PNG or view-only preview link to your team for feedback on the next seasonal box refresh.",
       },
     ],
   },
@@ -600,6 +607,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Independent packaging designers can deliver interactive 3D carton previews to clients without Esko licenses or template subscriptions eating into project margins.",
     published: "2025-07-29",
+    updated: "2026-10-01",
     readMinutes: 6,
     keywords: [
       "freelance packaging designer",
@@ -623,7 +631,7 @@ export const BLOG_POSTS: BlogPost[] = [
           "Revision rounds where the client asks for a taller box—change one field",
           "Portfolio pieces that show process, not just final flats",
           "Cross-border clients who cannot visit a physical sample review",
-          "Backup via JSON when the client wants to open the file on their machine",
+          "Cloud-saved designs that the owner can reopen and revise",
         ],
       },
       {
@@ -640,7 +648,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Export high-res PNGs for the deck, record a 10-second MP4 for email, and attach JSON for internal teams who want to reopen the scene. Three formats, one free tool, zero render queue.",
+        text: "Export viewport PNGs for the deck and share a view-only link for interactive review. Save the project to your account so you can reopen it later. The flat layout can also be prepared through Print / Save PDF; validate production files separately.",
       },
       {
         type: "h2",
@@ -658,6 +666,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "CPG and F&B teams can preview folding cartons on shelf, validate regulatory copy placement, and compare kraft vs. bleached board before print.",
     published: "2025-08-05",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "food packaging mockup",
@@ -681,7 +690,7 @@ export const BLOG_POSTS: BlogPost[] = [
           "Whether barcode placement survives flap openings",
           "Kraft board for natural/organic lines vs. bright white for mainstream SKUs",
           "Multi-pack cartons: can shoppers read the flavor from a three-quarter angle?",
-          "Seasonal limited runs—swap artwork on each face without new photography",
+          "Seasonal limited runs—update dieline artwork without rebuilding the packaging concept",
         ],
       },
       {
@@ -698,7 +707,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Retail category managers respond to visuals. Send a PNG mockup with warehouse lighting to approximate in-store conditions, alongside your flat mechanical art for their records.",
+        text: "Retail category managers respond to visuals. Send a PNG mockup from a shelf-facing angle alongside your flat mechanical artwork so they can review brand hierarchy and proportions. Confirm print colors and finishes with physical proofs.",
       },
       {
         type: "h2",
@@ -716,6 +725,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Crowdfunding creators can show backers realistic box mockups in campaign pages and updates—before tooling and print minimums are committed.",
     published: "2025-08-12",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "kickstarter packaging",
@@ -752,11 +762,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Record unboxing for the campaign video",
+        text: "Plan the unboxing sequence for the campaign",
       },
       {
         type: "p",
-        text: "3D Box Studio can record a short viewport MP4. Pair it with your product CAD or prototype footage for a compelling pitch—without waiting for the print vendor's first article.",
+        text: "Use the interactive opening preview to plan the reveal, and export PNGs of open and closed states for your storyboard. Share a view-only link for team review. Built-in video output is not part of the current V2 launch.",
       },
       {
         type: "h2",
@@ -772,8 +782,9 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "corrugated-shipping-box-branding",
     title: "Branded Corrugated Shipping Boxes: 3D Preview for DTC & Wholesale",
     description:
-      "Preview branded shipper boxes and corrugated mailers with realistic board textures before you commit to minimum order quantities from your converter.",
+      "Review branding, proportions, and artwork placement on supported shipper and mailer structures before discussing production quantities with your converter.",
     published: "2025-08-19",
+    updated: "2026-10-01",
     readMinutes: 4,
     keywords: [
       "corrugated box mockup",
@@ -806,7 +817,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Use the corrugated material preset in 3D Box Studio for realistic flute texture. Pair with warehouse HDRI to approximate how the box looks in a fulfillment center photo vs. a customer's doorstep.",
+        text: "Choose a supported shipping-box template and use Kraft or White board to explore the pack’s visual tone. Review dimensions, artwork placement, and open and closed views in 3D. Confirm corrugated board grade and flute construction with your converter.",
       },
       {
         type: "h2",
@@ -822,7 +833,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open the studio, set shipper dimensions, upload one-color or full-color art per face, and export a PNG for your ops and marketing sync. No CAD license required.",
+        text: "Open the studio, choose a supported shipper structure, set its dimensions, and position artwork on the flat layout. Export a PNG or share an interactive preview with operations and marketing. Validate the final structural files with your converter.",
       },
     ],
   },
@@ -877,7 +888,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Create a custom 3D box mockup online using your own dimensions, artwork and branding. Learn how to design each side, preview your packaging in 3D and export your final mockup.",
     published: "2025-09-02",
-    updated: "2026-09-07",
+    updated: "2026-10-01",
     readMinutes: 12,
     keywords: [
       "3d box mockup",
@@ -892,7 +903,7 @@ export const BLOG_POSTS: BlogPost[] = [
       "clothing packaging mockup",
     ],
     imageAlt:
-      "Interactive 3D box mockup in a browser—custom dimensions, per-face artwork, and packaging preview",
+      "Interactive 3D box mockup in a browser—custom dimensions, dieline artwork, and packaging preview",
     relatedSlugs: [
       "packaging-mockup-without-photoshop",
       "free-3d-box-maker-online",
@@ -910,17 +921,17 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I make a packaging mockup without Photoshop?",
         answer:
-          "Yes. The studio runs in your browser. Upload PNG or JPG artwork directly to each face—you do not need Photoshop smart objects or layered mockup templates. See also [packaging mockups without Photoshop](/blog/packaging-mockup-without-photoshop).",
+          "Yes. The studio runs in your browser. Upload PNG, JPG, WebP, or SVG artwork to My Images and position it on the generated flat layout—you do not need Photoshop smart objects. See also [packaging mockups without Photoshop](/blog/packaging-mockup-without-photoshop).",
       },
       {
         question: "Can I use custom box dimensions?",
         answer:
-          "Yes. Enter width, height, and length (depth) in millimeters, centimeters, or inches. You can start from a ready-made template (such as mailer or tuck-end) and override the sizes at any time.",
+          "Yes. Enter width, height, and length (depth) in millimeters or inches. You can start from a ready-made template (such as mailer or tuck-end) and override the sizes at any time.",
       },
       {
         question: "Can I add different artwork to every side?",
         answer:
-          "Yes. Upload artwork independently to front, back, left, right, top, and bottom. You can also apply one image to all faces, then replace individual faces as needed. Artwork is UV-stretched to each face rectangle; you can rotate it in 90° steps.",
+          "Yes. Place separate graphics or a full-layout image on the generated dieline, then use layers, cropping, positioning, scale, and rotation to align artwork with the panels. Review the assembled result in 3D, including outside and inside artwork on supported templates.",
       },
       {
         question: "Can I design the inside of a box?",
@@ -940,7 +951,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I export the mockup as PNG?",
         answer:
-          "Yes. Export a viewport PNG for presentations, product pages, and client review. You can also record a short viewport video of the opening animation, or download a JSON backup of the design.",
+          "Yes. Export a viewport PNG for presentations, product pages, and client review. Save designs to your account for later revisions and share a view-only interactive preview. Use Print / Save PDF to prepare the current flat layout; validate production output with your printer.",
       },
       {
         question: "Do I need a packaging dieline?",
@@ -956,7 +967,7 @@ export const BLOG_POSTS: BlogPost[] = [
     sections: [
       {
         type: "p",
-        text: "If you need a [3D box mockup](/studio) online—with your own dimensions, artwork, and branding—you can build it in a browser without Photoshop templates or packaging CAD. [3D Box Studio](/studio) lets you set width, height, and depth; pick a material; upload PNG or JPG art to each face; orbit the carton; open supported lids or flaps; adjust lighting; and export a PNG render.",
+        text: "If you need a [3D box mockup](/studio) online—with your own dimensions, artwork, and branding—you can build it in a browser without Photoshop templates or packaging CAD. [3D Box Studio](/studio) lets you choose a supported structure, set dimensions and material, place artwork on the flat dieline, review the package in 3D, and export a PNG.",
       },
       {
         type: "p",
@@ -992,13 +1003,13 @@ export const BLOG_POSTS: BlogPost[] = [
         items: [
           "Outer box width, height, and length (depth)—from a product brief, 3PL quote, or converter spec",
           "Logo and brand colors",
-          "Panel artwork as PNG or JPG (recommended); one file per face is ideal",
-          "Optional: separate art for front, back, left, right, top, and bottom",
+          "Packaging artwork as PNG, JPG, WebP, or SVG—one full-layout image or separate graphic elements",
+          "Optional: separate graphics for outside and inside artwork",
         ],
       },
       {
         type: "p",
-        text: "You do not need Photoshop smart objects or a finished dieline to start. Open the Studio in your browser to create a mockup with the currently available save, sharing, and export options.",
+        text: "You do not need Photoshop smart objects or an external dieline to start. Create a free account, choose a supported template, and use its generated flat layout to position artwork. Save the design, share a preview, or export a PNG when ready.",
       },
       {
         type: "h2",
@@ -1006,7 +1017,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "In the Studio, enter Width, Height, and Length (depth). You can switch between millimeters, centimeters, and inches while keeping the box proportions consistent.",
+        text: "In the Studio, choose a supported template and enter Width, Height, and Length (depth). Switch between millimeters and inches while keeping the box proportions consistent.",
       },
       {
         type: "p",
@@ -1014,7 +1025,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "You can also start from a built-in template (mailer, tuck-end carton, shipping carton, rigid gift box, and others). Templates set suggested sizes and an opening style; editing dimensions afterward switches the template back to custom.",
+        text: "Start from a ready template in the catalog that matches your packaging structure. Its dimensions, panels, folds, and opening behavior come from that template; changing dimensions updates the generated layout and 3D preview.",
       },
       {
         type: "h2",
@@ -1022,7 +1033,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Material presets change how the board looks under your graphics—roughness, sheen, and base color. Options include materials such as kraft, white carton, corrugated board, matte or gloss finishes, and premium foil-style surfaces.",
+        text: "The available material finishes include Kraft, White board, Soft touch, Matte coated, Gloss coated, and Foil. These help you compare visual tone and artwork contrast in the preview; they do not certify a production material or print finish.",
       },
       {
         type: "p",
@@ -1034,7 +1045,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "This is where a custom packaging mockup becomes useful. In 3D Box Studio you can upload artwork to each exterior face independently:",
+        text: "Place your packaging graphics on the generated flat dieline. Panel labels and boundaries help you align branding with the appropriate parts of the box:",
       },
       {
         type: "ul",
@@ -1049,25 +1060,25 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "If you choose a split-top opening, the whole top is replaced by left and right top flaps, each with its own artwork slot.",
+        text: "Panel shapes, fold positions, and available openings depend on the selected template. Check its generated layout before positioning graphics that cross folds or cover multiple panels.",
       },
       {
         type: "h3",
-        text: "Recommended face workflow",
+        text: "Recommended artwork workflow",
       },
       {
         type: "ol",
         items: [
-          "Select a face in the face artwork panel.",
-          "Upload a PNG or JPG for that face.",
-          "Rotate the texture in 90° steps if the art is oriented wrong.",
-          "Repeat for the remaining faces—or use Apply to all faces, then replace sides that need different art.",
+          "Open 2D Design and choose Outside or Inside artwork.",
+          "Choose an image from My Images or upload PNG, JPG, WebP, or SVG artwork.",
+          "Position, crop, scale, and rotate the artwork layer to align with the relevant panels.",
+          "Add more layers as needed; check edges, folds, and any graphics spanning multiple panels.",
           "Orbit the model and check logo scale, alignment, and readability from a shelf or product-page angle.",
         ],
       },
       {
         type: "p",
-        text: "Artwork is UV-stretched to fill each rectangular face. There is no separate crop or pan control today—export face panels that already match the aspect ratio of each side for the cleanest result. For a composite flat layout with multiple panels in one file, split or export each panel as its own image before uploading.",
+        text: "Use a full-layout image or separate artwork elements on the dieline. The layer controls let you adjust placement and crop before reviewing the assembled package in 3D. Keep important copy away from folds and edges, and confirm bleed and manufacturing tolerances with your printer.",
       },
       {
         type: "p",
@@ -1079,11 +1090,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "callout",
-        text: "Interior artwork is not editable in the 3D Studio today. When you open a lid or flaps, you can still see into the cavity and judge how much of the interior is visible at different open amounts—useful for presentation and unboxing framing. Prepare any interior print separately for your printer or converter; the Studio does not apply interior artwork to the 3D model.",
+        text: "V2 supports inside artwork on supported packaging structures. Switch the artwork scope to Inside, position graphics on the flat layout, and check the result in an open 3D view. Validate printed-side orientation, folds, and production requirements with your printer.",
       },
       {
         type: "p",
-        text: "Many clothing and subscription brands want a branded message inside the lid. Treat that as a separate production brief. Use the open-box preview only to understand cavity visibility and exterior reveal—not as a place to design or mock interior graphics.",
+        text: "For a branded message inside the lid, position the graphic in the Inside artwork layout and inspect the open-box preview. Confirm readability, panel orientation, and what remains visible during the reveal before preparing production files.",
       },
       {
         type: "h2",
@@ -1091,11 +1102,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Set an opening style, then use the open-amount control to animate from closed to open. Supported styles include closed (no motion), lids from back, front, left, or right, a center-meeting split top with two flaps, and single or double side doors.",
+        text: "Use the selected template’s assembly and opening controls to inspect the box from its flat layout through assembled, closed, and open states. The available stages and motion follow the supported structure rather than a single generic opening mode.",
       },
       {
         type: "p",
-        text: "Not every real-world carton maps 1:1 to these modes—for example, “mailer” in the studio is a size/opening template that uses a lid-from-back motion, not a separate mechanical type. Choose the opening that best matches how stakeholders will see the pack.",
+        text: "Choose a ready structure that matches the pack you want to review. A visual simulation helps you discuss proportions and artwork, while the converter remains responsible for production geometry, tolerances, material behavior, and tooling.",
       },
       {
         type: "p",
@@ -1103,7 +1114,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Step 6 — Adjust the camera and lighting",
+        text: "Step 6 — Frame the 3D preview",
       },
       {
         type: "p",
@@ -1113,16 +1124,16 @@ export const BLOG_POSTS: BlogPost[] = [
         type: "ul",
         items: [
           "Orbit (drag) to rotate around the box",
-          "Scroll or pinch to zoom; use the zoom slider for precise framing",
-          "Right-drag to pan",
-          "Optional auto-rotate for a continuous turntable feel",
-          "HDRI environments: studio, city, warehouse, sunset, or dawn",
-          "Toggle floor grid, orientation axes, and wireframe when useful for structure checks",
+          "Scroll or pinch to zoom; use the zoom buttons for precise framing",
+          "Use the pan control or hold Space to reposition the view",
+          "Choose a camera preset for front, back, side, top, or perspective views",
+          "Review outside and inside graphics in open and closed states",
+          "Toggle measurements when checking proportions and scale",
         ],
       },
       {
         type: "p",
-        text: "For a hero product render, a three-quarter angle with studio or warehouse lighting usually reads clearly. Switch environments if you are matching a lifestyle shoot versus a clean catalog look.",
+        text: "For a hero preview, a three-quarter angle usually makes both the front and side artwork clear. Keep framing consistent when comparing designs. Dedicated scene backgrounds and lighting controls are outside the current V2 launch scope.",
       },
       {
         type: "h2",
@@ -1130,7 +1141,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "When the preview looks right, export a viewport PNG for decks, product pages, social posts, packaging approvals, and pitch materials. You can also record a short viewport video of the opening animation for unboxing context, or download a JSON backup so you can reload the design later.",
+        text: "When the preview looks right, export a viewport PNG for decks, product-page drafts, social posts, packaging approvals, and pitch materials. Save the project to your account for later revisions and share a view-only link when stakeholders need an interactive review. Print / Save PDF prepares the current flat layout for discussion and separate production validation.",
       },
       {
         type: "p",
@@ -1157,7 +1168,7 @@ export const BLOG_POSTS: BlogPost[] = [
           "Confirm the lid-from-back opening and set open amount to about 35–50% for a mid-open hero shot.",
           "Choose white folding carton or kraft depending on brand positioning.",
           "Upload lid (top) artwork with the logo centered; upload side and front panels with brand color fields.",
-          "Orbit to a three-quarter camera; switch HDRI to studio lighting; export a closed PNG and an open PNG.",
+          "Orbit to a three-quarter angle and export closed and open PNG previews. Keep camera framing consistent across design revisions.",
           "Save your project and share a view-only preview link with merchandising for approval.",
         ],
       },
@@ -1226,7 +1237,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "You now have a complete path from dimensions and artwork to an interactive 3D packaging mockup and PNG export. Open the studio, enter your carton sizes, dress each face, preview open and closed states, and share a link with your team.",
+        text: "You now have a path from a supported template and dimensions to flat-layout artwork, interactive 3D review, and PNG export. Save the design to your account and share a view-only link with your team. Confirm final production files with your printer or converter.",
       },
       {
         type: "cta",
@@ -1241,6 +1252,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Preview supplement and vitamin carton mockups in 3D before print—validate panel layout, regulatory copy placement, and shelf presence for health & wellness brands.",
     published: "2025-09-09",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "supplement packaging mockup",
@@ -1289,7 +1301,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open the studio, set your carton dimensions, upload label art per face, and review in 3D. Browser-based, free, and ready for your next SKU launch.",
+        text: "Open the studio, choose a supported carton, set dimensions, and position label artwork on the flat layout. Review the package in 3D, then save and share your design for the next SKU launch.",
       },
     ],
   },
@@ -1299,6 +1311,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Luxury and gift box packaging demands flawless proportions. Use a 3D packaging simulator to preview rigid-style cartons, foil accents, and unboxing angles before committing to premium print.",
     published: "2025-09-16",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "gift box mockup",
@@ -1320,7 +1333,7 @@ export const BLOG_POSTS: BlogPost[] = [
         items: [
           "Logo scale on lid vs. front panel for unboxing hero shots",
           "Metallic foil material preset against matte board contrast",
-          "Lid-from-back opening animation for gift-reveal videos",
+          "Interactive lid-opening previews for planning the gift reveal",
           "Interior panel art visibility when the box is partially open",
           "Retail shelf presence next to competitor cartons",
         ],
@@ -1335,11 +1348,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Record unboxing previews for campaigns",
+        text: "Storyboard the unboxing reveal",
       },
       {
         type: "p",
-        text: "Record a viewport MP4 of the lid opening to storyboard holiday campaign videos or pitch retail buyers. Pair the render with flat artwork for a complete creative presentation.",
+        text: "Review the supported template’s lid opening interactively, then export PNGs of key open and closed states for campaign storyboards or buyer presentations. Pair the previews with flat artwork. Video export is outside the current V2 launch scope.",
       },
       {
         type: "h2",
@@ -1347,7 +1360,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Set dimensions, apply the metallic foil or gloss white preset, upload your brand art, and export shelf-angle PNGs. Free in the browser—save budget for the actual foil stamp die.",
+        text: "Choose a supported structure, set dimensions, select Foil or Gloss coated, and position brand artwork on the flat layout. Export PNGs for visual discussion, then approve actual foil, embossing, and print finishes with your supplier.",
       },
     ],
   },
@@ -1357,6 +1370,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Evaluate eco-friendly packaging choices—kraft board, minimal ink coverage, right-sized cartons—in a 3D simulator before committing to sustainable print runs.",
     published: "2025-09-23",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "eco-friendly packaging mockup",
@@ -1404,7 +1418,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open the studio, pick kraft or corrugated presets, set right-sized dimensions, and export PNGs for your sustainability review. No CAD license, no physical sample waste.",
+        text: "Open the studio, choose a supported template and Kraft material, set right-sized dimensions, and export PNGs for your sustainability review. Confirm actual board specification and environmental claims with your supplier.",
       },
     ],
   },
@@ -1472,6 +1486,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Preview tuck end boxes and folding cartons in 3D—validate retail packaging proportions, panel artwork, and shelf angles before your converter runs the first proof.",
     published: "2025-10-07",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "tuck end box mockup",
@@ -1520,7 +1535,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Enter retail carton dimensions, upload panel artwork per face, pick white board or kraft, and orbit the model at shelf angle. Free, browser-based, and ready for your next line review.",
+        text: "Choose a supported retail carton, enter its dimensions, place artwork on the flat layout, and select White board or Kraft for visual review. Orbit to a shelf-facing angle and share a PNG or interactive preview for your next line review.",
       },
     ],
   },
@@ -1580,6 +1595,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Pet brand packaging needs bold shelf presence. Preview treat cartons, supplement boxes, and toy shippers in 3D before committing to pet-category print minimums.",
     published: "2025-10-21",
+    updated: "2026-10-01",
     readMinutes: 4,
     keywords: [
       "pet packaging mockup",
@@ -1612,7 +1628,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Enter exact outer dimensions for your SKU—single-serve treat boxes, multi-pack cartons, or corrugated toy shippers. Upload artwork per face, switch between corrugated and white board presets, and orbit the model at pet-aisle eye level.",
+        text: "Choose a supported template and enter the dimensions for your SKU, from single-serve treat cartons to larger toy packaging. Position artwork on the flat layout, compare Kraft and White board, and inspect the assembled preview at a shelf-facing angle. Confirm structural suitability with your supplier.",
       },
       {
         type: "h2",
@@ -1630,6 +1646,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Create a free mailer box mockup online—set custom dimensions, upload branding, and export PNGs for DTC launches, Amazon FBA, and wholesale presentations.",
     published: "2025-10-28",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "mailer box mockup",
@@ -1670,7 +1687,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Enter width × height × depth in inches or millimeters, pick the corrugated or kraft preset, upload logo and side art, and orbit to a three-quarter hero angle. Export a PNG for your ops sync or Amazon listing draft.",
+        text: "Choose a supported mailer structure, enter width × height × depth in inches or millimeters, and select Kraft or White board for visual review. Position logo and side artwork on the flat layout, then export a PNG for your operations discussion or listing draft.",
       },
       {
         type: "h2",
@@ -1678,7 +1695,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio in the browser and create a custom mailer box mockup online in minutes. Export viewport PNGs or record a short opening clip for your launch deck.",
+        text: "Open 3D Box Studio in the browser and create a custom mailer box mockup from a supported template. Export viewport PNGs or share a view-only preview link for your launch deck and team review.",
       },
     ],
   },
@@ -1688,6 +1705,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Roasters and coffee brands can preview bag shippers, gift cartons, and retail boxes in 3D—validate label art and shelf presence before print runs.",
     published: "2025-11-04",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "coffee packaging mockup",
@@ -1720,7 +1738,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Orbit the model at a three-quarter angle to check whether farm name, roast date, and flavor notes stay readable. Switch HDRI environments to approximate café lighting vs. warehouse fulfillment photos.",
+        text: "Orbit the model at a three-quarter angle to check whether the brand name, roast date, and flavor notes remain readable. Compare artwork and material choices in the preview, then confirm colors and finishes under real conditions with a printed sample.",
       },
       {
         type: "h2",
@@ -1746,6 +1764,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Hardware startups and gadget brands can preview retail cartons and accessory shippers in 3D—validate unboxing, branding, and proportions before tooling.",
     published: "2025-11-11",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "electronics packaging mockup",
@@ -1767,7 +1786,7 @@ export const BLOG_POSTS: BlogPost[] = [
         items: [
           "Front-panel product name and hero graphic at retail eye level",
           "Accessory kits and cable shippers with consistent brand blocks",
-          "Lid openings for unboxing videos and Kickstarter campaign clips",
+          "Interactive lid-opening previews for unboxing and Kickstarter planning",
           "White gloss vs. matte board for premium vs. value SKUs",
           "Regulatory icons and barcode placement on side panels",
         ],
@@ -1794,7 +1813,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open the studio, set dimensions, pick white carton or matte plastic presets, upload face art, and export hero PNGs. Browser-based and free—ideal for hardware launches on a tight schedule.",
+        text: "Open the studio, choose a supported structure, set dimensions, select White board or Matte coated, and position artwork on the flat layout. Export PNG previews or share an interactive review link for your hardware launch.",
       },
     ],
   },
@@ -1804,6 +1823,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Jewelry brands can preview gift cartons, ring boxes, and set packaging in 3D—validate foil accents, proportions, and unboxing angles before premium print.",
     published: "2025-11-18",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "jewelry packaging mockup",
@@ -1844,7 +1864,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Swap seasonal artwork on the same dimensions and export PNGs for lookbooks and wholesale line sheets. Record a short viewport MP4 of the lid opening for campaign storyboards.",
+        text: "Swap seasonal artwork on a saved design and export PNGs for lookbooks and wholesale line sheets. Use open and closed views to storyboard the reveal, or share a view-only preview link for interactive feedback.",
       },
       {
         type: "h2",
@@ -1862,6 +1882,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Chocolate and confectionery brands can preview gift cartons, bar shippers, and seasonal boxes in 3D before committing to retail print runs.",
     published: "2025-11-25",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "chocolate packaging mockup",
@@ -1902,7 +1923,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Category managers respond to visuals. Send a PNG mockup with warehouse or studio lighting alongside your flat mechanical art so they can evaluate shelf presence quickly.",
+        text: "Category managers respond to visuals. Send a PNG mockup from a clear shelf-facing angle alongside your flat mechanical art so they can evaluate brand hierarchy and proportions. Confirm actual colors and finishes with print proofs.",
       },
       {
         type: "h2",
@@ -1920,6 +1941,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Soap makers and bath & body brands can preview bar cartons, gift sets, and mailers in 3D—validate label art and unboxing before seasonal print orders.",
     published: "2025-12-02",
+    updated: "2026-10-01",
     readMinutes: 4,
     keywords: [
       "soap packaging mockup",
@@ -1952,7 +1974,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Export panel PNGs from Canva or Illustrator, enter your carton dimensions from the packaging supplier, and upload each face in 3D Box Studio. Orbit to check whether your logo dominates the front panel or needs a size tweak.",
+        text: "Export artwork from Canva or Illustrator, choose a supported template, enter the carton dimensions from your supplier, and position graphics on the flat dieline. Orbit in 3D to check whether the logo dominates the front panel or needs a size adjustment.",
       },
       {
         type: "h2",
@@ -1970,6 +1992,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Tea brands can preview sachet cartons, caddy boxes, and gift sets in 3D—validate shelf presence, flavor naming, and unboxing before print.",
     published: "2025-12-09",
+    updated: "2026-10-01",
     readMinutes: 4,
     keywords: [
       "tea packaging mockup",
@@ -2002,7 +2025,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Export shelf-angle PNGs for grocery buyers and clean studio shots for Shopify or Amazon listings. Change HDRI lighting to match each channel without rebuilding artwork.",
+        text: "Export shelf-facing PNG previews for grocery buyers and clearly framed images for online listing drafts. Keep framing consistent across variants and check each channel’s image requirements before publishing. Use physical proofs to approve actual print colors.",
       },
       {
         type: "h2",
@@ -2020,6 +2043,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Skip Photoshop smart objects and paid template packs. Learn how to create packaging mockups without Photoshop using a free browser-based 3D box maker.",
     published: "2025-12-16",
+    updated: "2026-10-01",
     readMinutes: 5,
     keywords: [
       "packaging mockup without photoshop",
@@ -2052,7 +2076,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "A tool like 3D Box Studio focuses on visual validation: materials, per-face artwork, openings, and PNG or MP4 export. It is not a substitute for die-line CAD or press proofs—but it is faster than Photoshop for proportion checks and client approval.",
+        text: "3D Box Studio focuses on visual validation: supported structures, dimensions, materials, dieline artwork, opening previews, saving, sharing, and PNG output. The flat layout can be prepared through Print / Save PDF, but production dielines and print proofs still need validation by the responsible packaging workflow.",
       },
       {
         type: "h2",
@@ -2060,7 +2084,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Design flats in Figma, Canva, Affinity, or Illustrator. Export PNGs per face. Open the studio, set dimensions, upload art, review openings, and export a viewport PNG. Optional JSON backup lets you reopen the exact scene later.",
+        text: "Create graphics in Figma, Canva, Affinity, or Illustrator and export supported artwork images. Choose a ready template in the studio, set dimensions, place artwork on the flat layout, and review the package in 3D. Save it to your account, share a preview link, or export a viewport PNG.",
       },
       {
         type: "h2",
