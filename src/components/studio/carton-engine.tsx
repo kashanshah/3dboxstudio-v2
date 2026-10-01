@@ -658,10 +658,13 @@ function buildLegacyBoxMeshes(
     // At 70% assembly the carton is formed with both top flaps physically
     // upright. The final 30% closes them around their own front/back creases.
     const closeAngle=(1-openingT)*(Math.PI/2);
-    const topFront=foldFlap('Top Left','Front','top',-closeAngle);
-    const topBack=foldFlap('Top Right','Back','top',-closeAngle);
-    if(topFront)panels.push({name:'Top Left',corners:topFront});
-    if(topBack)panels.push({name:'Top Right',corners:topBack});
+    const topParents=splitTopHingeSide==='side_a'
+      ? {left:'Left',right:'Right'}
+      : {left:'Front',right:'Back'};
+    const topLeft=foldFlap('Top Left',topParents.left,'top',-closeAngle);
+    const topRight=foldFlap('Top Right',topParents.right,'top',-closeAngle);
+    if(topLeft)panels.push({name:'Top Left',corners:topLeft});
+    if(topRight)panels.push({name:'Top Right',corners:topRight});
   }else{
     const bottom=foldFlap('Bottom','Front','bottom',foldAngle);
     if(bottom)panels.push({name:'Bottom',corners:bottom});
