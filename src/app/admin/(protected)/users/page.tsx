@@ -40,6 +40,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 <th aria-sort={sort === 'name' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Name" column="name" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'email' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Email" column="email" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'verified' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Verified" column="verified" sort={sort} dir={dir} href={sortHref} /></th>
+                <th aria-sort={sort === 'projects' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Projects" column="projects" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'designs' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Designs" column="designs" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'media' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Media" column="media" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'joined' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Joined" column="joined" sort={sort} dir={dir} numeric href={sortHref} /></th>
@@ -51,6 +52,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   <td><Link href={adminUserHref(user.id)}>{user.name}</Link></td>
                   <td>{user.email}</td>
                   <td>{user.verified ? 'Yes' : 'No'}</td>
+                  <td>{user.projectCount.toLocaleString()}</td>
                   <td>
                     <AdminUserDesignsButton userId={user.id} userEmail={user.email} userName={user.name} designCount={user.designCount} />
                   </td>
@@ -59,7 +61,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                   </td>
                   <td>{user.createdAt ? formatAdminDateTime(user.createdAt) : '—'}</td>
                 </tr>
-              )) : <tr><td colSpan={6}>No users match this search.</td></tr>}
+              )) : <tr><td colSpan={7}>No users match this search.</td></tr>}
             </tbody>
           </table>
         </div>

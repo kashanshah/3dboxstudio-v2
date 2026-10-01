@@ -9,6 +9,7 @@ export type AdminUserRow = {
   verified: boolean;
   signupMethod: string;
   createdAt: string | null;
+  projectCount: number;
   designCount: number;
   mediaCount: number;
 };
@@ -122,13 +123,14 @@ export function parseAdminQuery(value?: string): string {
 }
 
 export type AdminSortDir = 'asc' | 'desc';
-export const USER_SORTS = ['name', 'email', 'verified', 'designs', 'media', 'joined'] as const;
+export const USER_SORTS = ['name', 'email', 'verified', 'projects', 'designs', 'media', 'joined'] as const;
 export const DESIGN_SORTS = ['name', 'owner', 'images', 'source', 'updated'] as const;
 export const MEDIA_SORTS = ['name', 'owner', 'designs', 'added'] as const;
 const USER_SORT_SQL: Record<(typeof USER_SORTS)[number], string> = {
   name: `lower(COALESCE(NULLIF(u.name,''), u.email))`,
   email: `lower(u.email)`,
   verified: `(u.email_verified_at IS NOT NULL)`,
+  projects: `project_count`,
   designs: `design_count`,
   media: `media_count`,
   joined: `u.created_at`,
@@ -225,6 +227,7 @@ function presentUser(row: {
   email_verified_at: string | Date | null;
   signup_method: string | null;
   created_at: string | Date | null;
+  project_count: number;
   design_count: number;
   media_count: number;
 }): AdminUserRow {
@@ -235,6 +238,7 @@ function presentUser(row: {
     verified: Boolean(row.email_verified_at),
     signupMethod: row.signup_method?.trim() || 'Unknown',
     createdAt: iso(row.created_at),
+    projectCount: Number(row.project_count || 0),
     designCount: Number(row.design_count || 0),
     mediaCount: Number(row.media_count || 0),
   };
@@ -256,6 +260,7 @@ export async function listUsers(input: { q?: string; page?: number; sort?: strin
       FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
     )
     SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
+      (SELECT COUNT(*)::int FROM workspace_projects wp WHERE wp.user_id=u.id) AS project_count,
       (SELECT COUNT(*)::int FROM design_rows d WHERE d.user_id=u.id) AS design_count,
       (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE user_id=u.id) AS media_count,
       COUNT(*) OVER()::int AS total
@@ -278,6 +283,7 @@ export async function getUser(id: string, list?: { sort?: string; dir?: string }
       FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
     )
     SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
+      (SELECT COUNT(*)::int FROM workspace_projects wp WHERE wp.user_id=u.id) AS project_count,
       (SELECT COUNT(*)::int FROM design_rows d WHERE d.user_id=u.id) AS design_count,
       (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE user_id=u.id) AS media_count
     FROM users u WHERE u.id=$1 LIMIT 1
