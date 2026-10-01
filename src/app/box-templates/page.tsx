@@ -43,6 +43,14 @@ const faqs = [
   {
     "question": "Can new structures be added later?",
     "answer": "Yes. The template architecture is designed so new structures can define their own geometry and behavior without hard-coding the entire Studio around one dieline."
+  },
+  {
+    "question": "Can template dimensions be changed after artwork is added?",
+    "answer": "Yes. Supported structures are dimension-driven, although major size changes can affect artwork placement and should be reviewed again in both 2D and 3D."
+  },
+  {
+    "question": "Does each template have its own dieline?",
+    "answer": "Each supported template defines the flat panel layout and geometry used by the Design workspace. The layout is generated from the Studio's own template rather than imported from an external dieline file."
   }
 ];
 
