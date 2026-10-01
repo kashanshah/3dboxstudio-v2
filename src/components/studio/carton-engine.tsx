@@ -603,11 +603,37 @@ function buildLegacyBoxMeshes(
       const hinge=rotateY(rightBackFlat,frontRightHinge,foldAngle);
       return rotateY(first,hinge,foldAngle);
     }
-    if(name==='Left')return rotateY(p,frontLeftHinge,-foldAngle);
-    if(name==='Glue'){
-      const first=rotateY(p,frontLeftHinge,-foldAngle);
-      const hinge=rotateY(leftGlueFlat,frontLeftHinge,-foldAngle);
-      return rotateY(first,hinge,-foldAngle);
+
+    if(splitTop){
+      // Split Top's production net is Front -> Right -> Back -> Left.
+      // Left is therefore the third hinged panel in the chain, not a panel
+      // directly attached to Front as it is in the legacy Base Box net.
+      if(name==='Left'){
+        const leftFlat=flatCornerMap.get('Left');
+        if(!leftFlat)return [...p];
+        const backFlat=flatCornerMap.get('Back');
+        if(!backFlat)return [...p];
+        const backLeftFlat=[backFlat[1][0],0,z1];
+
+        const first=rotateY(p,frontRightHinge,foldAngle);
+        const rightBackHinge=rotateY(rightBackFlat,frontRightHinge,foldAngle);
+        const second=rotateY(first,rightBackHinge,foldAngle);
+
+        const backLeftAfterFirst=rotateY(backLeftFlat,frontRightHinge,foldAngle);
+        const backLeftHinge=rotateY(backLeftAfterFirst,rightBackHinge,foldAngle);
+        return rotateY(second,backLeftHinge,foldAngle);
+      }
+      if(name==='Glue'){
+        // The split-top glue tab is attached directly to Front's left crease.
+        return rotateY(p,frontLeftHinge,-foldAngle);
+      }
+    }else{
+      if(name==='Left')return rotateY(p,frontLeftHinge,-foldAngle);
+      if(name==='Glue'){
+        const first=rotateY(p,frontLeftHinge,-foldAngle);
+        const hinge=rotateY(leftGlueFlat,frontLeftHinge,-foldAngle);
+        return rotateY(first,hinge,-foldAngle);
+      }
     }
     return [...p];
   };
