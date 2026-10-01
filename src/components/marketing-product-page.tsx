@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import "./marketing-product-page.css";
@@ -16,6 +17,7 @@ export function MarketingProductPage({
   sections,
   faqs,
   note,
+  heroAside,
 }: {
   eyebrow: string;
   title: string;
@@ -26,18 +28,22 @@ export function MarketingProductPage({
   sections: MarketingPageSection[];
   faqs: MarketingPageFaq[];
   note?: string;
+  heroAside?: ReactNode;
 }) {
   return <>
     <SiteHeader />
     <main id="main" className="marketing-product-page">
-      <section className="mpp-hero">
-        <span className="mpp-eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-        <p>{intro}</p>
-        <div className="mpp-actions">
-          <Link className="mpp-primary" href="/studio">{primaryCta}<ArrowRight /></Link>
-          {secondaryHref && secondaryLabel ? <Link className="mpp-secondary" href={secondaryHref}>{secondaryLabel}</Link> : null}
+      <section className={`mpp-hero${heroAside ? " has-aside" : ""}`}>
+        <div className="mpp-hero-copy">
+          <span className="mpp-eyebrow">{eyebrow}</span>
+          <h1>{title}</h1>
+          <p>{intro}</p>
+          <div className="mpp-actions">
+            <Link className="mpp-primary" href="/studio">{primaryCta}<ArrowRight /></Link>
+            {secondaryHref && secondaryLabel ? <Link className="mpp-secondary" href={secondaryHref}>{secondaryLabel}</Link> : null}
+          </div>
         </div>
+        {heroAside ? <div className="mpp-hero-aside">{heroAside}</div> : null}
       </section>
 
       <section className="mpp-studio-proof">
