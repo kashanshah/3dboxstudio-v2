@@ -154,6 +154,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [shareOpen,setShareOpen] = useState(false);
   const [shareBusy,setShareBusy] = useState(false);
   const [shareUrl,setShareUrl] = useState('');
+  const [shareCopied,setShareCopied] = useState(false);
   const [shareId,setShareId] = useState('');
   const [shareError,setShareError] = useState('');
   const [projectTransferMode,setProjectTransferMode] = useState<'move'|'copy'|null>(null);
@@ -1864,7 +1865,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <h2 id="share-design-title">{shareUrl?t("studio.interactive_review_link"):t("studio.could_not_create_link")}</h2>
           <p>{shareUrl?t("studio.anyone_with_this_link_can_view_and_rotate_the_shared_design_they_cannot_edi"):t("studio.the_share_link_was_not_created")}</p>
         </div>
-        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label={t("studio.share_link_2")}/><button type="button" className="pro-secondary-button" onClick={()=>void navigator.clipboard.writeText(shareUrl)}>{t("studio.copy")}</button></div>}
+        {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label={t("studio.share_link_2")}/><button type="button" className="pro-secondary-button" onClick={async()=>{try{await navigator.clipboard.writeText(shareUrl);setShareCopied(true);setMessage('Share link copied');window.setTimeout(()=>setShareCopied(false),1800);}catch{setShareCopied(false);setMessage('Could not copy share link');}}}>{shareCopied?<><Check size={15}/> Copied</>:t("studio.copy")}</button></div>}
         {shareError&&<p className="pro-transfer-error" role="alert">{shareError}</p>}
         <div className="pro-confirm-actions">
           {shareUrl&&<button type="button" className="pro-secondary-button is-danger-text" disabled={shareBusy} onClick={()=>void revokeShare()}>{t("studio.disable_link")}</button>}
