@@ -101,7 +101,7 @@ export function OriginalHome() {
     <section className="home-hero">
       <div className="hero-copy animate-fade-in">
         <div className="hero-badge"><Sparkles /> Free online packaging design workspace</div>
-        <h1>Design the box.<br/><span>See it in 3D.</span></h1>
+        <h1>Design <br/>the box.<br/><span>See it in 3D.</span></h1>
         <p>3D Box Studio is a free browser-based 3D box designer and packaging mockup generator. Choose a structure, set finished dimensions, design on the dieline, preview the package in 3D, and export a polished PNG—without installing software.</p>
         <div className="hero-actions"><Button asChild size="lg"><Link href="/studio">Start designing <ArrowRight /></Link></Button><Button variant="outline" size="lg" asChild><a href="#workflow"><CirclePlay /> See how it works</a></Button></div>
         <div className="hero-proof"><span>No install</span><i/><span>2D + 3D in one workflow</span><i/><span>Free to start</span></div>

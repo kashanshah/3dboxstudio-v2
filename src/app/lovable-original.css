@@ -23,7 +23,7 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .lovable-original .site-nav{ width: min(1180px, calc(100% - 40px)); height: 76px; margin: auto; display: flex; align-items: center; justify-content: space-between; }
 .lovable-original .site-nav a:not([class]){ color: var(--muted-foreground); font-size: 13px; font-weight: 600; text-decoration: none; transition: color .2s; }
 .lovable-original .site-nav a:not([class]):hover{ color: var(--foreground); }
-.lovable-original .home-hero{ min-height: 760px; width: min(1240px, calc(100% - 40px)); margin: auto; display: grid; grid-template-columns: .82fr 1.18fr; align-items: center; gap: 54px; padding: 55px 0 96px; }
+.lovable-original .home-hero{ min-height: 760px; width: min(1240px, calc(100% - 40px)); margin: auto; display: grid; grid-template-columns: 1.1fr 1.18fr; align-items: center; gap: 54px; padding: 55px 0 96px; }
 .lovable-original .hero-copy{ position: relative; z-index: 2; }
 .lovable-original .hero-badge{ display: inline-flex; align-items: center; gap: 8px; color: var(--primary); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .lovable-original .hero-badge svg{ width: 15px; }
