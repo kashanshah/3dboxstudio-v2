@@ -13,7 +13,7 @@ import {
   ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X
+  Trash2, Upload, X, Eye, EyeOff
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -1670,7 +1670,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           layers={artworkScope === 'inside' ? insideDielineLayers : outsideDielineLayers}
           selectedLayerId={artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId}
           onSelectLayer={artworkScope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId}
-          onUpdateLayer={(layerId, transform) => updateFullDielineLayer(artworkScope, layerId, transform)}
+          onUpdateLayer={(layerId, transform, meta) => {
+            const setter=artworkScope==='inside'?setInsideDielineLayers:setOutsideDielineLayers;
+            setter(current=>current.map(layer=>layer.id===layerId?{...layer,transform,...meta}:layer));
+          }}
           onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
           onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
           onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
@@ -2368,7 +2371,7 @@ function DielinePrototype({
   layers:FullDielineArtworkLayer[];
   selectedLayerId:string|null;
   onSelectLayer:(id:string|null)=>void;
-  onUpdateLayer:(id:string,transform:FullDielineTransform)=>void;
+  onUpdateLayer:(id:string,transform:FullDielineTransform,meta?:{visible?:boolean;opacity?:number})=>void;
   onDuplicateLayer:(id:string)=>void;
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
@@ -2748,7 +2751,8 @@ function DielinePrototype({
                   }}
                   onDragEnd={()=>{draggingLayerId.current=null;setDropTargetId(null);}}
                 >
-                  <img src={layer.url} alt="" draggable={false}/>
+                  <span className="pro-layer-visibility" role="button" tabIndex={0} title={layer.visible===false?'Show layer':'Hide layer'} aria-label={layer.visible===false?'Show layer':'Hide layer'} onClick={event=>{event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}}}>{layer.visible===false?<EyeOff size={15}/>:<Eye size={15}/>}</span>
+                  <img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>
                   <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
                   <i>{realIndex===layers.length-1?t("studio.top"):realIndex+1}</i>
                 </button>;
@@ -2789,6 +2793,11 @@ function DielinePrototype({
                 createFullDielineTransform(activeTransformLayer.aspectRatio, activeTransformWidth / activeTransformHeight),
               )}><Maximize2 size={15}/>{" " + t("studio.reset")}</button>
             </div>
+
+            {selectedLayer && <section className="pro-layer-opacity-control" aria-label="Layer opacity">
+              <div><span>Opacity</span><strong>{Math.round(selectedLayer.opacity ?? 100)}%</strong></div>
+              <input type="range" min="0" max="100" step="1" value={selectedLayer.opacity ?? 100} onChange={event=>onUpdateLayer(selectedLayer.id,selectedLayer.transform,{opacity:Number(event.target.value)})}/>
+            </section>}
 
             <section className="pro-precision-transform" aria-label={t("studio.selected_artwork_transform")}>
               <div className="pro-precision-transform-head">
@@ -2853,7 +2862,7 @@ function DielinePrototype({
           });
         }}
       >
-        <div className="pro-full-artwork-print-surface">{layers.map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}</div>
+        <div className="pro-full-artwork-print-surface">{layers.filter(layer=>layer.visible!==false).map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
@@ -2866,6 +2875,8 @@ function DielinePrototype({
               height:`${layer.transform.height}%`,
               transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`,
               zIndex:10+index,
+              display:layer.visible===false?'none':undefined,
+              opacity:(layer.opacity ?? 100)/100,
             }}
             onPointerDown={event=>beginLayerGesture(event,layer,'move')}
             onPointerMove={updateLayerGesture}
