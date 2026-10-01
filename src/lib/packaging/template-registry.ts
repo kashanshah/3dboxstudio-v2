@@ -56,6 +56,8 @@ export type PackagingTemplateDefinition = {
   foldStages?: FoldStage[];
 
   defaultDimensions?: CartonDimensions;
+  fixedOpeningMode?: string;
+  isDefault?: boolean;
 
   status: 'ready' | 'planned';
 };
@@ -116,19 +118,25 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
       { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 2, step: 0.1, defaultValue: 0.5 },
     ],
     artworkRegions: [
-      ...exteriorRegions.filter(region => region.panelId !== 'Top'),
+      ...exteriorRegions.filter(region => !['Top','Bottom'].includes(region.panelId)),
+      {id:'outside-bottom-front',label:'Bottom front',surface:'outside',panelId:'Bottom Front'},
+      {id:'outside-bottom-back',label:'Bottom back',surface:'outside',panelId:'Bottom Back'},
       {id:'outside-top-left',label:'Top left',surface:'outside',panelId:'Top Left'},
       {id:'outside-top-right',label:'Top right',surface:'outside',panelId:'Top Right'},
-      ...interiorRegions.filter(region => region.panelId !== 'Interior Top'),
+      ...interiorRegions.filter(region => !['Interior Top','Interior Bottom'].includes(region.panelId)),
+      {id:'inside-bottom-front',label:'Inside bottom front',surface:'inside',panelId:'Interior Bottom Front'},
+      {id:'inside-bottom-back',label:'Inside bottom back',surface:'inside',panelId:'Interior Bottom Back'},
       {id:'inside-top-left',label:'Inside top left',surface:'inside',panelId:'Interior Top Left'},
       {id:'inside-top-right',label:'Inside top right',surface:'inside',panelId:'Interior Top Right'},
     ],
     defaultDimensions: { width: 400, height: 300, depth: 300, thickness: 0.5 },
+    fixedOpeningMode: 'top_split_meet_center',
     status: 'ready',
   },
   {
     id: 'reverse-tuck-carton',
     version: 1,
+    isDefault: true,
     name: 'Reverse Tuck End Carton',
     shortName: 'Reverse tuck',
     family: 'folding-carton',
@@ -333,6 +341,12 @@ const templateMap = new Map(PACKAGING_TEMPLATES.map(template => [template.id, te
 
 export function getPackagingTemplate(id: string) {
   return templateMap.get(id) ?? null;
+}
+
+export function getDefaultPackagingTemplate() {
+  return PACKAGING_TEMPLATES.find(template => template.status==='ready' && template.isDefault)
+    ?? getReadyPackagingTemplates()[0]
+    ?? null;
 }
 
 export function getReadyPackagingTemplates() {

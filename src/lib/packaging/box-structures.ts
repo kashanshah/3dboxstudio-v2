@@ -71,11 +71,9 @@ export function splitTopBoxPanels(input:CartonDimensions,_axis:'side_a'|'side_b'
     {id:'topLeft',label:'TOP LEFT',x:frontX,y:0,width:d.width,height:flapDepth,kind:'flap'},
     {id:'topRight',label:'TOP RIGHT',x:backX,y:0,width:d.width,height:flapDepth,kind:'flap'},
 
-    // V1 exposed one Bottom artwork surface. Keep both physical bottom flaps
-    // addressable with the same BOTTOM artwork key in 2D, while the 3D model
-    // continues to expose one finished bottom face.
-    {id:'bottomFront',label:'BOTTOM',x:frontX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
-    {id:'bottomBack',label:'BOTTOM',x:backX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
+    // Distinct artwork keys prevent one physical flap from overwriting the other.
+    {id:'bottomFront',label:'BOTTOM FRONT',x:frontX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
+    {id:'bottomBack',label:'BOTTOM BACK',x:backX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
   ];
 }
 

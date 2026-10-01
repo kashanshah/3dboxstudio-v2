@@ -15,10 +15,10 @@ import {
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
-import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { getTemplateGeometry } from '@/lib/packaging/template-runtime';
+import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
-import { PACKAGING_TEMPLATES, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
+import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
 import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
 import { printDielineLayout } from '@/lib/packaging/dieline-print';
@@ -176,9 +176,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const requestedTemplate = !initialProject && initialTemplateId
     ? PACKAGING_TEMPLATES.find(template => template.id === initialTemplateId && template.status === 'ready')
     : null;
-  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId)
+  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId && template.status === 'ready')
     ?? requestedTemplate
-    ?? PACKAGING_TEMPLATES.find(template => template.id === 'reverse-tuck-carton')!;
+    ?? getDefaultPackagingTemplate();
+  if(!initialTemplate) throw new Error('No ready packaging template is configured.');
+  const initialRuntime = getTemplateRuntime(initialTemplate.id);
+  if(!initialRuntime) throw new Error(`No runtime is registered for template: ${initialTemplate.id}`);
   const [family, setFamily] = useState(initialTemplate.name);
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate.id);
   const [templateSearch, setTemplateSearch] = useState('');
@@ -193,14 +196,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [insideCustomColor, setInsideCustomColor] = useState(initial?.insideCustomColor ?? '#D7E0E7');
   const [camera, setCamera] = useState(initial?.legacySourceId ? 'LegacyPerspective' : 'Perspective');
   const [cameraMenuOpen, setCameraMenuOpen] = useState(false);
-  const legacyFormation = initial?.formation ?? (initial?.templateId==='reverse-tuck-carton' ? initial?.opening : undefined);
+  const legacyFormation = initial?.formation ?? (initialRuntime.assembly.legacyOpeningAsFormation ? initial?.opening : undefined);
   const [formation,setFormationValue] = useState(legacyFormation ?? 100);
-  const [opening, setOpeningValue] = useState(initial?.templateId==='reverse-tuck-carton' && initial?.formation===undefined ? 0 : (initial?.opening ?? 0));
-  const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? (initialTemplate.id==='split-top-box'?'top_split_meet_center':'closed'));
+  const [opening, setOpeningValue] = useState(initialRuntime.assembly.legacyOpeningAsFormation && initial?.formation===undefined ? 0 : (initial?.opening ?? 0));
+  const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? initialRuntime.assembly.defaultOpeningMode);
   const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(initial?.legacySourceId ? 57.34 : 82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
-  const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? initialTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS);
+  const initialDimensions=initial?.dimensions ?? initialTemplate.defaultDimensions;
+  if(!initialDimensions)throw new Error(`Ready template ${initialTemplate.id} is missing default dimensions.`);
+  const [dimensions, setDimensions] = useState<CartonDimensions>(initialRuntime.sanitizeParameters(initialDimensions));
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
   const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.outsideArtworkLayers ?? []);
@@ -221,6 +226,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const canvasPanRef=useRef(canvasPan);
   const [pdfExportRequest,setPdfExportRequest] = useState(0);
   const liveMapTokenRef = useRef(0);
+  const panelMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const mediaAssetsRef = useRef<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -295,7 +301,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     historySerializedRef.current = historySerialized;
   }, [historySnapshot, historySerialized]);
 
-  const applyHistorySnapshot = useCallback((snapshot:StudioHistorySnapshot, messageText:string) => {
+  const applyHistorySnapshot = (snapshot:StudioHistorySnapshot, messageText:string) => {
     if (historyTimerRef.current !== null) {
       window.clearTimeout(historyTimerRef.current);
       historyTimerRef.current = null;
@@ -322,7 +328,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setFaceAction(null);
     setCameraMenuOpen(false);
     setMessage(messageText);
-  }, []);
+  };
 
   const commitCurrentHistory = useCallback(() => {
     if (historyTimerRef.current !== null) {
@@ -416,50 +422,28 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onHistoryKeyDown);
   }, [redoStudioAction, undoStudioAction]);
 
-  const setOpening = useCallback((value: number) => {
+  const setOpening = (value: number) => {
     const next = Math.max(0, Math.min(100, value));
     setOpeningValue(next);
     setFaceAction(null);
     setCameraMenuOpen(false);
-  }, []);
-  const setFormation = useCallback((value:number)=>{
+  };
+  const setFormation = (value:number)=>{
     const next=Math.max(0,Math.min(100,value));
     setFormationValue(next);
     setFaceAction(null);
     setCameraMenuOpen(false);
-  },[]);
+  };
 
-  const hasOpeningStage = selectedTemplateId!=='reverse-tuck-carton'
-    && (selectedTemplateId==='split-top-box' || openingMode!=='closed');
-  const assemblyProgress = selectedTemplateId==='reverse-tuck-carton' || !hasOpeningStage
-    ? formation
-    : formation < 99.999
-      ? formation * 0.7
-      : 70 + (100-opening) * 0.3;
+  const assemblyState = getTemplateAssemblyState(selectedTemplateId,{formation,opening,openingMode});
+  const hasOpeningStage = assemblyState.hasOpeningStage;
+  const assemblyProgress = assemblyState.progress;
+  const assemblyStage = assemblyState.stage;
   const setAssemblyProgress = useCallback((value:number)=>{
-    const next=Math.max(0,Math.min(100,value));
-    if(selectedTemplateId==='reverse-tuck-carton' || !hasOpeningStage){
-      setFormation(next);
-      if(selectedTemplateId!=='reverse-tuck-carton') setOpening(0);
-      return;
-    }
-    if(next<=70){
-      setFormation(next/70*100);
-      setOpening(100);
-    }else{
-      setFormation(100);
-      setOpening((100-next)/30*100);
-    }
-  },[hasOpeningStage,selectedTemplateId,setFormation,setOpening]);
-  const assemblyStage = assemblyProgress<=1
-    ? 'Flat dieline'
-    : hasOpeningStage && assemblyProgress>=69 && assemblyProgress<=71
-      ? 'Assembled · open'
-      : assemblyProgress<70
-        ? 'Forming box'
-        : assemblyProgress<99
-          ? 'Closing package'
-          : 'Closed package';
+    const next=templateAssemblyValuesForProgress(selectedTemplateId,value,openingMode);
+    setFormation(next.formation);
+    setOpening(next.opening);
+  },[selectedTemplateId,openingMode,setFormation,setOpening]);
 
   useEffect(()=>{zoomRef.current=zoom;},[zoom]);
   useEffect(()=>{dielineZoomRef.current=dielineZoom;},[dielineZoom]);
@@ -605,10 +589,23 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     : { scope: 'outside' as const, panel: target };
 
   useEffect(() => {
-    let cancelled=false;
-    void rasterizePanelArtwork(artworkByPanel,dimensions).then(next=>{if(!cancelled)setMappedPanelArtwork(next);}).catch(()=>{if(!cancelled)setMessage('Artwork preview could not update. Try replacing the image.');});
-    return ()=>{cancelled=true;};
-  },[artworkByPanel,dimensions]);
+    const token=++panelMapTokenRef.current;
+    void rasterizePanelArtwork(
+      artworkByPanel,
+      dimensions,
+      selectedTemplateId,
+      {openingMode,splitTopHingeSide},
+    ).then(next=>{
+      if(panelMapTokenRef.current!==token)return;
+      setMappedPanelArtwork(next);
+    }).catch(()=>{
+      if(panelMapTokenRef.current!==token)return;
+      setMessage('Artwork preview could not update. Try replacing the image.');
+    });
+    return ()=>{
+      if(panelMapTokenRef.current===token)panelMapTokenRef.current++;
+    };
+  },[artworkByPanel,dimensions,selectedTemplateId,openingMode,splitTopHingeSide]);
 
   useEffect(() => {
     mediaAssetsRef.current = mediaAssets;
@@ -651,10 +648,22 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const timeout = window.setTimeout(() => {
       void Promise.all([
         outsideDielineLayers.length
-          ? rasterizeFullDielineLayers(outsideDielineLayers, dimensions)
+          ? rasterizeFullDielineLayers(
+              outsideDielineLayers,
+              dimensions,
+              selectedTemplateId,
+              '',
+              {openingMode,splitTopHingeSide},
+            )
           : Promise.resolve({} as ArtworkByPanel),
         insideDielineLayers.length
-          ? rasterizeFullDielineLayers(insideDielineLayers, dimensions, 'Interior ')
+          ? rasterizeFullDielineLayers(
+              insideDielineLayers,
+              dimensions,
+              selectedTemplateId,
+              'Interior ',
+              {openingMode,splitTopHingeSide},
+            )
           : Promise.resolve({} as ArtworkByPanel),
       ]).then(([outsideMapped, insideMapped]) => {
         if (liveMapTokenRef.current !== token) return;
@@ -668,7 +677,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }, 180);
 
     return () => window.clearTimeout(timeout);
-  }, [outsideDielineLayers, insideDielineLayers, dimensions]);
+  }, [outsideDielineLayers, insideDielineLayers, dimensions, selectedTemplateId, openingMode, splitTopHingeSide]);
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) if(asset.url.startsWith('blob:')) URL.revokeObjectURL(asset.url);
@@ -708,13 +717,18 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMessage(`${template.name} is in the catalog, but its real geometry is not ready yet`);
       return;
     }
+    const runtime=getTemplateRuntime(template.id);
+    if(!runtime){
+      setMessage(`${template.name} does not have a registered Studio runtime yet`);
+      return;
+    }
     setSelectedTemplateId(template.id);
     setFamily(template.name);
     setFormation(100);
-    if (template.id === 'split-top-box') { setOpeningMode('top_split_meet_center'); setSplitTopHingeSide('side_a'); setOpeningValue(0); }
-    else if (template.id === 'base-box') { if(openingMode === 'top_split_meet_center') setOpeningMode('closed'); setOpeningValue(0); }
-    else { setOpeningValue(0); }
-    if (template.defaultDimensions) setDimensions(template.defaultDimensions);
+    setOpeningMode(runtime.assembly.defaultOpeningMode);
+    setSplitTopHingeSide('side_a');
+    setOpeningValue(0);
+    if (template.defaultDimensions) setDimensions(runtime.sanitizeParameters(template.defaultDimensions));
     setMessage(`${template.name} selected`);
   };
 
@@ -1500,7 +1514,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMessage('Preview is ready — download from the output panel');
       return;
     }
-    const exported = engineRef.current?.exportPng('3d-box-studio-reverse-tuck.png');
+    const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
@@ -2018,7 +2032,8 @@ function Inspector(props: {
                 <em>{props.measurementUnit}</em>
               </div>
               <button type="button" className="pro-reset-box-size" title="Restore this template’s default width, height, and depth" onClick={() => {
-                const defaults = selectedTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS;
+                const defaults = selectedTemplate.defaultDimensions;
+                if(!defaults){props.setMessage('This template does not define default dimensions');return;}
                 props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
                 props.setMessage('Box size reset to template defaults');
               }}><RotateCcw size={12} aria-hidden="true" /> Reset size</button>
@@ -2253,11 +2268,12 @@ function Inspector(props: {
   </div>;
 
   if (tool === 'opening') {
-    const isSplit=props.selectedTemplateId==='split-top-box';
+    const runtime=getTemplateRuntime(props.selectedTemplateId);
+    const assemblyControl=runtime?.assembly.control ?? 'none';
     return <div className="pro-inspector-content">
       <PanelIntro title="Assemble your box" text="Use one control from the flat dieline through assembly and, where the package opens, all the way to fully closed." />
-      {props.selectedTemplateId!=='reverse-tuck-carton' && <div className="pro-card-section">
-        {isSplit ? <StudioDropdown
+      {assemblyControl!=='none' && <div className="pro-card-section">
+        {assemblyControl==='split-direction' ? <StudioDropdown
           label="Split direction"
           value={props.splitTopHingeSide}
           options={[

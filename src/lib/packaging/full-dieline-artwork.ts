@@ -1,4 +1,5 @@
-import { reverseTuckBounds, reverseTuckPanels, type CartonDimensions } from './reverse-tuck';
+import type { CartonDimensions } from './reverse-tuck';
+import { getTemplateGeometry, type TemplateGeometryOptions } from './template-runtime';
 import { defaultArtworkPlacement, type ArtworkByPanel } from './artwork';
 
 export type FullDielineTransform = {
@@ -87,7 +88,9 @@ export function panelRasterSize(
 export async function rasterizeFullDielineLayers(
   layers: FullDielineArtworkLayer[],
   dimensions: CartonDimensions,
+  templateId: string,
   panelPrefix = '',
+  geometryOptions?: TemplateGeometryOptions,
 ): Promise<ArtworkByPanel> {
   if (!layers.length) return {};
 
@@ -96,7 +99,8 @@ export async function rasterizeFullDielineLayers(
     image: await loadImage(layer.url),
   })));
 
-  const bounds = reverseTuckBounds(dimensions);
+  const geometry = getTemplateGeometry(templateId,dimensions,geometryOptions);
+  const bounds = geometry.bounds;
   const result: ArtworkByPanel = {};
   const compositeName = layers.length === 1 ? layers[0].name : `${layers.length} layer composition`;
 
@@ -104,7 +108,7 @@ export async function rasterizeFullDielineLayers(
   // This deliberately avoids drawing one giant sheet bitmap and cropping it
   // afterwards: each 3D texture is now generated from the exact panel rectangle
   // (Front W×H, sides D×H, top/bottom W×D).
-  for (const panel of reverseTuckPanels(dimensions)) {
+  for (const panel of geometry.panels) {
     const raster=panelRasterSize(panel);
     const panelCanvas = document.createElement('canvas');
     panelCanvas.width = raster.width;
@@ -127,7 +131,7 @@ export async function rasterizeFullDielineLayers(
       ctx.restore();
     }
 
-    const panelName = panel.label[0] + panel.label.slice(1).toLowerCase();
+    const panelName = panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
     result[`${panelPrefix}${panelName}`] = {
       ...defaultArtworkPlacement(compositeName, panelCanvas.toDataURL('image/png')),
       panelTexture: true,
@@ -144,8 +148,13 @@ export async function rasterizeFullDielineLayers(
 
 // Bake board transforms into a transparent face texture, so the 2D and 3D
 // views use identical clipping, rotation, stretching, and placement.
-export async function rasterizePanelArtwork(artwork: ArtworkByPanel, dimensions: CartonDimensions): Promise<ArtworkByPanel> {
-  const panels=reverseTuckPanels(dimensions);
+export async function rasterizePanelArtwork(
+  artwork: ArtworkByPanel,
+  dimensions: CartonDimensions,
+  templateId: string,
+  geometryOptions?: TemplateGeometryOptions,
+): Promise<ArtworkByPanel> {
+  const panels=getTemplateGeometry(templateId,dimensions,geometryOptions).panels;
   const entries=await Promise.all(Object.entries(artwork).filter(([,value])=>value.transform).map(async([key,value])=>{
     const panel=panels.find(item=>item.label.toLowerCase()===key.replace('Interior ','').toLowerCase());
     if(!panel || !value.transform) return null;
