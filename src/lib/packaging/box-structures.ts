@@ -49,31 +49,36 @@ export function baseBoxPanels(input:CartonDimensions,openingMode:LegacyOpeningMo
   return panels;
 }
 
-export function splitTopBoxPanels(input:CartonDimensions,_axis:'side_a'|'side_b'='side_a'):DielinePanel[]{
+export function splitTopBoxPanels(input:CartonDimensions,axis:'side_a'|'side_b'='side_a'):DielinePanel[]{
   const d=sanitizeCartonDimensions(input);
   const glue=glueWidth(d);
-  // Production-style split-top / RSC layout:
-  // glue → major panel → minor panel → major panel → minor panel.
-  // The paired top and bottom closure flaps live on the two opposing major panels.
-  const flapDepth=d.depth/2;
-  const bodyY=flapDepth;
+  const topExtent=axis==='side_a'?d.width/2:d.depth/2;
+  const bottomExtent=d.depth/2;
+  const bodyY=topExtent;
   const frontX=glue;
   const rightX=frontX+d.width;
   const backX=rightX+d.depth;
   const leftX=backX+d.width;
+
+  const topPanels:DielinePanel[]=axis==='side_a'
+    ? [
+      {id:'topLeft',label:'TOP LEFT',x:leftX,y:0,width:d.depth,height:d.width/2,kind:'flap'},
+      {id:'topRight',label:'TOP RIGHT',x:rightX,y:0,width:d.depth,height:d.width/2,kind:'flap'},
+    ]
+    : [
+      {id:'topLeft',label:'TOP LEFT',x:frontX,y:0,width:d.width,height:d.depth/2,kind:'flap'},
+      {id:'topRight',label:'TOP RIGHT',x:backX,y:0,width:d.width,height:d.depth/2,kind:'flap'},
+    ];
+
   return [
     {id:'glue',label:'GLUE',x:0,y:bodyY,width:glue,height:d.height,kind:'glue'},
     {id:'front',label:'FRONT',x:frontX,y:bodyY,width:d.width,height:d.height,kind:'body'},
     {id:'right',label:'RIGHT',x:rightX,y:bodyY,width:d.depth,height:d.height,kind:'body'},
     {id:'back',label:'BACK',x:backX,y:bodyY,width:d.width,height:d.height,kind:'body'},
     {id:'left',label:'LEFT',x:leftX,y:bodyY,width:d.depth,height:d.height,kind:'body'},
-
-    {id:'topLeft',label:'TOP LEFT',x:frontX,y:0,width:d.width,height:flapDepth,kind:'flap'},
-    {id:'topRight',label:'TOP RIGHT',x:backX,y:0,width:d.width,height:flapDepth,kind:'flap'},
-
-    // Distinct artwork keys prevent one physical flap from overwriting the other.
-    {id:'bottomFront',label:'BOTTOM FRONT',x:frontX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
-    {id:'bottomBack',label:'BOTTOM BACK',x:backX,y:bodyY+d.height,width:d.width,height:flapDepth,kind:'flap'},
+    ...topPanels,
+    {id:'bottomFront',label:'BOTTOM FRONT',x:frontX,y:bodyY+d.height,width:d.width,height:bottomExtent,kind:'flap'},
+    {id:'bottomBack',label:'BOTTOM BACK',x:backX,y:bodyY+d.height,width:d.width,height:bottomExtent,kind:'flap'},
   ];
 }
 
