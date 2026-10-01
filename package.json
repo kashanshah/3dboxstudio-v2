@@ -22,7 +22,8 @@
     "audit:legacy-designs": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-design-audit.mjs",
     "audit:legacy-fidelity": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-fidelity-audit.mjs",
     "migrate:legacy-shares": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-legacy-shares.mjs",
-    "repair:legacy-orientations": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/repair-legacy-orientations.mjs"
+    "repair:legacy-orientations": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/repair-legacy-orientations.mjs",
+    "test:board-image-browser": "node scripts/board-artwork-image.browser.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
