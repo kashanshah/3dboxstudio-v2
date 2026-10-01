@@ -33,6 +33,8 @@ export type BlogPost = {
   keywords: string[];
   /** Optional alt override; defaults to a title-based caption. */
   imageAlt?: string;
+  /** Optional image path override so related guides can reuse an existing product visual. */
+  imagePath?: string;
   /** Optional related article slugs for topic-cluster linking. */
   relatedSlugs?: string[];
   /** Optional FAQ pairs for on-page accordion + FAQPage JSON-LD.
@@ -47,7 +49,8 @@ export const BLOG_IMAGE_HEIGHT = 800;
 
 /** Public path for a post’s generated 16:9 thumbnail (WebP). */
 export function getBlogPostImagePath(slug: string): string {
-  return `/images/blog/${slug}.webp`;
+  const post = BLOG_POSTS?.find?.((item) => item.slug === slug);
+  return post?.imagePath ?? `/images/blog/${slug}.webp`;
 }
 
 export function getBlogPostImageAlt(post: BlogPost): string {
