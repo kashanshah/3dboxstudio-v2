@@ -11,7 +11,7 @@ export function BrandLogo({ compact = false, tone = 'light', className, priority
   const src = compact
     ? `/brand/logo-mark-${tone}.svg`
     : `/brand/logo-horizontal-${tone}.svg`;
-  const width = compact ? 56 : 206;
+  const width = compact ? 56 : 212;
   return <Image
     src={src}
     alt="3D Box Studio"
