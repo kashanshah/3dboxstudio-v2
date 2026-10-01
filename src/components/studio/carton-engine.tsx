@@ -49,6 +49,8 @@ type Mesh = {
   color: [number, number, number];
   model?: Float32Array;
   panel?: string;
+  fallbackPanel?: string;
+  fallbackUv?: [number,number,number,number];
   pickCorners?: number[][];
   faceAspect?: number;
   doubleSided?: boolean;
@@ -233,7 +235,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   return <canvas
     ref={canvasRef}
     className={`carton-engine-canvas${panEnabled?' is-pan-enabled':''}`}
-    aria-label="Interactive WebGL reverse-tuck carton"
+    aria-label="Interactive 3D packaging preview"
     onPointerDown={onPointerDown}
     onPointerMove={onPointerMove}
     onPointerUp={onPointerUp}
@@ -287,6 +289,7 @@ function createRenderer(canvas: HTMLCanvasElement) {
   const uvRotationLocation = gl.getUniformLocation(program, 'uUvRotation');
   const tileLocation = gl.getUniformLocation(program, 'uTile');
   const clipLocation = gl.getUniformLocation(program, 'uClipOutside');
+  const faceUvLocation = gl.getUniformLocation(program, 'uFaceUv');
   const uvCropLocation = gl.getUniformLocation(program, 'uUvCrop');
   const overlayColorLocation = gl.getUniformLocation(program, 'uOverlayColor');
   const overlayAlphaLocation = gl.getUniformLocation(program, 'uOverlayAlpha');
@@ -368,12 +371,15 @@ function createRenderer(canvas: HTMLCanvasElement) {
       gl.uniformMatrix4fv(modelLocation, false, mesh.model ?? identity4());
       gl.uniform3fv(colorLocation, mesh.color);
 
-      const textureEntry = mesh.panel ? panelTextures.get(mesh.panel) : undefined;
-      const placement = mesh.panel ? scene.artworkByPanel[mesh.panel] : undefined;
+      const artworkKey=mesh.panel&&scene.artworkByPanel[mesh.panel]?mesh.panel:mesh.fallbackPanel;
+      const textureEntry = artworkKey ? panelTextures.get(artworkKey) : undefined;
+      const placement = artworkKey ? scene.artworkByPanel[artworkKey] : undefined;
+      const faceUv=artworkKey===mesh.fallbackPanel?mesh.fallbackUv:undefined;
+      gl.uniform4f(faceUvLocation,...(faceUv??[0,0,1,1]));
       const shouldUseTexture = !!mesh.useTexture && !!textureEntry?.loaded && !!placement;
       if (shouldUseTexture && textureEntry && placement) {
         gl.bindTexture(gl.TEXTURE_2D, textureEntry.texture);
-        const transform = textureTransform(placement, textureEntry.width / textureEntry.height, mesh.faceAspect ?? 1);
+        const transform = textureTransform(placement, textureEntry.width / textureEntry.height, faceUv ? (mesh.faceAspect??1)/2 : mesh.faceAspect ?? 1);
         gl.uniform2f(uvScaleLocation, transform.scaleX, transform.scaleY);
         gl.uniform2f(uvOffsetLocation, transform.offsetX, transform.offsetY);
         gl.uniform1f(uvRotationLocation, placement.rotation * Math.PI / 180);
@@ -585,6 +591,10 @@ function buildLegacyBoxMeshes(
   if(splitTop){
     // A real split-top/RSC closure is two opposing major-panel flaps.
     // They hinge from the front and back edges and meet at the centre.
+    panels.splice(panels.findIndex(panel=>panel.name==='Bottom'),1,
+      {name:'Bottom Front',corners:[[x0,y0,0],[x1,y0,0],[x1,y0,z1],[x0,y0,z1]]},
+      {name:'Bottom Back',corners:[[x0,y0,z0],[x1,y0,z0],[x1,y0,0],[x0,y0,0]]},
+    );
     const back=[[x0,y1,z0],[x1,y1,z0],[x1,y1,0],[x0,y1,0]].map(p=>rotateX(p,[0,y1,z0],-angle));
     const front=[[x0,y1,0],[x1,y1,0],[x1,y1,z1],[x0,y1,z1]].map(p=>rotateX(p,[0,y1,z1],angle));
     panels.push({name:'Top Left',corners:front},{name:'Top Right',corners:back});
@@ -627,10 +637,16 @@ function buildLegacyBoxMeshes(
     const flat=flatCornerMap.get(panel.name)??panel.corners;
     const formedCorners=blend(flat,panel.corners);
     const outer=quadFromCorners(formedCorners,color,true,panel.name);
+    if(splitTop&&panel.name.startsWith('Bottom ')){
+      outer.fallbackPanel='Bottom';
+      outer.fallbackUv=[0,panel.name==='Bottom Front'?.5:0,1,.5];
+    }
     result.push(outer);
     const normal=faceNormal(formedCorners),offset=Math.max(0.02,Math.min(2,d.thickness));
     const innerCorners=formedCorners.map(p=>[p[0]-normal[0]*offset,p[1]-normal[1]*offset,p[2]-normal[2]*offset]);
-    result.push(quadFromCorners([innerCorners[3],innerCorners[2],innerCorners[1],innerCorners[0]],interiorColor,true,`Interior ${panel.name}`));
+    const inner=quadFromCorners([innerCorners[3],innerCorners[2],innerCorners[1],innerCorners[0]],interiorColor,true,`Interior ${panel.name}`);
+    if(outer.fallbackPanel){inner.fallbackPanel='Interior Bottom';inner.fallbackUv=outer.fallbackUv;}
+    result.push(inner);
   }
   return result;
 }
@@ -934,6 +950,7 @@ uniform float uUvRotation;
 uniform bool uTile;
 uniform bool uClipOutside;
 uniform vec4 uUvCrop;
+uniform vec4 uFaceUv;
 uniform vec3 uOverlayColor;
 uniform float uOverlayAlpha;
 uniform float uOutlineAlpha;
@@ -946,7 +963,7 @@ void main() {
   float directionalLight = 0.52 + diffuse * 0.48;
   float light = mix(1.0, directionalLight, uLightIntensity);
 
-  vec2 centered = vUv - vec2(0.5) - uUvOffset;
+  vec2 centered = (uFaceUv.xy + vUv * uFaceUv.zw) - vec2(0.5) - uUvOffset;
   float c = cos(uUvRotation);
   float s = sin(uUvRotation);
   vec2 rotated = mat2(c, -s, s, c) * centered;
