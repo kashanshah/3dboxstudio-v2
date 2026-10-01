@@ -106,7 +106,7 @@ export function AdminUserDesignsButton({ userId, userEmail, userName, designCoun
                         </div>
                       </div>
                       <span className="admin-link-stack">
-                        {design.previewHref ? <a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a> : null}
+                        <a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a>
                         <Link className="admin-link" href={design.href}>Open</Link>
                       </span>
                     </li>

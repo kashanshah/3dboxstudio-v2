@@ -56,7 +56,7 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
                   <td>{design.imageCount.toLocaleString()}</td>
                   <td>{design.legacy ? 'Legacy' : 'V2'}</td>
                   <td>{design.updatedAt ? formatAdminDateTime(design.updatedAt) : '—'}</td>
-                  <td>{design.previewHref ? <a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a> : '—'}</td>
+                  <td><a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a></td>
                 </tr>
               )) : <tr><td colSpan={6}>This account has no designs.</td></tr>}
             </tbody>

@@ -33,3 +33,7 @@ export function adminUserHref(id: string): string {
 export function adminDesignHref(id: string): string {
   return `/admin/designs/${encodeURIComponent(id)}`;
 }
+
+export function adminDesignViewHref(id: string): string {
+  return `/admin/designs/${encodeURIComponent(id)}/view`;
+}
