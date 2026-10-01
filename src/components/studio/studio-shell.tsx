@@ -15,7 +15,7 @@ import {
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
-import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
@@ -203,7 +203,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(initial?.legacySourceId ? 57.34 : 82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
-  const [dimensions, setDimensions] = useState<CartonDimensions>(initial?.dimensions ?? initialTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS);
+  const initialDimensions=initial?.dimensions ?? initialTemplate.defaultDimensions;
+  if(!initialDimensions)throw new Error(`Ready template ${initialTemplate.id} is missing default dimensions.`);
+  const [dimensions, setDimensions] = useState<CartonDimensions>(initialRuntime.sanitizeParameters(initialDimensions));
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
   const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.outsideArtworkLayers ?? []);
@@ -2030,7 +2032,8 @@ function Inspector(props: {
                 <em>{props.measurementUnit}</em>
               </div>
               <button type="button" className="pro-reset-box-size" title="Restore this template’s default width, height, and depth" onClick={() => {
-                const defaults = selectedTemplate.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS;
+                const defaults = selectedTemplate.defaultDimensions;
+                if(!defaults){props.setMessage('This template does not define default dimensions');return;}
                 props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
                 props.setMessage('Box size reset to template defaults');
               }}><RotateCcw size={12} aria-hidden="true" /> Reset size</button>
