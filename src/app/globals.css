@@ -5141,3 +5141,31 @@ body{font-size:var(--type-body)}
 .pro-layer-opacity-control>div span{color:var(--muted);font-weight:650}
 .pro-layer-opacity-control>div strong{color:var(--ink);font-size:11px}
 .pro-layer-opacity-control input{width:100%;accent-color:var(--accent)}
+
+/* Refined Design layer rows: eye, thumbnail, metadata and stack position stay in one clean line. */
+.pro-2d-left-panel .pro-dieline-layer-list{padding:10px 9px;gap:8px}
+.pro-2d-left-panel .pro-dieline-layer-list>button{
+  min-height:68px;
+  height:auto;
+  grid-template-columns:30px 48px minmax(0,1fr) auto;
+  gap:10px;
+  padding:9px 10px;
+  align-items:center;
+}
+.pro-2d-left-panel .pro-dieline-layer-list .pro-layer-visibility{
+  width:30px;height:30px;
+  justify-self:center;
+}
+.pro-2d-left-panel .pro-dieline-layer-list img{width:48px;height:48px}
+.pro-2d-left-panel .pro-dieline-layer-list button>span:not(.pro-layer-visibility){gap:3px;align-self:center}
+.pro-2d-left-panel .pro-dieline-layer-list strong{font-size:12px;line-height:1.25}
+.pro-2d-left-panel .pro-dieline-layer-list small{font-size:10px;line-height:1.3}
+.pro-2d-left-panel .pro-dieline-layer-list i{
+  align-self:center;
+  justify-self:end;
+  margin:0;
+  padding-left:4px;
+  font-size:10px;
+  line-height:1;
+  white-space:nowrap;
+}
