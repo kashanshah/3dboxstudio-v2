@@ -507,7 +507,7 @@ test('base-box formation uses rigid crease rotations at every percentage',()=>{
   const d={width:240,height:100,depth:160,thickness:.5};
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
   const samePoint=(a,b,label)=>a.forEach((v,i)=>near(v,b[i],label));
-  for(const formation of [0,10,25,50,75,90,100]){
+  for(const formation of Array.from({length:101},(_,index)=>index)){
     const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{
       templateId:'base-box',formation,openingMode:'lid_from_back',
     });
@@ -613,7 +613,7 @@ test('split-top body follows the production crease chain from flat dieline to fo
 test('split-top assembly timeline is physically staged from dieline through flap closure',()=>{
   const d={width:475,height:225,depth:255,thickness:.5};
   const {templateAssemblyValuesForProgress}=require('../src/lib/packaging/template-runtime.ts');
-  const points=[0,10,25,50,69,70,75,85,95,100];
+  const points=Array.from({length:101},(_,index)=>index);
 
   for(const splitTopHingeSide of ['side_a','side_b']){
     for(const progress of points){
