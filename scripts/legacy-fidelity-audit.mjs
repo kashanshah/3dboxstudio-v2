@@ -14,6 +14,14 @@ function countImageEntries(payload){
 function countMigratedImageEntries(payload){
  return Object.values(record(record(payload).images)).filter(value=>typeof record(value).v2StorageKey==='string').length;
 }
+const FACE_LABELS={front:'Front',back:'Back',left:'Left',right:'Right',top:'Top',bottom:'Bottom',topLeft:'Top Left',topRight:'Top Right'};
+function expectedFaceRotations(payload){
+ const rotations=record(record(payload).config).textureRotationDeg;
+ return Object.fromEntries(Object.entries(FACE_LABELS).map(([faceId,label])=>{
+  const value=Number(record(rotations)[faceId]);
+  return [label,Number.isFinite(value)?value:0];
+ }));
+}
 
 const legacy=await sql`
  SELECT source,source_id,payload
@@ -30,7 +38,7 @@ const shares=await sql`
 const byId=new Map(shares.map(row=>[row.id,row]));
 const byPreview=new Map(shares.filter(row=>row.preview_token).map(row=>[row.preview_token,row]));
 const issues=[];
-let withArtwork=0,completeAssets=0,thumbnailMapped=0,shareMatched=0;
+let withArtwork=0,completeAssets=0,thumbnailMapped=0,shareMatched=0,orientationMatched=0;
 
 for(const row of legacy){
  const payload=record(row.payload);
@@ -63,6 +71,19 @@ for(const row of legacy){
  const artwork=record(state.artworkByPanel);
  if(imageCount&&Object.keys(artwork).length===0)issues.push({id:row.source_id,type:'converted_state_missing_artwork'});
  if(typeof state.legacySourceId!=='string')issues.push({id:row.source_id,type:'missing_legacy_source_id'});
+
+ const expectedRotations=expectedFaceRotations(payload);
+ let orientationOk=true;
+ for(const [faceId,label] of Object.entries(FACE_LABELS)){
+  if(!record(payload.images)[faceId])continue;
+  const actual=Number(record(artwork[label]).rotation);
+  const expected=expectedRotations[label];
+  if(!Number.isFinite(actual)||Math.abs((((actual-expected)%360)+360)%360)>1e-9){
+   orientationOk=false;
+   issues.push({id:row.source_id,type:'face_rotation_mismatch',face:faceId,expected,actual:Number.isFinite(actual)?actual:null});
+  }
+ }
+ if(orientationOk)orientationMatched++;
 }
 
 const summary={
@@ -72,6 +93,7 @@ const summary={
  designsWithArtwork:withArtwork,
  completePayloadAssetMappings:completeAssets,
  migratedThumbnailKeys:thumbnailMapped,
+ orientationMatched,
  issues:issues.length,
 };
 
