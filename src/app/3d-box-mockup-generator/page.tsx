@@ -47,6 +47,14 @@ const faqs = [
   {
     "question": "Can clients view a mockup without editing it?",
     "answer": "Yes. Saved projects can provide shareable preview links for review."
+  },
+  {
+    "question": "Can I save and reopen a mockup later?",
+    "answer": "Yes. Signed-in projects can be saved to your account and reopened from the project library."
+  },
+  {
+    "question": "Can I use the PNG in client or commercial work?",
+    "answer": "Yes, provided you have the rights to the artwork and assets used in the design. Marketplace-specific image rules should still be checked before publishing."
   }
 ];
 
