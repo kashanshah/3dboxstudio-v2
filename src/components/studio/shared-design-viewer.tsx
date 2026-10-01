@@ -9,6 +9,8 @@ import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/stud
 import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
+import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
+import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 
 export function SharedDesignViewer({name,state,legacy}:{name:string;state:StudioProjectState;legacy:boolean}){
   const runtime=getTemplateRuntime(state.templateId);
@@ -23,6 +25,24 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
   const [viewPan,setViewPan]=useState({x:0,y:0});
   const [panEnabled,setPanEnabled]=useState(false);
   const [spacePanActive,setSpacePanActive]=useState(false);
+  const [sharedLayerArtwork,setSharedLayerArtwork]=useState<ArtworkByPanel>({});
+  const [sharedPanelArtwork,setSharedPanelArtwork]=useState<ArtworkByPanel>({});
+  const resolvedArtworkByPanel=useMemo(()=>({...sharedLayerArtwork,...state.artworkByPanel,...sharedPanelArtwork}),[sharedLayerArtwork,sharedPanelArtwork,state.artworkByPanel]);
+
+  useEffect(()=>{
+    let cancelled=false;
+    void Promise.all([
+      state.outsideArtworkLayers.length?rasterizeFullDielineLayers(state.outsideArtworkLayers,state.dimensions,state.templateId,'',{openingMode,splitTopHingeSide:state.splitTopHingeSide}):Promise.resolve({} as ArtworkByPanel),
+      state.insideArtworkLayers.length?rasterizeFullDielineLayers(state.insideArtworkLayers,state.dimensions,state.templateId,'Interior ',{openingMode,splitTopHingeSide:state.splitTopHingeSide}):Promise.resolve({} as ArtworkByPanel),
+      rasterizePanelArtwork(state.artworkByPanel,state.dimensions,state.templateId,{openingMode,splitTopHingeSide:state.splitTopHingeSide}),
+    ]).then(([outside,inside,panels])=>{
+      if(cancelled)return;
+      setSharedLayerArtwork({...outside,...inside});
+      setSharedPanelArtwork(panels);
+    }).catch(error=>{console.error('shared artwork rasterization failed',error);});
+    return()=>{cancelled=true;};
+  },[state,openingMode]);
+
   const [sharedLayerArtwork,setSharedLayerArtwork]=useState<ArtworkByPanel>({});
   const [sharedPanelArtwork,setSharedPanelArtwork]=useState<ArtworkByPanel>({});
   const resolvedArtworkByPanel=useMemo(()=>({...sharedLayerArtwork,...state.artworkByPanel,...sharedPanelArtwork}),[sharedLayerArtwork,sharedPanelArtwork,state.artworkByPanel]);
