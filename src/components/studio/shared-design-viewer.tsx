@@ -11,6 +11,7 @@ import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesFor
 export function SharedDesignViewer({name,state,legacy}:{name:string;state:StudioProjectState;legacy:boolean}){
   const runtime=getTemplateRuntime(state.templateId);
   if(!runtime)throw new Error(`No runtime is registered for template: ${state.templateId}`);
+  const openingMode=state.openingMode ?? runtime.assembly.defaultOpeningMode;
   const initialFormation=state.formation ?? (runtime.assembly.legacyOpeningAsFormation?state.opening:100);
   const [opening,setOpening]=useState(runtime.assembly.legacyOpeningAsFormation&&state.formation===undefined?0:state.opening);
   const [formation,setFormation]=useState(initialFormation);
@@ -43,11 +44,11 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
     return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);};
   },[]);
 
-  const assemblyState=getTemplateAssemblyState(state.templateId,{formation,opening,openingMode:state.openingMode});
+  const assemblyState=getTemplateAssemblyState(state.templateId,{formation,opening,openingMode});
   const assemblyProgress=assemblyState.progress;
   const stage=assemblyState.stage;
   const setAssemblyProgress=(value:number)=>{
-    const next=templateAssemblyValuesForProgress(state.templateId,value,state.openingMode);
+    const next=templateAssemblyValuesForProgress(state.templateId,value,openingMode);
     setFormation(next.formation);
     setOpening(next.opening);
   };
@@ -86,7 +87,7 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
           templateId={state.templateId}
           opening={opening}
           formation={formation}
-          openingMode={state.openingMode}
+          openingMode={openingMode}
           splitTopHingeSide={state.splitTopHingeSide}
           material={state.material}
           outsideColor={state.outsideColorMode==='custom'?state.outsideCustomColor:null}
