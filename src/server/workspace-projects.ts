@@ -100,17 +100,20 @@ export async function moveDesignToWorkspaceProject(userId:string,designId:string
   return rows[0]?destination:null;
 }
 
-export async function deleteWorkspaceProject(userId:string,id:string,destinationId?:string|null){
+export async function deleteWorkspaceProject(userId:string,id:string){
   await ensureV2Schema();
   const sql=getSql();
   const rows=await sql`SELECT id,is_default FROM workspace_projects WHERE id=${id} AND user_id=${userId} LIMIT 1` as {id:string;is_default:boolean}[];
   const project=rows[0];
   if(!project)return null;
   if(project.is_default)throw new Error('My Project cannot be deleted.');
-  const destination=await resolveWorkspaceProjectId(userId,destinationId);
-  if(destination===id)throw new Error('Choose a different destination project.');
-  await sql`UPDATE projects SET workspace_project_id=${destination},updated_at=NOW() WHERE user_id=${userId} AND workspace_project_id=${id}`;
-  await sql`UPDATE scenes SET workspace_project_id=${destination},updated_at=NOW() WHERE user_id=${userId} AND workspace_project_id=${id}`;
-  await sql`DELETE FROM workspace_projects WHERE id=${id} AND user_id=${userId} AND is_default=FALSE`;
-  return destination;
+  const deleted=await sql`
+    DELETE FROM workspace_projects wp
+    WHERE wp.id=${id} AND wp.user_id=${userId} AND wp.is_default=FALSE
+      AND NOT EXISTS (SELECT 1 FROM projects d WHERE d.workspace_project_id=wp.id)
+      AND NOT EXISTS (SELECT 1 FROM scenes s WHERE s.workspace_project_id=wp.id)
+    RETURNING wp.id
+  ` as {id:string}[];
+  if(!deleted[0])throw new Error('Only empty projects can be deleted. Move or delete all designs and scenes first.');
+  return deleted[0].id;
 }

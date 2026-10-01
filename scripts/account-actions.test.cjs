@@ -81,3 +81,29 @@ test('email action delivery uses preview renderers, rate limits, and removes tok
   assert.equal((await projectDb.query("SELECT token FROM email_verification_tokens WHERE user_id='invalid-origin'")).rows.length,0);
  }finally{emailDelivery=null;if(previous===undefined)delete process.env.AUTH_APP_URL;else process.env.AUTH_APP_URL=previous;await projectDb.close();}
 });
+
+const {renameWorkspaceProject,deleteWorkspaceProject}=require('../src/server/workspace-projects.ts');
+const workspaceRoute=require('../src/app/api/workspace-projects/[id]/route.ts');
+test('workspace rename and empty-only delete enforce ownership, default protection, and current contents',async()=>{
+ projectDb=new PGlite();currentUser='owner';
+ try{
+  await projectDb.exec(`CREATE TABLE workspace_projects(id text primary key,user_id text,name text,is_default boolean default false,updated_at timestamptz default now());CREATE TABLE projects(id text primary key,workspace_project_id text REFERENCES workspace_projects(id) ON DELETE SET NULL);CREATE TABLE scenes(id text primary key,workspace_project_id text REFERENCES workspace_projects(id) ON DELETE CASCADE);INSERT INTO workspace_projects(id,user_id,name,is_default) VALUES('default','owner','My Project',true),('empty','owner','Empty',false),('designs','owner','Designs',false),('scenes','owner','Scenes',false),('foreign','stranger','Private',false);INSERT INTO projects VALUES('box','designs');INSERT INTO scenes VALUES('scene','scenes');`);
+  assert.equal(await renameWorkspaceProject('stranger','empty','Hacked'),null);
+  await assert.rejects(renameWorkspaceProject('owner','empty','   '),/Enter a project name/);
+  assert.equal((await renameWorkspaceProject('owner','empty','  Renamed  ')).name,'Renamed');
+  assert.equal(await deleteWorkspaceProject('stranger','empty'),null);
+  assert.equal(await deleteWorkspaceProject('owner','missing'),null);
+  await assert.rejects(deleteWorkspaceProject('owner','default'),/cannot be deleted/);
+  for(const id of ['designs','scenes'])await assert.rejects(deleteWorkspaceProject('owner',id),/Only empty projects/);
+  const request=()=>new Request('https://app.example/api/workspace-projects/designs',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({destinationProjectId:'empty'})});
+  const blocked=await workspaceRoute.DELETE(request(),{params:Promise.resolve({id:'designs'})});
+  assert.equal(blocked.status,400);assert.match((await blocked.json()).error,/Only empty projects/);
+  assert.equal((await projectDb.query('SELECT workspace_project_id FROM projects')).rows[0].workspace_project_id,'designs');
+  assert.equal((await projectDb.query('SELECT workspace_project_id FROM scenes')).rows[0].workspace_project_id,'scenes');
+  currentUser=null;assert.equal((await workspaceRoute.DELETE(request(),{params:Promise.resolve({id:'empty'})})).status,401);
+  currentUser='owner';assert.equal((await workspaceRoute.DELETE(request(),{params:Promise.resolve({id:'foreign'})})).status,404);
+  const deleted=await workspaceRoute.DELETE(request(),{params:Promise.resolve({id:'empty'})});
+  assert.equal(deleted.status,200);assert.deepEqual(await deleted.json(),{deleted:true});
+  assert.equal((await projectDb.query("SELECT id FROM workspace_projects WHERE id='empty'")).rows.length,0);
+ }finally{await projectDb.close();currentUser='owner';}
+});

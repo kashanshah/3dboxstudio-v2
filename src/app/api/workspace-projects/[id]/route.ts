@@ -19,9 +19,8 @@ export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>})
   const denied=guardAuthAction(req,'workspace-project-action',30);if(denied)return denied;
   const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to delete a project.'},{status:401});
   const {id}=await params;
-  const body=await req.json().catch(()=>null) as {destinationProjectId?:unknown}|null;
   try{
-    const destination=await deleteWorkspaceProject(user.id,id,typeof body?.destinationProjectId==='string'?body.destinationProjectId:null);
-    return destination?NextResponse.json({deleted:true,movedToProjectId:destination}):NextResponse.json({error:'Project not found.'},{status:404});
+    const deleted=await deleteWorkspaceProject(user.id,id);
+    return deleted?NextResponse.json({deleted:true}):NextResponse.json({error:'Project not found.'},{status:404});
   }catch(error){return NextResponse.json({error:error instanceof Error?error.message:'Could not delete project.'},{status:400});}
 }

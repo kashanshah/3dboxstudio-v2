@@ -2,8 +2,9 @@
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
 import { useTranslations } from '@/components/i18n/locale-provider';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Trash2,Move,ExternalLink,X } from 'lucide-react';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Pencil,Trash2,Move,ExternalLink,X } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { GoogleSignInButton } from './google-sign-in-button';
 import { AccountButton } from './account-button';
@@ -35,6 +36,11 @@ export function StudioHome({
 }){
   const t = useTranslations();
 
+ const router=useRouter();
+ const [renameProject,setRenameProject]=useState<WorkspaceProject|null>(null);
+ const [deleteProject,setDeleteProject]=useState<WorkspaceProject|null>(null);
+ const [projectMenuId,setProjectMenuId]=useState<string|null>(null);
+ const projectMenuRef=useRef<HTMLDivElement>(null);
  const firstName=user.name?.split(' ')[0]||'there';
  const [creatingProject,setCreatingProject]=useState(false);
  const [projectName,setProjectName]=useState('');
@@ -66,6 +72,15 @@ export function StudioHome({
    return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
  },[openMenuId]);
  useEffect(()=>{
+   if(!projectMenuId)return;
+   const close=(event:PointerEvent)=>{if(!projectMenuRef.current?.contains(event.target as Node))setProjectMenuId(null);};
+   const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){projectMenuRef.current?.querySelector<HTMLButtonElement>('.studio-card-menu-trigger')?.focus();setProjectMenuId(null);}};
+   projectMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+   document.addEventListener('pointerdown',close);
+   document.addEventListener('keydown',escape);
+   return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
+ },[projectMenuId]);
+ useEffect(()=>{
    if(!actionMessage)return;
    const timeout=window.setTimeout(()=>setActionMessage(''),2800);
    return()=>window.clearTimeout(timeout);
@@ -94,7 +109,7 @@ export function StudioHome({
      if(!response.ok)throw new Error(result.error||'Could not move this design.');
      setMoveDesign(null);
      setActionMessage('Design moved');
-     if(activeProjectId)window.location.reload();
+     router.refresh();
    }catch(error){setActionMessage(error instanceof Error?error.message:'Could not move this design.');}
    finally{setActionBusy(false);}
  };
@@ -109,19 +124,37 @@ export function StudioHome({
      setDeletedDesignIds(current=>new Set([...current,deleteDesign.id]));
      setDeleteDesign(null);
      setActionMessage('Design deleted');
+     router.refresh();
    }catch(error){setActionMessage(error instanceof Error?error.message:'Could not delete this design.');}
    finally{setActionBusy(false);}
  };
 
+ const confirmDeleteProject=async()=>{
+   if(!deleteProject||projectBusy)return;
+   setProjectBusy(true);setProjectError('');
+   try{
+     const response=await fetch(`/api/workspace-projects/${encodeURIComponent(deleteProject.id)}`,{method:'DELETE'});
+     const result=await response.json().catch(()=>({error:'Could not delete project.'}));
+     if(!response.ok)throw new Error(result.error||'Could not delete project.');
+     setDeleteProject(null);setActionMessage('Project deleted');
+     if(activeProjectId===deleteProject.id)router.replace('/studio');
+     router.refresh();
+   }catch(error){setProjectError(error instanceof Error?error.message:'Could not delete project.');router.refresh();}
+   finally{setProjectBusy(false);}
+ };
+
  const createProject=async()=>{
+   if(projectBusy)return;
    const name=projectName.trim();
    if(!name){setProjectError('Enter a project name.');return;}
    setProjectBusy(true);setProjectError('');
    try{
-     const response=await fetch('/api/workspace-projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-     const result=await response.json().catch(()=>({error:'Could not create project.'}));
-     if(!response.ok)throw new Error(result.error||'Could not create project.');
-     window.location.assign(`/studio?workspace=${encodeURIComponent(result.project.id)}`);
+     const fallback=renameProject?'Could not rename project.':'Could not create project.';
+     const response=await fetch(renameProject?`/api/workspace-projects/${encodeURIComponent(renameProject.id)}`:'/api/workspace-projects',{method:renameProject?'PATCH':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+     const result=await response.json().catch(()=>({error:fallback}));
+     if(!response.ok)throw new Error(result.error||fallback);
+     if(renameProject){setRenameProject(null);setCreatingProject(false);setProjectBusy(false);setActionMessage('Project renamed');router.refresh();}
+     else window.location.assign(`/studio?workspace=${encodeURIComponent(result.project.id)}`);
    }catch(error){setProjectError(error instanceof Error?error.message:'Could not create project.');setProjectBusy(false);}
  };
 
@@ -136,7 +169,7 @@ export function StudioHome({
      </div>
      <div className="studio-home-welcome-actions">
       <div className="studio-create-project-link flex justify-end text-end">
-        <button className="button button-primary" type="button" onClick={()=>{setProjectName('');setProjectError('');setCreatingProject(true);}}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
+        <button className="button button-primary" type="button" onClick={()=>{setRenameProject(null);setProjectName('');setProjectError('');setCreatingProject(true);}}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
       </div>
       <Link className="studio-create-action is-primary" href={createDesignHref}>
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
@@ -153,7 +186,7 @@ export function StudioHome({
    {creatingProject&&<div className="studio-project-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!projectBusy){setCreatingProject(false);setProjectError('');}}}>
      <section className="studio-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title" onKeyDown={event=>{if(event.key==='Escape'&&!projectBusy){event.stopPropagation();setCreatingProject(false);setProjectError('');}}}>
        <header className="studio-project-modal-header">
-         <div><h2 id="new-project-title">{t("workspace.new_project")}</h2><p>{t("workspace.keep_related_designs_and_scenes_together_under_one_umbrella")}</p></div>
+         <div><h2 id="new-project-title">{renameProject?'Rename project':t("workspace.new_project")}</h2><p>{t("workspace.keep_related_designs_and_scenes_together_under_one_umbrella")}</p></div>
          <button type="button" className="studio-project-modal-close" aria-label={t("workspace.cancel")} disabled={projectBusy} onClick={()=>{setCreatingProject(false);setProjectError('');}}><X size={18}/></button>
        </header>
        <label className="studio-project-modal-field">
@@ -163,7 +196,7 @@ export function StudioHome({
        {projectError&&<span className="studio-project-create-error" role="alert">{projectError}</span>}
        <div className="studio-project-modal-actions">
          <button className="button button-secondary" type="button" disabled={projectBusy} onClick={()=>{setCreatingProject(false);setProjectError('');}}>{t("workspace.cancel")}</button>
-         <button className="button button-primary" type="button" disabled={projectBusy||!projectName.trim()} onClick={()=>void createProject()}>{projectBusy?t("workspace.creating"):t("workspace.create")}</button>
+         <button className="button button-primary" type="button" disabled={projectBusy||!projectName.trim()} onClick={()=>void createProject()}>{projectBusy?(renameProject?'Saving…':t("workspace.creating")):(renameProject?'Save changes':t("workspace.create"))}</button>
        </div>
      </section>
    </div>}
@@ -197,10 +230,32 @@ export function StudioHome({
       </div>
     </div>
     <div className="studio-project-grid">
-      {projects.map(project=><Link className={`studio-project-card studio-project-folder${activeProjectId===project.id?' is-active':''}`} href={`/studio?workspace=${encodeURIComponent(project.id)}`} key={project.id}>
-        <div className="studio-project-card-icon"><Folder size={22}/></div>
-        <div className="studio-project-card-copy"><div><strong>{project.name}</strong>{project.isDefault&&<em>{t("workspace.default")}</em>}</div><span>{project.designCount}{" " + t("workspace.design")}{project.designCount===1?'':t("workspace.s")} · {project.sceneCount}{" " + t("workspace.scene_2")}{project.sceneCount===1?'':t("workspace.s")}</span><small>{t("workspace.updated") + " "}{new Date(project.updatedAt).toLocaleDateString()}</small></div>
-      </Link>)}
+      {projects.map(project=>{
+        const deleteReason=project.isDefault?'The default project cannot be deleted.':project.designCount||project.sceneCount?'Move or delete all designs and scenes first.':'';
+        return <article className={`studio-project-card studio-project-folder${activeProjectId===project.id?' is-active':''}${projectMenuId===project.id?' has-open-menu':''}`} key={project.id}>
+          <Link className="studio-project-card-link" href={`/studio?workspace=${encodeURIComponent(project.id)}`}>
+            <div className="studio-project-card-icon"><Folder size={22}/></div>
+            <div className="studio-project-card-copy"><div><strong>{project.name}</strong>{project.isDefault&&<em>{t("workspace.default")}</em>}</div><span>{project.designCount}{" " + t("workspace.design")}{project.designCount===1?'':t("workspace.s")} · {project.sceneCount}{" " + t("workspace.scene_2")}{project.sceneCount===1?'':t("workspace.s")}</span><small>{t("workspace.updated") + " "}{new Date(project.updatedAt).toLocaleDateString()}</small></div>
+          </Link>
+          <div className="studio-card-menu-wrap" ref={projectMenuId===project.id?projectMenuRef:undefined}>
+            <button type="button" className="studio-card-menu-trigger" aria-label={`Project options for ${project.name}`} aria-haspopup="menu" aria-expanded={projectMenuId===project.id} onClick={()=>{setOpenMenuId(null);setProjectMenuId(current=>current===project.id?null:project.id);}}><MoreHorizontal size={20}/></button>
+            {projectMenuId===project.id&&<div className="studio-card-menu" role="menu" aria-label={`Options for ${project.name}`} onKeyDown={event=>{
+              if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
+              event.preventDefault();
+              const items=Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)'));
+              const index=items.indexOf(document.activeElement as HTMLElement);
+              const next=event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;
+              items[next]?.focus();
+            }}>
+              <Link role="menuitem" href={`/studio?workspace=${encodeURIComponent(project.id)}`} onClick={()=>setProjectMenuId(null)}><Folder size={16}/><span><strong>Open project</strong><small>View designs in this project</small></span></Link>
+              <button type="button" role="menuitem" disabled={projectBusy} onClick={()=>{setProjectMenuId(null);setRenameProject(project);setProjectName(project.name);setProjectError('');setCreatingProject(true);}}><Pencil size={16}/><span><strong>Rename</strong><small>Change the project name</small></span></button>
+              <Link role="menuitem" href={`/studio/editor?workspace=${encodeURIComponent(project.id)}`} onClick={()=>setProjectMenuId(null)}><FilePlus2 size={16}/><span><strong>New box design</strong><small>Create a design in this project</small></span></Link>
+              <span className="studio-card-menu-separator" aria-hidden="true"/>
+              <button type="button" role="menuitem" className="is-danger" disabled={projectBusy||!!deleteReason} title={deleteReason||undefined} onClick={()=>{setProjectMenuId(null);setDeleteProject(project);setProjectError('');}}><Trash2 size={16}/><span><strong>Delete project</strong><small>{deleteReason||'Delete this empty project'}</small></span></button>
+            </div>}
+          </div>
+        </article>;
+      })}
     </div>
    </section>
 
@@ -268,6 +323,15 @@ export function StudioHome({
         </button>)}
       </div>
       <footer><button type="button" className="button button-secondary button-small" disabled={actionBusy} onClick={()=>setMoveDesign(null)}>{t("workspace.cancel")}</button></footer>
+    </section>
+   </div>}
+
+   {deleteProject&&<div className="studio-card-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!projectBusy)setDeleteProject(null);}}>
+    <section className="studio-card-modal studio-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-project-title" onKeyDown={event=>{if(event.key==='Escape'&&!projectBusy)setDeleteProject(null);}}>
+      <header><div><span>Delete project</span><h2 id="delete-project-title">Delete “{deleteProject.name}”?</h2></div><button type="button" aria-label="Close" disabled={projectBusy} onClick={()=>setDeleteProject(null)}><X size={19}/></button></header>
+      <p>This empty project will be permanently deleted. This action cannot be undone.</p>
+      {projectError&&<p className="studio-project-create-error" role="alert">{projectError}</p>}
+      <footer><button autoFocus type="button" className="button button-secondary button-small" disabled={projectBusy} onClick={()=>setDeleteProject(null)}>{t("workspace.cancel")}</button><button type="button" className="studio-danger-button" disabled={projectBusy} onClick={()=>void confirmDeleteProject()}>{projectBusy?t("workspace.deleting"):'Delete project'}</button></footer>
     </section>
    </div>}
 
