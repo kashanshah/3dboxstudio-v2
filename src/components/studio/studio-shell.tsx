@@ -1994,6 +1994,7 @@ function Inspector(props: {
   onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const { tool } = props;
+  const [structureTab,setStructureTab] = useState<'size'|'templates'>('size');
   if (tool === 'structure') {
     const categories = getPackagingTemplateCategories();
     const query = props.templateSearch.trim().toLowerCase();
@@ -2006,8 +2007,24 @@ function Inspector(props: {
     const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
 
     return <div className="pro-inspector-content pro-structure-content">
-      <PanelIntro title="Choose your box" text="Pick the packaging style, then set the finished size of the box." />
+      <div className="pro-structure-tabs" role="tablist" aria-label="Box settings">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={structureTab === 'size'}
+          className={structureTab === 'size' ? 'is-active' : ''}
+          onClick={()=>setStructureTab('size')}
+        >Box & Size</button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={structureTab === 'templates'}
+          className={structureTab === 'templates' ? 'is-active' : ''}
+          onClick={()=>setStructureTab('templates')}
+        >Templates</button>
+      </div>
 
+      {structureTab === 'size' ? <>
       <div className="pro-structure-current">
         <span>Current box</span>
         <div>
@@ -2055,6 +2072,8 @@ function Inspector(props: {
           </div>
         </div>
       </div>
+      </> : <>
+      <PanelIntro title="Choose your box" text="Browse packaging templates and switch the current box." />
 
       <label className="pro-search pro-structure-search">
         <Search size={18}/>
@@ -2092,7 +2111,9 @@ function Inspector(props: {
         <strong>No templates found</strong>
         <span>Try another search or category.</span>
       </div>}
+      </>}
 
+      {structureTab === 'size' ? <>
       <div className="pro-card-section pro-box-thickness-card">
         <SectionTitle title="Board thickness" meta="Box & size" />
         <div className="pro-thickness-control-row">
@@ -2139,6 +2160,7 @@ function Inspector(props: {
           {props.importedDieline.warnings.map(warning => <small key={warning}>{warning}</small>)}
         </div> : null}
       </div>
+      </> : null}
 
     </div>;
   }
