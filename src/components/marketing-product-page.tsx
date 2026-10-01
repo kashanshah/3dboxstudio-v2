@@ -65,9 +65,17 @@ export function MarketingProductPage({
       {note ? <section className="mpp-note"><Info/><div><b>Important limitation</b><p>{note}</p></div></section> : null}
 
       <section className="mpp-faq">
-        <span className="mpp-eyebrow">Frequently asked questions</span>
-        <h2>Direct answers before you start.</h2>
-        <div>{faqs.map(item=><article key={item.question}><h3>{item.question}</h3><p>{item.answer}</p></article>)}</div>
+        <div className="mpp-faq-intro">
+          <span className="mpp-eyebrow">Frequently asked questions</span>
+          <h2>Direct answers before you start.</h2>
+          <p>Useful details about this workflow, its current capabilities, and where production validation still matters.</p>
+        </div>
+        <div className="mpp-faq-list">
+          {faqs.map((item,index)=><details key={item.question} open={index===0}>
+            <summary><span>{String(index+1).padStart(2,"0")}</span><strong>{item.question}</strong><i aria-hidden="true">+</i></summary>
+            <p>{item.answer}</p>
+          </details>)}
+        </div>
       </section>
 
       <section className="mpp-bottom">
