@@ -56,6 +56,7 @@ export type PackagingTemplateDefinition = {
   foldStages?: FoldStage[];
 
   defaultDimensions?: CartonDimensions;
+  fixedOpeningMode?: string;
 
   status: 'ready' | 'planned';
 };
@@ -124,6 +125,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
       {id:'inside-top-right',label:'Inside top right',surface:'inside',panelId:'Interior Top Right'},
     ],
     defaultDimensions: { width: 400, height: 300, depth: 300, thickness: 0.5 },
+    fixedOpeningMode: 'top_split_meet_center',
     status: 'ready',
   },
   {
