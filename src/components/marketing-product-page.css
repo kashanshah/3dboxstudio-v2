@@ -83,3 +83,69 @@
   .template-hero-card:nth-child(2){right:3%}
   .template-hero-card:nth-child(3){left:17%}
 }
+
+/* Supporting-page FAQ: scalable editorial accordion instead of card wall. */
+.mpp-faq{
+  display:grid;
+  grid-template-columns:.78fr 1.22fr;
+  gap:72px;
+  align-items:start;
+}
+.mpp-faq-intro{
+  position:sticky;
+  top:108px;
+}
+.mpp-faq-intro>p{
+  max-width:430px;
+  margin:0;
+  color:#667085;
+  font-size:16px;
+  line-height:1.65;
+}
+.mpp-faq-list{border-top:1px solid #dfe6ee}
+.mpp-faq-list details{border-bottom:1px solid #dfe6ee}
+.mpp-faq-list summary{
+  list-style:none;
+  cursor:pointer;
+  display:grid;
+  grid-template-columns:34px 1fr 32px;
+  align-items:center;
+  gap:12px;
+  min-height:76px;
+  padding:18px 0;
+}
+.mpp-faq-list summary::-webkit-details-marker{display:none}
+.mpp-faq-list summary>span{
+  color:#8090a3;
+  font-size:12px;
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+.mpp-faq-list summary strong{
+  color:#243142;
+  font-size:17px;
+  line-height:1.35;
+}
+.mpp-faq-list summary i{
+  width:30px;height:30px;display:grid;place-items:center;
+  border:1px solid #d7e1eb;border-radius:999px;background:#fff;
+  color:#0f67e8;font-style:normal;font-size:18px;
+  transition:transform .2s ease,background .2s ease;
+}
+.mpp-faq-list details[open] summary i{transform:rotate(45deg);background:#eef5ff}
+.mpp-faq-list details>p{
+  max-width:760px;
+  margin:-2px 44px 22px 46px;
+  color:#667085;
+  font-size:15px;
+  line-height:1.68;
+}
+@media(max-width:900px){
+  .mpp-faq{grid-template-columns:1fr;gap:34px}
+  .mpp-faq-intro{position:static}
+}
+@media(max-width:700px){
+  .mpp-faq-list summary{grid-template-columns:28px 1fr 30px;min-height:68px}
+  .mpp-faq-list summary strong{font-size:16px}
+  .mpp-faq-list details>p{margin:0 40px 18px 40px}
+}
