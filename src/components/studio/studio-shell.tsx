@@ -22,8 +22,6 @@ import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
-import { parseDielineFile, type ParsedDieline } from '@/lib/packaging/dieline-import';
-import { createInitialDielineMapping, mappingProgress, panelCandidates, primitiveSummary, type DielineMapping, type DielineLineRole, type DielinePanelName } from '@/lib/packaging/dieline-mapping';
 import { printDielineLayout } from '@/lib/packaging/dieline-print';
 import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
@@ -243,10 +241,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [designToolsOpen, setDesignToolsOpen] = useState(true);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
-  const [importedDieline, setImportedDieline] = useState<ParsedDieline | null>(null);
-  const [dielineMapping, setDielineMapping] = useState<DielineMapping | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const dielineFileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
   const studioCanvasRef = useRef<HTMLElement>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
@@ -457,7 +452,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   useEffect(() => {
     const onSpaceKeyDown = (event:KeyboardEvent) => {
-      if (event.code !== 'Space' || event.repeat || mediaLibraryOpen || (mode==='dieline'&&importedDieline)) return;
+      if (event.code !== 'Space' || event.repeat || mediaLibraryOpen || false) return;
       const target = event.target;
       if (target instanceof Element && target.closest('input,textarea,select,button,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
       event.preventDefault();
@@ -477,9 +472,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       window.removeEventListener('keyup', onSpaceKeyUp);
       window.removeEventListener('blur', clearSpacePan);
     };
-  }, [mode, importedDieline, mediaLibraryOpen]);
+  }, [mode, mediaLibraryOpen]);
 
-  const temporarySpacePanActive = spacePanActive && !mediaLibraryOpen && (mode==='3d' || !importedDieline);
+  const temporarySpacePanActive = spacePanActive && !mediaLibraryOpen;
 
   useEffect(() => {
     const canvas=studioCanvasRef.current;
@@ -1017,26 +1012,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
   };
 
-  const handleDielineFile = async (file?: File) => {
-    if (!file) return;
-    try {
-      const parsed = await parseDielineFile(file);
-      if (!parsed.primitives.length) {
-        setMessage(`${file.name}: no supported vector geometry found`);
-        return;
-      }
-      setImportedDieline(parsed);
-      setDielineMapping(createInitialDielineMapping(parsed));
-      setWorkflowStep('design');
-      setMode('dieline');
-      setTool('artwork');
-      setInspectorOpen(true);
-      const known = parsed.primitives.filter(item => item.role !== 'unknown').length;
-      setMessage(`${file.name} imported · ${parsed.primitives.length} vector element${parsed.primitives.length === 1 ? '' : 's'}${known ? ` · ${known} classified cut/crease` : ''}`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not import dieline');
-    }
-  };
 
   const promotePanelArtworkToDieline = (targetPanel: string) => {
     const artwork = artworkByPanel[targetPanel];
@@ -1231,7 +1206,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   useEffect(() => {
     const selectedId = artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
-    if (mode !== 'dieline' || importedDieline || mediaLibraryOpen || !selectedId) return;
+    if (mode !== 'dieline' || mediaLibraryOpen || !selectedId) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.key !== 'Delete' && event.key !== 'Backspace') || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
       const target = event.target;
@@ -1241,7 +1216,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, importedDieline, mediaLibraryOpen, removeFullDielineLayer]);
+  }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, mediaLibraryOpen, removeFullDielineLayer]);
 
   const animateFold = (target: 0 | 100) => {
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
@@ -1270,7 +1245,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setSaving(true);
     setSaveFailed(false);
     try {
-      if(importedDieline) throw new Error('Saving imported dielines is not available yet.');
       const preview = engineRef.current?.thumbnail();
       if (!preview) throw new Error('The 3D preview is not ready yet.');
       const usedAssetIds=new Set<string>();
@@ -1341,7 +1315,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setSaving(false);
     }
   }, [
-    importedDieline, artworkByPanel, outsideDielineLayers, insideDielineLayers,
+    artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
     projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId, historySerialized, saveFingerprint,
@@ -1356,7 +1330,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const dirty = saveFingerprint !== lastSavedFingerprintRef.current;
     setHasUnsavedChanges(dirty);
 
-    if (!projectId || !dirty || importedDieline || saving || saveConflictOpen) return;
+    if (!projectId || !dirty || saving || saveConflictOpen) return;
     if (autosaveBlockedFingerprintRef.current === saveFingerprint) return;
     if (autosaveBlockedFingerprintRef.current && autosaveBlockedFingerprintRef.current !== saveFingerprint) {
       autosaveBlockedFingerprintRef.current = null;
@@ -1375,7 +1349,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         autosaveTimerRef.current = null;
       }
     };
-  }, [saveFingerprint, projectId, importedDieline, saving, saveConflictOpen, saveDesign]);
+  }, [saveFingerprint, projectId, saving, saveConflictOpen, saveDesign]);
 
   useEffect(() => {
     if (!hasUnsavedChanges && !saveFailed) return;
@@ -1524,7 +1498,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
-  return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><input ref={dielineFileRef} hidden type="file" accept=".svg,.dxf,image/svg+xml,application/dxf,text/plain" onChange={e=>{ void handleDielineFile(e.target.files?.[0]); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -1698,9 +1672,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         </div>
         <div className={`pro-view-pane${mode === 'dieline' ? ' is-active' : ''}`} inert={mode !== 'dieline'} aria-hidden={mode !== 'dieline'}>
         <DielinePrototype
-          importedDieline={importedDieline}
-          mapping={dielineMapping}
-          setMapping={setDielineMapping}
           artworkByPanel={artworkByPanel}
           layers={artworkScope === 'inside' ? insideDielineLayers : outsideDielineLayers}
           selectedLayerId={artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId}
@@ -1754,7 +1725,6 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           }
           viewSwitch={null}
           pdfExportRequest={pdfExportRequest}
-          onClearImportedDieline={() => { setImportedDieline(null); setDielineMapping(null); setMessage('Imported dieline cleared'); }}
         />
 
         </div>
@@ -1762,7 +1732,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             <button className="pro-canvas-bar-icon" title={t("studio.undo_ctrl_z_2")} aria-label={t("studio.undo_last_change")} disabled={!historyStatus.canUndo} onClick={undoStudioAction}><Undo2 size={18}/></button>
             <button className="pro-canvas-bar-icon" title={t("studio.redo_ctrl_shift_z_2")} aria-label={t("studio.redo_last_change")} disabled={!historyStatus.canRedo} onClick={redoStudioAction}><Redo2 size={18}/></button>
             <span className="pro-canvas-bar-divider" aria-hidden="true"/>
-            <button className={`pro-canvas-bar-icon${(panEnabled || temporarySpacePanActive) ? ' is-active' : ''}`} title={mode==='3d'?t("studio.pan_3d_view_hold_space_for_temporary_hand_tool"):t("studio.drag_2d_board_hold_space_for_temporary_hand_tool")} aria-label={mode==='3d'?t("studio.pan_3d_view"):t("studio.drag_2d_board")} aria-pressed={panEnabled || temporarySpacePanActive} disabled={mode==='dieline' && !!importedDieline} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
+            <button className={`pro-canvas-bar-icon${(panEnabled || temporarySpacePanActive) ? ' is-active' : ''}`} title={mode==='3d'?t("studio.pan_3d_view_hold_space_for_temporary_hand_tool"):t("studio.drag_2d_board_hold_space_for_temporary_hand_tool")} aria-label={mode==='3d'?t("studio.pan_3d_view"):t("studio.drag_2d_board")} aria-pressed={panEnabled || temporarySpacePanActive} onClick={() => setPanEnabled(enabled => !enabled)}><Move size={18}/></button>
             <button className="pro-canvas-bar-icon" title={t("studio.zoom_out")} aria-label={t("studio.zoom_out")} onClick={() => mode === '3d' ? setZoom(value => scaleStudioZoom(value, 1 / 1.1)) : setDielineZoom(value => scaleStudioZoom(value, 1 / 1.1))}>
               <ZoomOut size={20}/>
             </button>
@@ -1840,7 +1810,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} onImportDieline={() => dielineFileRef.current?.click()} importedDieline={importedDieline} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{if(importedDieline){setMessage('PDF export for imported SVG/DXF dielines is not available yet.');return;}setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -1975,7 +1945,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void;
-  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onPreviewTemplate:(template:PackagingTemplateDefinition)=>void; onImportDieline:()=>void; importedDieline:ParsedDieline|null;
+  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onPreviewTemplate:(template:PackagingTemplateDefinition)=>void;
   panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void;
@@ -2154,16 +2124,6 @@ function Inspector(props: {
         <ImageIcon size={18}/>
       </button>
 
-      <div className="pro-card-section pro-dieline-import-card">
-        <SectionTitle title={t("studio.import_dieline")} meta="SVG / DXF" />
-        <p className="pro-help">{t("studio.use_svg_or_ascii_dxf_for_vector_dielines_ai_eps_and_pdf_are_not_directly_su")}</p>
-        <button className="pro-wide-button" type="button" onClick={props.onImportDieline}><Upload size={16}/>{" " + t("studio.import_svg_or_dxf")}</button>
-        {props.importedDieline ? <div className="pro-dieline-import-status">
-          <strong>{props.importedDieline.name}</strong>
-          <span>{props.importedDieline.format.toUpperCase()} · {props.importedDieline.primitives.length}{" " + t("studio.vector_elements") + " "}{Math.round(props.importedDieline.width)} × {Math.round(props.importedDieline.height)}</span>
-          {props.importedDieline.warnings.map(warning => <small key={warning}>{warning}</small>)}
-        </div> : null}
-      </div>
       </> : null}
 
     </div>;
@@ -2371,140 +2331,7 @@ function Inspector(props: {
   </div>;
 }
 
-function ImportedDielineMapper({
-  dieline,
-  mapping,
-  setMapping,
-  onClear,
-}:{
-  dieline:ParsedDieline;
-  mapping:DielineMapping;
-  setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
-  onClear:()=>void;
-}) {
-  const t = useTranslations();
-
-  const [selectedPrimitiveIndex, setSelectedPrimitiveIndex] = useState<number | null>(null);
-  const candidates = panelCandidates(dieline);
-  const progress = mappingProgress(dieline, mapping);
-  const selectedPrimitive = selectedPrimitiveIndex == null ? null : dieline.primitives[selectedPrimitiveIndex];
-  const selectedPanelCandidate = selectedPrimitiveIndex == null ? null : candidates.find(candidate => candidate.primitiveIndex === selectedPrimitiveIndex) ?? null;
-
-  const setLineRole = (index:number, role:DielineLineRole) => {
-    setMapping(current => current ? { ...current, lineRoles: { ...current.lineRoles, [index]: role } } : current);
-  };
-  const setPanelName = (index:number, name:DielinePanelName | '') => {
-    setMapping(current => {
-      if (!current) return current;
-      const next = { ...current.panelNames };
-      if (name) next[index] = name;
-      else delete next[index];
-      return { ...current, panelNames: next };
-    });
-  };
-
-  return <div className="pro-dieline-stage pro-2d-design-stage pro-dieline-mapping-mode">
-    <div className="pro-2d-design-toolbar pro-mapping-toolbar">
-      <div>
-        <span>{t("studio.dieline_mapping")}</span>
-        <strong>{dieline.name}</strong>
-        <small>{progress.assignedPanels}/{progress.panelCandidates}{" " + t("studio.panel_regions_assigned") + " "}{progress.unresolvedLines}{" " + t("studio.unresolved_vector_element")}{progress.unresolvedLines===1?'':t("studio.s")}</small>
-      </div>
-      <div className="pro-mapping-toolbar-actions">
-        <span className={progress.readyFor3D ? 'pro-mapping-ready is-ready' : 'pro-mapping-ready'}>{progress.readyFor3D ? t("studio.ready_for_3d_mapping") : t("studio.mapping_incomplete")}</span>
-        <button className="pro-2d-remove-layout" type="button" onClick={onClear}><Trash2 size={15}/>{" " + t("studio.clear_dieline")}</button>
-      </div>
-    </div>
-
-    <div className="pro-dieline-mapper-layout">
-      <div className="pro-imported-dieline-wrap">
-        <svg className="pro-imported-dieline pro-imported-dieline-interactive" viewBox={dieline.viewBox} role="img" aria-label={`Imported dieline ${dieline.name}`}>
-          {dieline.primitives.map((item,index) => {
-            const role = mapping.lineRoles[index] ?? 'unknown';
-            const selected = selectedPrimitiveIndex === index;
-            const panelName = mapping.panelNames[index];
-            const common = {
-              className: `imported-dieline-line role-${role}${selected ? ' is-selected' : ''}`,
-              vectorEffect: 'non-scaling-stroke' as const,
-              onClick: () => setSelectedPrimitiveIndex(index),
-            };
-            if (item.kind === 'line') return <line key={index} x1={item.x1} y1={item.y1} x2={item.x2} y2={item.y2} {...common} />;
-            if (item.kind === 'path') return <path key={index} d={item.d} fill="none" {...common} />;
-            const points = item.closed ? [...item.points,item.points[0]] : item.points;
-            return <g key={index}>
-              {item.closed ? <polygon
-                points={item.points.map(point => `${point.x},${point.y}`).join(' ')}
-                className={`imported-dieline-panel-hit${selected ? ' is-selected' : ''}${panelName ? ' is-assigned' : ''}`}
-                onClick={() => setSelectedPrimitiveIndex(index)}
-              /> : null}
-              <polyline points={points.map(point => `${point.x},${point.y}`).join(' ')} fill="none" {...common} />
-              {item.closed && panelName ? <text
-                x={item.points.reduce((sum,p)=>sum+p.x,0)/item.points.length}
-                y={item.points.reduce((sum,p)=>sum+p.y,0)/item.points.length}
-                className="imported-dieline-panel-label"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >{panelName}</text> : null}
-            </g>;
-          })}
-        </svg>
-      </div>
-
-      <aside className="pro-dieline-mapping-panel">
-        <div className="pro-mapping-summary">
-          <h3>{t("studio.map_this_dieline")}</h3>
-          <p>{t("studio.click_a_vector_element_or_closed_panel_region_then_classify_it_auto_detecte")}</p>
-          <div className="pro-mapping-progress"><span style={{width:`${progress.panelCandidates ? Math.round(progress.assignedPanels/progress.panelCandidates*100) : 0}%`}}/></div>
-        </div>
-
-        {selectedPrimitiveIndex == null || !selectedPrimitive ? <div className="pro-mapping-empty">
-          <Grid3X3 size={24}/>
-          <strong>{t("studio.select_geometry")}</strong>
-          <span>{t("studio.choose_a_line_or_closed_region_in_the_preview_to_classify_it")}</span>
-        </div> : <div className="pro-mapping-editor">
-          <div><span>{t("studio.selected")}</span><strong>{primitiveSummary(selectedPrimitive)} #{selectedPrimitiveIndex+1}</strong></div>
-
-          <fieldset>
-            <legend>{t("studio.line_role")}</legend>
-            <div className="pro-mapping-role-grid">
-              {(['cut','crease','ignore','unknown'] as DielineLineRole[]).map(role => <button
-                type="button"
-                key={role}
-                className={(mapping.lineRoles[selectedPrimitiveIndex]??'unknown')===role?'is-active':''}
-                onClick={()=>setLineRole(selectedPrimitiveIndex,role)}
-              >{role==='cut'?t("studio.cut"):role==='crease'?t("studio.crease_fold"):role==='ignore'?t("studio.ignore"):t("studio.unclassified")}</button>)}
-            </div>
-          </fieldset>
-
-          {selectedPanelCandidate ? <label className="pro-mapping-panel-select">
-            <span>{t("studio.panel_assignment")}</span>
-            <select value={mapping.panelNames[selectedPrimitiveIndex]??''} onChange={e=>setPanelName(selectedPrimitiveIndex,e.target.value as DielinePanelName|'')}>
-              <option value="">{t("studio.unassigned")}</option>
-              {(['Front','Back','Left','Right','Top','Bottom','Glue','Other'] as DielinePanelName[]).map(name=><option key={name} value={name}>{name}</option>)}
-            </select>
-            <small>{t("studio.closed_vector_regions_are_treated_as_panel_candidates_in_this_first_mapper")}</small>
-          </label> : <p className="pro-mapping-note">{t("studio.this_geometry_is_not_a_closed_panel_candidate_classify_it_as_cut_crease_ign")}</p>}
-        </div>}
-
-        <div className="pro-mapping-checklist">
-          <strong>{t("studio.mapping_checklist")}</strong>
-          <span className={progress.assignedPanels>=4?'is-done':''}><Check size={14}/>{" " + t("studio.assign_at_least_4_panel_regions")}</span>
-          <span className={progress.unresolvedLines===0?'is-done':''}><Check size={14}/>{" " + t("studio.resolve_all_vector_elements")}</span>
-          <span className={progress.readyFor3D?'is-done':''}><Check size={14}/>{" " + t("studio.structure_ready_for_3d_conversion")}</span>
-        </div>
-
-        <button className="pro-primary pro-map-to-3d" type="button" disabled={!progress.readyFor3D} onClick={()=>{}}>
-          <Boxes size={16}/>{" " + t("studio.generate_3d_structure")}</button>
-        <p className="pro-mapping-note">{t("studio.3d_generation_is_intentionally_disabled_until_the_mapping_is_complete_the_a")}</p>
-      </aside>
-    </div>
-  </div>;
-}
-
 function DielinePrototype({
-  importedDieline,
-  mapping,
-  setMapping,
   artworkByPanel,
   layers,
   selectedLayerId,
@@ -2536,13 +2363,9 @@ function DielinePrototype({
   onCloseTools,
   onApplyChanges,
   pdfExportRequest,
-  onClearImportedDieline,
   livePreview,
   viewSwitch,
 }:{
-  importedDieline:ParsedDieline|null;
-  mapping:DielineMapping|null;
-  setMapping:React.Dispatch<React.SetStateAction<DielineMapping|null>>;
   artworkByPanel:ArtworkByPanel;
   layers:FullDielineArtworkLayer[];
   selectedLayerId:string|null;
@@ -2574,7 +2397,6 @@ function DielinePrototype({
   onCloseTools:()=>void;
   onApplyChanges:()=>void;
   pdfExportRequest:number;
-  onClearImportedDieline:()=>void;
   livePreview:React.ReactNode;
   viewSwitch:React.ReactNode;
 }) {
@@ -2835,15 +2657,6 @@ function DielinePrototype({
     gestureRef.current=null;
     setTransformFeedback(null);
   };
-
-  if (importedDieline) {
-    return <><ImportedDielineMapper
-      dieline={importedDieline}
-      mapping={mapping ?? createInitialDielineMapping(importedDieline)}
-      setMapping={setMapping}
-      onClear={onClearImportedDieline}
-    /><div className="pro-2d-right-preview pro-2d-preview-only">{livePreview}</div></>;
-  }
 
   return <div className="pro-dieline-stage pro-2d-design-stage">
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
