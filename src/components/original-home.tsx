@@ -146,7 +146,7 @@ export function OriginalHome() {
       </div>
       <div className="studio-live-frame">
         <div className="studio-frame-bar"><span/><span/><span/><b>Actual V2 workflow</b><Link href="/whats-new/v2">What’s new in V2 <ArrowRight/></Link></div>
-        <video className="studio-proof-video" autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/flatten-assemble-poster.png" aria-label="3DBoxStudio V2 box flatten and assemble animation">
+        <video className="studio-proof-video" autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/flatten-assemble-poster.webp" aria-label="3DBoxStudio V2 box flatten and assemble animation">
           <source src="/animations/flatten-assemble-2.mp4" type="video/mp4"/>
         </video>
         <p className="studio-frame-caption">Current V2 Studio footage showing the same package moving between flat and assembled views.</p>
