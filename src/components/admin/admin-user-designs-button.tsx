@@ -22,11 +22,21 @@ export function AdminUserDesignsButton({ userId, userEmail, userName, designCoun
   const [error, setError] = useState<string | null>(null);
   const titleId = useId();
 
+  function openModal() {
+    setOpen(true);
+    setDesigns([]);
+    setTotal(designCount);
+    setError(null);
+    setLoading(true);
+  }
+
+  function closeModal() {
+    setOpen(false);
+  }
+
   useEffect(() => {
     if (!open) return;
     let active = true;
-    setLoading(true);
-    setError(null);
     fetch(`/api/admin/users/${encodeURIComponent(userId)}/designs?pageSize=100`, { cache: 'no-store' })
       .then(async (res) => {
         const body = (await res.json().catch(() => ({}))) as { items?: AdminUserDesignItem[]; total?: number; error?: string };
@@ -37,13 +47,12 @@ export function AdminUserDesignsButton({ userId, userEmail, userName, designCoun
         if (!active) return;
         setDesigns(body.items ?? []);
         setTotal(body.total ?? designCount);
+        setLoading(false);
       })
       .catch((err: unknown) => {
         if (!active) return;
         setError(err instanceof Error ? err.message : 'Could not load designs.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        setLoading(false);
       });
     return () => {
       active = false;
@@ -53,7 +62,7 @@ export function AdminUserDesignsButton({ userId, userEmail, userName, designCoun
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') closeModal();
     }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -66,18 +75,18 @@ export function AdminUserDesignsButton({ userId, userEmail, userName, designCoun
 
   return (
     <>
-      <button type="button" className="admin-email-open" title={`View designs for ${userEmail}`} onClick={() => setOpen(true)}>
+      <button type="button" className="admin-email-open" title={`View designs for ${userEmail}`} onClick={openModal}>
         {designCount.toLocaleString()} design(s)
       </button>
       {open && typeof document !== 'undefined' ? createPortal(
-        <div className="admin-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+        <div className="admin-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal(); }}>
           <section className="admin-modal admin-user-designs-modal" role="dialog" aria-modal="true" aria-labelledby={titleId}>
             <header className="admin-modal-header">
               <div>
                 <p>User designs</p>
                 <h2 id={titleId}>{userName}</h2>
               </div>
-              <button type="button" className="admin-modal-close" aria-label="Close user designs" onClick={() => setOpen(false)} autoFocus>
+              <button type="button" className="admin-modal-close" aria-label="Close user designs" onClick={closeModal} autoFocus>
                 <X size={18} />
               </button>
             </header>
