@@ -2,7 +2,7 @@ export const PRIVACY_PAGE_TITLE = "Privacy Policy";
 export const PRIVACY_PAGE_DESCRIPTION =
   "How 3D Box Studio collects, uses, and protects your information when you use the free online box designer, create an account, save designs, or contact us.";
 
-export const PRIVACY_EFFECTIVE_DATE = "2026-09-01";
+export const PRIVACY_EFFECTIVE_DATE = "2026-10-01";
 
 export type PrivacySection =
   | { type: "h2"; text: string }
@@ -53,6 +53,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       "Vercel Web Analytics — aggregated page views and traffic patterns.",
       "Google Analytics — if enabled, page views and general usage metrics via Google’s analytics service.",
+      "PostHog — if enabled, product usage events, autocapture, and session replay used to understand how visitors use the site and Studio.",
       "Admin routes are excluded from analytics tracking where technically possible.",
     ],
   },
@@ -102,6 +103,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "Neon — database hosting.",
       "Resend — transactional email delivery.",
       "Google — OAuth sign-in and, when enabled, Google Analytics.",
+      "PostHog — product analytics and, when enabled, session replay.",
       "Cloudflare — Turnstile bot protection on the contact form.",
     ],
   },
