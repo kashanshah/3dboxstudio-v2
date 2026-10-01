@@ -500,17 +500,22 @@ test('shared carton engine delegates geometry instead of registering template re
   assert.match(source,/runtime\.buildMeshes\s*\(/,'shared renderer must delegate through the active template runtime');
 });
 
-test('ready templates keep renderer implementations in template-owned modules',()=>{
-  const expected={
-    'reverse-tuck-carton':'src/lib/packaging/templates/reverse-tuck/renderer.ts',
-    'base-box':'src/lib/packaging/templates/base-box/renderer.ts',
-    'split-top-box':'src/lib/packaging/templates/split-top/renderer.ts',
+test('ready templates keep runtime, geometry and renderer ownership in template modules',()=>{
+  const folders={
+    'reverse-tuck-carton':'reverse-tuck',
+    'base-box':'base-box',
+    'split-top-box':'split-top',
   };
   for(const template of getReadyPackagingTemplates()){
-    const file=expected[template.id];
-    assert.ok(file,`ready template ${template.id} has no isolated renderer module assertion`);
-    const source=fs.readFileSync(path.resolve(__dirname,'..',file),'utf8');
-    assert.match(source,/TemplateMeshBuilder/,`${template.id} renderer does not implement the shared mesh contract`);
+    const folder=folders[template.id];
+    assert.ok(folder,`ready template ${template.id} has no isolated module assertion`);
+    const root=path.resolve(__dirname,'../src/lib/packaging/templates',folder);
+    const runtime=fs.readFileSync(path.join(root,'runtime.ts'),'utf8');
+    const geometry=fs.readFileSync(path.join(root,'geometry.ts'),'utf8');
+    const renderer=fs.readFileSync(path.join(root,'renderer.ts'),'utf8');
+    assert.match(runtime,/buildMeshes:/,`${template.id} runtime does not own its mesh builder registration`);
+    assert.ok(geometry.length>0,`${template.id} geometry entry point is empty`);
+    assert.match(renderer,/TemplateMeshBuilder/,`${template.id} renderer does not implement the shared mesh contract`);
   }
 });
 
