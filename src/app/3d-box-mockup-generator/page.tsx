@@ -61,8 +61,8 @@ const faqs = [
 export default function Page(){
   const url=new URL("/3d-box-mockup-generator",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
-    {"@type":"WebPage",name:"Turn packaging artwork into an interactive 3D box mockup.",description:"Create a free 3D box mockup online from real dimensions and your own artwork. Rotate, open, review, save, share, and export PNG packaging previews in your browser.",url},
+    {"@type":"WebPage",name:"Free 3D box mockup generator—turn packaging artwork into a 3D box.",description:"Create a free 3D box mockup online from real dimensions and your own artwork. Rotate, open, review, save, share, and export PNG packaging previews in your browser.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="3D box mockup generator" title="Turn packaging artwork into an interactive 3D box mockup." intro="Use your own artwork and finished box dimensions to create a browser-based packaging mockup you can rotate, open, review, save, share, and export as a PNG." secondaryHref="/packaging-design-online" secondaryLabel="See the full design workflow" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="3D box mockup generator" title="Free 3D box mockup generator—turn packaging artwork into a 3D box." intro="Use your own artwork and finished box dimensions to create a browser-based packaging mockup you can rotate, open, review, save, share, and export as a PNG." secondaryHref="/packaging-design-online" secondaryLabel="See the full design workflow" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
