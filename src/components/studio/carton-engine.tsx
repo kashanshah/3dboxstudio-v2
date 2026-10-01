@@ -678,6 +678,7 @@ function buildLegacyBoxMeshes(
     if(top)panels.push({name:'Top',corners:top});
   }
 
+  const result:Mesh[]=[];
   if(formationT<.999){
     const glueCorners=bodyCorners('Glue');
     if(glueCorners.length){
@@ -685,7 +686,6 @@ function buildLegacyBoxMeshes(
     }
   }
 
-  const result:Mesh[]=[];
   function resultGlue(glueCorners:number[][]){
     result.push(quadFromCorners(glueCorners,color,true,'Glue'));
     const glueNormal=faceNormal(glueCorners),offset=Math.max(0.02,Math.min(2,d.thickness));
