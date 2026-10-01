@@ -55,3 +55,33 @@ test('all non-split legacy opening variants stay on the reusable base-box templa
   assert.equal(result.state.openingMode,opening);
  }
 });
+
+
+test('legacy converter uses V1 rendered texture rotation, not crop-editor rotation',()=>{
+ const payload={
+  config:{
+   unit:'cm',dims:{width:24,height:10,length:16},opening:'closed',
+   textureRotationDeg:{front:180,right:90,back:270,left:180,top:90,bottom:270},
+   faceImagePlacements:{
+    front:{sourceImageId:'a',rotation:0,crop:{x:0,y:0,width:100,height:100}},
+    right:{sourceImageId:'b',rotation:0,crop:{x:0,y:0,width:100,height:100}},
+    back:{sourceImageId:'c',rotation:0,crop:{x:0,y:0,width:100,height:100}},
+    left:{sourceImageId:'d',rotation:0,crop:{x:0,y:0,width:100,height:100}},
+    top:{sourceImageId:'e',rotation:0,crop:{x:0,y:0,width:100,height:100}},
+    bottom:{sourceImageId:'f',rotation:0,crop:{x:0,y:0,width:100,height:100}},
+   },
+  },
+  images:{
+   front:{s3Key:'shares/d/front.png'},right:{s3Key:'shares/d/right.png'},
+   back:{s3Key:'shares/d/back.png'},left:{s3Key:'shares/d/left.png'},
+   top:{s3Key:'shares/d/top.png'},bottom:{s3Key:'shares/d/bottom.png'},
+  },
+ };
+ const result=legacyDesignToStudioProject({source:'v1',sourceId:'orientation',payload,assetBaseUrl:'https://legacy.example/'});
+ assert.equal(result.state.artworkByPanel.Front.rotation,180);
+ assert.equal(result.state.artworkByPanel.Right.rotation,90);
+ assert.equal(result.state.artworkByPanel.Back.rotation,270);
+ assert.equal(result.state.artworkByPanel.Left.rotation,180);
+ assert.equal(result.state.artworkByPanel.Top.rotation,90);
+ assert.equal(result.state.artworkByPanel.Bottom.rotation,270);
+});
