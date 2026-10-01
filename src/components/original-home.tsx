@@ -28,6 +28,57 @@ const useCases = [
   ["Client approvals", "Save, reopen, and share the same design so feedback stays attached to one visual source."],
 ];
 
+export const HOME_FAQS = [
+  {
+    question: "What is 3D Box Studio?",
+    answer: "3D Box Studio is a free browser-based packaging design and visualization workspace. You choose a supported box structure, set finished dimensions, place artwork on the flat layout, inspect the same design in 3D, and export or share the result."
+  },
+  {
+    question: "Can I use custom box dimensions?",
+    answer: "Yes. Supported structures can be resized using finished width, height, depth, and selectable units so the preview reflects the proportions you are actually designing for."
+  },
+  {
+    question: "Can I generate a box dieline?",
+    answer: "For supported structures, the Studio can generate the flat layout used for artwork placement and visualization from the template and finished dimensions. Final production geometry should still be validated before manufacturing."
+  },
+  {
+    question: "Is the generated dieline production-ready?",
+    answer: "Not universally. Use it for design, panel planning, and visualization, then validate bleed, board thickness, fold and cut tolerances, glue areas, tooling, and printer-specific requirements before manufacturing."
+  },
+  {
+    question: "Can I upload my own packaging artwork?",
+    answer: "Yes. Upload or drag artwork into the Design workspace, then crop, resize, rotate, position, replace, and organize it in layers."
+  },
+  {
+    question: "Does artwork stay synchronized between 2D and 3D?",
+    answer: "Yes. The 2D flat-layout workspace and the 3D preview use the same project state, so artwork changes can be reviewed on the assembled package without rebuilding a separate mockup."
+  },
+  {
+    question: "Can I open and close the package in 3D?",
+    answer: "Supported structures include opening and folding behavior that can be reviewed in the 3D workspace. The exact motion depends on the selected box structure."
+  },
+  {
+    question: "Can I save and reopen my designs?",
+    answer: "Yes. Account-based projects can be saved and reopened later so you can continue iterating instead of rebuilding the mockup from scratch."
+  },
+  {
+    question: "Can I share a box preview with a client?",
+    answer: "Yes. Saved projects can create shareable preview links so clients or teammates can inspect the package without receiving the editable working file."
+  },
+  {
+    question: "What can I export from 3D Box Studio?",
+    answer: "The current workflow supports exporting clean PNG previews for presentations, approvals, product planning, and other visual review needs."
+  },
+  {
+    question: "Do I need Photoshop, Illustrator, or CAD to use it?",
+    answer: "No additional software is required to use the Studio's packaging artwork and 3D preview workflow. You may still use specialist design or structural CAD tools when your production process requires them."
+  },
+  {
+    question: "Does 3D Box Studio replace structural packaging CAD or printer proofs?",
+    answer: "No. It is designed for packaging design, visualization, and review. Final manufacturing files, structural tolerances, material behavior, and press requirements should still be validated in the appropriate production workflow."
+  }
+];
+
 export function OriginalHome() {
   return <><SiteHeader /><main id="main" className="lovable-original marketing-page">
 
@@ -118,14 +169,18 @@ export function OriginalHome() {
     <section className="use-cases-section"><div className="section-intro"><p className="eyebrow">Built for real packaging conversations</p><h2>Useful before the sample, the press proof, and the photo shoot.</h2></div><div className="use-case-grid">{useCases.map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
 
     <section className="answer-section">
-      <div><p className="eyebrow">Straight answers</p><h2>What exactly is 3D Box Studio?</h2><p><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines box structure, dimensions, a 2D dieline artwork workspace, and an interactive 3D preview in the browser. It is designed for visual packaging design and review—not as a replacement for a printer’s final structural engineering or press-proof process.</p></div>
-      <div className="answer-grid">
-        <article><h3>Can I use custom dimensions?</h3><p>Yes. Supported box structures can be resized using finished dimensions and selectable units.</p></article>
-        <article><h3>Can I generate a dieline?</h3><p>For supported structures, the Studio can create the flat layout used for artwork and visualization. Final production geometry should still be validated before manufacturing.</p></article>
-        <article><h3>Can I add my own artwork?</h3><p>Yes. Upload artwork, position and transform it on the 2D layout, organize layers, and inspect the result in 3D.</p></article>
-        <article><h3>Can I share the design?</h3><p>Yes. Saved projects can generate shareable preview links for review without handing over the editable Studio file.</p></article>
+      <div className="answer-intro">
+        <p className="eyebrow">Frequently asked questions</p>
+        <h2>Answers before you open the Studio.</h2>
+        <p><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser.</p>
+        <div className="seo-home-links"><Link href="/features">Features <ArrowRight/></Link><Link href="/faq">Full FAQ <ArrowRight/></Link><Link href="/blog">Packaging guides <ArrowRight/></Link></div>
       </div>
-      <div className="seo-home-links"><Link href="/features">Features <ArrowRight/></Link><Link href="/faq">Full FAQ <ArrowRight/></Link><Link href="/blog">Packaging guides <ArrowRight/></Link></div>
+      <div className="answer-accordion">
+        {HOME_FAQS.map((item,index)=><details key={item.question} open={index===0}>
+          <summary><span>{item.question}</span><i aria-hidden="true">+</i></summary>
+          <p>{item.answer}</p>
+        </details>)}
+      </div>
     </section>
 
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
