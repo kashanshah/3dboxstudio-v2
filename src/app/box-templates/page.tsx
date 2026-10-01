@@ -57,8 +57,14 @@ const faqs = [
 export default function Page(){
   const url=new URL("/box-templates",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
-    {"@type":"WebPage",name:"Packaging structures that carry their own geometry, dieline, and opening behavior.",description:"Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.",url},
+    {"@type":"WebPage",name:"Box templates built for real packaging structures.",description:"Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Box templates" title="Packaging structures that carry their own geometry, dieline, and opening behavior." intro="3D Box Studio uses structure templates rather than one hard-coded box. Each supported template defines the panels and 3D behavior needed to turn dimensions and artwork into a usable packaging preview." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  const heroAside=<div className="template-hero-visual" aria-label="Illustration of several packaging structure templates">
+    <div className="template-hero-card"><strong>Folding carton</strong><span>Panel-specific geometry</span><i/></div>
+    <div className="template-hero-card"><strong>Mailer</strong><span>Structure-specific folds</span><i/></div>
+    <div className="template-hero-card"><strong>Lid + box</strong><span>Independent opening behavior</span><i/></div>
+    <div className="template-hero-note">One template = one structural system</div>
+  </div>;
+  return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
