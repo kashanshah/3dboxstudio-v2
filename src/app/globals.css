@@ -2589,6 +2589,21 @@ body{font-size:var(--type-body)}
   position:fixed;inset:0;z-index:140;display:grid;place-items:center;padding:24px;
   background:rgba(16,23,32,.5);backdrop-filter:blur(5px)
 }
+.pro-new-design-dialog{
+  width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;
+  margin:auto;padding:26px;border:1px solid var(--line);border-radius:18px;
+  background:#fff;color:#182230;box-shadow:0 28px 80px rgba(16,23,32,.28)
+}
+.pro-new-design-dialog::backdrop{background:rgba(16,23,32,.5);backdrop-filter:blur(5px)}
+.pro-new-design-dialog form{display:grid;gap:12px}
+.pro-new-design-dialog label{font-size:14px;font-weight:700;margin-top:6px}
+.pro-new-design-dialog input,.pro-new-design-dialog select{
+  width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+  background:#fff;color:#182230;font:inherit;font-size:16px
+}
+.pro-new-design-dialog input:focus-visible,.pro-new-design-dialog select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.pro-new-design-dialog .pro-confirm-actions>a{display:inline-flex;align-items:center;min-height:42px;padding:0 15px;border-radius:9px;font-size:13px;font-weight:700}
+.pro-new-design-dialog [aria-disabled=true]{opacity:.55}
 .pro-confirm-modal{
   width:min(460px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:18px;
   box-shadow:0 28px 80px rgba(16,23,32,.28);padding:22px;display:grid;grid-template-columns:48px 1fr;gap:16px

@@ -1,6 +1,7 @@
 'use client';
 
 import { trackEvent } from '@/lib/analytics';
+import { newDesignDefaults, type NewDesignProject } from '@/lib/new-design';
 import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
 import { useTranslations } from '@/components/i18n/locale-provider';
@@ -136,14 +137,18 @@ const studioAreas: { id: StudioArea; label: MessageKey; helper: MessageKey; icon
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
-export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string} = {}) {
+export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;newDesignProjects?:NewDesignProject[]} = {}) {
   const t = useTranslations();
 
   const initial = initialProject?.state;
+  const defaults=newDesignDefaults(newDesignProjects,initialWorkspaceProjectId);
+  const [newDesignOpen,setNewDesignOpen]=useState(!initialProject);
+  const [newDesignError,setNewDesignError]=useState('');
+  const newDesignDialogRef=useRef<HTMLDialogElement>(null);
   const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
-  const [projectName,setProjectName] = useState(initialProject?.name ?? 'Untitled design');
+  const [projectName,setProjectName] = useState(initialProject?.name ?? defaults.name);
   const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
-  const [workspaceProjectId,setWorkspaceProjectId] = useState(initialWorkspaceProjectId ?? initialProject?.workspaceProjectId ?? null);
+  const [workspaceProjectId,setWorkspaceProjectId] = useState(initialProject?(initialWorkspaceProjectId??initialProject.workspaceProjectId??null):defaults.workspaceProjectId);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
   const [hasUnsavedChanges,setHasUnsavedChanges] = useState(false);
@@ -1244,13 +1249,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     foldAnimationRef.current = requestAnimationFrame(frame);
   };
 
-  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false, quiet=false, saveTrigger:'manual'|'share'|'move'='manual') => {
+  const saveDesign = useCallback(async (saveAsCopy=false, forceOverwrite=false, destinationWorkspaceProjectId?:string|null, keepOriginalOpen=false, quiet=false, saveTrigger:'manual'|'share'|'move'='manual', createNew=false) => {
+    if(newDesignOpen&&!createNew)return false;
     // React state updates are asynchronous, so `saving` alone cannot prevent
     // two save events in the same tick from racing with the same updatedAt.
     if (saveInFlightRef.current) return false;
     saveInFlightRef.current = true;
     setSaving(true);
     setSaveFailed(false);
+    if(createNew)setNewDesignError('');
     try {
       const preview = engineRef.current?.thumbnail();
       if (!preview) throw new Error('The 3D preview is not ready yet.');
@@ -1297,6 +1304,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         if(saveAsCopy||!projectId) window.history.replaceState(null,'',`/studio/editor?project=${encodeURIComponent(result.project.id)}`);
       }
       setSaveFailed(false);
+      if(createNew)setNewDesignOpen(false);
       setSaveConflictOpen(false);
       if(!saveAsCopy||!keepOriginalOpen){
         lastSavedFingerprintRef.current=JSON.stringify({name:targetName,state:historySerialized});
@@ -1308,6 +1316,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       return true;
     } catch(error) {
       setSaveFailed(true);
+      if(createNew)setNewDesignError(error instanceof Error?error.message:'Could not save your design. Please try again.');
       if(quiet)autosaveBlockedFingerprintRef.current=saveFingerprint;
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
       if(conflict){
@@ -1326,8 +1335,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId, historySerialized, saveFingerprint,
+    projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId, historySerialized, saveFingerprint, newDesignOpen,
   ]);
+
+  useEffect(()=>{
+    const dialog=newDesignDialogRef.current;
+    if(newDesignOpen&&dialog&&!dialog.open){
+      dialog.showModal();
+      dialog.querySelector('input')?.select();
+    }
+  },[newDesignOpen]);
 
   useEffect(() => {
     if (autosaveTimerRef.current !== null) {
@@ -1895,6 +1912,25 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         </div>
       </section>
     </div>}
+    {newDesignOpen&&<dialog ref={newDesignDialogRef} className="pro-new-design-dialog" aria-labelledby="new-design-title" aria-describedby="new-design-copy" onCancel={event=>event.preventDefault()}>
+      <form onSubmit={event=>{event.preventDefault();if(projectName.trim()&&workspaceProjectId&&!saving)void saveDesign(false,false,undefined,false,false,'manual',true);}}>
+        <div className="pro-confirm-copy">
+          <h2 id="new-design-title">Create a box design</h2>
+          <p id="new-design-copy">Choose a name and project. Your design will be saved now, and changes will save automatically.</p>
+        </div>
+        <label htmlFor="new-design-name">Design name</label>
+        <input id="new-design-name" autoFocus required maxLength={120} value={projectName} disabled={saving} onChange={event=>setProjectName(event.target.value)}/>
+        <label htmlFor="new-design-project">Project</label>
+        <select id="new-design-project" required value={workspaceProjectId??''} disabled={saving} onChange={event=>setWorkspaceProjectId(event.target.value)}>
+          {newDesignProjects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}
+        </select>
+        {newDesignError&&<p className="pro-transfer-error" role="alert">Not saved. {newDesignError}</p>}
+        <div className="pro-confirm-actions">
+          <Link className="pro-secondary-button" href="/studio" aria-disabled={saving} onClick={event=>{if(saving)event.preventDefault();}}>Cancel</Link>
+          <button type="submit" className="pro-primary" disabled={saving||!projectName.trim()||!workspaceProjectId}>{saving?'Saving…':'Create design'}</button>
+        </div>
+      </form>
+    </dialog>}
     {projectTransferMode && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!transferBusy)setProjectTransferMode(null);}}>
       <section className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
         <div className="pro-confirm-copy">
