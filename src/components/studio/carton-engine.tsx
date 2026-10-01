@@ -13,6 +13,8 @@ import { sanitizeCartonDimensions, reverseTuckPanels, reverseTuckFoldState, type
 import { baseBoxPanels,splitTopBoxPanels } from '@/lib/packaging/box-structures';
 import type { ArtworkByPanel, ArtworkPlacement } from '@/lib/packaging/artwork';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
+import { getDefaultPackagingTemplate } from '@/lib/packaging/template-registry';
+import { requireTemplateRuntime } from '@/lib/packaging/template-runtime';
 
 export type CartonEngineHandle = {
   thumbnail: () => string | null;
@@ -22,7 +24,7 @@ export type CartonEngineHandle = {
 
 type Props = {
   dimensions: CartonDimensions;
-  templateId?: string;
+  templateId: string;
   opening: number;
   formation?: number;
   openingMode?: LegacyOpeningMode;
@@ -53,7 +55,7 @@ type Mesh = {
 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId = 'reverse-tuck-carton', opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect },
+  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -295,9 +297,12 @@ function createRenderer(canvas: HTMLCanvasElement) {
 
   const panelTextures = new Map<string, { texture: WebGLTexture; url: string; loaded: boolean; width: number; height: number }>();
 
+  const defaultTemplate=getDefaultPackagingTemplate();
+  if(!defaultTemplate)throw new Error('No default packaging template is configured.');
+  const defaultRuntime=requireTemplateRuntime(defaultTemplate.id);
   let scene: Scene = {
-    dimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
-    templateId: 'reverse-tuck-carton',
+    dimensions: defaultRuntime.sanitizeParameters(defaultTemplate.defaultDimensions ?? { width: 120, height: 180, depth: 55, thickness: 0.5 }),
+    templateId: defaultTemplate.id,
     opening: 0,
     formation: 100,
     openingMode: 'closed',
@@ -460,7 +465,8 @@ function createRenderer(canvas: HTMLCanvasElement) {
     setScene(next: Scene) {
       const previousUrls = artworkUrlSignature(scene.artworkByPanel);
       const nextUrls = artworkUrlSignature(next.artworkByPanel);
-      scene = {...next,dimensions:sanitizeCartonDimensions(next.dimensions)};
+      const runtime=requireTemplateRuntime(next.templateId);
+      scene = {...next,dimensions:runtime.sanitizeParameters(next.dimensions)};
       if (previousUrls !== nextUrls) syncPanelTextures(next.artworkByPanel);
       render();
     },
@@ -515,10 +521,20 @@ export function buildMeshes(
   interiorColor: [number, number, number],
   options:BoxMeshOptions={},
 ): Mesh[] {
-  if(options.templateId==='base-box'||options.templateId==='split-top-box'){
-    return buildLegacyBoxMeshes(dimensions,options.formation??100,opening,color,interiorColor,options.openingMode??'closed',options.splitTopHingeSide??'side_a',options.templateId==='split-top-box');
+  const templateId=options.templateId ?? getDefaultPackagingTemplate()?.id;
+  if(!templateId)throw new Error('No packaging template is available for rendering.');
+  const runtime=requireTemplateRuntime(templateId);
+  const sanitized=runtime.sanitizeParameters(dimensions);
+  switch(runtime.rendererKey){
+    case 'base-box-v1':
+      return buildLegacyBoxMeshes(sanitized,options.formation??100,opening,color,interiorColor,options.openingMode??runtime.assembly.defaultOpeningMode,options.splitTopHingeSide??'side_a',false);
+    case 'split-top-box-v1':
+      return buildLegacyBoxMeshes(sanitized,options.formation??100,opening,color,interiorColor,options.openingMode??runtime.assembly.defaultOpeningMode,options.splitTopHingeSide??'side_a',true);
+    case 'reverse-tuck-v1':
+      return buildReverseTuckMeshes(sanitized,options.formation??opening,color,interiorColor);
+    default:
+      throw new Error(`No 3D renderer is registered for template renderer: ${runtime.rendererKey}`);
   }
-  return buildReverseTuckMeshes(dimensions,options.formation??opening,color,interiorColor);
 }
 
 function buildLegacyBoxMeshes(
