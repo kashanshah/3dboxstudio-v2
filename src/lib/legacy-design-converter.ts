@@ -55,9 +55,12 @@ export function legacyDesignToStudioProject(args:{source:string;sourceId:string;
    const media=args.mediaByFace?.[faceId];
    if(!media&&!args.assetBaseUrl)continue;
    const placement=record(placements[faceId]);
-   const placementRotation=Number(placement.rotation);
+   // V1's 3D renderer applies config.textureRotationDeg to the face texture.
+   // placement.rotation belongs to the crop-editor state and is not the
+   // rotation used by PackagingBox when rendering the saved/shared design.
+   // Prefer the renderer-facing value so migrated designs match V1 exactly.
    const textureRotation=Number(rotations[faceId]);
-   const rotation=Number.isFinite(placementRotation)?placementRotation:Number.isFinite(textureRotation)?textureRotation:0;
+   const rotation=Number.isFinite(textureRotation)?textureRotation:0;
    const crop=cropOf(placement);
    const artwork:ArtworkPlacement={
      ...(media?{assetId:media.id}:{}),
