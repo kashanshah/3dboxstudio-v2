@@ -43,6 +43,14 @@ const faqs = [
   {
     "question": "Does it replace production packaging CAD?",
     "answer": "No. Use it for design and visualization, then validate production requirements in the appropriate structural and print workflow."
+  },
+  {
+    "question": "Can 3D Box Studio import an existing dieline?",
+    "answer": "No. The current product intentionally works from its own supported packaging templates and dimensions rather than importing arbitrary external dielines."
+  },
+  {
+    "question": "Can I save projects and send review links?",
+    "answer": "Yes. V2 supports account-based saved projects and shareable preview links in addition to PNG export."
   }
 ];
 
