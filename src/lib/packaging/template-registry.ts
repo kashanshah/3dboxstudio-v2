@@ -57,6 +57,7 @@ export type PackagingTemplateDefinition = {
 
   defaultDimensions?: CartonDimensions;
   fixedOpeningMode?: string;
+  isDefault?: boolean;
 
   status: 'ready' | 'planned';
 };
@@ -131,6 +132,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   {
     id: 'reverse-tuck-carton',
     version: 1,
+    isDefault: true,
     name: 'Reverse Tuck End Carton',
     shortName: 'Reverse tuck',
     family: 'folding-carton',
@@ -338,7 +340,9 @@ export function getPackagingTemplate(id: string) {
 }
 
 export function getDefaultPackagingTemplate() {
-  return templateMap.get('reverse-tuck-carton') ?? getReadyPackagingTemplates()[0] ?? null;
+  return PACKAGING_TEMPLATES.find(template => template.status==='ready' && template.isDefault)
+    ?? getReadyPackagingTemplates()[0]
+    ?? null;
 }
 
 export function getReadyPackagingTemplates() {
