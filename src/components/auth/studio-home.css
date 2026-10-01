@@ -791,3 +791,79 @@
 @media(max-width:760px){
   .studio-home-header>a img{width:140px;height:auto}
 }
+
+/* New project modal */
+.studio-project-modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:1200;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(15,23,42,.38);
+  backdrop-filter:blur(5px);
+}
+.studio-project-modal{
+  width:min(100%,520px);
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:var(--surface);
+  box-shadow:0 28px 80px rgba(15,23,42,.22);
+  padding:24px;
+}
+.studio-project-modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+}
+.studio-project-modal-header h2{margin:0;font-size:24px;line-height:1.15}
+.studio-project-modal-header p{margin:8px 0 0;color:var(--muted);font-size:14px;line-height:1.55}
+.studio-project-modal-close{
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--paper);
+  color:var(--muted);
+}
+.studio-project-modal-close:hover:not(:disabled){color:var(--ink);border-color:var(--ink)}
+.studio-project-modal-field{display:grid;gap:8px;margin-top:24px}
+.studio-project-modal-field>span{font-size:13px;font-weight:700;color:var(--ink)}
+.studio-project-modal-field input{
+  width:100%;
+  height:48px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--paper);
+  color:var(--ink);
+  padding:0 14px;
+  font:inherit;
+  font-size:16px;
+  outline:none;
+}
+.studio-project-modal-field input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent);
+}
+.studio-project-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:24px;
+}
+.studio-project-create-error{
+  display:block;
+  margin-top:10px;
+  color:#b42318;
+  font-size:13px;
+  line-height:1.45;
+}
+@media(max-width:600px){
+  .studio-project-modal-backdrop{padding:16px;align-items:end}
+  .studio-project-modal{border-radius:20px 20px 0 0;padding:20px 18px max(20px,env(safe-area-inset-bottom))}
+  .studio-project-modal-actions{display:grid;grid-template-columns:1fr 1fr}
+}
