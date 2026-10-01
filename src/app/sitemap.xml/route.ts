@@ -39,7 +39,7 @@ function getEntries(): SitemapEntry[] {
     { path: '/de', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
     { path: '/studio', changeFrequency: 'weekly', priority: 0.95 },
     { path: '/features', changeFrequency: 'monthly', priority: 0.85 },
-    { path: '/whats-new/v2', changeFrequency: 'weekly', priority: 0.85 },
+    { path: '/whats-new/v2', lastModified: new Date('2026-10-01'), changeFrequency: 'weekly', priority: 0.85 },
     { path: '/box-dieline-generator', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/3d-box-mockup-generator', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/packaging-design-online', changeFrequency: 'monthly', priority: 0.8 },
