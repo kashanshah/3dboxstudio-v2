@@ -17,6 +17,8 @@ export type FullDielineArtworkLayer = {
   url: string;
   transform: FullDielineTransform;
   aspectRatio: number;
+  visible?: boolean;
+  opacity?: number;
 };
 
 export const DEFAULT_FULL_DIELINE_TRANSFORM: FullDielineTransform = {
@@ -94,7 +96,9 @@ export async function rasterizeFullDielineLayers(
 ): Promise<ArtworkByPanel> {
   if (!layers.length) return {};
 
-  const loaded = await Promise.all(layers.map(async layer => ({
+  const visibleLayers=layers.filter(layer=>layer.visible!==false);
+  if(!visibleLayers.length) return {};
+  const loaded = await Promise.all(visibleLayers.map(async layer => ({
     layer,
     image: await loadImage(layer.url),
   })));
@@ -102,7 +106,7 @@ export async function rasterizeFullDielineLayers(
   const geometry = getTemplateGeometry(templateId,dimensions,geometryOptions);
   const bounds = geometry.bounds;
   const result: ArtworkByPanel = {};
-  const compositeName = layers.length === 1 ? layers[0].name : `${layers.length} layer composition`;
+  const compositeName = visibleLayers.length === 1 ? visibleLayers[0].name : `${visibleLayers.length} layer composition`;
 
   // Render each face directly from the physical 2D sheet coordinate system.
   // This deliberately avoids drawing one giant sheet bitmap and cropping it
@@ -123,6 +127,7 @@ export async function rasterizeFullDielineLayers(
     for(const {layer,image} of loaded){
       const physical=sheetTransformToPhysical(layer.transform,bounds);
       ctx.save();
+      ctx.globalAlpha=Math.max(0,Math.min(1,(layer.opacity ?? 100)/100));
       // Rotate in physical sheet coordinates before mapping to rounded pixels.
       ctx.scale(scaleX,scaleY);
       ctx.translate(physical.centerX-panel.x,physical.centerY-panel.y);
