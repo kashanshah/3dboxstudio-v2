@@ -47,6 +47,14 @@ const faqs = [
   {
     "question": "Can I work from a box template?",
     "answer": "Yes. Supported box structures provide the geometry and layout used by the Studio."
+  },
+  {
+    "question": "Can I work in millimeters or inches?",
+    "answer": "Yes. The current V2 Studio supports finished dimensions in millimeters and inches for supported structures."
+  },
+  {
+    "question": "Can I share the packaging design with a client?",
+    "answer": "Yes. Saved designs can create separate preview links for review without handing over the editable project."
   }
 ];
 
