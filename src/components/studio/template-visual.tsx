@@ -1,5 +1,5 @@
 import type { PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
-import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
 
 export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
@@ -21,9 +21,9 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
                   ? 'is-sleeve'
                   : 'is-carton';
 
-  const size = dimensions ?? template.defaultDimensions ?? DEFAULT_CARTON_DIMENSIONS;
+  const size = dimensions ?? template.defaultDimensions;
   const runtime = getTemplateRuntime(template.id);
-  const geometry = runtime ? getTemplateGeometry(template.id,size) : null;
+  const geometry = runtime && size ? getTemplateGeometry(template.id,size) : null;
   const bounds = geometry?.bounds;
   const hasRealDieline = !!geometry;
 
