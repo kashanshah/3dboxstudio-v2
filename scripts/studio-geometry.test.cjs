@@ -482,3 +482,63 @@ test('split bottom flaps have independent artwork keys and preserve legacy full-
   near(mesh.faceAspect,dimensions.width/(dimensions.depth/2));
  }
 });
+
+
+test('base-box formation uses rigid crease rotations at every percentage',()=>{
+  const d={width:240,height:100,depth:160,thickness:.5};
+  const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
+  const samePoint=(a,b,label)=>a.forEach((v,i)=>near(v,b[i],label));
+  for(const formation of [0,10,25,50,75,90,100]){
+    const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{
+      templateId:'base-box',formation,openingMode:'lid_from_back',
+    });
+    const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
+    const front=by('Front'),right=by('Right'),back=by('Back'),left=by('Left');
+    near(distance(front[0],front[1]),d.width);
+    near(distance(front[0],front[3]),d.height);
+    near(distance(right[0],right[1]),d.depth);
+    near(distance(right[0],right[3]),d.height);
+    near(distance(back[0],back[1]),d.width);
+    near(distance(back[0],back[3]),d.height);
+    near(distance(left[0],left[1]),d.depth);
+    near(distance(left[0],left[3]),d.height);
+
+    samePoint(front[1],right[0],`front/right lower hinge at ${formation}%`);
+    samePoint(front[2],right[3],`front/right upper hinge at ${formation}%`);
+    samePoint(right[1],back[0],`right/back lower hinge at ${formation}%`);
+    samePoint(right[2],back[3],`right/back upper hinge at ${formation}%`);
+    samePoint(front[0],left[1],`front/left lower hinge at ${formation}%`);
+    samePoint(front[3],left[2],`front/left upper hinge at ${formation}%`);
+  }
+});
+
+test('closure flaps remain rigid and hinged throughout opening percentages',()=>{
+  const d={width:400,height:300,depth:300,thickness:.5};
+  const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
+  for(const opening of [0,10,25,50,75,90,100]){
+    const meshes=buildMeshes(d,opening,[1,1,1],[.8,.8,.8],{
+      templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',
+    });
+    const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
+    const front=by('Front'),back=by('Back'),topFront=by('Top Left'),topBack=by('Top Right');
+    near(distance(topFront[0],topFront[1]),d.width);
+    near(distance(topFront[0],topFront[3]),d.depth/2);
+    near(distance(topBack[0],topBack[1]),d.width);
+    near(distance(topBack[0],topBack[3]),d.depth/2);
+    topFront[0].forEach((v,i)=>near(v,front[3][i]));
+    topFront[1].forEach((v,i)=>near(v,front[2][i]));
+    topBack[0].forEach((v,i)=>near(v,back[3][i]));
+    topBack[1].forEach((v,i)=>near(v,back[2][i]));
+  }
+});
+
+test('flat box state is the exact dieline plane for every opening mode',()=>{
+  const d={width:240,height:100,depth:160,thickness:.5};
+  for(const openingMode of ['closed','lid_from_back','lid_from_front','lid_from_left','lid_from_right','door_left','door_right','double_doors']){
+    const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:0,openingMode});
+    const exterior=meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior '));
+    for(const mesh of exterior){
+      for(const point of mesh.pickCorners)near(point[2],d.depth/2);
+    }
+  }
+});
