@@ -55,6 +55,10 @@
 @media(max-width:800px){.header-inner{width:calc(100% - 36px);gap:14px}.site-header nav{gap:18px;font-size:12px}.header-cta{padding-inline:12px}}
 @media(max-width:600px){.site-header{height:62px}.header-inner>nav,.site-header .header-cta{display:none}.mobile-navigation{display:block}.mobile-navigation summary{display:grid;place-items:center;width:36px;height:36px;cursor:pointer;list-style:none;border:1px solid var(--line);border-radius:7px}.mobile-navigation summary::-webkit-details-marker{display:none}.site-header .mobile-navigation nav{position:absolute;right:18px;top:53px;width:230px;background:var(--surface);border:1px solid var(--line);padding:10px;box-shadow:var(--shadow-lift);border-radius:8px;display:flex;flex-direction:column;gap:0}.mobile-navigation nav a{padding:12px;font-size:13px}.site-header .mobile-navigation nav a:first-child{display:block}.brand{font-size:16px}.site-footer{display:block}.footer-links{margin:25px 0}.footer-note{display:block}}
 
+.h-auto {
+  height: auto !important;
+}
+
 /* Production Studio prototype — scoped to /studio. */
 .pro-studio{--studio-rail:72px;--studio-inspector:320px;min-height:100dvh;background:#eef2f6;color:var(--ink);overflow:hidden}
 .pro-studio button,.pro-studio input{font:inherit}.pro-studio button{border:0;background:none}
