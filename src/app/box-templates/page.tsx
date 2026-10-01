@@ -1,0 +1,56 @@
+import type { Metadata } from "next";
+import { MarketingProductPage } from "@/components/marketing-product-page";
+import { site } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: { absolute: "3D Box Templates & Packaging Structures | 3D Box Studio" },
+  description: "Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.",
+  alternates: { canonical: "/box-templates" },
+  openGraph: { title: "3D Box Templates & Packaging Structures | 3D Box Studio", description: "Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.", type: "website" }
+};
+
+const sections = [
+  {
+    "title": "Folding carton structures",
+    "body": "Tuck-style carton structures can define front, back, side, top, bottom, flap, and glue-related geometry for a packaging-specific workflow."
+  },
+  {
+    "title": "Lid and box structures",
+    "body": "Two-part or lid-based packaging needs different opening logic and panel relationships than a folding carton, so it is treated as its own structure type."
+  },
+  {
+    "title": "Mailer-style packaging",
+    "body": "Mailer and corrugated-style structures can use their own panel layout and folding behavior rather than inheriting carton assumptions."
+  },
+  {
+    "title": "Template-specific behavior",
+    "body": "Dimensions, dieline geometry, panel mapping, folds, and opening behavior belong to each template so adding a new structure does not require changing the rules for every existing box."
+  }
+];
+const faqs = [
+  {
+    "question": "How many box templates are available?",
+    "answer": "The template library is actively expanding. The Studio intentionally avoids publishing a fabricated template count; open the current template browser to see what is available now."
+  },
+  {
+    "question": "Can I resize a template?",
+    "answer": "Yes, supported templates can use editable finished dimensions."
+  },
+  {
+    "question": "Do all templates open the same way?",
+    "answer": "No. Opening and folding behavior is structure-specific."
+  },
+  {
+    "question": "Can new structures be added later?",
+    "answer": "Yes. The template architecture is designed so new structures can define their own geometry and behavior without hard-coding the entire Studio around one dieline."
+  }
+];
+
+export default function Page(){
+  const url=new URL("/box-templates",site.url).toString();
+  const schema={"@context":"https://schema.org","@graph":[
+    {"@type":"WebPage",name:"Packaging structures that carry their own geometry, dieline, and opening behavior.",description:"Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.",url},
+    {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
+  ]};
+  return <><MarketingProductPage eyebrow="Box templates" title="Packaging structures that carry their own geometry, dieline, and opening behavior." intro="3D Box Studio uses structure templates rather than one hard-coded box. Each supported template defines the panels and 3D behavior needed to turn dimensions and artwork into a usable packaging preview." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+}
