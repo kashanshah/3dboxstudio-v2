@@ -648,3 +648,35 @@ test('split-top assembly timeline is physically staged from dieline through flap
     }
   }
 });
+
+
+test('reverse tuck glue strip follows its own physical hinge in the correct direction',()=>{
+  const d={width:240,height:300,depth:160,thickness:.5};
+  const footprint=reverseTuckPanels(d);
+  const glueWidth=footprint.find(panel=>panel.id==='glue').width;
+  const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
+
+  for(const progress of Array.from({length:101},(_,index)=>index)){
+    const meshes=buildMeshes(d,progress,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:progress});
+    const left=meshes.find(mesh=>mesh.panel==='Left').pickCorners;
+    const glue=meshes.find(mesh=>mesh.panel==='Glue').pickCorners;
+
+    // The scored Left/Glue crease must remain connected for the whole fold.
+    glue[1].forEach((value,i)=>near(value,left[0][i]));
+    glue[2].forEach((value,i)=>near(value,left[3][i]));
+
+    // Glue is a rigid flap; its physical width must never stretch or shrink.
+    near(distance(glue[0],glue[1]),glueWidth);
+    near(distance(glue[3],glue[2]),glueWidth);
+  }
+
+  const flat=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:0});
+  const flatGlue=flat.find(mesh=>mesh.panel==='Glue').pickCorners;
+  assert.ok(flatGlue[0][0]<flatGlue[1][0],'flat glue flap must extend outward from the left panel');
+
+  const closed=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:100});
+  const closedGlue=closed.find(mesh=>mesh.panel==='Glue').pickCorners;
+  const closedBack=closed.find(mesh=>mesh.panel==='Back').pickCorners;
+  assert.ok(closedGlue[0][0]>closedGlue[1][0],'closed glue flap must fold inward toward the back panel');
+  for(const point of closedGlue)near(point[2],closedBack[0][2]);
+});
