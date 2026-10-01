@@ -1514,7 +1514,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMessage('Preview is ready — download from the output panel');
       return;
     }
-    const exported = engineRef.current?.exportPng('3d-box-studio-reverse-tuck.png');
+    const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
     setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
   };
 
