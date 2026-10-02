@@ -2,6 +2,7 @@
 
 import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
+import {ArrowRight} from 'lucide-react';
 import {AuthShell,AuthNotice} from './auth-shell';
 import {useAuth} from './auth-provider';
 import {safeReturnTo} from '@/lib/auth-navigation';
@@ -57,7 +58,7 @@ export function VerifyEmailToken({token,next}:{token:string;next?:string}){
       {!result.ok&&(result.retryable
         ?<button className="button button-primary" onClick={retry}>Try again</button>
         :<Link className="button button-primary" href="/verify-email">Request a new verification email</Link>)}
-      <Link className={`button ${result.ok?'button-primary':'button-secondary'}`} href={safeReturnTo(next)}>Continue to Studio</Link>
+      <Link className={`button ${result.ok?'button-primary':'button-secondary'}`} href={safeReturnTo(next)}>Continue to Studio <ArrowRight size={16} aria-hidden="true"/></Link>
     </div>}
   </AuthShell>;
 }
