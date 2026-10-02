@@ -209,26 +209,33 @@ test('pageview effect deduplicates replay, updates SPA referrer, and excludes ad
   assert.equal(events.length,2);
 });
 
-test('PDF records dialog preparation, not download completion; rejected preparation records a failure',async()=>{
-  let effect;
+test('PDF completion follows generated download; generation failures are reported and duplicate requests are suppressed',async()=>{
+  let callback;
   function visit(node){
-    if(ts.isCallExpression(node)&&node.expression.getText(shellAst)==='useEffect'&&node.arguments[0]?.getText(shellAst).includes('void printDielineLayout('))effect=node.arguments[0];
+    if(ts.isCallExpression(node)&&node.expression.getText(shellAst)==='useCallback'&&node.arguments[0]?.getText(shellAst).includes('downloadDielinePdf('))callback=node.arguments[0];
     ts.forEachChild(node,visit);
   }
   visit(shellAst);
-  assert.ok(effect);
+  assert.ok(callback);
   for(const success of [true,false]){
-    const events=[];
-    const context={exports:{},pdfExportRequest:1,lastPdfExportRequest:{current:0},printBoardRef:{current:{}},
-      getTemplateGeometry:()=>({bounds:{width:10,height:20}}),selectedTemplateId:'reverse-tuck',dimensions:{},openingMode:'closed',splitTopHingeSide:'side_a',layers:[],artworkScope:'outside',
-      setPrintError:()=>{},setPrinting:()=>{},trackEvent:(...args)=>events.push(args),printDielineLayout:async()=>{if(!success)throw Error('Popup blocked');}};
-    vm.runInNewContext(transpile('exports.handler = '+effect.getText(shellAst)),context);
-    context.exports.handler();
-    await new Promise(resolve=>setImmediate(resolve));
+    const events=[],statuses=[];
+    let resolveDownload;
+    const pending=new Promise(resolve=>{resolveDownload=resolve;});
+    const context={Error,exports:{},pdfRunning:{current:false},pdfExportOptions:{bleedMm:3},pdfBaseColor:null,artworkByPanel:{},
+      selectedTemplateId:'fixture',dimensions:{},openingMode:'closed',splitTopHingeSide:'side_a',layers:[],artworkScope:'outside',
+      setPrintError:()=>{},setPrinting:()=>{},onPdfStatus:(...args)=>statuses.push(args),trackEvent:(...args)=>events.push(args),
+      require:()=>({downloadDielinePdf:async()=>{await pending;if(!success)throw Error('Image failed');return {widthMm:100,heightMm:200};}})};
+    vm.runInNewContext(transpile('exports.handler = '+callback.getText(shellAst)),context);
+    const first=context.exports.handler();
+    await context.exports.handler();
+    assert.equal(events.length,1,'completion must wait for PDF generation');
+    resolveDownload();
+    await first;
     assert.equal(events[0][0],'export_clicked');
-    assert.equal(events[1][0],success?'pdf_print_dialog_opened':'export_failed');
-    assert.ok(!events.some(([name])=>name==='export_completed'));
-    context.exports.handler();
+    assert.equal(events[1][0],success?'export_completed':'export_failed');
     assert.equal(events.length,2);
+    assert.equal(context.pdfRunning.current,false);
+    assert.equal(statuses.at(-1)[0],false);
+    if(!success)assert.equal(statuses.at(-1)[1],'Image failed');
   }
 });

@@ -24,7 +24,7 @@ import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
-import { printDielineLayout } from '@/lib/packaging/dieline-print';
+import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
@@ -237,6 +237,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const viewPan3dRef=useRef(viewPan3d);
   const canvasPanRef=useRef(canvasPan);
   const [pdfExportRequest,setPdfExportRequest] = useState(0);
+  const [pdfExportOptions,setPdfExportOptions] = useState<DielinePdfOptions>(DEFAULT_DIELINE_PDF_OPTIONS);
+  const [pdfBusy,setPdfBusy] = useState(false);
   const liveMapTokenRef = useRef(0);
   const panelMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
@@ -1762,6 +1764,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           }
           viewSwitch={null}
           pdfExportRequest={pdfExportRequest}
+          pdfExportOptions={pdfExportOptions}
+          pdfBaseColor={artworkScope==='inside' ? (insideColorMode==='custom' ? insideCustomColor : null) : (outsideColorMode==='custom' ? outsideCustomColor : null)}
+          onPdfStatus={(busy,message)=>{setPdfBusy(busy);setMessage(message);}}
         />
 
         </div>
@@ -1847,7 +1852,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 2D layout for PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
       </aside>
     </div>
 
@@ -2019,13 +2024,14 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
 }) {
   const t = useTranslations();
 
   const { tool } = props;
   const [structureTab,setStructureTab] = useState<'size'|'templates'>('size');
   const [exportTab,setExportTab] = useState<'image'|'pdf'>('image');
+  const exportRuntime = getTemplateRuntime(props.selectedTemplateId);
   if (tool === 'structure') {
     const categories = getPackagingTemplateCategories();
     const query = props.templateSearch.trim().toLowerCase();
@@ -2381,9 +2387,20 @@ function Inspector(props: {
     </section> : <section className="pro-export-tab-panel" role="tabpanel">
       <div className="pro-export-ready pro-export-pdf-ready">
         <Grid3X3 size={22}/>
-        <div><strong>2D PDF layout</strong><span>{props.artworkScope === 'inside' ? t("studio.inside_3") : t("studio.outside_2")}{" artwork layout at the finished physical size. Validate final production requirements with your printer."}</span></div>
+        <div><strong>1:1 vector PDF</strong><span>{exportRuntime?.exportSummary ?? 'Layout proof at actual size. Manufacturing closure details are not defined for this template.'}</span></div>
       </div>
-      <button className="pro-primary pro-export-button pro-export-pdf-button" onClick={props.onExportPdf}><Download size={16}/> Print / Save PDF</button>
+      <div className="pro-pdf-options">
+        <div className="pro-pdf-surface" role="group" aria-label="PDF artwork side">
+          {(['outside','inside'] as const).map(side=><button key={side} type="button" aria-pressed={props.artworkScope===side} onClick={()=>props.setArtworkScope(side)}>{side==='outside'?'Outside':'Inside'}</button>)}
+        </div>
+        <label className="pro-pdf-bleed"><span>Bleed</span><input aria-label="PDF bleed in millimetres" type="number" min="0" max="10" step="0.5" value={props.pdfOptions.bleedMm} onChange={event=>props.setPdfOptions(current=>({...current,bleedMm:Number(event.target.value)}))}/><span>mm</span></label>
+        <label><input type="checkbox" checked={props.pdfOptions.includeArtwork} onChange={event=>props.setPdfOptions(current=>({...current,includeArtwork:event.target.checked}))}/><span>Include artwork</span></label>
+        <label><input type="checkbox" checked={props.pdfOptions.includeCutCrease} onChange={event=>props.setPdfOptions(current=>({...current,includeCutCrease:event.target.checked}))}/><span>Cut and crease lines</span></label>
+        <label><input type="checkbox" checked={props.pdfOptions.includeCalibration} onChange={event=>props.setPdfOptions(current=>({...current,includeCalibration:event.target.checked}))}/><span>100 mm calibration ruler</span></label>
+        <p>Artwork must extend past the cut to fill the bleed. Print at Actual size / 100%.</p>
+        {exportRuntime?.exportArtworkNote && <p>{exportRuntime.exportArtworkNote}</p>}
+      </div>
+      <button className="pro-primary pro-export-button pro-export-pdf-button" disabled={props.pdfBusy} onClick={props.onExportPdf}><Download size={16}/> {props.pdfBusy?'Preparing PDF…':'Download 1:1 PDF'}</button>
     </section>}
 
     <section className="pro-export-share">
@@ -2430,6 +2447,9 @@ function DielinePrototype({
   onCloseTools,
   onApplyChanges,
   pdfExportRequest,
+  pdfExportOptions,
+  pdfBaseColor,
+  onPdfStatus,
   livePreview,
   viewSwitch,
 }:{
@@ -2464,6 +2484,9 @@ function DielinePrototype({
   onCloseTools:()=>void;
   onApplyChanges:()=>void;
   pdfExportRequest:number;
+  pdfExportOptions:DielinePdfOptions;
+  pdfBaseColor:string|null;
+  onPdfStatus:(busy:boolean,message:string)=>void;
   livePreview:React.ReactNode;
   viewSwitch:React.ReactNode;
 }) {
@@ -2483,24 +2506,35 @@ function DielinePrototype({
   const visualHeight = bounds.height * visualScale;
 
   const lastPdfExportRequest=useRef(0);
+  const pdfRunning=useRef(false);
+  const exportPdf=useCallback(async()=>{
+    if(pdfRunning.current)return;
+    pdfRunning.current=true;
+    setPrintError('');
+    setPrinting(true);
+    onPdfStatus(true,`Preparing ${artworkScope} 1:1 PDF…`);
+    const context={template_id:selectedTemplateId,app_version:'v2',export_format:'pdf',artwork_scope:artworkScope,bleed_mm:pdfExportOptions.bleedMm};
+    trackEvent('export_clicked',context);
+    try {
+      const {downloadDielinePdf}=await import('@/lib/packaging/download-dieline-pdf');
+      const result=await downloadDielinePdf({templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},layers,artworkByPanel,scope:artworkScope,baseColor:pdfBaseColor,options:pdfExportOptions});
+      trackEvent('export_completed',{...context,page_width_mm:result.widthMm,page_height_mm:result.heightMm});
+      onPdfStatus(false,'PDF downloaded at 1:1 scale. Print at Actual size / 100%.');
+    } catch(error) {
+      const message=error instanceof Error?error.message:'Could not prepare the PDF. Please retry.';
+      setPrintError(message);
+      trackEvent('export_failed',{...context,failure_category:'pdf_generation'});
+      onPdfStatus(false,message);
+    } finally {
+      pdfRunning.current=false;
+      setPrinting(false);
+    }
+  },[selectedTemplateId,dimensions,openingMode,splitTopHingeSide,layers,artworkByPanel,artworkScope,pdfBaseColor,pdfExportOptions,onPdfStatus]);
   useEffect(()=>{
     if(!pdfExportRequest || pdfExportRequest===lastPdfExportRequest.current)return;
     lastPdfExportRequest.current=pdfExportRequest;
-    const board=printBoardRef.current;
-    if(!board)return;
-    const exportBounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
-    setPrintError('');
-    setPrinting(true);
-    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'pdf', artwork_scope:artworkScope};
-    trackEvent('export_clicked', context);
-    void printDielineLayout(board,exportBounds,layers)
-      .then(()=>trackEvent('pdf_print_dialog_opened', context))
-      .catch(error=>{
-        trackEvent('export_failed', {...context, failure_category:'print_preparation'});
-        setPrintError(error instanceof Error?error.message:'Could not prepare the PDF layout.');
-      })
-      .finally(()=>setPrinting(false));
-  },[pdfExportRequest,dimensions,layers,selectedTemplateId,openingMode,splitTopHingeSide,artworkScope]);
+    void exportPdf();
+  },[pdfExportRequest,exportPdf]);
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const selectedPanelKey=artworkScope==='inside'? `Interior ${selectedPanel}`:selectedPanel;
@@ -2843,13 +2877,7 @@ function DielinePrototype({
 
           <div className="pro-design-output">
             <span>{t("studio.print_output")}</span>
-            <button type="button" className="pro-secondary-button" disabled={printing} onClick={async()=>{
-              if (!printBoardRef.current) return;
-              setPrintError('');setPrinting(true);
-              try { await printDielineLayout(printBoardRef.current,bounds,layers); }
-              catch(error) { setPrintError(error instanceof Error ? error.message : 'Could not prepare the print layout.'); }
-              finally { setPrinting(false); }
-            }}><Download size={16}/> {printing?t("studio.preparing_pdf"):t("studio.print_save_pdf")}</button>
+            <button type="button" className="pro-secondary-button" disabled={printing} onClick={()=>void exportPdf()}><Download size={16}/> {printing?t("studio.preparing_pdf"):'Download 1:1 PDF'}</button>
           </div>
         </div>
       </aside>}

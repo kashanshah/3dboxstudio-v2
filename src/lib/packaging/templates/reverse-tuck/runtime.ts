@@ -6,6 +6,7 @@ import {
   sanitizeCartonDimensions,
 } from './geometry';
 import { buildReverseTuckTemplateMeshes } from './renderer';
+import { reverseTuckExportGeometry } from './export';
 
 export const reverseTuckRuntime:TemplateRuntime={
   templateId:'reverse-tuck-carton',
@@ -15,6 +16,9 @@ export const reverseTuckRuntime:TemplateRuntime={
   getDielinePanels:dimensions=>getReverseTuckPanels(dimensions),
   getDielineBounds:dimensions=>getReverseTuckBounds(dimensions),
   buildMeshes:buildReverseTuckTemplateMeshes,
+  getExportGeometry: reverseTuckExportGeometry,
+  exportSummary: 'Cutting template with closure flaps. Your printer must approve the stock and crease allowances.',
+  exportArtworkNote: 'The cutting layout adds unprinted closure flaps and rotates the bottom artwork onto the opposite hinge.',
   assembly:{
     control:'none',
     defaultOpeningMode:'closed',

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Grid3X3, Maximize2, Move, ZoomIn, ZoomOut } from 'lucide-react';
+import { CirclePlay, Grid3X3, Maximize2, Move, ZoomIn, ZoomOut } from 'lucide-react';
 import { CartonEngine } from '@/components/studio/carton-engine';
 import type { StudioProjectState } from '@/lib/studio-project';
 import { Brand } from '@/components/site-shell';
@@ -44,6 +44,18 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
   const canvasWrapRef=useRef<HTMLDivElement>(null);
   const zoomRef=useRef(zoom);
   const panRef=useRef(viewPan);
+  const foldAnimationRef=useRef<number|null>(null);
+  const foldTargetRef=useRef<0|100|null>(null);
+
+  const stopFoldAnimation=()=>{
+    if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);
+    foldAnimationRef.current=null;
+    foldTargetRef.current=null;
+  };
+
+  useEffect(()=>()=>{
+    if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);
+  },[]);
 
   useEffect(()=>{zoomRef.current=zoom;},[zoom]);
   useEffect(()=>{panRef.current=viewPan;},[viewPan]);
@@ -71,6 +83,32 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
     const next=templateAssemblyValuesForProgress(state.templateId,value,openingMode);
     setFormation(next.formation);
     setOpening(next.opening);
+  };
+
+  const animateFold=()=>{
+    const target=foldTargetRef.current!==null
+      ? (foldTargetRef.current===100?0:100)
+      : (assemblyProgress>=50?0:100);
+    stopFoldAnimation();
+    foldTargetRef.current=target;
+    const start=assemblyProgress;
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      setAssemblyProgress(target);
+      foldTargetRef.current=null;
+      return;
+    }
+    const startedAt=performance.now();
+    const frame=(now:number)=>{
+      const progress=Math.min(1,(now-startedAt)/1500);
+      const eased=progress<0.5?4*progress*progress*progress:1-Math.pow(-2*progress+2,3)/2;
+      setAssemblyProgress(start+(target-start)*eased);
+      if(progress<1)foldAnimationRef.current=requestAnimationFrame(frame);
+      else{
+        foldAnimationRef.current=null;
+        foldTargetRef.current=null;
+      }
+    };
+    foldAnimationRef.current=requestAnimationFrame(frame);
   };
 
   const applyZoom=(next:number,clientX?:number,clientY?:number)=>{
@@ -133,8 +171,12 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
           <Grid3X3 size={18}/>
           <strong>{Math.round(assemblyProgress)}%</strong>
         </div>
-        <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} onChange={event=>setAssemblyProgress(Number(event.target.value))} aria-label="Assemble or flatten box"/>
+        <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} onChange={event=>{stopFoldAnimation();setAssemblyProgress(Number(event.target.value));}} aria-label="Assemble or flatten box"/>
         <div className="shared-design-endpoints"><small>Flat</small><small>Closed</small></div>
+        <button type="button" onClick={animateFold}>
+          <CirclePlay size={20}/>
+          {assemblyProgress>=50?'Flatten box':'Assemble & close'}
+        </button>
         <strong className="shared-design-stage-label">{stage}</strong>
         <p>Drag to rotate. Turn on the hand tool—or hold Space—to pan. Scroll or pinch to zoom. This shared link is view-only.</p>
       </aside>

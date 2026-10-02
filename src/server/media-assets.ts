@@ -290,3 +290,8 @@ export async function deleteMediaAsset(userId:string,id:string){
   await getSql()`DELETE FROM media_assets WHERE id=${id} AND user_id=${userId}`;
   return {deleted:true as const};
 }
+
+// Used by the durable admin deletion queue after its database transaction commits.
+export async function deleteStoredObject(storageKey: string) {
+  await s3().send(new DeleteObjectCommand({ Bucket: bucket(), Key: storageKey }));
+}

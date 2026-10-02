@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run test && npm run test:geometry && npm run lint && npm run typecheck && npm run build",
     "migrate:legacy-users": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-legacy-users.mjs",
-    "test": "node --test scripts/*.test.mjs scripts/admin-dashboard.test.cjs scripts/admin-catalog.test.cjs scripts/account-actions.test.cjs scripts/email-templates.test.cjs scripts/legacy-design-converter.test.cjs scripts/design-open-encoding.test.cjs",
+    "test": "node --test scripts/*.test.mjs scripts/admin-dashboard.test.cjs scripts/admin-catalog.test.cjs scripts/admin-deletion.test.cjs scripts/account-actions.test.cjs scripts/email-templates.test.cjs scripts/legacy-design-converter.test.cjs scripts/design-open-encoding.test.cjs scripts/dieline-pdf.test.cjs",
     "sync:legacy": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-legacy-users.mjs",
     "sync:legacy-assets": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-asset-sync.mjs",
     "test:geometry": "node --test scripts/studio-geometry.test.cjs",
@@ -23,7 +23,8 @@
     "audit:legacy-fidelity": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/legacy-fidelity-audit.mjs",
     "migrate:legacy-shares": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate-legacy-shares.mjs",
     "repair:legacy-orientations": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/repair-legacy-orientations.mjs",
-    "test:board-image-browser": "node scripts/board-artwork-image.browser.cjs"
+    "test:board-image-browser": "node scripts/board-artwork-image.browser.cjs",
+    "test:pdf-browser": "node scripts/dieline-pdf.browser.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-cost-explorer": "^3.1143.0",
@@ -37,6 +38,7 @@
     "@opentelemetry/sdk-logs": "^0.222.0",
     "lucide-react": "1.48.0",
     "next": "16.3.7",
+    "pdf-lib": "^1.17.1",
     "posthog-js": "^1.435.6",
     "posthog-node": "^5.55.0",
     "react": "19.3.0",

@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -20,6 +21,7 @@ export default async function AdminDesignPage({ params }: Props) {
     <>
       <p className="admin-email-back"><Link href="/admin/designs">Back to designs</Link></p>
       <AdminPageHeader title={design.name} description={design.legacy ? 'Legacy design' : 'V2 studio project'} />
+      <AdminDeleteButton kind="design" id={design.id} name={design.name} redirectTo="/admin/designs" />
       <p className="admin-email-back"><a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Open 3D preview</a></p>
       <div className="admin-panel">
         <div className="admin-panel-header"><h2>Details</h2></div>

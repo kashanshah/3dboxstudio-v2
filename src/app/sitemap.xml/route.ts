@@ -1,3 +1,4 @@
+import { changelogReleases } from '@/content/changelog';
 import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 
@@ -39,6 +40,7 @@ function getEntries(): SitemapEntry[] {
     { path: '/de', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
     { path: '/studio', changeFrequency: 'weekly', priority: 0.95 },
     { path: '/features', changeFrequency: 'monthly', priority: 0.85 },
+    { path: '/changelog', lastModified: new Date(changelogReleases[0].date), changeFrequency: 'weekly', priority: 0.7 },
     { path: '/whats-new/v2', lastModified: new Date('2026-10-01'), changeFrequency: 'weekly', priority: 0.85 },
     { path: '/box-dieline-generator', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/3d-box-mockup-generator', changeFrequency: 'monthly', priority: 0.85 },

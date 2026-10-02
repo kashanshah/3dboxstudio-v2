@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminListSearch } from '@/components/admin/admin-list-search';
@@ -45,7 +46,7 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
                 <th aria-sort={sort === 'images' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Images" column="images" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'source' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Source" column="source" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'updated' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Updated" column="updated" sort={sort} dir={dir} numeric href={sortHref} /></th>
-                <th>Preview</th>
+                <th>Preview</th><th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -58,8 +59,9 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
                   <td>{design.legacy ? 'Legacy' : 'V2'}</td>
                   <td>{design.updatedAt ? formatAdminDateTime(design.updatedAt) : '—'}</td>
                   <td><a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a></td>
+                  <td><AdminDeleteButton kind="design" id={design.id} name={design.name} /></td>
                 </tr>
-              )) : <tr><td colSpan={7}>No designs match this search.</td></tr>}
+              )) : <tr><td colSpan={8}>No designs match this search.</td></tr>}
             </tbody>
           </table>
         </div>

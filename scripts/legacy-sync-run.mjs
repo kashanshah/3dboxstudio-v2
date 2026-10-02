@@ -38,8 +38,8 @@ export async function runLegacySync({source,target,sourceName='3dboxstudio-v1',a
   const {rows:[{snapshot_at}]} = await source.query('SELECT transaction_timestamp() AS snapshot_at');
   const sourceTables = new Set((await source.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")).rows.map(row => row.table_name));
   if (!sourceTables.has('users') || !sourceTables.has('oauth_accounts')) throw new Error('Source identity tables are missing');
-  const users = await readTable(source, 'users', onProgress);
-  const oauth = (await source.query('SELECT to_jsonb(o) AS data FROM oauth_accounts o ORDER BY provider,provider_account_id')).rows.map(row => row.data);
+  let users = await readTable(source, 'users', onProgress);
+  let oauth = (await source.query('SELECT to_jsonb(o) AS data FROM oauth_accounts o ORDER BY provider,provider_account_id')).rows.map(row => row.data);
   const snapshots = {};
   for (const table of MIRROR_TABLES) if (sourceTables.has(table)) snapshots[table] = await readTable(source, table, onProgress);
   await source.query('COMMIT');
@@ -52,6 +52,12 @@ export async function runLegacySync({source,target,sourceName='3dboxstudio-v1',a
     await target.query('LOCK TABLE users,oauth_accounts,legacy_migrations,legacy_records IN SHARE ROW EXCLUSIVE MODE');
   }
   const tables = new Set((await target.query("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")).rows.map(row => row.table_name));
+  // Admin deletions are authoritative across subsequent delta imports.
+  const blocks = tables.has('admin_deleted_entities') ? (await target.query('SELECT kind,id FROM admin_deleted_entities')).rows : [];
+  const deletedUsers = new Set(blocks.filter(row => row.kind === 'user').map(row => row.id));
+  const protectedLegacy = new Set(blocks.filter(row => row.kind === 'legacy').map(row => row.id));
+  users = users.filter(user => !deletedUsers.has(user.id));
+  oauth = oauth.filter(account => !deletedUsers.has(account.user_id));
   const targetUsers = tables.has('users') ? (await target.query('SELECT to_jsonb(u) AS data FROM users u')).rows.map(row => row.data) : [];
   const targetOAuth = tables.has('oauth_accounts') ? (await target.query('SELECT * FROM oauth_accounts')).rows : [];
   const ledger = tables.has('legacy_migrations') ? (await target.query("SELECT source_id,metadata FROM legacy_migrations WHERE source=$1 AND entity_type='user'",[sourceName])).rows : [];
@@ -83,9 +89,11 @@ export async function runLegacySync({source,target,sourceName='3dboxstudio-v1',a
     report.oauth[exists?'unchanged':'inserted']++;
     if (apply) await target.query('INSERT INTO oauth_accounts(provider,provider_account_id,user_id,created_at) VALUES($1,$2,$3,$4) ON CONFLICT(provider,provider_account_id) DO NOTHING',[account.provider,account.provider_account_id,account.user_id,account.created_at]);
   }
-  for (const [table,rows] of Object.entries(snapshots)) {
+  for (const [table,sourceRows] of Object.entries(snapshots)) {
+    const rows = sourceRows.filter(row => !deletedUsers.has(row.user_id) && !protectedLegacy.has(`${sourceName}:${table}:${row.id}`));
     const existing = tables.has('legacy_records') ? (await target.query('SELECT source_id,source_hash,deleted_at FROM legacy_records WHERE source=$1 AND entity_type=$2',[sourceName,table])).rows : [];
-    const plan = planMirror(rows,existing);
+    const protectedExisting = existing.filter(row => protectedLegacy.has(`${sourceName}:${table}:${row.source_id}`));
+    const plan = planMirror(rows,existing.filter(row => !protectedLegacy.has(`${sourceName}:${table}:${row.source_id}`)));
     onProgress(`${table}: ${rows.length} records; ${plan.inserted} new, ${plan.updated} changed, ${plan.unchanged} unchanged`);
     report.records[table] = {inserted:plan.inserted,updated:plan.updated,unchanged:plan.unchanged,deleted:plan.deleted.length};
     if (!apply) continue;
@@ -98,7 +106,7 @@ export async function runLegacySync({source,target,sourceName='3dboxstudio-v1',a
     onProgress(`${table}: write batches complete`);
     if (plan.deleted.length) await target.query('UPDATE legacy_records SET deleted_at=NOW() WHERE source=$1 AND entity_type=$2 AND source_id=ANY($3::text[])',[sourceName,table,plan.deleted]);
     const count = (await target.query('SELECT COUNT(*)::int AS count FROM legacy_records WHERE source=$1 AND entity_type=$2 AND deleted_at IS NULL',[sourceName,table])).rows[0].count;
-    if (count !== rows.length) throw new Error('Mirror verification failed');
+    if (count !== rows.length + protectedExisting.filter(row => !row.deleted_at).length) throw new Error('Mirror verification failed');
   }
   if (apply) {
     const identities = (await target.query('SELECT id,email FROM users')).rows;

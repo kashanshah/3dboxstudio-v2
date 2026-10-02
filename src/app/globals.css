@@ -5254,6 +5254,15 @@ body{font-size:var(--type-body)}
   font-weight:650;
 }
 .pro-export-pdf-ready{margin-top:0}
+.pro-pdf-options{display:grid;gap:12px;margin:18px 0;color:var(--pro-text,#26354a);font-size:13px}
+.pro-pdf-options>label{display:flex;align-items:center;gap:9px}
+.pro-pdf-options input[type=checkbox]{width:16px;height:16px;accent-color:#0076bc}
+.pro-pdf-options .pro-pdf-bleed input{width:72px;padding:7px 9px;border:1px solid #d6deea;border-radius:7px;font:inherit}
+.pro-pdf-options p{margin:0;color:#64748b;font-size:12px;line-height:1.6}
+.pro-pdf-surface{display:flex;gap:6px}
+.pro-pdf-surface button{flex:1;padding:8px;border:1px solid #d6deea;border-radius:7px;background:#fff;color:#526175;font:inherit;cursor:pointer}
+.pro-pdf-surface button[aria-pressed=true]{border-color:#0076bc;background:#eaf5fc;color:#0076bc}
+.pro-pdf-options input:focus-visible,.pro-pdf-surface button:focus-visible{outline:2px solid #0076bc;outline-offset:3px}
 .pro-export-coming{margin-top:20px}
 @media(max-width:640px){
   .pro-export-tabs button{min-height:44px;font-size:12px}

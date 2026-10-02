@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminListSearch } from '@/components/admin/admin-list-search';
@@ -45,6 +46,7 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                 <th aria-sort={sort === 'designs' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Designs" column="designs" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'media' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Media" column="media" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'joined' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Joined" column="joined" sort={sort} dir={dir} numeric href={sortHref} /></th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -63,8 +65,9 @@ export default async function AdminUsersPage({ searchParams }: Props) {
                     <Link href={`/admin/media?user=${encodeURIComponent(user.id)}`}>{user.mediaCount.toLocaleString()} media</Link>
                   </td>
                   <td>{user.createdAt ? formatAdminDateTime(user.createdAt) : '—'}</td>
+                  <td><AdminDeleteButton kind="user" id={user.id} name={user.email} /></td>
                 </tr>
-              )) : <tr><td colSpan={7}>No users match this search.</td></tr>}
+              )) : <tr><td colSpan={8}>No users match this search.</td></tr>}
             </tbody>
           </table>
         </div>
