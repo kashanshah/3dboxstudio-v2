@@ -114,7 +114,10 @@ export function preparePdfArtwork(input: DownloadInput) {
       ctx.translate(panel.width / 2, panel.height / 2);
       ctx.rotate((panel.sourceRotation ?? 0) * Math.PI / 180);
       ctx.translate(-panel.width / 2, -panel.height / 2);
-      for (const layer of visible) {
+      // Explicit face artwork replaces the sheet texture in the editor and 3D
+      // preview. Transparent or uncovered areas reveal only the base color.
+      if (explicit) drawPanelArtwork(ctx, explicit, await getImage(explicit.url), original.width, original.height);
+      else for (const layer of visible) {
         const image = await getImage(layer.url);
         const t = sheetTransformToPhysical(layer.transform, source.bounds);
         ctx.save();
@@ -124,7 +127,6 @@ export function preparePdfArtwork(input: DownloadInput) {
         ctx.drawImage(image, -t.width / 2, -t.height / 2, t.width, t.height);
         ctx.restore();
       }
-      if (explicit) drawPanelArtwork(ctx, explicit, await getImage(explicit.url), original.width, original.height);
       ctx.restore();
     }
     // An actual bleed mask: expand only external cut edges, never the fold edges.
