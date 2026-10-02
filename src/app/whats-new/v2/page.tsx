@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Box, CheckCircle2, Layers3, LayoutGrid, Share2, Sparkles } from 'lucide-react';
+import { ArrowRight, Box, CheckCircle2, LayoutGrid, Share2, Sparkles } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import { site } from '@/lib/site';
 import styles from './page.module.css';

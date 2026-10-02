@@ -8,32 +8,33 @@ import styles from './zoom-image.module.css';
 type Shot = { src: string; alt: string };
 
 type Gallery = {
-  register: (shot: Shot) => number;
-  open: (index: number) => void;
+  register: (shot: Shot) => void;
+  open: (shot: Shot) => void;
 };
 
 const ZoomGalleryContext = createContext<Gallery | null>(null);
 
 export function ZoomGallery({ children }: { children: React.ReactNode }) {
-  const shots = useRef<Shot[]>([]);
-  const [active, setActive] = useState<number | null>(null);
+  const [shots, setShots] = useState<Shot[]>([]);
+  const [activeSrc, setActiveSrc] = useState<string | null>(null);
   const register = useCallback((shot: Shot) => {
-    const existing = shots.current.findIndex((item) => item.src === shot.src);
-    if (existing >= 0) return existing;
-    shots.current.push(shot);
-    return shots.current.length - 1;
+    setShots((current) => current.some((item) => item.src === shot.src) ? current : [...current, shot]);
   }, []);
-  const open = useCallback((index: number) => setActive(index), []);
+  const open = useCallback((shot: Shot) => {
+    setShots((current) => current.some((item) => item.src === shot.src) ? current : [...current, shot]);
+    setActiveSrc(shot.src);
+  }, []);
+  const active = activeSrc === null ? null : shots.findIndex((shot) => shot.src === activeSrc);
 
   return (
     <ZoomGalleryContext.Provider value={{ register, open }}>
       {children}
-      {active !== null && (
+      {active !== null && active >= 0 && (
         <Lightbox
-          shots={shots.current}
+          shots={shots}
           index={active}
-          onIndex={setActive}
-          onClose={() => setActive(null)}
+          onIndex={(index) => setActiveSrc(shots[index]?.src ?? null)}
+          onClose={() => setActiveSrc(null)}
         />
       )}
     </ZoomGalleryContext.Provider>
@@ -54,12 +55,14 @@ export function ZoomImage({
   sizes: string;
 }) {
   const gallery = useContext(ZoomGalleryContext);
-  const index = useRef(-1);
-  if (gallery && index.current < 0) index.current = gallery.register({ src, alt });
+
+  useEffect(() => {
+    gallery?.register({ src, alt });
+  }, [gallery, src, alt]);
 
   return (
     <div className={styles.frame}>
-      <button type="button" className={styles.trigger} aria-label={`View full screen: ${alt}`} onClick={() => gallery?.open(index.current)}>
+      <button type="button" className={styles.trigger} aria-label={`View full screen: ${alt}`} onClick={() => gallery?.open({ src, alt })}>
         <Image src={src} alt={alt} width={width} height={height} sizes={sizes} />
       </button>
       <span className={styles.magnify} aria-hidden="true"><ZoomIn size={18} /></span>
