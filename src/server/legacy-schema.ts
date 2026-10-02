@@ -1,5 +1,11 @@
 // Shared by the application and the operator-only migration command.
 export const LEGACY_SYNC_SCHEMA = `
+CREATE TABLE IF NOT EXISTS admin_deleted_entities (
+  kind TEXT NOT NULL,
+  id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY(kind,id)
+);
 CREATE TABLE IF NOT EXISTS legacy_records (
   source TEXT NOT NULL,
   entity_type TEXT NOT NULL,

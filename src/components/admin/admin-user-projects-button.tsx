@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { X } from 'lucide-react';
+import { AdminDeleteButton } from './admin-delete-button';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import type { AdminUserProjectItem } from '@/server/admin/catalog';
 
@@ -113,7 +114,7 @@ export function AdminUserProjectsButton({ userId, userEmail, userName, projectCo
                           {project.sceneCount.toLocaleString()} scene{project.sceneCount === 1 ? '' : 's'}
                         </div>
                       </div>
-                      <Link className="admin-link" href={project.href}>Designs</Link>
+                      <div className="admin-row-actions"><Link className="admin-link" href={project.href}>Designs</Link><AdminDeleteButton kind="project" id={project.id} name={project.name} onDeleted={() => { setProjects(current => current.filter(p => p.id !== project.id)); setTotal(current => Math.max(0, current - 1)); }} /></div>
                     </li>
                   ))}
                 </ul>

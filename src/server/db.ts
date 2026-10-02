@@ -192,6 +192,14 @@ export async function ensureV2Schema(): Promise<void> {
       )
     `;
     await db`
+      CREATE TABLE IF NOT EXISTS admin_deletion_files (
+        job_id TEXT NOT NULL,
+        storage_key TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY(job_id,storage_key)
+      )
+    `;
+    await db`
       CREATE TABLE IF NOT EXISTS admin_settings (
         key TEXT PRIMARY KEY,
         value JSONB NOT NULL DEFAULT '{}'::jsonb,

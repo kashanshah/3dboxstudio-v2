@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { X } from 'lucide-react';
+import { AdminDeleteButton } from './admin-delete-button';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import type { AdminMediaItem } from '@/lib/admin-media';
 
@@ -62,6 +63,7 @@ export function AdminMediaBrowser({ items }: { items: AdminMediaItem[] }) {
                   <img src={item.previewUrl} alt={item.name} onError={() => setFailed(true)} />
                 )}
               </div>
+              <AdminDeleteButton kind="media" id={item.id} name={item.name} onDeleted={() => setOpenId(null)} />
               <dl className="admin-detail">
                 <div>
                   <dt>Uploaded by</dt>
