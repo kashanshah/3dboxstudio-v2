@@ -9,6 +9,7 @@ import { BrandMark } from "./original-brand-mark";
 import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
 import { SiteHeader } from "./site-shell";
+import { FaqSection } from "./faq-section";
 
 const capabilities = [
   [Ruler, "Set real dimensions", "Work with finished width, height, depth, and units instead of being locked to one static mockup."],
@@ -186,20 +187,15 @@ export function OriginalHome() {
 
     <section className="use-cases-section"><div><p className="eyebrow">Built for real packaging conversations</p><h2>Useful before the sample, the press proof, and the photo shoot.</h2></div><div className="use-case-grid">{useCases.map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
 
-    <section className="answer-section">
-      <div className="answer-intro sticky">
-        <p className="eyebrow">Frequently asked questions</p>
-        <h2>Answers before you open the Studio.</h2>
-        <p><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser.</p>
-        <div className="seo-home-links"><Link href="/features">Features <ArrowRight/></Link><Link href="/faq">Full FAQ <ArrowRight/></Link><Link href="/blog">Packaging guides <ArrowRight/></Link></div>
-      </div>
-      <div className="answer-accordion">
-        {HOME_FAQS.map((item,index)=><details key={item.question} open={index===0}>
-          <summary><span>{item.question}</span><i aria-hidden="true">+</i></summary>
-          <p>{item.answer}</p>
-        </details>)}
-      </div>
-    </section>
+    <FaqSection
+      items={HOME_FAQS}
+      description={<><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser.</>}
+      links={[
+        { href: "/features", label: "Features" },
+        { href: "/faq", label: "Full FAQ" },
+        { href: "/blog", label: "Packaging guides" },
+      ]}
+    />
 
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
     <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><span>© 2026 3D Box Studio</span></footer>
