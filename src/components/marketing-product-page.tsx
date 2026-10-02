@@ -2,9 +2,10 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
+import { FaqSection, type FaqSectionItem } from "./faq-section";
 import "./marketing-product-page.css";
 
-export type MarketingPageFaq = { question: string; answer: string };
+export type MarketingPageFaq = FaqSectionItem;
 export type MarketingPageSection = { title: string; body: string; bullets?: string[] };
 
 export function MarketingProductPage({
@@ -64,19 +65,15 @@ export function MarketingProductPage({
 
       {note ? <section className="mpp-note"><Info/><div><b>Important limitation</b><p>{note}</p></div></section> : null}
 
-      <section className="mpp-faq">
-        <div className="mpp-faq-intro">
-          <span className="mpp-eyebrow">Frequently asked questions</span>
-          <h2>Direct answers before you start.</h2>
-          <p>Useful details about this workflow, its current capabilities, and where production validation still matters.</p>
-        </div>
-        <div className="mpp-faq-list">
-          {faqs.map((item,index)=><details key={item.question} open={index===0}>
-            <summary><span>{String(index+1).padStart(2,"0")}</span><strong>{item.question}</strong><i aria-hidden="true">+</i></summary>
-            <p>{item.answer}</p>
-          </details>)}
-        </div>
-      </section>
+      <FaqSection
+        items={faqs}
+        title="Direct answers before you start."
+        description="Useful details about this workflow, its current capabilities, and where production validation still matters."
+        links={[
+          { href: "/faq", label: "Full FAQ" },
+          { href: "/blog", label: "Packaging guides" },
+        ]}
+      />
 
       <section className="mpp-bottom">
         <h2>Ready to see your packaging in 3D?</h2>
