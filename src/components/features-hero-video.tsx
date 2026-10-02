@@ -56,7 +56,9 @@ export function FeaturesHeroVideo() {
 
       const rect = aside.getBoundingClientRect();
       const start = rect.top + window.scrollY - headerHeight - 16;
-      const runway = Math.max(1, rect.height - figure.getBoundingClientRect().height);
+      const naturalRunway = rect.height - figure.getBoundingClientRect().height;
+      // Stacked layouts have no extra column height; avoid a one-pixel scrub.
+      const runway = naturalRunway > 1 ? naturalRunway : Math.max(1, window.innerHeight * .35);
       // Finish before sticky releases, leaving the final frame visible briefly.
       const hold = Math.min(runway * .1, window.innerHeight * .15);
       const progress = Math.min(1, Math.max(0, (window.scrollY - start) / Math.max(1, runway - hold)));

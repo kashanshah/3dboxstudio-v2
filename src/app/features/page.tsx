@@ -89,12 +89,12 @@ const faqs = [
 export default function Page(){
   const url=new URL("/features",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
-    {"@type":"WebPage",name:"Design your packaging in 2D. Bring it to life in 3D.",description:"Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, saving and share links.",url},
+    {"@type":"WebPage",name:"A packaging design workspace that connects the dieline to the 3D box.",description:"Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, saving and share links.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Product features" title="Design your packaging in 2D. Bring it to life in 3D." intro="Choose a box template, set its dimensions, and place your artwork on the flat dieline. Review the same design as a 3D box, then export, save, or share it—all in your browser." secondaryHref="/box-templates" secondaryLabel="Explore box templates" sections={sections} faqs={faqs} heroAside={<FeaturesHeroVideo />} scrollHero showStudioProof={false} heroHighlights={[
-    { title: "Start with the right structure", body: "Choose a packaging template and set your finished dimensions." },
-    { title: "Create on the flat dieline", body: "Upload artwork and organize it with layers, cropping, and precise transforms." },
-    { title: "Check the box from every angle", body: "See your artwork in 3D and inspect how the packaging opens and closes." },
-  ]} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Product features" title="A packaging design workspace that connects the dieline to the 3D box." intro="3D Box Studio brings structure, dimensions, artwork editing, 3D review, export, saving, and sharing into one browser workflow. It is built for fast visual packaging decisions without requiring a heavyweight desktop install." secondaryHref="/box-templates" secondaryLabel="Explore box templates" sections={sections} faqs={faqs} heroAside={<FeaturesHeroVideo />} scrollHero showStudioProof={false} heroSecondary={{
+    eyebrow: "See your packaging take shape",
+    title: "From a flat dieline to a 3D box.",
+    body: "Design your artwork on the flat layout, then review the same packaging in 3D. Explore how the panels fold, how the box opens and closes, and how your artwork looks across each face before exporting or sharing your design.",
+  }} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

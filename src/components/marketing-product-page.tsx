@@ -21,7 +21,7 @@ export function MarketingProductPage({
   heroAside,
   scrollHero = false,
   showStudioProof = true,
-  heroHighlights,
+  heroSecondary,
 }: {
   eyebrow: string;
   title: string;
@@ -35,7 +35,7 @@ export function MarketingProductPage({
   heroAside?: ReactNode;
   scrollHero?: boolean;
   showStudioProof?: boolean;
-  heroHighlights?: { title: string; body: string }[];
+  heroSecondary?: { eyebrow: string; title: string; body: string };
 }) {
   return <>
     <SiteHeader />
@@ -43,14 +43,20 @@ export function MarketingProductPage({
       <div className={scrollHero ? "mpp-hero-track" : undefined}>
       <section className={`mpp-hero${heroAside ? " has-aside" : ""}${!showStudioProof ? " mpp-hero-combined" : ""}`}>
         <div className="mpp-hero-copy">
+          <section className="mpp-hero-primary-copy">
           <span className="mpp-eyebrow">{eyebrow}</span>
           <h1>{title}</h1>
           <p>{intro}</p>
-          {heroHighlights?.length ? <ul className="mpp-hero-highlights">{heroHighlights.map(item => <li key={item.title}><CheckCircle2 aria-hidden="true" /><div><strong>{item.title}</strong><p>{item.body}</p></div></li>)}</ul> : null}
           <div className="mpp-actions">
             <Link className="mpp-primary" href="/studio">{primaryCta}<ArrowRight /></Link>
             {secondaryHref && secondaryLabel ? <Link className="mpp-secondary" href={secondaryHref}>{secondaryLabel}</Link> : null}
           </div>
+          </section>
+          {heroSecondary ? <section className="mpp-hero-secondary-copy">
+            <span className="mpp-eyebrow">{heroSecondary.eyebrow}</span>
+            <h2>{heroSecondary.title}</h2>
+            <p>{heroSecondary.body}</p>
+          </section> : null}
         </div>
         {heroAside ? <div className="mpp-hero-aside">{heroAside}</div> : null}
       </section>
