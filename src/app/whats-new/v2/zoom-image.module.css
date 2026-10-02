@@ -1,0 +1,20 @@
+.frame{position:relative}
+.trigger{display:block;width:100%;margin:0;padding:0;border:0;background:transparent;color:inherit;cursor:zoom-in;text-align:left}
+.trigger img{display:block}
+.magnify{position:absolute;top:12px;right:12px;z-index:2;display:grid;place-items:center;width:36px;height:36px;border-radius:999px;background:rgba(255,255,255,.94);color:#172235;box-shadow:0 8px 20px rgba(24,48,72,.18);pointer-events:none}
+.trigger:hover+.magnify,.trigger:focus-visible+.magnify{background:#168de2;color:#fff}
+.lightbox{position:fixed;inset:0;width:100vw;height:100vh;max-width:none;max-height:none;margin:0;padding:56px 72px;border:0;background:transparent;display:grid;place-items:center;cursor:zoom-out}
+.lightbox::backdrop{background:rgba(16,23,34,.9)}
+.lightbox img{max-width:min(1480px,100%);max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.4);cursor:default}
+.close,.prev,.next{position:absolute;display:grid;place-items:center;border:0;border-radius:999px;background:rgba(255,255,255,.94);color:#172235;cursor:pointer}
+.close{top:16px;right:16px;width:40px;height:40px}
+.prev,.next{top:50%;width:44px;height:44px;transform:translateY(-50%)}
+.prev{left:16px}
+.next{right:16px}
+.close:hover,.prev:hover,.next:hover{background:#168de2;color:#fff}
+@media(max-width:760px){
+  .frame{overflow-x:auto}
+  .lightbox{padding:64px 16px}
+  .prev{left:8px}
+  .next{right:8px}
+}

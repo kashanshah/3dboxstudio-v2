@@ -145,9 +145,11 @@ export function OriginalHome() {
         <Button variant="outline" asChild><Link href="/features">Explore all Studio features <ArrowRight/></Link></Button>
       </div>
       <div className="studio-live-frame">
-        <div className="studio-frame-bar"><span/><span/><span/><b>Live Studio preview</b><Link href="/studio">Open full Studio <ArrowRight/></Link></div>
-        <iframe src="/studio" title="Live preview of the actual 3D Box Studio interface" loading="lazy" />
-        <p className="studio-frame-caption">This is the real Studio interface embedded from the product—not an illustrated dashboard.</p>
+        <div className="studio-frame-bar"><span/><span/><span/><b>Actual V2 workflow</b><Link href="/whats-new/v2">What’s new in V2 <ArrowRight/></Link></div>
+        <video className="studio-proof-video" autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/flatten-assemble-poster.webp" aria-label="3DBoxStudio V2 box flatten and assemble animation">
+          <source src="/animations/flatten-assemble-2.mp4" type="video/mp4"/>
+        </video>
+        <p className="studio-frame-caption">Current V2 Studio footage showing the same package moving between flat and assembled views.</p>
       </div>
     </section>
 
@@ -182,10 +184,10 @@ export function OriginalHome() {
       <div className="dieline-visual"><div className="dieline-sheet"><i className="dl-a"/><i className="dl-b"/><i className="dl-c"/><i className="dl-d"/><i className="dl-e"/><span>flat layout</span></div><ArrowRight/><div className="dieline-box"><PackageBox/></div></div>
     </section>
 
-    <section className="use-cases-section"><div className="section-intro"><p className="eyebrow">Built for real packaging conversations</p><h2>Useful before the sample, the press proof, and the photo shoot.</h2></div><div className="use-case-grid">{useCases.map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
+    <section className="use-cases-section"><div><p className="eyebrow">Built for real packaging conversations</p><h2>Useful before the sample, the press proof, and the photo shoot.</h2></div><div className="use-case-grid">{useCases.map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></section>
 
     <section className="answer-section">
-      <div className="answer-intro">
+      <div className="answer-intro sticky">
         <p className="eyebrow">Frequently asked questions</p>
         <h2>Answers before you open the Studio.</h2>
         <p><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser.</p>
