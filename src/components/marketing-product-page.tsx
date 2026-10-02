@@ -18,6 +18,7 @@ export function MarketingProductPage({
   faqs,
   note,
   heroAside,
+  pinHero = false,
 }: {
   eyebrow: string;
   title: string;
@@ -29,10 +30,12 @@ export function MarketingProductPage({
   faqs: MarketingPageFaq[];
   note?: string;
   heroAside?: ReactNode;
+  pinHero?: boolean;
 }) {
   return <>
     <SiteHeader />
     <main id="main" className="marketing-product-page">
+      <div className={pinHero ? "mpp-hero-track" : undefined}>
       <section className={`mpp-hero${heroAside ? " has-aside" : ""}`}>
         <div className="mpp-hero-copy">
           <span className="mpp-eyebrow">{eyebrow}</span>
@@ -46,7 +49,9 @@ export function MarketingProductPage({
         {heroAside ? <div className="mpp-hero-aside">{heroAside}</div> : null}
       </section>
 
-      <section className="mpp-studio-proof">
+      </div>
+
+      <section className="mpp-studio-proof" tabIndex={pinHero ? -1 : undefined}>
         <div>
           <span className="mpp-eyebrow">See the real product</span>
           <h2>Explore the actual Studio interface.</h2>
