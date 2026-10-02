@@ -112,7 +112,7 @@ export function FeaturesHeroVideo() {
     if (!(nextSection instanceof HTMLElement)) return;
     nextSection.focus({ preventScroll: true });
     const headerHeight = document.querySelector(".marketing-header")?.getBoundingClientRect().height ?? 83;
-    window.scrollTo({ top: nextSection.getBoundingClientRect().top + window.scrollY - headerHeight, behavior: "instant" });
+    window.scrollTo({ top: nextSection.getBoundingClientRect().top + window.scrollY - headerHeight, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   };
 
   return (
