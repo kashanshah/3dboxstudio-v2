@@ -1,4 +1,4 @@
-.page{overflow:hidden;background:#f7f9fc;color:#101722}
+.page{background:#f7f9fc;color:#101722}
 .hero{width:min(1440px,calc(100% - 48px));margin:0 auto;padding:78px 0 60px;display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);align-items:center;gap:64px}
 .heroCopy h1,.summary h2,.detailCopy h2,.projectsCopy h2,.roadmapIntro h2,.fullMediaCopy h2,.faqIntro h2,.closing h2{font-size:clamp(44px,5.8vw,82px);line-height:.98;letter-spacing:-.055em;font-weight:720;margin:16px 0 22px}
 .heroCopy h1 em{font-style:normal;color:#168de2}
@@ -14,16 +14,16 @@
 .mediaBar{height:42px;display:flex;align-items:center;gap:7px;padding:0 14px;background:#fff;border-bottom:1px solid #dbe4ed;color:#627186;font-size:11px}
 .mediaBar span{width:8px;height:8px;border-radius:50%;background:#c9d3dc}.mediaBar b{margin-left:6px}
 .heroMedia video{display:block;width:100%;aspect-ratio:1.58;object-fit:cover;background:#e8eef5}
-.summary{max-width:850px;margin:0 auto;padding:105px 24px 45px;text-align:center}
+.summary{max-width:1050px;margin:0 auto;padding:105px 24px 45px;text-align:center}
 .summary h2{font-size:clamp(42px,5vw,68px)}
 .summary>p{color:#617086;font-size:18px;line-height:1.75}
 .workflow{width:min(1320px,calc(100% - 48px));margin:0 auto;padding:10px 0 90px;display:grid;gap:30px}
-.workflowStep{display:grid;grid-template-columns:320px minmax(0,1fr);align-items:center;gap:30px;padding:22px;border:1px solid #dbe4ed;border-radius:24px;background:#fff;box-shadow:0 10px 32px rgba(24,48,72,.055)}
+.workflowStep{display:grid;grid-template-columns:320px minmax(0,1fr);align-items:flex-start;gap:30px;padding:22px;border:1px solid #dbe4ed;border-radius:24px;background:#fff;box-shadow:0 10px 32px rgba(24,48,72,.055)}
 .stepCopy{padding:14px}.stepNumber{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#e9f5fe;color:#0878c8;font-size:13px;font-weight:800}.stepEyebrow{margin:20px 0 7px}.stepCopy h3{margin:0 0 11px;font-size:31px;line-height:1.08;letter-spacing:-.035em}.stepCopy>p:last-child{color:#617086;line-height:1.7;font-size:15px}
 .workflowStep figure{margin:0;overflow:hidden;border:1px solid #dce5ee;border-radius:17px;background:#e8eef5}.workflowStep img{display:block;width:100%;height:auto}
 .detailGrid{width:min(1220px,calc(100% - 48px));margin:0 auto;padding:5px 0 100px;display:grid;grid-template-columns:1fr 1fr;gap:26px}
-.detailGrid article{display:grid;grid-template-columns:minmax(0,.85fr) minmax(260px,1.15fr);overflow:hidden;min-height:560px;border:1px solid #dbe4ed;border-radius:24px;background:#fff;box-shadow:0 12px 35px rgba(24,48,72,.06)}
-.detailCopy{padding:36px 12px 36px 34px;align-self:center}.detailCopy h2{font-size:37px}.detailCopy p{color:#617086;line-height:1.72}
+.detailGrid article{display:grid;grid-template-columns:minmax(0,.85fr) minmax(260px,1.15fr);align-items: flex-start;min-height:560px;border:1px solid #dbe4ed;border-radius:24px;background:#fff;box-shadow:0 12px 35px rgba(24,48,72,.06)}
+.detailCopy{padding:36px 12px 36px 34px;position: sticky;top: 110px;}.detailCopy h2{font-size:37px}.detailCopy p{color:#617086;line-height:1.72}
 .portraitMedia{align-self:end;overflow:hidden;max-height:560px;margin-top:24px}.portraitMedia img{display:block;width:100%;height:auto}
 .projects{width:min(1320px,calc(100% - 48px));margin:0 auto 100px;display:grid;grid-template-columns:.82fr 1.18fr;gap:52px;align-items:center}
 .projectsCopy{padding:20px}.projectsCopy h2{font-size:clamp(42px,5vw,66px)}.projectsCopy>p{font-size:17px;line-height:1.78;color:#617086}
