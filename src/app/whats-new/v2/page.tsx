@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Box, CheckCircle2, LayoutGrid, Share2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Box, CheckCircle2, LayoutGrid, Share2, Sparkles } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import { site } from '@/lib/site';
 import styles from './page.module.css';
@@ -44,6 +44,7 @@ export default function V2WhatsNewPage(){
   return <><SiteHeader/><main id="main" className={styles.page}><ZoomGallery>
     <section className={styles.hero}>
       <div className={styles.heroCopy}>
+        <Link className={styles.backLink} href="/changelog"><ArrowLeft size={15} aria-hidden="true"/> All product updates</Link>
         <span className={styles.kicker}><Sparkles size={15}/> 3DBoxStudio V2</span>
         <h1>A new Studio for turning flat packaging into <em>real 3D.</em></h1>
         <p>V2 connects structure, size, materials, dieline artwork, 3D review, Projects, sharing, and exports in one clearer packaging workflow.</p>

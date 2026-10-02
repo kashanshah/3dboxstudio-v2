@@ -9,6 +9,7 @@ export const en = {
   "navigation.product": "Product",
   "navigation.studio": "Studio",
   "navigation.guides": "Guides",
+  "navigation.whats_new": "What’s new",
   "navigation.help_center": "Help center",
   "navigation.company": "Company",
   "navigation.contact": "Contact",
