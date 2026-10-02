@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FeaturesHeroVideo } from "@/components/features-hero-video";
 import { MarketingProductPage } from "@/components/marketing-product-page";
 import { site } from "@/lib/site";
 
@@ -91,5 +92,5 @@ export default function Page(){
     {"@type":"WebPage",name:"A packaging design workspace that connects the dieline to the 3D box.",description:"Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, saving and share links.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Product features" title="A packaging design workspace that connects the dieline to the 3D box." intro="3D Box Studio brings structure, dimensions, artwork editing, 3D review, export, saving, and sharing into one browser workflow. It is built for fast visual packaging decisions without requiring a heavyweight desktop install." secondaryHref="/box-templates" secondaryLabel="Explore box templates" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Product features" title="A packaging design workspace that connects the dieline to the 3D box." intro="3D Box Studio brings structure, dimensions, artwork editing, 3D review, export, saving, and sharing into one browser workflow. It is built for fast visual packaging decisions without requiring a heavyweight desktop install." secondaryHref="/box-templates" secondaryLabel="Explore box templates" sections={sections} faqs={faqs} heroAside={<FeaturesHeroVideo />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
