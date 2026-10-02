@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const navLinks = [
-  { href: '/#details', label: "navigation.product", homeHash: '#details' },
+  { href: '/features', label: "navigation.features" },
   { href: '/#showcase', label: "navigation.examples", homeHash: '#showcase' },
   { href: '/#workflow', label: "navigation.workflow", homeHash: '#workflow' },
   { href: '/blog', label: "navigation.guides" },
