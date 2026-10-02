@@ -7,6 +7,7 @@ export const en = {
   "navigation.mobile_navigation": "Mobile navigation",
   "navigation.packaging_ideas_made_tangible": "Packaging ideas, made tangible.",
   "navigation.product": "Product",
+  "navigation.features": "Features",
   "navigation.studio": "Studio",
   "navigation.guides": "Guides",
   "navigation.whats_new": "What’s new",
