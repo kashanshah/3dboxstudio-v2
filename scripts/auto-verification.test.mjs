@@ -15,6 +15,8 @@ Module._load=function(request,...args){
   if(request==='./auth-provider')return {useAuth:()=>({refresh:async()=>{refreshCount++;}})};
   if(request==='./auth-shell')return {AuthShell:'shell',AuthNotice:'notice'};
   if(request==='next/link')return 'link';
+  // Icons are decorative; don't load Lucide against the minimal React hook mock.
+  if(request==='lucide-react')return {ArrowRight:'arrow-right'};
   if(request==='@/lib/auth-navigation')return {safeReturnTo:()=>'/studio'};
   return load.call(this,request,...args);
 };
