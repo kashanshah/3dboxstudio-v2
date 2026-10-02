@@ -6,7 +6,7 @@ require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.r
 const {getEmailTemplatePreviews,renderVerificationTemplate,renderPasswordResetTemplate,renderAdminContactTemplate}=require('../src/server/email/templates.ts');
 test('all email previews include readable HTML and plain text; active previews use production renderers',()=>{
  const previews=getEmailTemplatePreviews();assert.equal(previews.length,4);
- for(const item of previews){assert.match(item.html,/<html lang="en">/);assert.match(item.html,/role="presentation"/);assert.match(item.html,/mso-padding-alt/);assert.doesNotMatch(item.html,/<img|<script|\.svg|future account flow/);assert.ok(item.text.length>100);}
+ for(const item of previews){assert.match(item.html,/<html lang="en">/);assert.match(item.html,/role="presentation"/);assert.match(item.html,/mso-padding-alt/);assert.match(item.html,/\/brand\/logo-horizontal-light\.png/);assert.match(item.html,/alt="3DBoxStudio"/);assert.doesNotMatch(item.html,/<script|\.svg|future account flow/);assert.ok(item.text.length>100);}
  for(const [id,render,prop,pathname] of [['verification',renderVerificationTemplate,'verifyUrl','/verify-email'],['password-reset',renderPasswordResetTemplate,'resetUrl','/reset-password']]){
   const preview=previews.find(x=>x.id===id),url=preview.text.match(/https?:\/\/[^\s]+/)[0];assert.equal(new URL(url).pathname,pathname);
   assert.deepEqual({subject:preview.subject,html:preview.html,text:preview.text},render({name:'Alex',[prop]:url}));
@@ -23,7 +23,7 @@ test('account templates escape names/URLs, disclose correct expiry, and reject u
 });
 test('admin contact content stays inert and multiline messages survive; reply URL is encoded',()=>{
  const contact=renderAdminContactTemplate({id:'abc',name:'<img onerror="alert(1)">',email:'alex+test@example.com',topic:'Question',subject:'Hello\r\nBcc: bad',message:'First line\n<script>bad</script>\nLast line',submittedAt:'2026-09-29T18:30:00Z'});
- assert.doesNotMatch(contact.html,/<img|<script>/);assert.match(contact.html,/First line<br>&lt;script&gt;bad&lt;\/script&gt;<br>Last line/);
+ assert.doesNotMatch(contact.html,/<img onerror|<script>/);assert.match(contact.html,/First line<br>&lt;script&gt;bad&lt;\/script&gt;<br>Last line/);
  assert.ok(contact.html.includes('mailto:alex%2Btest%40example.com?subject=Re%3A%20Hello%0D%0ABcc%3A%20bad'));
  assert.doesNotMatch(contact.subject,/[\r\n]/);assert.match(contact.text,/Submitted \(UTC\)/);assert.match(contact.text,/Reply to: alex\+test@example.com/);
 });
