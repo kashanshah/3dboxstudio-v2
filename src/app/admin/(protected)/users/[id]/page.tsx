@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -26,6 +27,7 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
     <>
       <p className="admin-email-back"><Link href="/admin/users">Back to users</Link></p>
       <AdminPageHeader title={user.name} description={user.email} />
+      <AdminDeleteButton kind="user" id={user.id} name={user.email} redirectTo="/admin/users" />
       <div className="admin-panel">
         <div className="admin-panel-header"><h2>Account</h2></div>
         <dl className="admin-detail">
@@ -48,7 +50,7 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
                 <th aria-sort={sort === 'images' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Images" column="images" sort={sort} dir={dir} numeric href={sortHref} /></th>
                 <th aria-sort={sort === 'source' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Source" column="source" sort={sort} dir={dir} href={sortHref} /></th>
                 <th aria-sort={sort === 'updated' ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}><AdminSortLink label="Updated" column="updated" sort={sort} dir={dir} numeric href={sortHref} /></th>
-                <th>Preview</th>
+                <th>Preview</th><th>Actions</th>
               </tr></thead>
             <tbody>
               {user.designs.length ? user.designs.map((design) => (
@@ -59,8 +61,9 @@ export default async function AdminUserPage({ params, searchParams }: Props) {
                   <td>{design.legacy ? 'Legacy' : 'V2'}</td>
                   <td>{design.updatedAt ? formatAdminDateTime(design.updatedAt) : '—'}</td>
                   <td><a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a></td>
+                  <td><AdminDeleteButton kind="design" id={design.id} name={design.name} /></td>
                 </tr>
-              )) : <tr><td colSpan={6}>This account has no designs.</td></tr>}
+              )) : <tr><td colSpan={7}>This account has no designs.</td></tr>}
             </tbody>
           </table>
         </div>

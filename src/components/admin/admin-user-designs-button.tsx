@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { X } from 'lucide-react';
+import { AdminDeleteButton } from './admin-delete-button';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
 import type { AdminUserDesignItem } from '@/server/admin/catalog';
 
@@ -117,6 +118,7 @@ export function AdminUserDesignsButton({ userId, userEmail, userName, designCoun
                       <span className="admin-link-stack">
                         <a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a>
                         <Link className="admin-link" href={design.href}>Open</Link>
+                        <AdminDeleteButton kind="design" id={design.id} name={design.name} onDeleted={() => { setDesigns(current => current.filter(d => d.id !== design.id)); setTotal(current => Math.max(0, current - 1)); }} />
                       </span>
                     </li>
                   ))}

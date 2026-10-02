@@ -39,3 +39,28 @@ test('PostgreSQL: initial import, week-later changes, repeat sync, and rollback 
  assert.equal((await target.query("SELECT COUNT(*)::int count FROM users WHERE id='u3'")).rows[0].count,0);
  }finally{await sourceDb.close();await targetDb.close();}
 });
+
+test('admin-deleted users and legacy records are not restored by delta sync',async()=>{
+ const sourceDb=new PGlite(),targetDb=new PGlite();
+ const source=client(sourceDb),target=client(targetDb);
+ try{
+  await sourceDb.exec(schema);
+  await source.query("INSERT INTO users(id,email,name) VALUES('u1','ada@example.com','Ada'),('u2','bob@example.com','Bob')");
+  await source.query("INSERT INTO oauth_accounts(provider,provider_account_id,user_id) VALUES('google','g1','u1')");
+  await source.query("INSERT INTO shared_designs(id,user_id,images,config) VALUES('d1','u1','{}','{}'),('d2','u2','{}','{}')");
+  await runLegacySync({source,target,apply:true});
+  await target.query("INSERT INTO admin_deleted_entities(kind,id) VALUES('user','u1'),('legacy','3dboxstudio-v1:shared_designs:d1'),('legacy','3dboxstudio-v1:shared_designs:d2')");
+  await target.query("DELETE FROM oauth_accounts WHERE user_id='u1'");
+  await target.query("DELETE FROM users WHERE id='u1'");
+  await target.query("DELETE FROM legacy_migrations WHERE target_id='u1'");
+  await target.query("UPDATE legacy_records SET deleted_at=NOW(),payload='{}' WHERE source_id='d1'");
+  // A direct media deletion modifies a surviving mirror; preserve that edit too.
+  await target.query("UPDATE legacy_records SET payload='{\"name\":\"Edited in admin\"}' WHERE source_id='d2'");
+  await source.query("UPDATE shared_designs SET view_count=99");
+  await runLegacySync({source,target,apply:true});
+  assert.equal((await target.query("SELECT COUNT(*)::int n FROM users WHERE id='u1'")).rows[0].n,0);
+  assert.equal((await target.query("SELECT COUNT(*)::int n FROM oauth_accounts WHERE user_id='u1'")).rows[0].n,0);
+  assert.ok((await target.query("SELECT deleted_at FROM legacy_records WHERE source_id='d1'")).rows[0].deleted_at);
+  assert.equal((await target.query("SELECT payload FROM legacy_records WHERE source_id='d2'")).rows[0].payload.name,'Edited in admin');
+ }finally{await sourceDb.close();await targetDb.close();}
+});
