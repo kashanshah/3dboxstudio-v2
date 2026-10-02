@@ -20,6 +20,8 @@ export function MarketingProductPage({
   note,
   heroAside,
   scrollHero = false,
+  showStudioProof = true,
+  heroHighlights,
 }: {
   eyebrow: string;
   title: string;
@@ -32,16 +34,19 @@ export function MarketingProductPage({
   note?: string;
   heroAside?: ReactNode;
   scrollHero?: boolean;
+  showStudioProof?: boolean;
+  heroHighlights?: { title: string; body: string }[];
 }) {
   return <>
     <SiteHeader />
     <main id="main" className="marketing-product-page">
       <div className={scrollHero ? "mpp-hero-track" : undefined}>
-      <section className={`mpp-hero${heroAside ? " has-aside" : ""}`}>
+      <section className={`mpp-hero${heroAside ? " has-aside" : ""}${!showStudioProof ? " mpp-hero-combined" : ""}`}>
         <div className="mpp-hero-copy">
           <span className="mpp-eyebrow">{eyebrow}</span>
           <h1>{title}</h1>
           <p>{intro}</p>
+          {heroHighlights?.length ? <ul className="mpp-hero-highlights">{heroHighlights.map(item => <li key={item.title}><CheckCircle2 aria-hidden="true" /><div><strong>{item.title}</strong><p>{item.body}</p></div></li>)}</ul> : null}
           <div className="mpp-actions">
             <Link className="mpp-primary" href="/studio">{primaryCta}<ArrowRight /></Link>
             {secondaryHref && secondaryLabel ? <Link className="mpp-secondary" href={secondaryHref}>{secondaryLabel}</Link> : null}
@@ -52,16 +57,16 @@ export function MarketingProductPage({
 
       </div>
 
-      <section className="mpp-studio-proof" tabIndex={scrollHero ? -1 : undefined}>
+      {showStudioProof ? <section className="mpp-studio-proof" tabIndex={scrollHero ? -1 : undefined}>
         <div>
           <span className="mpp-eyebrow">See the real product</span>
           <h2>Explore the actual Studio interface.</h2>
           <p>This embedded view is the working 3D Box Studio—not a concept dashboard. Open it full-screen when you want to edit.</p>
         </div>
         <div className="mpp-frame"><div className="mpp-framebar"><span/><span/><span/><b>3D Box Studio</b><Link href="/studio">Open full Studio <ArrowRight/></Link></div><iframe src="/studio" title="Actual 3D Box Studio interface" loading="lazy" /></div>
-      </section>
+      </section> : null}
 
-      <section className="mpp-sections">
+      <section className="mpp-sections" tabIndex={scrollHero && !showStudioProof ? -1 : undefined}>
         {sections.map((section,index)=><article key={section.title}>
           <span>{String(index+1).padStart(2,"0")}</span>
           <div><h2>{section.title}</h2><p>{section.body}</p>{section.bullets?.length ? <ul>{section.bullets.map(item=><li key={item}><CheckCircle2 />{item}</li>)}</ul> : null}</div>
