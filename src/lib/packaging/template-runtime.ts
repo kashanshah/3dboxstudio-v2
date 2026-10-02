@@ -4,6 +4,7 @@ import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
 import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { BUILT_IN_TEMPLATE_RUNTIMES } from '@/lib/packaging/templates';
+import { layoutProofGeometry, type DielineExportGeometry } from './export-geometry';
 
 export type TemplateGeometryOptions = {
   openingMode?: LegacyOpeningMode;
@@ -29,6 +30,9 @@ export type TemplateRuntime = {
   buildMeshes: TemplateMeshBuilder;
   assembly: TemplateAssemblyRuntime;
   getFoldState?: typeof reverseTuckFoldState;
+  getExportGeometry?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielineExportGeometry;
+  exportSummary?: string;
+  exportArtworkNote?: string;
 };
 
 const runtimeMap=new Map<string,TemplateRuntime>(
@@ -59,6 +63,13 @@ export function getTemplateGeometry(templateId:string,dimensions:CartonDimension
     panels:runtime.getDielinePanels(sanitized,options),
     bounds:runtime.getDielineBounds(sanitized,options),
   };
+}
+
+export function getTemplateExportGeometry(templateId: string, dimensions: CartonDimensions, options?: TemplateGeometryOptions) {
+  const runtime = requireTemplateRuntime(templateId);
+  const sanitized = runtime.sanitizeParameters(dimensions);
+  return runtime.getExportGeometry?.(sanitized, options)
+    ?? layoutProofGeometry(runtime.getDielinePanels(sanitized, options));
 }
 
 export function getTemplateAssemblyState(
