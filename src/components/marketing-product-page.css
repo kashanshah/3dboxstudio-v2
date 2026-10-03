@@ -7,8 +7,10 @@
 .mpp-sections,
 .mpp-note,
 .mpp-bottom {
-  padding-left: max(24px, calc((100vw - 1180px) / 2));
-  padding-right: max(24px, calc((100vw - 1180px) / 2));
+  width: min(1288px, 100% - 64px);
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
 }
 .mpp-hero {
   padding-top: 110px;
