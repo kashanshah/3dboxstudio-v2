@@ -8,6 +8,7 @@ import { useTranslations } from '@/components/i18n/locale-provider';
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
+import { NewDesignPreview } from './new-design-preview';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -1947,26 +1948,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             </fieldset>
           </div>
           <section className="pro-new-design-preview" aria-label="Selected template preview">
-            <div className="pro-new-design-preview-canvas">
-              <CartonEngine key={selectedTemplateId} ref={newDesignPreviewRef} dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={82}/>
-              <span className="pro-new-design-preview-hint">Drag to rotate</span>
-            </div>
-            <div className="pro-new-design-opening">
-              <div className="pro-new-design-opening-head"><label htmlFor="new-design-opening">Open / close</label><span>{assemblyStage}</span></div>
-              <div className="pro-new-design-opening-range">
-                <span>{t("studio.flat")}</span>
-                <input id="new-design-opening" type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} disabled={saving} aria-valuetext={assemblyStage} onChange={event=>{
-                  if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);
-                  foldAnimationRef.current=null;
-                  setAssemblyProgress(Number(event.target.value));
-                }}/>
-                <span>{t("studio.closed")}</span>
-              </div>
-            </div>
-            <div className="pro-new-design-preview-copy" aria-live="polite">
-              <span>Template preview</span>
-              <h3>{selectedTemplateCopy.name}</h3>
-              <p>{selectedTemplateCopy.description}</p>
+            <div className="pro-new-design-size-panel">
               <fieldset className="pro-new-design-size" aria-label="Box dimensions" disabled={saving}>
                 <div className="pro-new-design-size-unit">
                   <label htmlFor="new-design-unit">Units</label>
@@ -1985,6 +1967,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                   </label>)}
                 </div>
               </fieldset>
+            </div>
+            <NewDesignPreview key={selectedTemplateId} ref={newDesignPreviewRef} dimensions={dimensions} templateId={selectedTemplateId} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} disabled={saving}/>
+            <div className="pro-new-design-preview-copy" aria-live="polite">
+              <span>Template preview</span>
+              <h3>{selectedTemplateCopy.name}</h3>
+              <p>{selectedTemplateCopy.description}</p>
             </div>
           </section>
         </div>
