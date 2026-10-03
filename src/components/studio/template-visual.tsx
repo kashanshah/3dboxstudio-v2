@@ -3,7 +3,9 @@ import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
 
 export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
-  const visualClass = template.family === 'bottle'
+  const visualClass = template.id === 'pizza-box'
+    ? 'is-pizza'
+    : template.family === 'bottle'
     ? 'is-bottle'
     : template.family === 'jar'
       ? 'is-jar'

@@ -24,6 +24,56 @@ const fixtures=[
 ];
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} differs from ${b}`);
 
+test('pizza box keeps every artwork panel rigid from the flat sheet through lid closure',()=>{
+  for(const dimensions of [{width:305,height:45,depth:305,thickness:1.5},{width:240,height:35,depth:180,thickness:1}]){
+    const panels=getTemplateGeometry('pizza-box',dimensions).panels;
+    const base=panels.find(panel=>panel.id==='bottom');
+    for(const progress of [0,20,50,70,85,100]){
+      const values=templateAssemblyValuesForProgress('pizza-box',progress,'lid_from_back');
+      const meshes=buildMeshes(dimensions,values.opening,[1,1,1],[.8,.8,.8],{templateId:'pizza-box',formation:values.formation,openingMode:'lid_from_back'});
+      for(const panel of panels){
+        const name=panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
+        const mesh=meshes.find(item=>item.panel===name);
+        const c=mesh.pickCorners;
+        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width);
+        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height);
+        assert.ok(mesh.vertices.every(Number.isFinite));
+        assert.ok(meshes.some(item=>item.panel===`Interior ${name}`));
+        if(progress===0){
+          near(c[0][0],panel.x-base.x-dimensions.width/2);
+          near(c[0][1],-dimensions.height/2);
+          near(c[0][2],panel.y-base.y-dimensions.depth/2);
+          near(c[2][0],panel.x+panel.width-base.x-dimensions.width/2);
+          near(c[2][2],panel.y+panel.height-base.y-dimensions.depth/2);
+        }
+      }
+      const corners=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
+      const top=corners('Top'),back=corners('Back'),bottom=corners('Bottom');
+      // Lid hinge remains attached to the rear wall for every intermediate fold.
+      top[3].forEach((v,i)=>near(v,back[0][i]));
+      top[2].forEach((v,i)=>near(v,back[1][i]));
+      if(progress===70){
+        top.flatMap(p=>[p[2]]).forEach(z=>near(z,-dimensions.depth/2));
+      }
+      if(progress===100){
+        top.forEach(p=>near(p[1],dimensions.height/2));
+        bottom.forEach(p=>near(p[1],-dimensions.height/2));
+        near(Math.min(...top.map(p=>p[2])),-dimensions.depth/2);
+        near(Math.max(...top.map(p=>p[2])),dimensions.depth/2);
+        const normal=Array.from(meshes.find(mesh=>mesh.panel==='Top').vertices.slice(3,6));
+        near(normal[1],1);
+      }
+    }
+    // The sheet has no overlapping artwork regions.
+    for(let i=0;i<panels.length;i++)for(let j=i+1;j<panels.length;j++){
+      const a=panels[i],b=panels[j];
+      const overlapX=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x);
+      const overlapY=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);
+      assert.ok(overlapX<=1e-6||overlapY<=1e-6,`${a.id} overlaps ${b.id}`);
+    }
+  }
+});
+
 test('entered physical dimensions survive in both the net and all folded meshes',()=>{
   for(const dimensions of fixtures){
     assert.deepEqual(sanitizeCartonDimensions(dimensions),dimensions);
@@ -509,6 +559,7 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'reverse-tuck-carton':'reverse-tuck',
     'base-box':'base-box',
     'split-top-box':'split-top',
+    'pizza-box':'pizza-box',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];
