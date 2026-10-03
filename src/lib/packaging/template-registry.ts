@@ -76,6 +76,11 @@ const interiorRegions = ['Front','Back','Left','Right','Top','Bottom'].map(label
   panelId: `Interior ${label}`,
 }));
 
+const pizzaFlapRegions = ['Lid Front', 'Lid Left', 'Lid Right', 'Left Back Tab', 'Left Front Tab', 'Right Back Tab', 'Right Front Tab'].flatMap(label => [
+  { id: `outside-${label.toLowerCase().replaceAll(' ', '-')}`, label, surface: 'outside' as const, panelId: label },
+  { id: `inside-${label.toLowerCase().replaceAll(' ', '-')}`, label: `Inside ${label}`, surface: 'inside' as const, panelId: `Interior ${label}` },
+]);
+
 export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   {
     id: 'base-box',
@@ -198,14 +203,21 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     shortName: 'Pizza box',
     family: 'corrugated',
     category: 'Food',
-    description: 'Hinged corrugated food box.',
+    description: 'Shallow pizza tray with a rear-hinged lid, tuck-in lid flaps and folding corner tabs.',
     tags: ['pizza','food','corrugated','takeout'],
     rendererKey: 'pizza-box-v1',
     structureKey: 'pizza-box-v1',
-    capabilities: [],
-    parameters: [],
-    artworkRegions: [],
-    status: 'planned',
+    capabilities: ['dieline', '3d', 'fold', 'interior-artwork', 'full-dieline-artwork'],
+    parameters: [
+      { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 305 },
+      { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 45 },
+      { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 305 },
+      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 2, step: 0.1, defaultValue: 1.5 },
+    ],
+    artworkRegions: [...exteriorRegions, ...interiorRegions, ...pizzaFlapRegions],
+    defaultDimensions: { width: 305, height: 45, depth: 305, thickness: 1.5 },
+    fixedOpeningMode: 'lid_from_back',
+    status: 'ready',
   },
   {
     id: 'sleeve-box',

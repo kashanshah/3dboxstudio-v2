@@ -711,6 +711,9 @@
 .pro-template-visual.is-corrugated .shape-main{width:76px;height:48px;top:56%}
 .pro-template-visual.is-corrugated .shape-side{width:26px;height:43px;left:calc(50% + 37px);top:56%}
 .pro-template-visual.is-corrugated .shape-top{width:72px;height:28px;top:calc(56% - 36px)}
+.pro-template-visual.is-pizza .shape-main{width:76px;height:18px;top:64%;border-radius:2px}
+.pro-template-visual.is-pizza .shape-side{width:26px;height:18px;left:calc(50% + 37px);top:64%}
+.pro-template-visual.is-pizza .shape-top{width:74px;height:40px;top:calc(64% - 40px);border-radius:2px}
 .pro-template-visual.is-rigid .shape-main{width:72px;height:52px;top:58%;border-radius:6px}
 .pro-template-visual.is-rigid .shape-side{width:24px;height:47px;left:calc(50% + 35px);top:58%}
 .pro-template-visual.is-rigid .shape-top{width:70px;height:26px;top:calc(58% - 39px)}
