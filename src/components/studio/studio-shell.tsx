@@ -188,6 +188,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   if(!initialRuntime) throw new Error(`No runtime is registered for template: ${initialTemplate.id}`);
   const [family, setFamily] = useState(initialTemplate.name);
   const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate.id);
+  const selectedTemplate = PACKAGING_TEMPLATES.find(template=>template.id===selectedTemplateId) ?? initialTemplate;
+  const selectedTemplateCopy = getPackagingTemplateCopy(selectedTemplate,t);
   const studioOpenTracked = useRef(false);
   useEffect(() => {
     if (studioOpenTracked.current) return;
@@ -254,6 +256,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [message, setMessage] = useState('Ready');
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
+  const newDesignPreviewRef = useRef<CartonEngineHandle>(null);
   const studioCanvasRef = useRef<HTMLElement>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
   const cameraMenuRef = useRef<HTMLDivElement>(null);
@@ -1261,7 +1264,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setSaveFailed(false);
     if(createNew)setNewDesignError('');
     try {
-      const preview = engineRef.current?.thumbnail();
+      const preview = (createNew ? newDesignPreviewRef.current : engineRef.current)?.thumbnail();
       if (!preview) throw new Error('The 3D preview is not ready yet.');
       const usedAssetIds=new Set<string>();
       for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
@@ -1921,14 +1924,45 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       <form onSubmit={event=>{event.preventDefault();if(projectName.trim()&&workspaceProjectId&&!saving)void saveDesign(false,false,undefined,false,false,'manual',true);}}>
         <div className="pro-confirm-copy">
           <h2 id="new-design-title">Create a box design</h2>
-          <p id="new-design-copy">Choose a name and project. Your design will be saved now, and changes will save automatically.</p>
+          <p id="new-design-copy">Choose a name, project and template. Create your design when you’re ready, then changes will save automatically.</p>
         </div>
-        <label htmlFor="new-design-name">Design name</label>
-        <input id="new-design-name" autoFocus required maxLength={120} value={projectName} disabled={saving} onChange={event=>setProjectName(event.target.value)}/>
-        <label htmlFor="new-design-project">Project</label>
-        <select id="new-design-project" required value={workspaceProjectId??''} disabled={saving} onChange={event=>setWorkspaceProjectId(event.target.value)}>
-          {newDesignProjects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}
-        </select>
+        <div className="pro-new-design-layout">
+          <div className="pro-new-design-fields">
+            <label htmlFor="new-design-name">Design name</label>
+            <input id="new-design-name" autoFocus required maxLength={120} value={projectName} disabled={saving} onChange={event=>setProjectName(event.target.value)}/>
+            <label htmlFor="new-design-project">Project</label>
+            <select id="new-design-project" required value={workspaceProjectId??''} disabled={saving} onChange={event=>setWorkspaceProjectId(event.target.value)}>
+              {newDesignProjects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+            <fieldset className="pro-new-design-templates" disabled={saving}>
+              <legend>Choose a template</legend>
+              <div className="pro-new-design-template-grid">
+                {PACKAGING_TEMPLATES.filter(template=>template.status==='ready').map(template=><label key={template.id} className={`pro-new-design-template${selectedTemplateId===template.id?' is-selected':''}`}>
+                  <input type="radio" name="new-design-template" value={template.id} checked={selectedTemplateId===template.id} onChange={()=>chooseTemplate(template)}/>
+                  <TemplateVisual template={template}/>
+                  <span className="pro-new-design-template-name">{getPackagingTemplateCopy(template,t).shortName}{selectedTemplateId===template.id&&<Check size={16} aria-hidden="true"/>}</span>
+                  <small>{getPackagingTemplateCopy(template,t).category}</small>
+                </label>)}
+              </div>
+            </fieldset>
+          </div>
+          <section className="pro-new-design-preview" aria-label="Selected template preview">
+            <div className="pro-new-design-preview-canvas">
+              <CartonEngine key={selectedTemplateId} ref={newDesignPreviewRef} dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={82}/>
+              <span className="pro-new-design-preview-hint">Drag to rotate</span>
+            </div>
+            <div className="pro-new-design-preview-copy" aria-live="polite">
+              <span>Template preview</span>
+              <h3>{selectedTemplateCopy.name}</h3>
+              <p>{selectedTemplateCopy.description}</p>
+              <dl>
+                <div><dt>Width</dt><dd>{formatDimension(dimensions.width,measurementUnit)} {measurementUnit}</dd></div>
+                <div><dt>Height</dt><dd>{formatDimension(dimensions.height,measurementUnit)} {measurementUnit}</dd></div>
+                <div><dt>Depth</dt><dd>{formatDimension(dimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
+              </dl>
+            </div>
+          </section>
+        </div>
         {newDesignError&&<p className="pro-transfer-error" role="alert">Not saved. {newDesignError}</p>}
         <div className="pro-confirm-actions">
           <Link className="pro-secondary-button" href="/studio" aria-disabled={saving} onClick={event=>{if(saving)event.preventDefault();}}>Cancel</Link>
