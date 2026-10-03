@@ -1945,40 +1945,46 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 </label>)}
               </div>
             </fieldset>
-            <fieldset className="pro-new-design-size" disabled={saving}>
-              <legend>Box size</legend>
-              <div className="pro-new-design-size-unit">
-                <label htmlFor="new-design-unit">Units</label>
-                <select id="new-design-unit" value={measurementUnit} onChange={event=>setMeasurementUnit(event.target.value as MeasurementUnit)}>
-                  <option value="mm">Millimetres (mm)</option>
-                  <option value="in">Inches (in)</option>
-                </select>
-              </div>
-              <div className="pro-new-design-size-grid">
-                {(['width','height','depth'] as const).map(axis=><label key={axis} htmlFor={`new-design-${axis}`}>
-                  <span>{axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
-                  <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?1:1/25.4} step="any" defaultValue={measurementUnit==='mm'?dimensions[axis]:dimensions[axis]/25.4} onChange={event=>{
-                    const millimetres=parseDimension(event.currentTarget.valueAsNumber,measurementUnit);
-                    if(Number.isFinite(millimetres)&&millimetres>=1)setDimensions(current=>({...current,[axis]:millimetres}));
-                  }}/>
-                </label>)}
-              </div>
-            </fieldset>
           </div>
           <section className="pro-new-design-preview" aria-label="Selected template preview">
             <div className="pro-new-design-preview-canvas">
               <CartonEngine key={selectedTemplateId} ref={newDesignPreviewRef} dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={82}/>
               <span className="pro-new-design-preview-hint">Drag to rotate</span>
             </div>
+            <div className="pro-new-design-opening">
+              <div className="pro-new-design-opening-head"><label htmlFor="new-design-opening">Open / close</label><span>{assemblyStage}</span></div>
+              <div className="pro-new-design-opening-range">
+                <span>{t("studio.flat")}</span>
+                <input id="new-design-opening" type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} disabled={saving} aria-valuetext={assemblyStage} onChange={event=>{
+                  if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);
+                  foldAnimationRef.current=null;
+                  setAssemblyProgress(Number(event.target.value));
+                }}/>
+                <span>{t("studio.closed")}</span>
+              </div>
+            </div>
             <div className="pro-new-design-preview-copy" aria-live="polite">
               <span>Template preview</span>
               <h3>{selectedTemplateCopy.name}</h3>
               <p>{selectedTemplateCopy.description}</p>
-              <dl>
-                <div><dt>Width</dt><dd>{formatDimension(dimensions.width,measurementUnit)} {measurementUnit}</dd></div>
-                <div><dt>Height</dt><dd>{formatDimension(dimensions.height,measurementUnit)} {measurementUnit}</dd></div>
-                <div><dt>Depth</dt><dd>{formatDimension(dimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
-              </dl>
+              <fieldset className="pro-new-design-size" aria-label="Box dimensions" disabled={saving}>
+                <div className="pro-new-design-size-unit">
+                  <label htmlFor="new-design-unit">Units</label>
+                  <select id="new-design-unit" value={measurementUnit} onChange={event=>setMeasurementUnit(event.target.value as MeasurementUnit)}>
+                    <option value="mm">Millimetres (mm)</option>
+                    <option value="in">Inches (in)</option>
+                  </select>
+                </div>
+                <div className="pro-new-design-size-grid">
+                  {(['width','height','depth'] as const).map(axis=><label key={axis} htmlFor={`new-design-${axis}`}>
+                    <span>{axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
+                    <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?1:1/25.4} step="any" defaultValue={measurementUnit==='mm'?dimensions[axis]:dimensions[axis]/25.4} onChange={event=>{
+                      const millimetres=parseDimension(event.currentTarget.valueAsNumber,measurementUnit);
+                      if(Number.isFinite(millimetres)&&millimetres>=1)setDimensions(current=>({...current,[axis]:millimetres}));
+                    }}/>
+                  </label>)}
+                </div>
+              </fieldset>
             </div>
           </section>
         </div>
