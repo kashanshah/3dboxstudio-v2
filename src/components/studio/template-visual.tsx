@@ -29,7 +29,7 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
   const bounds = geometry?.bounds;
   const hasRealDieline = !!geometry;
 
-  return <span className={`pro-template-visual is-combined h-auto ${visualClass} ${compact ? 'is-compact' : ''}`} aria-hidden="true">
+  return <span className={`pro-template-visual is-combined ${visualClass} ${compact ? 'is-compact' : ''}`} aria-hidden="true">
     <span className="pro-template-flat" data-preview="Dieline">
       {hasRealDieline && bounds && geometry ? <svg viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="xMidYMid meet">
         {geometry.panels.map(panel => <rect
