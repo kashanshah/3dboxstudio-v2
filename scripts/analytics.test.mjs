@@ -140,7 +140,8 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
   for(const mode of ['manual','autosave','failed','create','create-failed','unconfirmed']) {
     const creating=mode.startsWith('create'),failed=mode.includes('failed'),requests=[],closed=[],errors=[];
     const context={newDesignOpen:creating||mode==='unconfirmed',saveInFlightRef:{current:false},engineRef:{current:{thumbnail:()=> 'data:image/png;base64,x'}},
-      artworkByPanel:{},outsideDielineLayers:[],insideDielineLayers:[],mediaAssets:[],selectedTemplateId:'reverse-tuck',
+      newDesignPreviewRef:{current:{thumbnail:()=> 'data:image/png;base64,selected-template'}},
+      artworkByPanel:{},outsideDielineLayers:[],insideDielineLayers:[],mediaAssets:[],selectedTemplateId:creating?'pizza-box':'reverse-tuck',
       dimensions:{width:10,height:20,length:30},material:'Kraft',opening:0,formation:100,openingMode:'closed',splitTopHingeSide:'side_a',measurementUnit:'mm',
       initial:undefined,outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'',insideCustomColor:'',projectName:'Private name',
       projectRevision:creating?undefined:1,workspaceProjectId:'private-workspace',projectId:creating?undefined:'private-project',historySerialized:'{}',saveFingerprint:'{}',
@@ -158,6 +159,9 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
       assert.equal(requests[0].method,'POST');assert.equal(requests[0].url,'/api/projects');
       const body=JSON.parse(requests[0].body);
       assert.equal(body.name,'Private name');assert.equal(body.workspaceProjectId,'private-workspace');
+      assert.equal(body.state.templateId,'pizza-box');
+      assert.deepEqual(body.state.dimensions,context.dimensions);
+      assert.equal(body.preview,'data:image/png;base64,selected-template');
       assert.deepEqual(closed,failed?[]:[false]);
       if(failed){
         assert.ok(errors.at(-1));
