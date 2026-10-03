@@ -1924,7 +1924,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       <form onSubmit={event=>{event.preventDefault();if(projectName.trim()&&workspaceProjectId&&!saving)void saveDesign(false,false,undefined,false,false,'manual',true);}}>
         <div className="pro-confirm-copy">
           <h2 id="new-design-title">Create a box design</h2>
-          <p id="new-design-copy">Choose a name, project and template. Create your design when you’re ready, then changes will save automatically.</p>
+          <p id="new-design-copy">Choose a name, project, template and size. Create your design when you’re ready, then changes will save automatically.</p>
         </div>
         <div className="pro-new-design-layout">
           <div className="pro-new-design-fields">
@@ -1942,6 +1942,25 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                   <TemplateVisual template={template}/>
                   <span className="pro-new-design-template-name">{getPackagingTemplateCopy(template,t).shortName}{selectedTemplateId===template.id&&<Check size={16} aria-hidden="true"/>}</span>
                   <small>{getPackagingTemplateCopy(template,t).category}</small>
+                </label>)}
+              </div>
+            </fieldset>
+            <fieldset className="pro-new-design-size" disabled={saving}>
+              <legend>Box size</legend>
+              <div className="pro-new-design-size-unit">
+                <label htmlFor="new-design-unit">Units</label>
+                <select id="new-design-unit" value={measurementUnit} onChange={event=>setMeasurementUnit(event.target.value as MeasurementUnit)}>
+                  <option value="mm">Millimetres (mm)</option>
+                  <option value="in">Inches (in)</option>
+                </select>
+              </div>
+              <div className="pro-new-design-size-grid">
+                {(['width','height','depth'] as const).map(axis=><label key={axis} htmlFor={`new-design-${axis}`}>
+                  <span>{axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
+                  <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?1:1/25.4} step="any" defaultValue={measurementUnit==='mm'?dimensions[axis]:dimensions[axis]/25.4} onChange={event=>{
+                    const millimetres=parseDimension(event.currentTarget.valueAsNumber,measurementUnit);
+                    if(Number.isFinite(millimetres)&&millimetres>=1)setDimensions(current=>({...current,[axis]:millimetres}));
+                  }}/>
                 </label>)}
               </div>
             </fieldset>
