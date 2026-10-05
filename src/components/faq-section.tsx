@@ -13,17 +13,20 @@ export function FaqSection({
   description,
   links = [],
   id,
+  eyebrow = "Frequently asked questions",
 }: {
   items: readonly FaqSectionItem[];
   title?: string;
   description?: ReactNode;
   links?: readonly FaqSectionLink[];
   id?: string;
+  /** Also the section's accessible name; pass a translation on localized pages. */
+  eyebrow?: string;
 }) {
   return (
-    <section id={id} className={styles.section} aria-label="Frequently asked questions">
+    <section id={id} className={styles.section} aria-label={eyebrow}>
       <div className={styles.intro}>
-        <p className={styles.eyebrow}>Frequently asked questions</p>
+        <p className={styles.eyebrow}>{eyebrow}</p>
         <h2>{title}</h2>
         {description ? <p className={styles.description}>{description}</p> : null}
         {links.length > 0 ? (

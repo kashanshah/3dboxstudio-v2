@@ -406,3 +406,23 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .lovable-original .save-share-section .eyebrow{
   color:#9ec7f5;
 }
+
+/* Translated home pages (/es, /es-mx, /fr, /pt-br, /de, /zh). */
+.lovable-original.localized-home .home-hero{min-height:0;padding:64px 0 88px;grid-template-columns:1fr 1.1fr}
+.lovable-original.localized-home .hero-copy h1{font-size:clamp(48px,6vw,88px);line-height:.95;overflow-wrap:break-word}
+.lovable-original .localized-app-note{margin:14px 0 0;font-size:13px;color:var(--muted-foreground)}
+.lovable-original .localized-hero-shot{margin:0;border:1px solid #e7edf4;border-radius:22px;overflow:hidden;background:#f8fafc;box-shadow:0 30px 80px rgba(15,23,42,.12)}
+.lovable-original .localized-hero-shot img{display:block;width:100%;height:auto}
+.lovable-original .localized-steps{padding:96px max(24px,calc((100vw - 1240px)/2))}
+.lovable-original .localized-steps .section-intro{margin-bottom:40px}
+.lovable-original .localized-steps ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.lovable-original .localized-steps li img{display:block;width:100%;height:auto;border:1px solid #e7edf4;border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,.06)}
+.lovable-original .localized-steps h3{font-size:20px;margin:20px 0 8px;letter-spacing:-.02em}
+.lovable-original .localized-steps p{margin:0;color:#667085;line-height:1.65}
+.lovable-original .localized-closing-note{margin:14px auto 0!important;font-size:13px!important}
+@media (max-width:1050px){.lovable-original.localized-home .home-hero{grid-template-columns:1fr;padding-top:48px}.lovable-original .localized-app-note{text-align:center}}
+@media (max-width:900px){.lovable-original .localized-steps{padding:64px 20px}.lovable-original .localized-steps ol{grid-template-columns:1fr;gap:36px}}
+@media (max-width:700px){.lovable-original.localized-home .hero-copy h1{font-size:clamp(40px,11vw,56px)}}
+/* English home footer: links to the translated home pages on their own row. */
+.lovable-original.marketing-page footer:has(.footer-languages){flex-wrap:wrap;row-gap:14px}
+.lovable-original.marketing-page footer>.footer-languages{order:4;width:100%;justify-content:center;gap:16px;padding-top:14px;border-top:1px solid #e7edf4}

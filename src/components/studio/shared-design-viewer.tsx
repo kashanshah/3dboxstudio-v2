@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { CirclePlay, Grid3X3, Maximize2, Move, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowRight, CirclePlay, Grid3X3, Maximize2, Move, ZoomIn, ZoomOut } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 import { CartonEngine } from '@/components/studio/carton-engine';
 import type { StudioProjectState } from '@/lib/studio-project';
 import { Brand } from '@/components/site-shell';
@@ -10,7 +11,9 @@ import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesFor
 import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 
-export function SharedDesignViewer({name,state,legacy}:{name:string;state:StudioProjectState;legacy:boolean}){
+const PROMO_HREF='/studio?ref=shared-design';
+
+export function SharedDesignViewer({name,state,legacy,promo=true}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean}){
   const runtime=getTemplateRuntime(state.templateId);
   if(!runtime)throw new Error(`No runtime is registered for template: ${state.templateId}`);
   const openingMode=state.openingMode ?? runtime.assembly.defaultOpeningMode;
@@ -128,7 +131,9 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
     <header className="shared-design-header">
       <Brand/>
       <div><strong>{name}</strong><span>{legacy?'Legacy shared design':'Shared design'} · View only</span></div>
-      <Link href="/studio">Open 3D Box Studio</Link>
+      {promo
+        ? <Link className="shared-design-header-cta" href={PROMO_HREF} onClick={()=>trackEvent('shared_design_cta_clicked',{placement:'header'})}>Design your own box — free <ArrowRight size={15}/></Link>
+        : <Link href="/studio">Open 3D Box Studio</Link>}
     </header>
     <section className="shared-design-stage">
       <div
@@ -179,6 +184,13 @@ export function SharedDesignViewer({name,state,legacy}:{name:string;state:Studio
         </button>
         <strong className="shared-design-stage-label">{stage}</strong>
         <p>Drag to rotate. Turn on the hand tool—or hold Space—to pan. Scroll or pinch to zoom. This shared link is view-only.</p>
+        {promo && <section className="shared-design-promo" aria-labelledby="shared-design-promo-title">
+          <span>Made with 3D Box Studio</span>
+          <h2 id="shared-design-promo-title">Design your own box, free</h2>
+          <p>Pick a box style, set exact dimensions, place artwork on the dieline and see it fold in 3D. Export PNG mockups and print-ready PDF dielines.</p>
+          <Link href={PROMO_HREF} onClick={()=>trackEvent('shared_design_cta_clicked',{placement:'panel'})}>Start designing <ArrowRight size={16}/></Link>
+          <small>Free account · Sign up with Google or email</small>
+        </section>}
       </aside>
     </section>
   </main>;

@@ -1,4 +1,9 @@
 import type { NextConfig } from 'next';
+import { localizedHome, localizedHomeLocales } from './src/content/localized-home';
+
+// Translated home pages; Google ignores <html lang>, so declare the language here too.
+const contentLanguage = localizedHomeLocales
+  .map(locale => ({ source: `/${locale}`, headers: [{ key: 'Content-Language', value: localizedHome[locale].lang }] }));
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -30,7 +35,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
-    return [{ source: '/:path*', headers: [
+    return [...contentLanguage, { source: '/:path*', headers: [
       ...((process.env.SITE_INDEXABLE === 'false' || (process.env.SITE_INDEXABLE == null && process.env.VERCEL_ENV !== 'production')) ? [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] : []),
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

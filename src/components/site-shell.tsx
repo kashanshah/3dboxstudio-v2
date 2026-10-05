@@ -68,6 +68,7 @@ export function SiteFooter() {
       <div><Brand /><p>{t("navigation.packaging_ideas_made_tangible")}</p></div>
       <div className="marketing-footer-links">
         <div><b>{t("navigation.product")}</b><Link href="/studio">{t("navigation.studio")}</Link><Link href="/changelog">{t("navigation.whats_new")}</Link><Link href="/blog">{t("navigation.guides")}</Link><Link href="/faq">{t("navigation.help_center")}</Link></div>
+        <div><b>{t("navigation.tools")}</b><Link href="/3d-box-mockup-generator">{t("navigation.3d_box_mockup_generator")}</Link><Link href="/box-dieline-generator">{t("navigation.box_dieline_generator")}</Link><Link href="/box-templates">{t("navigation.box_templates")}</Link><Link href="/pacdora-alternative">{t("navigation.pacdora_alternative")}</Link></div>
         <div><b>{t("navigation.company")}</b><Link href="/contact">{t("navigation.contact")}</Link><Link href="/privacy">{t("navigation.privacy")}</Link><Link href="/terms">{t("navigation.terms")}</Link><CookieSettingsButton /></div>
       </div>
     </div>

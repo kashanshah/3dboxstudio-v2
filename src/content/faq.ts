@@ -232,8 +232,7 @@ export function getCategoryLabel(id: FaqCategoryId): string {
   return FAQ_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 }
 
-export const FAQ_PAGE_TITLE =
-  "FAQ: Free 3D Box Designer, Dielines, Packaging Mockups & Pacdora Alternative | 3D Box Studio";
+export const FAQ_PAGE_TITLE = "3D Box Studio FAQ: Free 3D Box Maker & Dieline Help";
 
 export const FAQ_PAGE_DESCRIPTION =
-  "Answers about 3D Box Studio: supported box templates, dimensions, generated dielines, artwork, 3D previews, materials, save/share, PNG and PDF output, commercial use, browser support, and CAD comparisons.";
+  "Is 3D Box Studio free? Which boxes can you design? How do dielines, 3D previews and PNG/PDF exports work? Quick answers, plus a Pacdora comparison.";
