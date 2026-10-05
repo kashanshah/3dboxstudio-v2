@@ -17,6 +17,7 @@ import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AnalyticsPageView } from '@/components/analytics/AnalyticsPageView';
 import { AnalyticsRouteGuard } from '@/components/analytics/AnalyticsRouteGuard';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AuthProvider>{children}</AuthProvider>
         </LocaleProvider>
         <ConsentBanner />
+        <Analytics />
       </body>
     </html>
   );
