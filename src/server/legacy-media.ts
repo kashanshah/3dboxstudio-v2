@@ -1,12 +1,21 @@
 import { createHash } from 'node:crypto';
 import { getSql } from '@/server/db';
-import { headStoredObject, type MediaAssetDto } from '@/server/media-assets';
+import { ensureLegacyStoredObject, headStoredObject, type MediaAssetDto } from '@/server/media-assets';
 
 type JsonRecord=Record<string,unknown>;
 function record(value:unknown):JsonRecord{return value&&typeof value==='object'&&!Array.isArray(value)?value as JsonRecord:{};}
-function migratedStorageKey(entry:unknown){
+async function migratedStorageKey(entry:unknown){
  const item=record(entry);
- return typeof item.v2StorageKey==='string'?item.v2StorageKey:'';
+ if(typeof item.v2StorageKey==='string'&&item.v2StorageKey)return item.v2StorageKey;
+ // Records mirrored before the v2StorageKey enrichment only carry the V1 key.
+ // Copy that object into the V2 namespace so converting the design keeps its
+ // artwork instead of silently dropping the face.
+ const sourceKey=typeof item.s3Key==='string'?item.s3Key:typeof item.s3_key==='string'?item.s3_key:'';
+ if(!sourceKey)return '';
+ try{return await ensureLegacyStoredObject(sourceKey);}catch(error){
+   console.warn('legacy artwork copy failed',{sourceKey,error:error instanceof Error?error.message:String(error)});
+   return '';
+ }
 }
 function stableId(userId:string,key:string){
  return 'legacy-'+createHash('sha256').update(userId+'\0'+key).digest('hex').slice(0,24);
@@ -16,7 +25,7 @@ export async function ensureLegacyMediaForDesign(userId:string,payloadValue:unkn
  const payload=record(payloadValue),images=record(payload.images),config=record(payload.config),sourceMeta=record(config.sourceImageMeta);
  const sql=getSql(),out:Record<string,MediaAssetDto>={};
  for(const [faceId,entryValue] of Object.entries(images)){
-   const entry=record(entryValue),storageKey=migratedStorageKey(entry);if(!storageKey)continue;
+   const entry=record(entryValue),storageKey=await migratedStorageKey(entry);if(!storageKey)continue;
    const id=stableId(userId,storageKey);
    let objectMeta;
    try{objectMeta=await headStoredObject(storageKey);}catch(error){

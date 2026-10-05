@@ -7,6 +7,7 @@ import { validProjectState } from '@/lib/studio-project';
 import { resolveWorkspaceProjectId } from '@/server/workspace-projects';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { emitPostHogLog } from '@/lib/posthog-logs';
+import { adoptLegacyDesign } from '@/server/legacy-designs';
 export async function saveProject(req:Request,id?:string){
  const denied=guardAuthAction(req,'save-project',60);if(denied)return denied;
  await ensureV2Schema();const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to save your design.'},{status:401});
@@ -26,6 +27,13 @@ export async function saveProject(req:Request,id?:string){
  if(!(rows as unknown[]).length)return NextResponse.json({error:'The design was changed elsewhere or is no longer available. Reload before saving.'},{status:409});
  const project=(rows as {id:string;updated_at:string;revision:number;workspace_project_id:string}[])[0];
  const saveType=project.revision===1?'created':'updated';
+ // Saving a legacy design (opened from the library) makes it a normal V2
+ // project: retire the legacy library entry and move its V1 share link onto
+ // this project. No-op unless the user owns a still-active legacy record.
+ if(typeof body.state.legacySourceId==='string'&&body.state.legacySourceId){
+  try{await adoptLegacyDesign(user.id,body.state.legacySourceId,{id:project.id,name:body.name.trim(),state:body.state});}
+  catch(error){console.error('legacy design adoption failed',{designId:project.id,error:error instanceof Error?error.message:String(error)});}
+ }
  await captureServerEvent(user.id,'design_saved',{design_id:project.id,save_type:saveType,revision:project.revision,template_id:body.state.templateId});
  emitPostHogLog('Design persistence completed',{event:'design.persistence',posthogDistinctId:user.id,design_id:project.id,save_type:saveType,revision:project.revision,template_id:body.state.templateId,status:'success'});
  return NextResponse.json({project});
