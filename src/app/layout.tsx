@@ -22,7 +22,9 @@ export const metadata: Metadata = {
   metadataBase: site.url,
   title: { default: translate('metadata.site_title'), template: '%s | 3D Box Studio' },
   description: translate('metadata.site_description'),
-  robots: { index: site.indexable, follow: site.indexable },
+  // Index, follow is the default; only non-production deployments opt out.
+  // Emitting it everywhere contradicted the noindex Next.js adds to 404s.
+  ...(site.indexable ? {} : { robots: { index: false, follow: false } }),
   icons: { icon: '/favicon.svg' },
 };
 

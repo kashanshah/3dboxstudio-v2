@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFoundMetadata } from '@/lib/not-found-metadata';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
@@ -8,7 +9,7 @@ import { isMigratedLocale, localeMeta, migratedLocales } from '@/lib/legacy-loca
 type Props={params:Promise<{locale:string}>};
 export function generateStaticParams(){return migratedLocales.map(locale=>({locale}));}
 export async function generateMetadata({params}:Props):Promise<Metadata>{
- const {locale}=await params; if(!isMigratedLocale(locale)) return {};
+ const {locale}=await params; if(!isMigratedLocale(locale)) return notFoundMetadata;
  const meta=localeMeta[locale];
  return {title:{absolute:meta.homeTitle},description:meta.homeDescription,alternates:{canonical:`/${locale}`,languages:{en:'/',fr:'/fr',es:'/es',de:'/de','x-default':'/'}},robots:locale==='zh'?{index:false,follow:true}:undefined};
 }

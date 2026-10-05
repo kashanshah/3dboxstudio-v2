@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { notFoundMetadata } from '@/lib/not-found-metadata';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
@@ -17,7 +18,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = getBlogPostBySlug(slug);
-  if (!post) return {};
+  if (!post) return notFoundMetadata;
   const path = `/blog/${post.slug}`;
   const image = getBlogPostImagePath(post.slug);
   return {

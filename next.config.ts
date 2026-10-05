@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     return [
       { source: '/en', destination: '/', permanent: true },
       { source: '/en/:path*', destination: '/:path*', permanent: true },
+      { source: '/:locale(fr|es|de|zh)/blog', destination: '/blog', permanent: true },
       { source: '/fr/faq', destination: '/faq', permanent: true },
       { source: '/es/faq', destination: '/faq', permanent: true },
       { source: '/de/faq', destination: '/faq', permanent: true },
