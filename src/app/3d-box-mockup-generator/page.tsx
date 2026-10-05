@@ -34,7 +34,7 @@ const sections = [
 const faqs = [
   {
     "question": "Is the 3D box mockup generator free?",
-    "answer": "3D Box Studio is free to start in the browser. You can open the Studio and begin designing without installing desktop software."
+    "answer": "Yes. 3D Box Studio runs in your browser with a free account, so you can start designing without installing desktop software."
   },
   {
     "question": "Can I use my own artwork?",

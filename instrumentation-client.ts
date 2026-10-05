@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import { REPLAY_BLOCK_SELECTOR } from '@/lib/analytics/policy';
 
 const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
 const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
@@ -15,6 +16,7 @@ if(token&&host){
     api_host:host,
     defaults:'2026-05-30',
     capture_exceptions:true,
+    session_recording:{blockSelector:REPLAY_BLOCK_SELECTOR},
     debug:process.env.NODE_ENV==='development',
   });
 }

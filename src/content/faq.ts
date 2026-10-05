@@ -49,7 +49,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Is 3D Box Studio a free 3D box maker?",
     answer:
-      "Yes. 3D Box Studio is free to start in the browser. Create a free account to access the Studio, choose supported packaging templates, set dimensions, add artwork, review the package in 3D, save projects, share previews, and export PNGs.",
+      "Yes. 3D Box Studio is free to use in the browser. Create a free account to access the Studio, choose supported packaging templates, set dimensions, add artwork, review the package in 3D, save projects, share previews, and export PNGs.",
   },
   {
     id: "3d-box-simulation-use",
@@ -196,7 +196,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Do I need an account to use 3D Box Studio?",
     answer:
-      "Yes. The V2 Studio uses accounts so projects, artwork, saving, reopening, and sharing can work consistently across sessions. Shared preview links can be opened separately for review.",
+      "Yes, a free account is required. Sign up in seconds with Google or email. Accounts let projects, artwork, saving, reopening, and sharing work consistently across sessions. Anyone you share a preview link with can open it without an account.",
   },
   {
     id: "video-export",

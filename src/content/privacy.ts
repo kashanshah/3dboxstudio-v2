@@ -27,7 +27,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   { type: "h2", text: "Designs, uploads, and cloud save" },
   {
     type: "p",
-    text: "You can use the studio without an account. While you work, design state may remain in your browser session. When you upload face artwork or save to the cloud, we store your box configuration (dimensions, materials, openings, and related settings) and uploaded images. Images are stored in Amazon Web Services (AWS) S3; configuration and project metadata are stored in a PostgreSQL database hosted by Neon.",
+    text: "Using the studio requires a free account. When you upload artwork or save a design, we store your box configuration (dimensions, materials, openings, and related settings) and uploaded images. Images are stored in Amazon Web Services (AWS) S3; configuration and project metadata are stored in a PostgreSQL database hosted by Neon.",
   },
   {
     type: "ul",

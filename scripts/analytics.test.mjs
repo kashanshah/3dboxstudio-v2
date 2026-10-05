@@ -243,3 +243,15 @@ test('PDF completion follows generated download; generation failures are reporte
     if(!success)assert.equal(statuses.at(-1)[1],'Image failed');
   }
 });
+
+test('session replay blocks owner-only artwork so off-site replays never request it',()=>{
+  const policy={};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:policy,process:{env:{}},window:{}});
+  const parts=policy.REPLAY_BLOCK_SELECTOR.split(', ');
+  for(const prefix of ['/api/media/','/api/legacy-designs/']) {
+    assert.ok(parts.includes(`[src*="${prefix}"]`),`img src ${prefix}`);
+    assert.ok(parts.includes(`[style*="${prefix}"]`),`background-image ${prefix}`);
+  }
+  assert.ok(!parts.some(part=>part.includes('/api/shares/')),'public share media stays visible in replays');
+  assert.match(fs.readFileSync('instrumentation-client.ts','utf8'),/session_recording:\{blockSelector:REPLAY_BLOCK_SELECTOR\}/);
+});

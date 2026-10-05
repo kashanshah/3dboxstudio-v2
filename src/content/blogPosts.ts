@@ -175,7 +175,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "3D Box Studio is a free browser-based 3D box designer. Choose a supported template, set dimensions and materials, position artwork on the flat dieline, and review the assembled package in 3D. Create a free account to save designs and share previews.",
+        text: "3D Box Studio is a free browser-based 3D box designer. Choose a supported template, set dimensions and materials, position artwork on the flat dieline, and review the assembled package in 3D. All you need is a free account, which also saves your designs and lets you share previews.",
       },
     ],
   },
@@ -851,7 +851,7 @@ export const BLOG_POSTS: BlogPost[] = [
     relatedSlugs: ["free-3d-box-maker-online","3d-box-generator-with-dimensions","packaging-mockup-without-photoshop"],
     faqs: [
       { question: "Is 3D Box Studio the same as Pacdora?", answer: "No. 3D Box Studio is a separate product with a narrower focus on browser-based box setup, dieline artwork, 3D preview, saving, sharing, and PNG export." },
-      { question: "Is 3D Box Studio free?", answer: "It is free to start in the browser." },
+      { question: "Is 3D Box Studio free?", answer: "Yes. It runs in your browser and only needs a free account." },
       { question: "Does it support custom dimensions?", answer: "Yes, supported structures can use editable finished dimensions and units." },
       { question: "Does it replace structural packaging CAD?", answer: "No. It is for design and visualization. Final production geometry and printer requirements still need structural and print validation." },
     ],
@@ -916,7 +916,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I create a 3D box mockup for free?",
         answer:
-          "Yes. 3D Box Studio offers a free way to create 3D packaging mockups in your browser. Open the Studio to see the current save, sharing and export options.",
+          "Yes. 3D Box Studio lets you create 3D packaging mockups in your browser with a free account. Your designs are saved to that account, and you can share preview links and export PNGs.",
       },
       {
         question: "Can I make a packaging mockup without Photoshop?",

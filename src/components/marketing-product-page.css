@@ -130,12 +130,113 @@
 .mpp-framebar svg {
   width: 14px;
 }
-.mpp-frame iframe {
+.mpp-tour-note {
   display: block;
-  width: 100%;
-  height: 500px;
-  border: 0;
+  margin-top: 12px;
+  color: #667085;
+  font-size: 13px;
+}
+.mpp-tour-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid #e6edf4;
+  background: #f8fafc;
+}
+.mpp-tour-steps button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #344054;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mpp-tour-steps button:hover {
+  background: #fff;
+}
+.mpp-tour-steps button[aria-selected="true"] {
+  border-color: #0f67e8;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(15, 103, 232, 0.12);
+}
+.mpp-tour-steps button:focus-visible {
+  outline: 2px solid #0f67e8;
+  outline-offset: 2px;
+}
+.mpp-tour-steps i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid #d0d9e4;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+.mpp-tour-steps button[aria-selected="true"] i {
+  border-color: #0f67e8;
+  background: #0f67e8;
+  color: #fff;
+}
+.mpp-tour-steps svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.mpp-tour-steps span {
+  display: grid;
+  min-width: 0;
+}
+.mpp-tour-steps b,
+.mpp-tour-steps small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mpp-tour-steps b {
+  font-size: 13px;
+}
+.mpp-tour-steps small {
+  color: #667085;
+  font-size: 11px;
+}
+.mpp-tour-shots {
+  display: grid;
+  aspect-ratio: 2048 / 1144;
   background: #eef2f6;
+}
+.mpp-tour-shots img {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.mpp-tour-shots img.is-active {
+  opacity: 1;
+}
+.mpp-studio-proof .mpp-tour-caption {
+  margin: 0;
+  padding: 14px 18px 16px;
+  border-top: 1px solid #e6edf4;
+  font-size: 14px;
+  line-height: 1.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mpp-tour-shots img {
+    transition: none;
+  }
 }
 .mpp-sections {
   padding-top: 90px;
@@ -237,9 +338,6 @@
   .mpp-studio-proof {
     grid-template-columns: 1fr;
   }
-  .mpp-frame iframe {
-    height: 450px;
-  }
 }
 @media (max-width: 700px) {
   .mpp-hero,
@@ -261,8 +359,23 @@
   .mpp-sections ul {
     grid-template-columns: 1fr;
   }
-  .mpp-frame iframe {
-    height: 400px;
+  .mpp-tour-steps {
+    padding: 6px;
+    gap: 4px;
+  }
+  .mpp-tour-steps button {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .mpp-tour-steps svg,
+  .mpp-tour-steps small {
+    display: none;
+  }
+  .mpp-tour-steps b {
+    font-size: 12px;
+    white-space: normal;
   }
 }
 /* Product-page hero scales gracefully for long SEO titles. */

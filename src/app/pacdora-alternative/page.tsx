@@ -34,7 +34,7 @@ const faqs = [
   },
   {
     "question": "Is 3D Box Studio free?",
-    "answer": "It is free to start in the browser."
+    "answer": "Yes. It runs in your browser and only needs a free account."
   },
   {
     "question": "Does it support custom dimensions?",
