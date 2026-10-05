@@ -16,6 +16,7 @@ import { AuthProvider } from '@/components/auth/auth-provider';
 import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
 import { AnalyticsPageView } from '@/components/analytics/AnalyticsPageView';
 import { AnalyticsRouteGuard } from '@/components/analytics/AnalyticsRouteGuard';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <LocaleProvider>
           <AuthProvider>{children}</AuthProvider>
         </LocaleProvider>
+        <Analytics />
       </body>
     </html>
   );
