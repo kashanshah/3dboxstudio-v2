@@ -115,7 +115,7 @@ export function StudioHome({
  };
 
  const confirmDeleteDesign=async()=>{
-   if(!deleteDesign||deleteDesign.legacy||actionBusy)return;
+   if(!deleteDesign||actionBusy)return;
    setActionBusy(true);
    try{
      const response=await fetch(`/api/projects/${encodeURIComponent(deleteDesign.id)}`,{method:'DELETE'});
@@ -296,7 +296,11 @@ export function StudioHome({
               <span className="studio-card-menu-separator" aria-hidden="true"/>
               <button type="button" role="menuitem" className="is-danger" disabled={actionBusy} onClick={()=>{setOpenMenuId(null);setDeleteDesign(design);}}><Trash2 size={16}/><span><strong>{t("workspace.delete")}</strong><small>{t("workspace.permanently_delete_this_design")}</small></span></button>
             </>}
-            {design.legacy&&<div className="studio-card-menu-note">{t("workspace.save_this_legacy_design_in_v2_to_favorite_move_or_delete_it_here")}</div>}
+            {design.legacy&&<>
+              <div className="studio-card-menu-note">{t("workspace.save_this_legacy_design_in_v2_to_favorite_move_or_delete_it_here")}</div>
+              <span className="studio-card-menu-separator" aria-hidden="true"/>
+              <button type="button" role="menuitem" className="is-danger" disabled={actionBusy} onClick={()=>{setOpenMenuId(null);setDeleteDesign(design);}}><Trash2 size={16}/><span><strong>{t("workspace.delete")}</strong><small>{t("workspace.delete_this_legacy_design_and_its_share_links")}</small></span></button>
+            </>}
           </div>}
         </div>
       </div>
@@ -338,7 +342,7 @@ export function StudioHome({
    {deleteDesign&&<div className="studio-card-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!actionBusy)setDeleteDesign(null);}}>
     <section className="studio-card-modal studio-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title">
       <header><div><span>{t("workspace.delete_design")}</span><h2 id="delete-design-title">{t("workspace.delete_2")}{deleteDesign.name}”?</h2></div><button type="button" aria-label={t("workspace.close")} disabled={actionBusy} onClick={()=>setDeleteDesign(null)}><X size={19}/></button></header>
-      <p>{t("workspace.this_permanently_removes_the_saved_v2_design_this_action_cannot_be_undone")}</p>
+      <p>{deleteDesign.legacy?t("workspace.this_removes_the_legacy_design_and_turns_off_its_share_links_this_action_cannot_be_undone"):t("workspace.this_permanently_removes_the_saved_v2_design_this_action_cannot_be_undone")}</p>
       <footer><button type="button" className="button button-secondary button-small" disabled={actionBusy} onClick={()=>setDeleteDesign(null)}>{t("workspace.cancel")}</button><button type="button" className="studio-danger-button" disabled={actionBusy} onClick={()=>void confirmDeleteDesign()}>{actionBusy?t("workspace.deleting"):t("workspace.delete_design")}</button></footer>
     </section>
    </div>}

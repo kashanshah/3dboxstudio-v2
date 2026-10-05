@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
-import { site } from "@/lib/site";
+import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "Box Dieline Generator Online — Design-Ready Packaging Layouts | 3D Box Studio" },
   description: "Generate a box dieline from supported packaging structures and dimensions, design artwork on the flat layout, and preview the result in 3D. Validate final production dielines before manufacturing.",
   alternates: { canonical: "/box-dieline-generator" },
-  openGraph: { title: "Box Dieline Generator Online — Design-Ready Packaging Layouts | 3D Box Studio", description: "Generate a box dieline from supported packaging structures and dimensions, design artwork on the flat layout, and preview the result in 3D. Validate final production dielines before manufacturing.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Box Dieline Generator Online — Design-Ready Packaging Layouts | 3D Box Studio", description: "Generate a box dieline from supported packaging structures and dimensions, design artwork on the flat layout, and preview the result in 3D. Validate final production dielines before manufacturing.", type: "website" }
 };
 
 const sections = [

@@ -22,7 +22,7 @@ export const TERMS_SECTIONS: TermsSection[] = [
   { type: "h2", text: "The Service" },
   {
     type: "p",
-    text: "3D Box Studio is a free online tool for previewing folding cartons and mailer-style packaging in 3D. It is intended for visual mockups, client presentations, and design review—not for engineering production die-lines, color proofs, or manufacturing specifications.",
+    text: "3D Box Studio is a free online tool for previewing folding cartons and mailer-style packaging in 3D. Using the Studio requires a free account. It is intended for visual mockups, client presentations, and design review—not for engineering production die-lines, color proofs, or manufacturing specifications.",
   },
   {
     type: "ul",

@@ -3,7 +3,8 @@ import { safeReturnTo } from '@/lib/auth-navigation';
 import { NextResponse } from 'next/server';
 import { ensureV2Schema } from '@/server/db';
 import { createSession,setSessionCookie } from '@/server/auth/session';
-import { exchangeGoogleCode,OAUTH_RETURN_COOKIE } from '@/server/auth/google';
+import { exchangeGoogleCode,GoogleAuthError,OAUTH_RETURN_COOKIE } from '@/server/auth/google';
+import { alertAdmin } from '@/server/ops-alerts';
 import { findOrCreateGoogleUser } from '@/server/auth/users';
 import { requestOrigin } from '@/server/request-origin';
 
@@ -26,8 +27,15 @@ export async function GET(req:Request){
     const store=await cookies(),next=safeReturnTo(store.get(OAUTH_RETURN_COOKIE)?.value);
     store.delete(OAUTH_RETURN_COOKIE);
     return NextResponse.redirect(new URL(next,origin));
-  }catch{
-    console.error('Google OAuth callback failed');
-    return NextResponse.redirect(new URL('/login?auth_error=google_failed',origin));
+  }catch(failure){
+    const reason=failure instanceof GoogleAuthError?failure.reason:'unexpected';
+    const detail=failure instanceof GoogleAuthError?failure.detail:undefined;
+    if(failure instanceof GoogleAuthError&&failure.expected){
+      console.warn('Google OAuth callback failed',{reason,detail});
+    }else{
+      await alertAdmin('google_oauth','Google sign-in failed',{reason,detail,host:new URL(origin).host},failure);
+    }
+    const authError=reason==='invalid_state'||reason==='invalid_grant'?'google_invalid':'google_failed';
+    return NextResponse.redirect(new URL(`/login?auth_error=${authError}`,origin));
   }
 }

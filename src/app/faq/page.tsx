@@ -1,3 +1,4 @@
+import { defaultOgImage } from '@/lib/site';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: { absolute: FAQ_PAGE_TITLE },
   description: FAQ_PAGE_DESCRIPTION,
   alternates: { canonical: '/faq' },
-  openGraph: { title: FAQ_PAGE_TITLE, description: FAQ_PAGE_DESCRIPTION, url: '/faq', type: 'website' },
+  openGraph: { images:[defaultOgImage], title: FAQ_PAGE_TITLE, description: FAQ_PAGE_DESCRIPTION, url: '/faq', type: 'website' },
 };
 
 export default function FaqPage() {

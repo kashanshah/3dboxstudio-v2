@@ -1,4 +1,5 @@
 import { isAnalyticsBlockedPath, setGaDisableFlag } from "./policy";
+import { getConsentState } from "./consent";
 
 type AnalyticsWindow = Window & {
   __syncAnalyticsRoute?: (pathname: string) => void;
@@ -10,7 +11,7 @@ type AnalyticsWindow = Window & {
 
 export function syncAnalyticsRoute(pathname: string): void {
   const blocked = isAnalyticsBlockedPath(pathname);
-  setGaDisableFlag(blocked);
+  setGaDisableFlag(blocked || getConsentState() !== "granted");
   const w = window as AnalyticsWindow;
   w.posthog?.set_config?.({
     autocapture: !blocked,

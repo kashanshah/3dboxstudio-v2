@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
-import { site } from "@/lib/site";
+import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "Packaging Design Online — Dieline Artwork to 3D Preview | 3D Box Studio" },
   description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share and PNG export.",
   alternates: { canonical: "/packaging-design-online" },
-  openGraph: { title: "Packaging Design Online — Dieline Artwork to 3D Preview | 3D Box Studio", description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share and PNG export.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Packaging Design Online — Dieline Artwork to 3D Preview | 3D Box Studio", description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share and PNG export.", type: "website" }
 };
 
 const sections = [

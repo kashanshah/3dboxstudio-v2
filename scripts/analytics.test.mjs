@@ -9,7 +9,12 @@ const root = path.resolve('src');
 function transpile(source) {
   return ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 }
-function analytics({env={},window={location:{pathname:'/studio/editor'}},console:logger=console}={}) {
+function storageStub(values={}) {
+  return {getItem:key=>values[key]??null,setItem:(key,value)=>{values[key]=String(value);},removeItem:key=>{delete values[key];}};
+}
+function analytics({env={},window={location:{pathname:'/studio/editor'}},console:logger=console,consent='granted'}={}) {
+  if (!window.localStorage) window.localStorage = storageStub(consent ? {'3dbs_analytics_consent':consent} : {});
+  window.dispatchEvent = window.dispatchEvent ?? (()=>true);
   const cache = new Map();
   function load(file) {
     file = path.resolve(file);
@@ -35,7 +40,7 @@ function analytics({env={},window={location:{pathname:'/studio/editor'}},console
     },{filename:file});
     return exports;
   }
-  return {api:load(path.join(root,'lib/analytics/index.ts')),window};
+  return {api:load(path.join(root,'lib/analytics/index.ts')),consent:load(path.join(root,'lib/analytics/consent.ts')),window};
 }
 
 test('GA and PostHog receive their native pageview names; queued PostHog views retain the original URL',()=>{
@@ -124,9 +129,15 @@ test('share creation is counted only after save and API success, independently o
   }
 });
 
+function artworkUploadHelpers(){
+  const exports={};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/artwork-upload.ts'),'utf8')),{exports});
+  return exports;
+}
+
 test('artwork upload counts finalized files, but rejected uploads never produce success events',async()=>{
   for(const success of [true,false]) {
-    const context={mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:100,height:100}),
+    const context={...artworkUploadHelpers(),mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:100,height:100}),
       uploadMediaFile:async()=>{if(!success)throw Error('Upload failed');return {id:'asset',name:'private.png'};},window:{setTimeout:()=>{}}};
     for(const setter of ['setMediaLibraryOpen','setMessage','setMediaUploadProgress','setMediaAssets','setSelectedMediaAssetId','setMediaLibraryTab'])context[setter]=()=>{};
     const {handler,events}=callback('handleArtworkFiles',context);
@@ -134,6 +145,26 @@ test('artwork upload counts finalized files, but rejected uploads never produce 
     assert.equal(events.length,success?1:0);
     if(success){assert.equal(events[0][0],'artwork_uploaded');assert.equal(events[0][1].upload_surface,'media_library');assert.ok(!JSON.stringify(events).includes('private.png'));}
   }
+});
+
+test('a failed file mid-batch keeps earlier uploads visible, continues, and names the failures',async()=>{
+  let assets=[{id:'old',createdAt:1}];
+  const messages=[];
+  const outcomes={'a.png':{id:'a',createdAt:2},'b.png':Object.assign(Error('Artwork must be 100 MB or smaller.'),{code:'too_large'}),'c.svg':{id:'old',createdAt:1}};
+  const context={...artworkUploadHelpers(),mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:1,height:1}),
+    uploadMediaFile:async(file)=>{const outcome=outcomes[file.name];if(outcome instanceof Error)throw outcome;return outcome;},
+    setMediaAssets:update=>{assets=update(assets);},setMessage:message=>messages.push(message),window:{setTimeout:()=>{}}};
+  for(const setter of ['setMediaLibraryOpen','setMediaUploadProgress','setSelectedMediaAssetId','setMediaLibraryTab'])context[setter]=()=>{};
+  const {handler,events}=callback('handleArtworkFiles',context);
+  await handler([
+    {name:'a.png',type:'image/png',size:10},
+    {name:'b.png',type:'image/png',size:10},
+    {name:'c.svg',type:'',size:10},
+    {name:'d.heic',type:'image/heic',size:10},
+  ]);
+  assert.equal(events.length,2);
+  assert.equal(assets.map(asset=>asset.id).join(','),'a,old');
+  assert.equal(messages.at(-1),"2 of 4 images uploaded. Couldn't upload: d.heic (HEIC photo), b.png (too large). Convert HEIC photos to JPG or PNG first.");
 });
 
 test('saves count confirmed persistence and distinguish autosaves; rejected saves are not successes',async()=>{
@@ -242,4 +273,68 @@ test('PDF completion follows generated download; generation failures are reporte
     assert.equal(statuses.at(-1)[0],false);
     if(!success)assert.equal(statuses.at(-1)[1],'Image failed');
   }
+});
+
+test('session replay blocks owner-only artwork so off-site replays never request it',()=>{
+  const policy={};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:policy,process:{env:{}},window:{}});
+  const parts=policy.REPLAY_BLOCK_SELECTOR.split(', ');
+  for(const prefix of ['/api/media/','/api/legacy-designs/']) {
+    assert.ok(parts.includes(`[src*="${prefix}"]`),`img src ${prefix}`);
+    assert.ok(parts.includes(`[style*="${prefix}"]`),`background-image ${prefix}`);
+  }
+  assert.ok(!parts.some(part=>part.includes('/api/shares/')),'public share media stays visible in replays');
+  assert.match(fs.readFileSync('instrumentation-client.ts','utf8'),/session_recording:\{blockSelector:REPLAY_BLOCK_SELECTOR\}/);
+});
+
+test('analytics waits for consent: pending events are sent on accept and dropped on decline',()=>{
+  const accepted=analytics({consent:null});
+  accepted.api.trackEvent('page_view',{page_path:'/',page_location:'https://www.3dboxstudio.com/'});
+  accepted.api.trackEvent('export_clicked');
+  assert.equal(accepted.window.dataLayer,undefined,'nothing reaches GA before a decision');
+  assert.equal(accepted.window.__posthogCaptureQueue,undefined,'nothing reaches PostHog before a decision');
+  accepted.consent.setConsentState('granted');
+  assert.deepEqual(accepted.window.__posthogCaptureQueue.map(([name])=>name),['$pageview','export_clicked']);
+  assert.equal(accepted.window.localStorage.getItem('3dbs_analytics_consent'),'granted');
+
+  const declined=analytics({consent:null});
+  declined.api.trackEvent('export_clicked');
+  declined.consent.setConsentState('denied');
+  declined.api.trackEvent('project_saved');
+  assert.equal(declined.window.__posthogCaptureQueue,undefined);
+  assert.equal((declined.window.dataLayer??[]).filter(args=>args[0]==='event').length,0);
+
+  const outsideConsentRegion=analytics({consent:null,window:{location:{pathname:'/'},localStorage:storageStub({'3dbs_consent_region':'not_required'})}});
+  outsideConsentRegion.api.trackEvent('export_clicked');
+  assert.equal(outsideConsentRegion.window.__posthogCaptureQueue[0][0],'export_clicked');
+});
+
+test('PostHog init sends one pageview per route, honours consent, and drops every admin event',()=>{
+  let initOptions;
+  const consentApi={};
+  const window={location:{pathname:'/'},localStorage:storageStub({})};
+  const listeners=[];
+  vm.runInNewContext(transpile(fs.readFileSync('instrumentation-client.ts','utf8')),{
+    exports:{},window,URL,process:{env:{NODE_ENV:'production',NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN:'ph',NEXT_PUBLIC_POSTHOG_HOST:'https://us.i.posthog.com'}},
+    require:name=>{
+      if(name==='posthog-js')return {__esModule:true,default:{init:(token,options)=>{initOptions=options;},opt_in_capturing:()=>listeners.push('in'),opt_out_capturing:()=>listeners.push('out')}};
+      if(name==='@/lib/analytics/policy'){const out={};vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:out,process:{env:{}},window});return out;}
+      if(name==='@/lib/analytics/consent'){vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/consent.ts'),'utf8')),{exports:consentApi,window});return consentApi;}
+      throw new Error('unexpected import '+name);
+    },
+  });
+  assert.equal(initOptions,undefined,'PostHog does not start, or contact PostHog, before consent');
+  consentApi.setConsentState('granted');
+  assert.equal(initOptions.capture_pageview,false);
+  const event=url=>({event:'$autocapture',properties:{$current_url:url}});
+  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin/users')),null);
+  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin')),null);
+  assert.ok(initOptions.before_send(event('https://www.3dboxstudio.com/administrators-guide')));
+  assert.ok(initOptions.before_send(event('https://www.3dboxstudio.com/studio')));
+  for (const key of ['$current_url','page_location','page_path']) assert.equal(initOptions.before_send({properties:{[key]:'/admin/users?tab=projects'}}),null);
+  window.location={pathname:'/admin/settings'};
+  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/studio')),null,'events sent while on an admin page are dropped');
+  window.location={pathname:'/'};
+  consentApi.setConsentState('denied');consentApi.setConsentState('granted');
+  assert.deepEqual(listeners,['out','in'],'later changes opt out and back in');
 });

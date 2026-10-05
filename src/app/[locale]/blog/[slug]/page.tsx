@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
+import { notFoundMetadata } from '@/lib/not-found-metadata';
+import { isMigratedLocale } from '@/lib/legacy-locales';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
 import { BlogShareButtons } from '@/components/blog-share-buttons';
@@ -16,10 +18,10 @@ export function generateStaticParams(){
 
 export async function generateMetadata({params}:Props):Promise<Metadata>{
  const {locale,slug}=await params;
- if(locale!=='fr') return {};
+ if(locale!=='fr') return notFoundMetadata;
  const translated=FR_BLOG_POSTS[slug];
  const base=getBlogPostBySlug(slug);
- if(!translated||!base) return {};
+ if(!translated||!base) return notFoundMetadata;
  return {
   title:{absolute:translated.seoTitle ?? `${translated.title} | 3D Box Studio`},
   description:translated.description,
@@ -36,8 +38,9 @@ function inlineText(text:string){
 
 export default async function FrenchBlogPost({params}:Props){
  const {locale,slug}=await params;
- if(locale!=='fr') notFound();
- const translated=FR_BLOG_POSTS[slug]; const base=getBlogPostBySlug(slug);
+ const translated=locale==='fr'?FR_BLOG_POSTS[slug]:undefined; const base=getBlogPostBySlug(slug);
+ // Old localized links to guides without a translation go to the English guide.
+ if(!translated&&base&&isMigratedLocale(locale)) permanentRedirect(`/blog/${slug}`);
  if(!translated||!base) notFound();
  const canonical=new URL(`/fr/blog/${slug}`,site.url).toString();
  const schema={'@context':'https://schema.org','@type':'Article',headline:translated.title,description:translated.description,datePublished:base.published,dateModified:base.updated??base.published,inLanguage:'fr',mainEntityOfPage:canonical,author:{'@type':'Organization',name:'3D Box Studio'},publisher:{'@type':'Organization',name:'3D Box Studio'},image:new URL(`/images/blog/${slug}.webp`,site.url).toString()};

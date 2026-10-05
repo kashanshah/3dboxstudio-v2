@@ -2,7 +2,7 @@ import { inlineContentDisposition } from '@/server/media-response-headers';
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/server/admin/auth';
 import { getAdminDesignMedia } from '@/server/admin/catalog';
-import { readStoredObject } from '@/server/media-assets';
+import { readStoredObject, contentLengthHeader } from '@/server/media-assets';
 
 export const runtime = 'nodejs';
 
@@ -17,12 +17,11 @@ export async function GET(_req: Request, { params }: Params) {
     if (!media) return new NextResponse('Not found', { status: 404 });
     const object = await readStoredObject(media.storage_key);
     if (!object) return new NextResponse('Not found', { status: 404 });
-    const body = object.bytes.buffer.slice(object.bytes.byteOffset, object.bytes.byteOffset + object.bytes.byteLength) as ArrayBuffer;
-    return new NextResponse(body, {
+    return new NextResponse(object.body, {
       status: 200,
       headers: {
         'Content-Type': media.mime_type || object.contentType || 'application/octet-stream',
-        'Content-Length': String(object.bytes.byteLength),
+        ...contentLengthHeader(object.byteSize),
         'Cache-Control': 'private, max-age=300',
         'Content-Disposition': inlineContentDisposition(media.name),
         'X-Content-Type-Options': 'nosniff',

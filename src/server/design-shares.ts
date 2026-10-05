@@ -21,7 +21,7 @@ function rewriteMediaUrls(state:StudioProjectState,shareId:string):StudioProject
 
 export type PublicShare={id:string;name:string;state:StudioProjectState;legacy:boolean;updatedAt:string|null};
 
-type LegacyShareRow={source:string;source_id:string;payload:unknown};
+export type LegacyShareRow={source:string;source_id:string;payload:unknown};
 
 function jsonRecord(value:unknown):Record<string,unknown>{
  return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:{};
@@ -104,11 +104,130 @@ export async function upsertDesignShare(userId:string,input:{projectId?:string|n
  return rows[0];
 }
 
+type ShareRow={id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string;user_id:string|null;legacy_assets:unknown;active:boolean};
+type Sql=ReturnType<typeof getSql>;
+
+function legacyPreviewToken(payload:unknown){
+ const value=jsonRecord(payload).preview_token;
+ return typeof value==='string'&&value?value:null;
+}
+
+function legacyAssetsFromPayload(payload:unknown){
+ const images=jsonRecord(jsonRecord(payload).images);
+ return Object.fromEntries(Object.entries(images).flatMap(([faceId,value])=>{
+  const entry=jsonRecord(value);
+  if(typeof entry.v2StorageKey!=='string'||!entry.v2StorageKey)return [];
+  return [[faceId,{storageKey:entry.v2StorageKey,mime:typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png',name:typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`}]];
+ }));
+}
+
+function validTimestamp(value:unknown){
+ return typeof value==='string'&&Number.isFinite(Date.parse(value))?value:null;
+}
+
+async function findShareRows(sql:Sql,where:{id?:string|null;previewToken?:string|null}){
+ // Rows matching the share id or the preview token, id match first. Revoked
+ // and expired rows are returned too so callers can refuse to fall back to
+ // legacy_records for a share its owner revoked.
+ return await sql`
+  SELECT id,name,studio_state,legacy_source,updated_at,user_id,legacy_assets,
+         (revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())) AS active
+  FROM design_shares
+  WHERE id=${where.id??null} OR (${where.previewToken??null}::text IS NOT NULL AND preview_token=${where.previewToken??null})
+  ORDER BY CASE WHEN id=${where.id??null} THEN 0 ELSE 1 END
+ ` as ShareRow[];
+}
+
+async function legacyOwnerUserId(sql:Sql,payload:unknown){
+ // The legacy user sync preserves V1 user ids as V2 users.id, so the mirrored
+ // payload.user_id is the owner whenever that user exists in V2.
+ const userId=jsonRecord(payload).user_id;
+ if(typeof userId!=='string'||!userId)return null;
+ const rows=await sql`SELECT id FROM users WHERE id=${userId} LIMIT 1` as {id:string}[];
+ return rows[0]?.id??null;
+}
+
+/**
+ * Legacy V1 shares live on V2 as design_shares rows. Resolve (or create) the
+ * row for a mirrored legacy_records share so revocation, view counts and
+ * ownership all go through the normal V2 path. Returns the row whatever its
+ * revocation state; callers must check `active`.
+ */
+export async function ensureLegacyShareRow(sql:Sql,legacy:LegacyShareRow):Promise<ShareRow|null>{
+ const previewToken=legacyPreviewToken(legacy.payload);
+ const existing=(await findShareRows(sql,{id:legacy.source_id,previewToken}))[0];
+ if(existing){
+  if(!existing.user_id){
+   const owner=await legacyOwnerUserId(sql,legacy.payload);
+   if(owner){
+    await sql`UPDATE design_shares SET user_id=${owner} WHERE id=${existing.id} AND user_id IS NULL`;
+    existing.user_id=owner;
+   }
+  }
+  return existing;
+ }
+ if(!SHARE_TOKEN_RE.test(legacy.source_id))return null;
+ const converted=legacyRowToPublicShare(legacy);
+ if(!converted)return null;
+ const payload=jsonRecord(legacy.payload);
+ const owner=await legacyOwnerUserId(sql,legacy.payload);
+ const views=Number(payload.view_count);
+ const viewCount=Number.isSafeInteger(views)&&views>0?views:0;
+ await sql`
+  INSERT INTO design_shares(id,project_id,user_id,name,studio_state,preview_token,legacy_assets,legacy_source,expires_at,created_at,updated_at,view_count)
+  VALUES(${legacy.source_id},NULL,${owner},${converted.name},${JSON.stringify(converted.state)}::jsonb,${previewToken},${JSON.stringify(legacyAssetsFromPayload(legacy.payload))}::jsonb,TRUE,
+         ${validTimestamp(payload.expires_at)}::timestamptz,COALESCE(${validTimestamp(payload.created_at)}::timestamptz,NOW()),COALESCE(${validTimestamp(payload.updated_at)}::timestamptz,NOW()),${viewCount})
+  ON CONFLICT DO NOTHING
+ `;
+ return (await findShareRows(sql,{id:legacy.source_id,previewToken}))[0]??null;
+}
+
+function publicShareFromRow(row:ShareRow):PublicShare|null{
+ if(!row.active||!validProjectState(row.studio_state))return null;
+ return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
+}
+
+async function activeLegacyShareRecord(sql:Sql,where:{sourceId?:string;previewToken?:string;ownerId?:string}){
+ const rows=await sql`
+  SELECT source,source_id,payload
+  FROM legacy_records
+  WHERE entity_type='shared_designs'
+    AND deleted_at IS NULL
+    AND (${where.sourceId??null}::text IS NULL OR source_id=${where.sourceId??null})
+    AND (${where.previewToken??null}::text IS NULL OR payload->>'preview_token'=${where.previewToken??null})
+    AND (${where.ownerId??null}::text IS NULL OR payload->>'user_id'=${where.ownerId??null})
+  LIMIT 1
+ ` as LegacyShareRow[];
+ return rows[0]??null;
+}
+
 export async function revokeDesignShare(userId:string,id:string){
  await ensureV2Schema();
- const rows=await getSql()`
+ const sql=getSql();
+ let targetId=id;
+ const existing=await sql`SELECT id FROM design_shares WHERE id=${id} LIMIT 1` as {id:string}[];
+ if(!existing[0]&&SHARE_TOKEN_RE.test(id)){
+  // A V1 share never resolved on V2 yet: materialize it so the revocation is
+  // recorded on design_shares and blocks the legacy fallback.
+  const legacy=await activeLegacyShareRecord(sql,{sourceId:id,ownerId:userId});
+  const row=legacy?await ensureLegacyShareRow(sql,legacy):null;
+  if(row)targetId=row.id;
+ }
+ // Migrated V1 share rows can have user_id NULL. Claim them for the user that
+ // owns the mirrored legacy record so the normal ownership check applies.
+ await sql`
+  UPDATE design_shares ds SET user_id=${userId}
+  WHERE ds.id=${targetId} AND ds.user_id IS NULL AND ds.legacy_source=TRUE
+    AND EXISTS (
+     SELECT 1 FROM legacy_records lr
+     WHERE lr.entity_type='shared_designs'
+       AND lr.payload->>'user_id'=${userId}
+       AND (lr.source_id=ds.id OR (ds.preview_token IS NOT NULL AND lr.payload->>'preview_token'=ds.preview_token))
+    )
+ `;
+ const rows=await sql`
   UPDATE design_shares SET revoked_at=NOW(),updated_at=NOW()
-  WHERE id=${id} AND user_id=${userId} AND revoked_at IS NULL
+  WHERE id=${targetId} AND user_id=${userId} AND revoked_at IS NULL
   RETURNING id
  ` as {id:string}[];
  return Boolean(rows[0]);
@@ -118,102 +237,56 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
  if(!SHARE_TOKEN_RE.test(id))return null;
  await ensureV2Schema();
  const sql=getSql();
- const rows=countView
-  ? await sql`
-      UPDATE design_shares SET view_count=view_count+1
-      WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())
-      RETURNING id,name,studio_state,legacy_source,updated_at
-    `
-  : await sql`
-      SELECT id,name,studio_state,legacy_source,updated_at
-      FROM design_shares WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) LIMIT 1
-    `;
- let row=(rows as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[])[0];
+ let row:ShareRow|null=(await findShareRows(sql,{id}))[0]??null;
 
- // Compatibility for original V1 /studio/<shareId> links. Some migrated
- // deployments retained the legacy preview token but not the original share id
- // as design_shares.id. Resolve the old id through legacy_records, then locate
- // the migrated V2 share by its preserved preview token.
+ // Original V1 /studio/<shareId> links: resolve through the mirrored
+ // legacy_records share and serve the V2 design_shares row for it (created on
+ // first use; it may be an older migrated row keyed by the preserved preview
+ // token). An existing revoked row is final and never falls back to V1 data.
  if(!row){
-  const legacyRows=await sql`
-   SELECT source,source_id,payload
-   FROM legacy_records
-   WHERE entity_type='shared_designs' AND source_id=${id} AND deleted_at IS NULL
-   LIMIT 1
-  ` as LegacyShareRow[];
-  const legacy=legacyRows[0];
-  const payload=legacy?.payload&&typeof legacy.payload==='object'?legacy.payload as Record<string,unknown>:null;
-  const previewToken=payload&&typeof payload.preview_token==='string'?payload.preview_token:null;
-  if(previewToken){
-   const fallback=await sql`
-    SELECT id,name,studio_state,legacy_source,updated_at
-    FROM design_shares
-    WHERE preview_token=${previewToken}
-      AND revoked_at IS NULL
-      AND (expires_at IS NULL OR expires_at>NOW())
-    LIMIT 1
-   ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
-   row=fallback[0];
-  }
-  if(!row&&legacy){
-   const direct=legacyRowToPublicShare(legacy);
-   if(direct)return direct;
-  }
+  const legacy=await activeLegacyShareRecord(sql,{sourceId:id});
+  if(legacy)row=await ensureLegacyShareRow(sql,legacy);
  }
-
- if(!row||!validProjectState(row.studio_state))return null;
- return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
+ if(!row)return null;
+ const share=publicShareFromRow(row);
+ if(share&&countView)await sql`UPDATE design_shares SET view_count=view_count+1 WHERE id=${row.id}`;
+ return share;
 }
 
 export async function getPreviewShare(previewToken:string):Promise<PublicShare|null>{
  if(!SHARE_TOKEN_RE.test(previewToken))return null;
  await ensureV2Schema();
  const sql=getSql();
- const rows=await sql`
-  SELECT id,name,studio_state,legacy_source,updated_at
-  FROM design_shares
-  WHERE preview_token=${previewToken} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())
-  LIMIT 1
- ` as {id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string}[];
- const row=rows[0];
- if(row&&validProjectState(row.studio_state)){
-  return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
+ let row:ShareRow|null=(await findShareRows(sql,{previewToken}))[0]??null;
+ if(!row){
+  const legacy=await activeLegacyShareRecord(sql,{previewToken});
+  if(legacy)row=await ensureLegacyShareRow(sql,legacy);
  }
-
- const legacyRows=await sql`
-  SELECT source,source_id,payload
-  FROM legacy_records
-  WHERE entity_type='shared_designs'
-    AND deleted_at IS NULL
-    AND payload->>'preview_token'=${previewToken}
-  LIMIT 1
- ` as LegacyShareRow[];
- return legacyRows[0]?legacyRowToPublicShare(legacyRows[0]):null;
+ return row?publicShareFromRow(row):null;
 }
 
 export async function getMigratedShareAsset(id:string,faceId:string){
  if(!SHARE_TOKEN_RE.test(id)||!/^[A-Za-z][A-Za-z0-9]*$/.test(faceId))return null;
  await ensureV2Schema();
  const sql=getSql();
- const rows=await sql`
-  SELECT legacy_assets FROM design_shares
-  WHERE id=${id} AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW()) AND legacy_source=TRUE
-  LIMIT 1
- ` as {legacy_assets:Record<string,{storageKey?:string;mime?:string;name?:string}>}[];
- const migrated=rows[0]?.legacy_assets?.[faceId];
- if(migrated?.storageKey)return {storageKey:migrated.storageKey,mime:migrated.mime||'image/png',name:migrated.name||`${faceId}-artwork`};
+ let row:ShareRow|null=(await findShareRows(sql,{id}))[0]??null;
+ const legacy=await activeLegacyShareRecord(sql,{sourceId:id});
+ if(!row&&legacy)row=await ensureLegacyShareRow(sql,legacy);
+ // Never serve artwork for a revoked, expired or unknown share.
+ if(!row||!row.active)return null;
+ const migrated=jsonRecord(jsonRecord(row.legacy_assets)[faceId]);
+ if(typeof migrated.storageKey==='string'&&migrated.storageKey){
+  return {
+   storageKey:migrated.storageKey,
+   mime:typeof migrated.mime==='string'&&migrated.mime?migrated.mime:'image/png',
+   name:typeof migrated.name==='string'&&migrated.name?migrated.name:`${faceId}-artwork`,
+  };
+ }
 
- // On-demand legacy shares may not have a design_shares row. Read the mirrored
- // record directly; migrate-legacy-shares stores the copied V2 object key on
- // each image as v2StorageKey.
- const legacyRows=await sql`
-  SELECT source,payload
-  FROM legacy_records
-  WHERE entity_type='shared_designs' AND source_id=${id} AND deleted_at IS NULL
-  LIMIT 1
- ` as {source:string;payload:unknown}[];
- const legacy=legacyRows[0];
- const payload=jsonRecord(legacy?.payload);
+ // The share row predates legacy_assets enrichment. Read the mirrored record;
+ // migrate-legacy-shares stores the copied V2 object key as v2StorageKey.
+ if(!legacy)return null;
+ const payload=jsonRecord(legacy.payload);
  const images=jsonRecord(payload.images);
  const entry=jsonRecord(images[faceId]);
  let storageKey=typeof entry.v2StorageKey==='string'?entry.v2StorageKey:'';
@@ -227,15 +300,13 @@ export async function getMigratedShareAsset(id:string,faceId:string){
 
   const nextEntry={...entry,v2StorageKey:storageKey};
   const nextPayload={...payload,images:{...images,[faceId]:nextEntry}};
-  if(legacy?.source){
-   await sql`
-    UPDATE legacy_records
-    SET payload=${JSON.stringify(nextPayload)}::jsonb
-    WHERE source=${legacy.source}
-      AND entity_type='shared_designs'
-      AND source_id=${id}
-   `;
-  }
+  await sql`
+   UPDATE legacy_records
+   SET payload=${JSON.stringify(nextPayload)}::jsonb
+   WHERE source=${legacy.source}
+     AND entity_type='shared_designs'
+     AND source_id=${legacy.source_id}
+  `;
  }
 
  return {
@@ -243,6 +314,49 @@ export async function getMigratedShareAsset(id:string,faceId:string){
   mime:typeof entry.mime==='string'&&entry.mime?entry.mime:'image/png',
   name:typeof entry.name==='string'&&entry.name?entry.name:`${faceId}-artwork`,
  };
+}
+
+/**
+ * A legacy design was saved as a V2 project: move its V1 share link onto that
+ * project. The existing design_shares row (by legacy share id, or by the
+ * preserved preview token) is re-pointed at the project and refreshed with the
+ * saved state; otherwise a row is created under the legacy share id so old
+ * /studio/<id> and /preview/<token> URLs keep working. A revoked row stays
+ * revoked.
+ */
+export async function moveLegacyShareToProject(sql:Sql,legacy:LegacyShareRow,userId:string,project:{id:string;name:string;state:StudioProjectState}){
+ const previewToken=legacyPreviewToken(legacy.payload);
+ const name=project.name.trim().slice(0,120)||'Untitled design';
+ const existing=(await findShareRows(sql,{id:legacy.source_id,previewToken}))[0];
+ if(existing){
+  if(!existing.active)return null;
+  if(existing.user_id&&existing.user_id!==userId)return null;
+  await sql`
+   UPDATE design_shares
+   SET project_id=${project.id},user_id=${userId},name=${name},studio_state=${JSON.stringify(project.state)}::jsonb,legacy_source=FALSE,updated_at=NOW()
+   WHERE id=${existing.id} AND revoked_at IS NULL
+  `;
+  return existing.id;
+ }
+ if(!SHARE_TOKEN_RE.test(legacy.source_id))return null;
+ const rows=await sql`
+  INSERT INTO design_shares(id,project_id,user_id,name,studio_state,preview_token,legacy_assets,legacy_source)
+  VALUES(${legacy.source_id},${project.id},${userId},${name},${JSON.stringify(project.state)}::jsonb,${previewToken},${JSON.stringify(legacyAssetsFromPayload(legacy.payload))}::jsonb,FALSE)
+  ON CONFLICT DO NOTHING
+  RETURNING id
+ ` as {id:string}[];
+ return rows[0]?.id??null;
+}
+
+/** Revoke every V2 share row that serves a deleted legacy design. */
+export async function revokeLegacyShares(sql:Sql,legacy:LegacyShareRow,userId:string){
+ const previewToken=legacyPreviewToken(legacy.payload);
+ await sql`
+  UPDATE design_shares
+  SET revoked_at=NOW(),updated_at=NOW(),user_id=COALESCE(user_id,${userId})
+  WHERE revoked_at IS NULL
+    AND (id=${legacy.source_id} OR (${previewToken}::text IS NOT NULL AND preview_token=${previewToken}))
+ `;
 }
 
 export async function getShareMedia(id:string,assetId:string){

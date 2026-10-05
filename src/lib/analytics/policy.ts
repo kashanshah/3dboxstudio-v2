@@ -13,6 +13,16 @@ export const POSTHOG_ENABLED =
 
 export const ANALYTICS_ENABLED = GA_ENABLED || POSTHOG_ENABLED;
 
+// Customer artwork is served only to the signed-in owner. Session replay renders
+// recordings off-site without that session, so recorded artwork could never be
+// shown there and every replay request for it failed with a 401. Blocking these
+// elements also keeps customer artwork out of recordings.
+const PRIVATE_MEDIA_PATHS = ["/api/media/", "/api/legacy-designs/", "/api/admin/"];
+
+export const REPLAY_BLOCK_SELECTOR = PRIVATE_MEDIA_PATHS
+  .flatMap(path => [`[src*="${path}"]`, `[srcset*="${path}"]`, `[style*="${path}"]`])
+  .join(", ");
+
 export function isAnalyticsBlockedPath(pathname: string): boolean {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }

@@ -1,3 +1,4 @@
+import { defaultOgImage } from '@/lib/site';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -13,8 +14,8 @@ export const metadata: Metadata = {
   title,
   description,
   alternates: { canonical: '/changelog' },
-  openGraph: { title, description, type: 'website', url: '/changelog' },
-  twitter: { card: 'summary_large_image', title, description },
+  openGraph: { images:[defaultOgImage], title, description, type: 'website', url: '/changelog' },
+  twitter: { card: 'summary_large_image', title, description,images:[defaultOgImage.url]},
 };
 
 const dateFormatter = new Intl.DateTimeFormat('en', {

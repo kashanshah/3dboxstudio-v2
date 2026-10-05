@@ -163,6 +163,19 @@ export async function ensureV2Schema(): Promise<void> {
     await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_preview_token ON design_shares(preview_token) WHERE preview_token IS NOT NULL`;
     await db`CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_project_active ON design_shares(project_id) WHERE project_id IS NOT NULL AND revoked_at IS NULL`;
     await db`CREATE INDEX IF NOT EXISTS idx_design_shares_user_updated ON design_shares(user_id,updated_at DESC)`;
+    // Migrated V1 shares were inserted with user_id NULL when the owner was not
+    // yet a V2 user. Attribute them to the owning V2 user (V1 user ids are kept
+    // as users.id) so owners can manage/revoke them through the V2 share API.
+    await db`
+      UPDATE design_shares ds
+      SET user_id=u.id
+      FROM legacy_records lr
+      JOIN users u ON u.id=lr.payload->>'user_id'
+      WHERE ds.user_id IS NULL
+        AND ds.legacy_source=TRUE
+        AND lr.entity_type='shared_designs'
+        AND (lr.source_id=ds.id OR (ds.preview_token IS NOT NULL AND lr.payload->>'preview_token'=ds.preview_token))
+    `;
     await db`
       CREATE TABLE IF NOT EXISTS media_assets (
         id TEXT PRIMARY KEY,

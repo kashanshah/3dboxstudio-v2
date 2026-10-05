@@ -3,9 +3,23 @@ import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCom
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ensureV2Schema, getSql } from '@/server/db';
 import { optionalEnv, requireEnv } from '@/server/env';
+import { ArtworkUploadError, HEIC_UPLOAD_MESSAGE, MAX_ARTWORK_BYTES, inferArtworkMimeType, isAllowedArtworkType, isHeicArtwork } from '@/lib/artwork-upload';
 
-export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
-const ALLOWED_MEDIA_TYPES = new Set(['image/png','image/jpeg','image/webp','image/svg+xml']);
+export const MAX_MEDIA_BYTES = MAX_ARTWORK_BYTES;
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
+/** Resolve the effective MIME type (extension fallback for empty types) and reject unsupported artwork. */
+function resolveMediaType(name:string,mimeType:string){
+  if(isHeicArtwork(name,mimeType)) throw new ArtworkUploadError(HEIC_UPLOAD_MESSAGE,'heic');
+  const resolved=inferArtworkMimeType(name,mimeType);
+  if(!isAllowedArtworkType(resolved)) throw new ArtworkUploadError('Use PNG, JPG, WebP or SVG artwork.','unsupported_type');
+  return resolved;
+}
+
+function checkMediaSize(byteSize:number){
+  if(!Number.isFinite(byteSize)||byteSize<=0) throw new ArtworkUploadError('The selected image is empty.','empty');
+  if(byteSize>MAX_MEDIA_BYTES) throw new ArtworkUploadError('Artwork must be 100 MB or smaller.','too_large');
+}
 
 let client: S3Client | null = null;
 
@@ -83,10 +97,47 @@ export async function listMediaAssets(userId:string):Promise<MediaAssetDto[]>{
   return rows.map(toDto);
 }
 
-export async function createMediaUpload(userId:string,input:{name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null}){
-  if(!ALLOWED_MEDIA_TYPES.has(input.mimeType)) throw new Error('Use PNG, JPG, WebP or SVG artwork.');
-  if(!Number.isFinite(input.byteSize)||input.byteSize<=0) throw new Error('The selected image is empty.');
-  if(input.byteSize>MAX_MEDIA_BYTES) throw new Error('Artwork must be 100 MB or smaller.');
+async function findAssetByFingerprint(userId:string,fingerprint:string,excludeId?:string):Promise<MediaAssetRow|null>{
+  await ensureV2Schema();
+  const rows=await getSql()`
+    SELECT id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint,created_at
+    FROM media_assets
+    WHERE user_id=${userId} AND fingerprint=${fingerprint} AND id<>${excludeId??''}
+    ORDER BY created_at DESC
+    LIMIT 1
+  ` as MediaAssetRow[];
+  return rows[0]??null;
+}
+
+async function sha256OfStoredObject(storageKey:string){
+  const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
+  if(!object.Body) throw new Error('Uploaded artwork could not be read.');
+  const hash=createHash('sha256');
+  const reader=object.Body.transformToWebStream().getReader();
+  for(;;){
+    const {done,value}=await reader.read();
+    if(done)break;
+    hash.update(value);
+  }
+  return hash.digest('hex');
+}
+
+export type PreparedMediaUpload=
+  | {id:string;key:string;uploadUrl:string;maxBytes:number;mimeType:string}
+  | {existing:true;asset:MediaAssetDto};
+
+export async function createMediaUpload(userId:string,input:{name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null;fingerprint?:string|null}):Promise<PreparedMediaUpload>{
+  const mimeType=resolveMediaType(input.name,input.mimeType);
+  checkMediaSize(input.byteSize);
+
+  // Optional client-computed SHA-256: when this user already has identical
+  // artwork, hand it back instead of uploading a second copy. Finalize still
+  // verifies the stored bytes, so a wrong hint can only skip a user's own upload.
+  const hint=typeof input.fingerprint==='string'?input.fingerprint.toLowerCase():'';
+  if(SHA256_HEX.test(hint)){
+    const existing=await findAssetByFingerprint(userId,hint);
+    if(existing)return {existing:true,asset:toDto(existing)};
+  }
 
   const id=randomUUID();
   const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
@@ -95,64 +146,71 @@ export async function createMediaUpload(userId:string,input:{name:string;mimeTyp
   const uploadUrl=await getSignedUrl(s3(),new PutObjectCommand({
     Bucket:bucket(),
     Key:key,
-    ContentType:input.mimeType,
+    ContentType:mimeType,
     CacheControl:'private, max-age=3600',
     Metadata:{userId,assetId:id},
   }),{expiresIn:15*60});
-  return {id,key,uploadUrl,maxBytes:MAX_MEDIA_BYTES};
+  return {id,key,uploadUrl,maxBytes:MAX_MEDIA_BYTES,mimeType};
 }
 
-export async function finalizeMediaUpload(userId:string,input:{id:string;key:string;name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null}):Promise<MediaAssetDto>{
-  if(!ALLOWED_MEDIA_TYPES.has(input.mimeType)) throw new Error('Unsupported artwork type.');
+export async function finalizeMediaUpload(userId:string,input:{id:string;key:string;name:string;mimeType:string;byteSize:number;width?:number|null;height?:number|null}):Promise<{asset:MediaAssetDto;existing:boolean}>{
+  const mimeType=resolveMediaType(input.name,input.mimeType);
   const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
   const expectedPrefix=`${configuredPrefix ? configuredPrefix+'/' : ''}users/${userId}/artwork/${input.id}/`;
   if(!input.key.startsWith(expectedPrefix)) throw new Error('Invalid upload key.');
 
   const head=await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:input.key}));
   const actualSize=Number(head.ContentLength||0);
-  const actualType=head.ContentType||input.mimeType;
-  if(actualSize<=0||actualSize>MAX_MEDIA_BYTES||actualType!==input.mimeType){
+  const actualType=head.ContentType||mimeType;
+  if(actualSize<=0||actualSize>MAX_MEDIA_BYTES||actualType!==mimeType){
     await s3().send(new DeleteObjectCommand({Bucket:bucket(),Key:input.key})).catch(()=>{});
-    throw new Error(actualSize>MAX_MEDIA_BYTES?'Artwork must be 100 MB or smaller.':'Uploaded artwork could not be verified.');
+    if(actualSize>MAX_MEDIA_BYTES) throw new ArtworkUploadError('Artwork must be 100 MB or smaller.','too_large');
+    throw new Error('Uploaded artwork could not be verified.');
+  }
+
+  // Same fingerprint scheme as uploadMediaAsset (SHA-256 of the stored bytes),
+  // computed from the object itself so it cannot be spoofed by the client.
+  const fingerprint=await sha256OfStoredObject(input.key);
+  const duplicate=await findAssetByFingerprint(userId,fingerprint,input.id);
+  if(duplicate){
+    if(duplicate.storage_key!==input.key){
+      await s3().send(new DeleteObjectCommand({Bucket:bucket(),Key:input.key})).catch(error=>{
+        console.warn('duplicate media object cleanup failed',{key:input.key,error:error instanceof Error?error.message:String(error)});
+      });
+    }
+    return {asset:toDto(duplicate),existing:true};
   }
 
   await ensureV2Schema();
   const rows=await getSql()`
     INSERT INTO media_assets(id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint)
     VALUES(
-      ${input.id},${userId},${input.name.slice(0,255)},${input.mimeType},${actualSize},
+      ${input.id},${userId},${input.name.slice(0,255)},${mimeType},${actualSize},
       ${Number.isFinite(input.width)?Math.max(1,Math.round(Number(input.width))):null},
       ${Number.isFinite(input.height)?Math.max(1,Math.round(Number(input.height))):null},
-      ${input.key},${input.id}
+      ${input.key},${fingerprint}
     )
     ON CONFLICT (id) DO UPDATE SET
       name=EXCLUDED.name,mime_type=EXCLUDED.mime_type,byte_size=EXCLUDED.byte_size,
-      width=EXCLUDED.width,height=EXCLUDED.height,storage_key=EXCLUDED.storage_key
+      width=EXCLUDED.width,height=EXCLUDED.height,storage_key=EXCLUDED.storage_key,fingerprint=EXCLUDED.fingerprint
     WHERE media_assets.user_id=${userId}
     RETURNING id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint,created_at
   ` as MediaAssetRow[];
   if(!rows[0]) throw new Error('Could not finalize artwork upload.');
-  return toDto(rows[0]);
+  return {asset:toDto(rows[0]),existing:false};
 }
 
 export async function uploadMediaAsset(userId:string,file:File,input:{width?:number|null;height?:number|null}={}):Promise<MediaAssetDto>{
-  if(!ALLOWED_MEDIA_TYPES.has(file.type)) throw new Error('Use PNG, JPG, WebP or SVG artwork.');
-  if(file.size<=0) throw new Error('The selected image is empty.');
-  if(file.size>MAX_MEDIA_BYTES) throw new Error('Artwork must be 100 MB or smaller.');
+  const mimeType=resolveMediaType(file.name,file.type);
+  checkMediaSize(file.size);
 
   const bytes=Buffer.from(await file.arrayBuffer());
   const fingerprint=createHash('sha256').update(bytes).digest('hex');
   await ensureV2Schema();
   const sql=getSql();
 
-  const existing=await sql`
-    SELECT id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint,created_at
-    FROM media_assets
-    WHERE user_id=${userId} AND fingerprint=${fingerprint}
-    ORDER BY created_at DESC
-    LIMIT 1
-  ` as MediaAssetRow[];
-  if(existing[0]) return toDto(existing[0]);
+  const existing=await findAssetByFingerprint(userId,fingerprint);
+  if(existing) return toDto(existing);
 
   const id=randomUUID();
   const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
@@ -162,7 +220,7 @@ export async function uploadMediaAsset(userId:string,file:File,input:{width?:num
     Bucket:bucket(),
     Key:key,
     Body:bytes,
-    ContentType:file.type,
+    ContentType:mimeType,
     CacheControl:'private, max-age=3600',
     Metadata:{userId,assetId:id},
   }));
@@ -171,7 +229,7 @@ export async function uploadMediaAsset(userId:string,file:File,input:{width?:num
     const rows=await sql`
       INSERT INTO media_assets(id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint)
       VALUES(
-        ${id},${userId},${file.name.slice(0,255)},${file.type},${file.size},
+        ${id},${userId},${file.name.slice(0,255)},${mimeType},${file.size},
         ${Number.isFinite(input.width)?Math.max(1,Math.round(Number(input.width))):null},
         ${Number.isFinite(input.height)?Math.max(1,Math.round(Number(input.height))):null},
         ${key},${fingerprint}
@@ -199,7 +257,7 @@ export async function readMediaAsset(userId:string,id:string){
   if(!row)return null;
   const object=await readStoredObject(row.storage_key);
   if(!object)return null;
-  return {row,bytes:object.bytes};
+  return {row,...object};
 }
 
 export async function headStoredObject(storageKey:string){
@@ -207,11 +265,25 @@ export async function headStoredObject(storageKey:string){
   return {byteSize:Number(object.ContentLength||0),contentType:object.ContentType||null};
 }
 
+// Streams the object instead of buffering it: large artwork stays out of
+// function memory, and buffered responses over Vercel's ~4.5 MB function
+// response limit failed to load.
 export async function readStoredObject(storageKey:string){
   const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
   if(!object.Body)return null;
-  const bytes=await object.Body.transformToByteArray();
-  return {bytes,contentType:object.ContentType||'application/octet-stream'};
+  const byteSize=typeof object.ContentLength==='number'?object.ContentLength:null;
+  return {body:object.Body.transformToWebStream() as ReadableStream<Uint8Array>,byteSize,contentType:object.ContentType||'application/octet-stream'};
+}
+
+export async function readStoredObjectBytes(storageKey:string){
+  const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
+  if(!object.Body)return null;
+  return {bytes:await object.Body.transformToByteArray(),contentType:object.ContentType||'application/octet-stream'};
+}
+
+/** Content-Length when S3 reported it; otherwise the response is chunked. */
+export function contentLengthHeader(byteSize:number|null):Record<string,string>{
+  return byteSize==null?{}:{'Content-Length':String(byteSize)};
 }
 
 function normalizePrefix(value:string){

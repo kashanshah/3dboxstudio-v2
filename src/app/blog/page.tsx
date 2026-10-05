@@ -1,3 +1,4 @@
+import { defaultOgImage } from '@/lib/site';
 import type { Metadata } from 'next';
 import { BlogExplorer } from '@/components/blog-explorer';
 import { ContentHero, ContentPageShell, StudioCta } from '@/components/content-page-shell';
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
   title: { absolute: BLOG_INDEX_TITLE },
   description: BLOG_INDEX_DESCRIPTION,
   alternates: { canonical: '/blog' },
-  openGraph: { title: BLOG_INDEX_TITLE, description: BLOG_INDEX_DESCRIPTION, type: 'website', url: '/blog' },
+  openGraph: { images:[defaultOgImage], title: BLOG_INDEX_TITLE, description: BLOG_INDEX_DESCRIPTION, type: 'website', url: '/blog' },
 };
 
 export default function Blog() {

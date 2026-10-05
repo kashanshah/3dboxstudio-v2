@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
 import { moveDesignToWorkspaceProject } from '@/server/workspace-projects';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { deleteLegacyDesign } from '@/server/legacy-designs';
 
 export async function PUT(req:Request,{params}:{params:Promise<{id:string}>}){
   return saveProject(req,(await params).id);
@@ -37,7 +38,13 @@ export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>})
   const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to delete this design.'},{status:401});
   const {id}=await params;
   const rows=await getSql()`DELETE FROM projects WHERE id=${id} AND user_id=${user.id} RETURNING id` as {id:string}[];
-  if(!rows.length)return NextResponse.json({error:'Design not found.'},{status:404});
+  if(!rows.length){
+    // Legacy (V1) library entries: soft-delete the owner's mirrored record and
+    // revoke its share links.
+    if(!await deleteLegacyDesign(user.id,id))return NextResponse.json({error:'Design not found.'},{status:404});
+    await captureServerEvent(user.id,'design_deleted',{design_id:id,legacy:true});
+    return NextResponse.json({deleted:true});
+  }
   await captureServerEvent(user.id,'design_deleted',{design_id:id});
   return NextResponse.json({deleted:true});
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import { FaqSection, type FaqSectionItem } from "./faq-section";
+import { StudioTour } from "./studio-tour";
 import "./marketing-product-page.css";
 
 export type MarketingPageFaq = FaqSectionItem;
@@ -66,10 +67,12 @@ export function MarketingProductPage({
       {showStudioProof ? <section className="mpp-studio-proof" tabIndex={scrollHero ? -1 : undefined}>
         <div>
           <span className="mpp-eyebrow">See the real product</span>
-          <h2>Explore the actual Studio interface.</h2>
-          <p>This embedded view is the working 3D Box Studio—not a concept dashboard. Open it full-screen when you want to edit.</p>
+          <h2>Three steps from size to finished mockup.</h2>
+          <p>These are real screens from 3D Box Studio, not a concept dashboard. Set up the box, design on the dieline, then review it in 3D and export.</p>
+          <Link className="mpp-primary" href="/studio">Start free <ArrowRight /></Link>
+          <small className="mpp-tour-note">Free account required. Sign up with Google or email.</small>
         </div>
-        <div className="mpp-frame"><div className="mpp-framebar"><span/><span/><span/><b>3D Box Studio</b><Link href="/studio">Open full Studio <ArrowRight/></Link></div><iframe src="/studio" title="Actual 3D Box Studio interface" loading="lazy" /></div>
+        <StudioTour />
       </section> : null}
 
       <section className="mpp-sections" tabIndex={scrollHero && !showStudioProof ? -1 : undefined}>
@@ -93,7 +96,7 @@ export function MarketingProductPage({
 
       <section className="mpp-bottom">
         <h2>Ready to see your packaging in 3D?</h2>
-        <p>Choose a structure, set the size, add artwork, and review the result in your browser.</p>
+        <p>Create a free account, choose a structure, set the size, add artwork, and review the result in your browser.</p>
         <Link className="mpp-primary" href="/studio">Open 3D Box Studio <ArrowRight /></Link>
       </section>
     </main>

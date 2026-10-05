@@ -27,7 +27,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   { type: "h2", text: "Designs, uploads, and cloud save" },
   {
     type: "p",
-    text: "You can use the studio without an account. While you work, design state may remain in your browser session. When you upload face artwork or save to the cloud, we store your box configuration (dimensions, materials, openings, and related settings) and uploaded images. Images are stored in Amazon Web Services (AWS) S3; configuration and project metadata are stored in a PostgreSQL database hosted by Neon.",
+    text: "Using the studio requires a free account. When you upload artwork or save a design, we store your box configuration (dimensions, materials, openings, and related settings) and uploaded images. Images are stored in Amazon Web Services (AWS) S3; configuration and project metadata are stored in a PostgreSQL database hosted by Neon.",
   },
   {
     type: "ul",
@@ -62,7 +62,8 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     type: "ul",
     items: [
       "Session cookie (sb_session) — keeps you signed in when you use an account. HttpOnly, secure in production.",
-      "Analytics — third-party analytics providers may set their own cookies or use similar technologies when enabled.",
+      "Analytics — Google Analytics and PostHog (product analytics and session recordings) set cookies or use local storage to measure how the site is used. In the EEA, the UK and Switzerland they only run after you accept in the cookie banner; elsewhere they run by default. You can accept or decline at any time from \"Cookie settings\" in the site footer. Uploaded artwork is excluded from session recordings.",
+      "Consent choice (3dbs_analytics_consent, 3dbs_consent_region) — stored in your browser to remember your cookie choice and whether consent is required where you are.",
       "Cloudflare Turnstile — a third-party script loads on the contact form to verify that submissions come from a person.",
       "Buy Me a Coffee widget — a third-party script may load when you interact with our support widget.",
     ],
@@ -88,7 +89,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   { type: "h2", text: "Legal bases (EEA/UK visitors)" },
   {
     type: "p",
-    text: "If you are in the European Economic Area or United Kingdom, we process personal data where necessary to perform our contract with you (providing the service), based on our legitimate interests (security, analytics, and product improvement), or with your consent where required (for example, non-essential cookies where applicable law requires consent).",
+    text: "If you are in the European Economic Area or United Kingdom, we process personal data where necessary to perform our contract with you (providing the service), based on our legitimate interests (security and product improvement), or with your consent (analytics cookies and session recordings, which only run after you accept them in the cookie banner).",
   },
   { type: "h2", text: "How we share information" },
   {

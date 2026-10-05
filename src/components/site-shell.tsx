@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from '@/components/i18n/locale-provider';
+import { CookieSettingsButton } from '@/components/analytics/ConsentBanner';
 import Link from 'next/link';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
@@ -67,7 +68,7 @@ export function SiteFooter() {
       <div><Brand /><p>{t("navigation.packaging_ideas_made_tangible")}</p></div>
       <div className="marketing-footer-links">
         <div><b>{t("navigation.product")}</b><Link href="/studio">{t("navigation.studio")}</Link><Link href="/changelog">{t("navigation.whats_new")}</Link><Link href="/blog">{t("navigation.guides")}</Link><Link href="/faq">{t("navigation.help_center")}</Link></div>
-        <div><b>{t("navigation.company")}</b><Link href="/contact">{t("navigation.contact")}</Link><Link href="/privacy">{t("navigation.privacy")}</Link><Link href="/terms">{t("navigation.terms")}</Link></div>
+        <div><b>{t("navigation.company")}</b><Link href="/contact">{t("navigation.contact")}</Link><Link href="/privacy">{t("navigation.privacy")}</Link><Link href="/terms">{t("navigation.terms")}</Link><CookieSettingsButton /></div>
       </div>
     </div>
     <div className="marketing-footer-base"><span>© {new Date().getFullYear()}{" " + t("navigation.3d_box_studio")}</span><span>{t("navigation.built_for_thoughtful_packaging_work")}</span></div>

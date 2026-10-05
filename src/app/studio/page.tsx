@@ -1,3 +1,4 @@
+import { defaultOgImage } from '@/lib/site';
 import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { StudioHome,StudioGate } from '@/components/auth/studio-home';
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   description,
   keywords:['3d box designer','3d box maker','free 3d box maker','online box designer','packaging mockup generator','free packaging mockup','3d packaging simulator','carton mockup','folding carton mockup','mailer box mockup','product box mockup','box design software','packaging box designer','pacdora alternative','3d box studio'],
   alternates:{canonical:'/studio'},
-  openGraph:{title,description,type:'website',url:'/studio'},
+  openGraph:{ images:[defaultOgImage],title,description,type:'website',url:'/studio'},
 };
 
 export default async function Studio({searchParams}:{searchParams:Promise<{q?:string;sort?:string;page?:string;workspace?:string}>}) {

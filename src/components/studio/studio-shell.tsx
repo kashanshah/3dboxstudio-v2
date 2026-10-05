@@ -1,6 +1,7 @@
 'use client';
 
 import { trackEvent } from '@/lib/analytics';
+import { ArtworkUploadError, artworkUploadErrorCode, checkArtworkFile, mergeMediaAssets, summarizeArtworkUpload, type ArtworkUploadFailure } from '@/lib/artwork-upload';
 import { newDesignDefaults, type NewDesignProject } from '@/lib/new-design';
 import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
@@ -96,27 +97,62 @@ async function readUploadDimensions(file:File):Promise<{width:number|null;height
 }
 
 
+// Hashing lets the server hand back an identical image the user already has
+// (e.g. when retrying a partially failed batch) without uploading it again.
+// Large files skip the hint; finalize still dedupes them server-side.
+const CLIENT_FINGERPRINT_MAX_BYTES=50*1024*1024;
+async function fingerprintUploadFile(file:File):Promise<string|null>{
+  if(file.size>CLIENT_FINGERPRINT_MAX_BYTES||typeof crypto==='undefined'||!crypto.subtle)return null;
+  try{
+    const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());
+    return [...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
+  }catch{
+    return null;
+  }
+}
+
+async function readUploadJson<T>(response:Response):Promise<T&{error?:string;code?:string}>{
+  try{
+    return await response.json() as T&{error?:string;code?:string};
+  }catch{
+    return {} as T&{error?:string;code?:string};
+  }
+}
+
+function uploadResponseError(response:Response,body:{error?:string;code?:string},fallback:string){
+  if(response.status===429)return new ArtworkUploadError('Too many uploads. Try again in a few minutes.','rate_limited');
+  return new ArtworkUploadError(body.error||fallback,artworkUploadErrorCode(body));
+}
+
 async function uploadMediaFile(
   file:File,
   dimensions:{width:number|null;height:number|null},
   onProgress:(percent:number,phase:'uploading'|'processing')=>void,
 ):Promise<LocalMediaAsset>{
-  if(file.size>100*1024*1024)throw new Error('Artwork must be 100 MB or smaller.');
+  const checked=checkArtworkFile(file);
+  if(!checked.ok)throw checked.error;
+  const mimeType=checked.mimeType;
+  const fingerprint=await fingerprintUploadFile(file);
   const prepare=await fetch('/api/media',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    action:'prepare',name:file.name,mimeType:file.type,byteSize:file.size,width:dimensions.width,height:dimensions.height,
+    action:'prepare',name:file.name,mimeType,byteSize:file.size,width:dimensions.width,height:dimensions.height,fingerprint,
   })});
-  const prepared=await prepare.json() as {id?:string;key?:string;uploadUrl?:string;error?:string};
-  if(!prepare.ok||!prepared.id||!prepared.key||!prepared.uploadUrl)throw new Error(prepared.error||'Could not prepare artwork upload.');
+  const prepared=await readUploadJson<{id?:string;key?:string;uploadUrl?:string;existing?:boolean;asset?:LocalMediaAsset}>(prepare);
+  if(prepare.ok&&prepared.existing&&prepared.asset){
+    // Identical artwork is already in this account's library; reuse it.
+    onProgress(100,'processing');
+    return prepared.asset;
+  }
+  if(!prepare.ok||!prepared.id||!prepared.key||!prepared.uploadUrl)throw uploadResponseError(prepare,prepared,'Could not prepare artwork upload.');
 
-  const uploadResponse=await fetch(prepared.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
-  if(!uploadResponse.ok)throw new Error('Storage rejected the artwork upload.');
+  const uploadResponse=await fetch(prepared.uploadUrl,{method:'PUT',headers:{'Content-Type':mimeType},body:file});
+  if(!uploadResponse.ok)throw new ArtworkUploadError('Storage rejected the artwork upload.','failed');
   onProgress(100,'processing');
 
   const finalize=await fetch('/api/media',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    action:'finalize',id:prepared.id,key:prepared.key,name:file.name,mimeType:file.type,byteSize:file.size,width:dimensions.width,height:dimensions.height,
+    action:'finalize',id:prepared.id,key:prepared.key,name:file.name,mimeType,byteSize:file.size,width:dimensions.width,height:dimensions.height,
   })});
-  const result=await finalize.json() as {asset?:LocalMediaAsset;error?:string};
-  if(!finalize.ok||!result.asset)throw new Error(result.error||'Could not finalize artwork upload.');
+  const result=await readUploadJson<{asset?:LocalMediaAsset;existing?:boolean}>(finalize);
+  if(!finalize.ok||!result.asset)throw uploadResponseError(finalize,result,'Could not finalize artwork upload.');
   return result.asset;
 }
 
@@ -912,25 +948,32 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   };
 
   const handleArtworkFiles = async (files: File[]) => {
-    const imageFiles = files.filter(file => {
-      const lower = file.name.toLowerCase();
-      return ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type) || lower.endsWith('.svg');
-    });
+    if (files.length === 0) return;
+    if(mediaUploadProgress?.active)return;
+
+    // Unsupported files (HEIC, PDFs, …) are reported alongside any upload
+    // failures instead of silently dropped, so the summary accounts for every file.
+    const failures: ArtworkUploadFailure[]=[];
+    const imageFiles: File[]=[];
+    for(const file of files){
+      const checked=checkArtworkFile(file);
+      if(checked.ok)imageFiles.push(file);
+      else failures.push({name:file.name,code:checked.error.code});
+    }
     if (imageFiles.length === 0) {
-      setMessage('Use PNG, JPG, WebP or SVG artwork');
+      setMessage(summarizeArtworkUpload(files.length,failures,'Use PNG, JPG, WebP or SVG artwork'));
       return;
     }
-    if(mediaUploadProgress?.active)return;
 
     setMediaLibraryOpen(true);
     setMessage(`Uploading ${imageFiles.length} image${imageFiles.length===1?'':'s'}…`);
     const uploaded: LocalMediaAsset[]=[];
-    try{
-      for(let index=0;index<imageFiles.length;index++){
-        const file=imageFiles[index];
-        setMediaUploadProgress({
-          active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent:0,phase:'uploading',
-        });
+    for(let index=0;index<imageFiles.length;index++){
+      const file=imageFiles[index];
+      setMediaUploadProgress({
+        active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent:0,phase:'uploading',
+      });
+      try{
         const dimensions=await readUploadDimensions(file);
         const asset=await uploadMediaFile(file,dimensions,(percent,phase)=>{
           setMediaUploadProgress({
@@ -939,14 +982,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         });
         trackEvent('artwork_uploaded', {template_id:selectedTemplateId, app_version:'v2', file_type:file.type, file_size_bytes:file.size, upload_surface:'media_library'});
         uploaded.push(asset);
+        // Show each finished file immediately so a later failure never hides it.
+        setMediaAssets(current=>mergeMediaAssets(current,[asset]));
+      }catch(error){
+        failures.push({name:file.name,code:artworkUploadErrorCode(error)});
       }
+    }
 
-      setMediaAssets(current=>{
-        const merged=new Map(current.map(asset=>[asset.id,asset]));
-        for(const asset of uploaded)merged.set(asset.id,asset);
-        return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
-      });
-      if(uploaded[0])setSelectedMediaAssetId(uploaded[0].id);
+    if(uploaded[0]){
+      setSelectedMediaAssetId(uploaded[0].id);
       setMediaLibraryTab('library');
       setMediaUploadProgress({
         active:false,
@@ -957,45 +1001,54 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         phase:'complete',
       });
       window.setTimeout(()=>setMediaUploadProgress(null),900);
-      setMessage(`${uploaded.length} image${uploaded.length===1?'':'s'} saved to My Images`);
-    }catch(error){
+    }else{
       setMediaUploadProgress(null);
-      setMessage(error instanceof Error?error.message:'Could not upload artwork.');
     }
+    setMessage(summarizeArtworkUpload(files.length,failures,`${uploaded.length} image${uploaded.length===1?'':'s'} saved to My Images`));
   };
 
   const handleBoardArtworkDrop = async (files: File[], point: {x:number;y:number}) => {
-    const imageFiles = files.filter(file => {
-      const lower = file.name.toLowerCase();
-      return ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type) || lower.endsWith('.svg');
-    });
+    if (!files.length) return;
+    if (mediaUploadProgress?.active) return;
+    const failures: ArtworkUploadFailure[] = [];
+    const imageFiles: File[] = [];
+    for (const file of files) {
+      const checked = checkArtworkFile(file);
+      if (checked.ok) imageFiles.push(file);
+      else failures.push({name:file.name,code:checked.error.code});
+    }
     if (!imageFiles.length) {
-      setMessage('Drop PNG, JPG, WebP or SVG images onto the board');
+      setMessage(summarizeArtworkUpload(files.length,failures,'Drop PNG, JPG, WebP or SVG images onto the board'));
       return;
     }
-    if (mediaUploadProgress?.active) return;
 
     const dropScope = artworkScope;
     const uploaded: LocalMediaAsset[] = [];
     setMessage(`Adding ${imageFiles.length} image${imageFiles.length===1?'':'s'} to the board…`);
-    try {
-      for (let index=0; index<imageFiles.length; index++) {
-        const file=imageFiles[index];
-        setMediaUploadProgress({active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent:0,phase:'uploading'});
+    for (let index=0; index<imageFiles.length; index++) {
+      const file=imageFiles[index];
+      setMediaUploadProgress({active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent:0,phase:'uploading'});
+      try {
         const imageDimensions=await readUploadDimensions(file);
         const asset=await uploadMediaFile(file,imageDimensions,(percent,phase)=>{
           setMediaUploadProgress({active:true,fileName:file.name,fileIndex:index+1,totalFiles:imageFiles.length,percent,phase});
         });
         trackEvent('artwork_uploaded', {template_id:selectedTemplateId, app_version:'v2', file_type:file.type, file_size_bytes:file.size, upload_surface:'dieline_drop'});
         uploaded.push(asset);
+        // Keep finished files in My Images even if a later file fails.
+        setMediaAssets(current=>mergeMediaAssets(current,[asset]));
+      } catch(error) {
+        failures.push({name:file.name,code:artworkUploadErrorCode(error)});
       }
+    }
 
-      setMediaAssets(current=>{
-        const merged=new Map(current.map(asset=>[asset.id,asset]));
-        for(const asset of uploaded) merged.set(asset.id,asset);
-        return [...merged.values()].sort((a,b)=>b.createdAt-a.createdAt);
-      });
+    if (!uploaded.length) {
+      setMediaUploadProgress(null);
+      setMessage(summarizeArtworkUpload(files.length,failures,'Could not add dropped artwork.'));
+      return;
+    }
 
+    try {
       const bounds=getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
       const created=uploaded.map((asset,index)=>{
         const imageAspect=asset.width&&asset.height?asset.width/asset.height:1;
@@ -1023,7 +1076,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       window.setTimeout(()=>setMediaUploadProgress(null),900);
       setTool('artwork');
       setInspectorOpen(false);
-      setMessage(`${uploaded.length} image${uploaded.length===1?'':'s'} added where you dropped ${uploaded.length===1?'it':'them'}`);
+      setMessage(summarizeArtworkUpload(files.length,failures,`${uploaded.length} image${uploaded.length===1?'':'s'} added where you dropped ${uploaded.length===1?'it':'them'}`));
     } catch(error) {
       setMediaUploadProgress(null);
       setMessage(error instanceof Error?error.message:'Could not add dropped artwork.');

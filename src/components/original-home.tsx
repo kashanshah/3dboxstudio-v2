@@ -10,6 +10,7 @@ import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
 import { SiteHeader } from "./site-shell";
 import { FaqSection } from "./faq-section";
+import { CookieSettingsButton } from "./analytics/ConsentBanner";
 
 const capabilities = [
   [Ruler, "Set real dimensions", "Work with finished width, height, depth, and units instead of being locked to one static mockup."],
@@ -103,9 +104,9 @@ export function OriginalHome() {
       <div className="hero-copy animate-fade-in">
         <div className="hero-badge"><Sparkles /> Free online packaging design workspace</div>
         <h1>Design <br/>the box.<br/><span>See it in 3D.</span></h1>
-        <p>3D Box Studio is a free browser-based 3D box designer and packaging mockup generator. Choose a structure, set finished dimensions, design on the dieline, preview the package in 3D, and export a polished PNG—without installing software.</p>
+        <p>3D Box Studio is a free browser-based 3D box designer and packaging mockup generator. Choose a structure, set finished dimensions, design on the dieline, preview the package in 3D, and export a polished PNG. All you need is a free account—no software to install.</p>
         <div className="hero-actions"><Button asChild size="lg"><Link href="/studio">Start designing <ArrowRight /></Link></Button><Button variant="outline" size="lg" asChild><a href="#workflow"><CirclePlay /> See how it works</a></Button></div>
-        <div className="hero-proof"><span>No install</span><i/><span>2D + 3D in one workflow</span><i/><span>Free to start</span></div>
+        <div className="hero-proof"><span>No install</span><i/><span>2D + 3D in one workflow</span><i/><span>Free account</span></div>
       </div>
       <div className="hero-stage" role="img" aria-label="3D Box Studio concept showing a packaging workspace with artwork controls and a 3D package preview">
         <div className="hero-window">
@@ -170,7 +171,7 @@ export function OriginalHome() {
     </section>
 
     <section className="save-share-section">
-      <div><p className="eyebrow">Save, share, come back</p><h2>Your package does not disappear when the tab closes.</h2><p>Create an account to keep projects organized, reopen designs later, and share a browser preview with a client or teammate.</p></div>
+      <div><p className="eyebrow">Save, share, come back</p><h2>Your package does not disappear when the tab closes.</h2><p>Your free account keeps projects organized, lets you reopen designs later, and share a browser preview with a client or teammate.</p></div>
       <div className="save-share-grid">
         <article><Save/><h3>Save projects</h3><p>Keep work attached to your account and continue where you left off.</p></article>
         <article><Share2/><h3>Share previews</h3><p>Send a link so someone can inspect the package without editing your file.</p></article>
@@ -189,7 +190,7 @@ export function OriginalHome() {
 
     <FaqSection
       items={HOME_FAQS}
-      description={<><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser.</>}
+      description={<><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser. Using the Studio requires a free account.</>}
       links={[
         { href: "/features", label: "Features" },
         { href: "/faq", label: "Full FAQ" },
@@ -197,7 +198,7 @@ export function OriginalHome() {
       ]}
     />
 
-    <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
-    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><span>© 2026 3D Box Studio</span></footer>
+    <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Create a free account, choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
+    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><CookieSettingsButton /></nav><span>© 2026 3D Box Studio</span></footer>
   </main></>
 }

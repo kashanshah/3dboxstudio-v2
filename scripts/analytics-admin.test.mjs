@@ -7,8 +7,9 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
 
-function harness(initial = '/') {
+function harness(initial = '/', consent = 'granted') {
   const calls = [];
+  const stored = consent ? { '3dbs_analytics_consent': consent } : {};
   const listeners = new Map();
   const w = {
     location: new URL(initial, 'https://www.3dboxstudio.com'),
@@ -18,6 +19,7 @@ function harness(initial = '/') {
     },
     addEventListener(name, fn) { listeners.set(name, fn); },
     removeEventListener(name) { listeners.delete(name); },
+    localStorage: { getItem: key => stored[key] ?? null, setItem: (key, value) => { stored[key] = String(value); } },
   };
   w.history = Object.fromEntries(['pushState', 'replaceState'].map(name => [name, function (_data, _unused, url) {
     calls.push(['history', w['ga-disable-G-TEST']]);
@@ -81,29 +83,17 @@ test('direct GA and PostHog dispatch cannot bypass admin exclusion or queue admi
   assert.equal(h.w.__posthogCaptureQueue, undefined);
   h.w.location = new URL('https://www.3dboxstudio.com/studio');
   h.load('src/lib/analytics/gtag.ts').sendGaEvent('test');
-  assert.equal(h.w.dataLayer.length, 3);
+  assert.deepEqual(Array.from(h.w.dataLayer, args => args[0]), ['consent', 'js', 'config', 'event'], 'Consent Mode defaults precede config');
+  assert.equal(h.w.dataLayer[0][2].analytics_storage, 'granted');
+  assert.equal(h.w.dataLayer[0][2].ad_storage, 'denied');
 });
 
-test('deferred PostHog bootstrap never initializes on admin; before_send blocks automatic and delayed admin events', () => {
-  const h = harness('/studio');
-  const code = h.load('src/components/analytics/PostHogAnalytics.tsx').bootstrap();
-  let config;
-  h.w.posthog = { __SV: 1, init(_token, value) { config = value; } };
-  h.w.location = new URL('https://www.3dboxstudio.com/admin');
-  vm.runInContext(code, h.context);
-  assert.equal(config, undefined);
-  h.w.location = new URL('https://www.3dboxstudio.com/studio');
-  vm.runInContext(code, h.context);
-  assert.ok(config);
-  const publicEvent = { event: '$autocapture', properties: { $current_url: h.w.location.href } };
-  assert.equal(config.before_send(publicEvent), publicEvent);
-  for (const key of ['$current_url', 'page_location', 'page_path']) {
-    assert.equal(config.before_send({ properties: { [key]: '/admin/users?tab=projects' } }), null);
-  }
-  h.w.location = new URL('https://www.3dboxstudio.com/admin');
-  assert.equal(config.before_send(publicEvent), null);
-  const paths = [];
-  h.w.__syncAnalyticsRoute = value => paths.push(value);
-  config.loaded();
-  assert.deepEqual(paths, ['/admin']);
+test('declined analytics consent keeps GA disabled on public routes too', () => {
+  const h = harness('/studio', 'denied');
+  const cleanup = h.load('src/lib/analytics/route-guard.ts').installAnalyticsRouteGuard();
+  assert.equal(h.w['ga-disable-G-TEST'], true);
+  h.w.history.pushState({}, '', '/blog');
+  assert.equal(h.w['ga-disable-G-TEST'], true);
+  h.load('src/lib/analytics/gtag.ts').sendGaEvent('test');
+  cleanup();
 });

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
-import { site } from "@/lib/site";
+import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "3D Box Templates & Packaging Structures | 3D Box Studio" },
   description: "Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.",
   alternates: { canonical: "/box-templates" },
-  openGraph: { title: "3D Box Templates & Packaging Structures | 3D Box Studio", description: "Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "3D Box Templates & Packaging Structures | 3D Box Studio", description: "Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.", type: "website" }
 };
 
 const sections = [
