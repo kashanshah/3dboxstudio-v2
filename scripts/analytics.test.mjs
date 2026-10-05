@@ -9,7 +9,12 @@ const root = path.resolve('src');
 function transpile(source) {
   return ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 }
-function analytics({env={},window={location:{pathname:'/studio/editor'}},console:logger=console}={}) {
+function storageStub(values={}) {
+  return {getItem:key=>values[key]??null,setItem:(key,value)=>{values[key]=String(value);},removeItem:key=>{delete values[key];}};
+}
+function analytics({env={},window={location:{pathname:'/studio/editor'}},console:logger=console,consent='granted'}={}) {
+  if (!window.localStorage) window.localStorage = storageStub(consent ? {'3dbs_analytics_consent':consent} : {});
+  window.dispatchEvent = window.dispatchEvent ?? (()=>true);
   const cache = new Map();
   function load(file) {
     file = path.resolve(file);
@@ -35,7 +40,7 @@ function analytics({env={},window={location:{pathname:'/studio/editor'}},console
     },{filename:file});
     return exports;
   }
-  return {api:load(path.join(root,'lib/analytics/index.ts')),window};
+  return {api:load(path.join(root,'lib/analytics/index.ts')),consent:load(path.join(root,'lib/analytics/consent.ts')),window};
 }
 
 test('GA and PostHog receive their native pageview names; queued PostHog views retain the original URL',()=>{
@@ -254,4 +259,55 @@ test('session replay blocks owner-only artwork so off-site replays never request
   }
   assert.ok(!parts.some(part=>part.includes('/api/shares/')),'public share media stays visible in replays');
   assert.match(fs.readFileSync('instrumentation-client.ts','utf8'),/session_recording:\{blockSelector:REPLAY_BLOCK_SELECTOR\}/);
+});
+
+test('analytics waits for consent: pending events are sent on accept and dropped on decline',()=>{
+  const accepted=analytics({consent:null});
+  accepted.api.trackEvent('page_view',{page_path:'/',page_location:'https://www.3dboxstudio.com/'});
+  accepted.api.trackEvent('export_clicked');
+  assert.equal(accepted.window.dataLayer,undefined,'nothing reaches GA before a decision');
+  assert.equal(accepted.window.__posthogCaptureQueue,undefined,'nothing reaches PostHog before a decision');
+  accepted.consent.setConsentState('granted');
+  assert.deepEqual(accepted.window.__posthogCaptureQueue.map(([name])=>name),['$pageview','export_clicked']);
+  assert.equal(accepted.window.localStorage.getItem('3dbs_analytics_consent'),'granted');
+
+  const declined=analytics({consent:null});
+  declined.api.trackEvent('export_clicked');
+  declined.consent.setConsentState('denied');
+  declined.api.trackEvent('project_saved');
+  assert.equal(declined.window.__posthogCaptureQueue,undefined);
+  assert.equal((declined.window.dataLayer??[]).filter(args=>args[0]==='event').length,0);
+
+  const outsideConsentRegion=analytics({consent:null,window:{location:{pathname:'/'},localStorage:storageStub({'3dbs_consent_region':'not_required'})}});
+  outsideConsentRegion.api.trackEvent('export_clicked');
+  assert.equal(outsideConsentRegion.window.__posthogCaptureQueue[0][0],'export_clicked');
+});
+
+test('PostHog init sends one pageview per route, honours consent, and drops every admin event',()=>{
+  let initOptions;
+  const consentApi={};
+  const window={location:{pathname:'/'},localStorage:storageStub({})};
+  const listeners=[];
+  vm.runInNewContext(transpile(fs.readFileSync('instrumentation-client.ts','utf8')),{
+    exports:{},window,URL,process:{env:{NODE_ENV:'production',NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN:'ph',NEXT_PUBLIC_POSTHOG_HOST:'https://us.i.posthog.com'}},
+    require:name=>{
+      if(name==='posthog-js')return {__esModule:true,default:{init:(token,options)=>{initOptions=options;},opt_in_capturing:()=>listeners.push('in'),opt_out_capturing:()=>listeners.push('out')}};
+      if(name==='@/lib/analytics/policy'){const out={};vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:out,process:{env:{}},window});return out;}
+      if(name==='@/lib/analytics/consent'){vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/consent.ts'),'utf8')),{exports:consentApi,window});return consentApi;}
+      throw new Error('unexpected import '+name);
+    },
+  });
+  assert.equal(initOptions.capture_pageview,false);
+  assert.equal(initOptions.opt_out_capturing_by_default,true,'no capture before consent');
+  const event=url=>({event:'$autocapture',properties:{$current_url:url}});
+  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin/users')),null);
+  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin')),null);
+  assert.ok(initOptions.before_send(event('https://www.3dboxstudio.com/administrators-guide')));
+  assert.ok(initOptions.before_send(event('https://www.3dboxstudio.com/studio')));
+  for (const key of ['$current_url','page_location','page_path']) assert.equal(initOptions.before_send({properties:{[key]:'/admin/users?tab=projects'}}),null);
+  window.location={pathname:'/admin/settings'};
+  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/studio')),null,'events sent while on an admin page are dropped');
+  window.location={pathname:'/'};
+  consentApi.setConsentState('granted');consentApi.setConsentState('denied');
+  assert.deepEqual(listeners,['in','out']);
 });

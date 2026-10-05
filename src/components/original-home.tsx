@@ -10,6 +10,7 @@ import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
 import { SiteHeader } from "./site-shell";
 import { FaqSection } from "./faq-section";
+import { CookieSettingsButton } from "./analytics/ConsentBanner";
 
 const capabilities = [
   [Ruler, "Set real dimensions", "Work with finished width, height, depth, and units instead of being locked to one static mockup."],
@@ -198,6 +199,6 @@ export function OriginalHome() {
     />
 
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Create a free account, choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
-    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link></nav><span>© 2026 3D Box Studio</span></footer>
+    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><CookieSettingsButton /></nav><span>© 2026 3D Box Studio</span></footer>
   </main></>
 }

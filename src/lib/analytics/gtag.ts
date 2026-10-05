@@ -1,4 +1,5 @@
 import { ANALYTICS_DEBUG, GA_ENABLED, GA_MEASUREMENT_ID, isAnalyticsBlockedPath } from "./policy";
+import { getConsentState, onConsentChange } from "./consent";
 
 type GtagWindow = Window & {
   dataLayer?: IArguments[];
@@ -24,6 +25,13 @@ export function ensureGtagInitialized(): boolean {
   }
 
   if (configured) return true;
+  // Consent Mode v2: no advertising use, analytics storage only after consent.
+  w.gtag("consent", "default", {
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+    analytics_storage: getConsentState() === "granted" ? "granted" : "denied",
+  });
   w.gtag("js", new Date());
   w.gtag("config", GA_MEASUREMENT_ID, {
     send_page_view: false,
@@ -38,3 +46,8 @@ export function sendGaEvent(eventName: string, properties: Record<string, unknow
   if (!w || !ensureGtagInitialized()) return;
   w.gtag?.("event", eventName, properties);
 }
+
+onConsentChange((state) => {
+  const w = getWindow();
+  w?.gtag?.("consent", "update", { analytics_storage: state === "granted" ? "granted" : "denied" });
+});

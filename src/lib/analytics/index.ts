@@ -1,5 +1,6 @@
 import { sendGaEvent } from "./gtag";
 import { capturePostHog } from "./posthog";
+import { getConsentState, onConsentChange } from "./consent";
 import {
   ANALYTICS_DEBUG,
   ANALYTICS_ENABLED,
@@ -16,10 +17,27 @@ export {
   isAnalyticsBlockedPath,
 };
 
+const MAX_PENDING_EVENTS = 50;
+const pendingEvents: Array<[string, Record<string, unknown>]> = [];
+
+onConsentChange((state) => {
+  const queued = pendingEvents.splice(0);
+  if (state === "granted") for (const [eventName, properties] of queued) sendEvent(eventName, properties);
+});
+
 export function trackEvent(eventName: string, properties: Record<string, unknown> = {}): void {
   if (!ANALYTICS_ENABLED || typeof window === "undefined") return;
   if (isAnalyticsBlockedPath(window.location.pathname)) return;
+  const consent = getConsentState();
+  if (consent === "denied") return;
+  if (consent === "pending") {
+    if (pendingEvents.length < MAX_PENDING_EVENTS) pendingEvents.push([eventName, properties]);
+    return;
+  }
+  sendEvent(eventName, properties);
+}
 
+function sendEvent(eventName: string, properties: Record<string, unknown>): void {
   if (ANALYTICS_DEBUG) {
     // eslint-disable-next-line no-console
     console.debug("[Analytics]", eventName, properties);

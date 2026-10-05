@@ -30,6 +30,7 @@ test('PostgreSQL email actions: expired/reused links fail, verification matches 
  assert.equal((await db.query(RESET_PASSWORD_SQL,['older','bad'])).rows.length,0);
  assert.deepEqual((await db.query('SELECT * FROM sessions')).rows,[{token:'other-session',user_id:'other'}]);
  assert.equal((await db.query("SELECT password_hash FROM users WHERE id='u'")).rows[0].password_hash,'new-hash');
+ assert.ok((await db.query("SELECT email_verified_at FROM users WHERE id='u'")).rows[0].email_verified_at,'a completed reset proves inbox ownership');
  assert.equal((await db.query(VERIFY_EMAIL_SQL,['wrong-email'])).rows.length,0);
  assert.equal((await db.query(VERIFY_EMAIL_SQL,['verify'])).rows.length,1);
  assert.equal((await db.query(VERIFY_EMAIL_SQL,['verify'])).rows.length,0);
@@ -106,4 +107,20 @@ test('workspace rename and empty-only delete enforce ownership, default protecti
   assert.equal(deleted.status,200);assert.deepEqual(await deleted.json(),{deleted:true});
   assert.equal((await projectDb.query("SELECT id FROM workspace_projects WHERE id='empty'")).rows.length,0);
  }finally{await projectDb.close();currentUser='owner';}
+});
+
+const {CLAIM_UNVERIFIED_ACCOUNT_SQL}=require('../src/server/auth/users.ts');
+test('Google claiming an unverified account removes the squatter password, sessions and tokens',async()=>{
+ const db=new PGlite();try{
+ await db.exec(`CREATE TABLE users(id text primary key,email text,name text,password_hash text,email_verified_at timestamptz,created_at timestamptz default now(),signup_method text);CREATE TABLE sessions(token text,user_id text);CREATE TABLE password_reset_tokens(token text,user_id text);CREATE TABLE email_verification_tokens(token text,user_id text);
+ INSERT INTO users(id,email,password_hash,email_verified_at) VALUES('squat','victim@example.com','attacker-hash',NULL),('owned','owner@example.com','owner-hash',NOW());
+ INSERT INTO sessions VALUES('attacker-session','squat'),('owner-session','owned');INSERT INTO password_reset_tokens VALUES('r','squat');INSERT INTO email_verification_tokens VALUES('v','squat');`);
+ const claimed=(await db.query(CLAIM_UNVERIFIED_ACCOUNT_SQL,['squat'])).rows;
+ assert.equal(claimed.length,1);assert.equal(claimed[0].password_hash,null);assert.ok(claimed[0].email_verified_at);
+ assert.deepEqual((await db.query('SELECT token FROM sessions')).rows,[{token:'owner-session'}]);
+ assert.equal((await db.query('SELECT * FROM password_reset_tokens')).rows.length,0);
+ assert.equal((await db.query('SELECT * FROM email_verification_tokens')).rows.length,0);
+ assert.equal((await db.query(CLAIM_UNVERIFIED_ACCOUNT_SQL,['owned'])).rows.length,0,'verified accounts keep their password and sessions');
+ assert.equal((await db.query("SELECT password_hash FROM users WHERE id='owned'")).rows[0].password_hash,'owner-hash');
+ }finally{await db.close();}
 });

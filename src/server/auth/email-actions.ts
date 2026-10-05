@@ -11,7 +11,7 @@ export const RESET_PASSWORD_SQL=`WITH locked AS (
 ), consumed AS (
  UPDATE password_reset_tokens SET consumed_at=NOW() WHERE token=$1 AND consumed_at IS NULL AND expires_at>NOW() AND user_id IN(SELECT id FROM locked) RETURNING user_id
 ), changed AS (
- UPDATE users SET password_hash=$2 WHERE id IN(SELECT user_id FROM consumed) RETURNING id
+ UPDATE users SET password_hash=$2,email_verified_at=COALESCE(email_verified_at,NOW()) WHERE id IN(SELECT user_id FROM consumed) RETURNING id
 ), revoked AS (
  DELETE FROM sessions WHERE user_id IN(SELECT id FROM changed)
 ), expired AS (

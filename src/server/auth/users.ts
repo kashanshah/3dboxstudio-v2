@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { getSql } from '@/server/db';
 import { hashPassword } from './password';
+import { GoogleAuthError } from './google';
 
 export type UserRow={
   id:string;
@@ -65,8 +66,24 @@ export async function createEmailUser(input:{email:string;password:string;name:s
   return rows[0];
 }
 
+// Signup does not prove inbox ownership, so anyone could pre-register a victim's
+// address. When Google (which has verified the address) claims such an account,
+// drop the unproven password and every existing session and pending token so a
+// squatter cannot keep access to the account the real owner is about to use.
+export const CLAIM_UNVERIFIED_ACCOUNT_SQL=`WITH claimed AS (
+ UPDATE users SET email_verified_at=NOW(),password_hash=NULL
+ WHERE id=$1 AND email_verified_at IS NULL
+ RETURNING id,email,name,password_hash,email_verified_at,created_at,signup_method
+), revoked AS (
+ DELETE FROM sessions WHERE user_id IN(SELECT id FROM claimed)
+), resets AS (
+ DELETE FROM password_reset_tokens WHERE user_id IN(SELECT id FROM claimed)
+), verifications AS (
+ DELETE FROM email_verification_tokens WHERE user_id IN(SELECT id FROM claimed)
+) SELECT * FROM claimed`;
+
 export async function findOrCreateGoogleUser(profile:{sub:string;email:string;name:string|null;emailVerified:boolean}){
-  if(!profile.emailVerified) throw new Error('Google email must be verified before sign-in or account linking');
+  if(!profile.emailVerified) throw new GoogleAuthError('email_unverified','Google email must be verified before sign-in or account linking');
   const sql=getSql();
   const linked=await sql`
     SELECT u.id,u.email,u.name,u.password_hash,u.email_verified_at,u.created_at,u.signup_method
@@ -89,13 +106,9 @@ export async function findOrCreateGoogleUser(profile:{sub:string;email:string;na
       RETURNING id,email,name,password_hash,email_verified_at,created_at,signup_method
     ` as UserRow[];
     user=rows[0];
-  } else if(profile.emailVerified && !user.email_verified_at){
-    const rows=await sql`
-      UPDATE users SET email_verified_at=NOW()
-      WHERE id=${user.id}
-      RETURNING id,email,name,password_hash,email_verified_at,created_at,signup_method
-    ` as UserRow[];
-    user=rows[0];
+  } else if(!user.email_verified_at){
+    const rows=await sql.query(CLAIM_UNVERIFIED_ACCOUNT_SQL,[user.id]) as UserRow[];
+    user=rows[0]??user;
   }
 
   await sql`
@@ -105,6 +118,6 @@ export async function findOrCreateGoogleUser(profile:{sub:string;email:string;na
     DO NOTHING
   `;
   const identity=await sql`SELECT user_id FROM oauth_accounts WHERE provider='google' AND provider_account_id=${profile.sub}` as {user_id:string}[];
-  if(identity[0]?.user_id!==user.id) throw new Error('Google identity is already linked to another account');
+  if(identity[0]?.user_id!==user.id) throw new GoogleAuthError('identity_conflict','Google identity is already linked to another account');
   return {user,isNew};
 }

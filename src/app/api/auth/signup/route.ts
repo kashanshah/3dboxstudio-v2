@@ -4,6 +4,7 @@ import { guardAuthAction } from '@/server/auth/action-request';
 import { cleanName,isValidEmail,passwordError } from '@/server/auth/validation';
 import { createEmailUser,getUserByEmail,toPublicUser } from '@/server/auth/users';
 import { issueEmailAction } from '@/server/auth/email-actions';
+import { alertAdmin } from '@/server/ops-alerts';
 import { createSession,setSessionCookie } from '@/server/auth/session';
 import { captureServerUserEvent } from '@/lib/posthog-server';
 
@@ -22,7 +23,10 @@ export async function POST(req:Request){
   const user=await createEmailUser({email:body.email,password:body!.password as string,name:cleanName(body?.name)});
   const token=await createSession(user.id);
   await setSessionCookie(token);
-  const verificationSent=await issueEmailAction(user,'verify').catch(()=>false);
+  const verificationSent=await issueEmailAction(user,'verify').catch(async error=>{
+    await alertAdmin('email_delivery','Signup verification email could not be delivered',{user_id:user.id,recipient:user.email},error);
+    return false;
+  });
   await captureServerUserEvent(user.id,'user_signed_up',{method:'password',verification_sent:verificationSent},{email:user.email,name:user.name,signup_method:user.signup_method});
   return NextResponse.json({user:toPublicUser(user),verificationSent},{status:201});
 }
