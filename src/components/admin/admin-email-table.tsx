@@ -1,5 +1,6 @@
 'use client';
 
+import { AdminEmailAddresses } from './admin-email-addresses';
 import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -32,9 +33,10 @@ function statusLabel(event: string): string {
   return STATUS_LABELS[event] ?? event;
 }
 
-export function AdminEmailTable({ emails }: { emails: SentEmailSummary[] }) {
+export function AdminEmailTable({ emails, userHrefs }: { emails: SentEmailSummary[]; userHrefs: Record<string, string> }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SentEmailDetail | null>(null);
+  const [detailUserHrefs, setDetailUserHrefs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleId = useId();
@@ -55,14 +57,15 @@ export function AdminEmailTable({ emails }: { emails: SentEmailSummary[] }) {
     let cancelled = false;
     fetch(`/api/admin/emails/${openId}`, { cache: 'no-store' })
       .then(async (res) => {
-        const body = (await res.json().catch(() => null)) as { email?: SentEmailDetail; error?: string } | null;
+        const body = (await res.json().catch(() => null)) as { email?: SentEmailDetail; userHrefs?: Record<string, string>; error?: string } | null;
         if (!res.ok) throw new Error(body?.error ?? 'Could not load that email.');
         if (!body?.email) throw new Error('Email response was empty.');
-        return body.email;
+        return { email: body.email, userHrefs: body.userHrefs ?? {} };
       })
-      .then((email) => {
+      .then(({ email, userHrefs }) => {
         if (cancelled) return;
         setDetail(email);
+        setDetailUserHrefs(userHrefs);
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -104,7 +107,7 @@ export function AdminEmailTable({ emails }: { emails: SentEmailSummary[] }) {
             {emails.map((email) => (
               <tr key={email.id}>
                 <td>{email.createdAt ? formatAdminDateTime(email.createdAt) : '—'}</td>
-                <td>{email.to.join(', ') || '—'}</td>
+                <td><AdminEmailAddresses addresses={email.to} userHrefs={userHrefs} /></td>
                 <td>
                   <button type="button" className="admin-email-open" onClick={() => open(email.id)}>
                     {email.subject}
@@ -137,11 +140,11 @@ export function AdminEmailTable({ emails }: { emails: SentEmailSummary[] }) {
                 <>
                   <dl className="admin-email-meta">
                     <div><dt>Sent</dt><dd>{detail.createdAt ? formatAdminDateTime(detail.createdAt) : '—'}</dd></div>
-                    <div><dt>From</dt><dd>{detail.from || '—'}</dd></div>
-                    <div><dt>To</dt><dd>{detail.to.join(', ') || '—'}</dd></div>
-                    {detail.cc.length > 0 && <div><dt>Cc</dt><dd>{detail.cc.join(', ')}</dd></div>}
-                    {detail.bcc.length > 0 && <div><dt>Bcc</dt><dd>{detail.bcc.join(', ')}</dd></div>}
-                    {detail.replyTo.length > 0 && <div><dt>Reply-to</dt><dd>{detail.replyTo.join(', ')}</dd></div>}
+                    <div><dt>From</dt><dd><AdminEmailAddresses addresses={[detail.from]} userHrefs={detailUserHrefs} /></dd></div>
+                    <div><dt>To</dt><dd><AdminEmailAddresses addresses={detail.to} userHrefs={detailUserHrefs} /></dd></div>
+                    {detail.cc.length > 0 && <div><dt>Cc</dt><dd><AdminEmailAddresses addresses={detail.cc} userHrefs={detailUserHrefs} /></dd></div>}
+                    {detail.bcc.length > 0 && <div><dt>Bcc</dt><dd><AdminEmailAddresses addresses={detail.bcc} userHrefs={detailUserHrefs} /></dd></div>}
+                    {detail.replyTo.length > 0 && <div><dt>Reply-to</dt><dd><AdminEmailAddresses addresses={detail.replyTo} userHrefs={detailUserHrefs} /></dd></div>}
                   </dl>
                   {detail.html ? (
                     <iframe className="admin-email-preview" title="Email preview" sandbox="" srcDoc={detail.html} />

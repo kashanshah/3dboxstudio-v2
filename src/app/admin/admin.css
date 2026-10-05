@@ -64,3 +64,5 @@
 .admin-root .admin-delete-confirm input { margin-top:4px; }
 .admin-root .admin-delete-footer { flex-shrink:0; padding:16px 20px; border-top:1px solid var(--admin-line); display:flex; flex-wrap:wrap; gap:12px; justify-content:flex-end; }
 .admin-root .admin-cleanup-notice { margin-bottom:20px; padding:16px; border:1px solid #edcf95; border-radius:10px; background:#352b17; }
+
+.admin-user-email{display:inline-flex;align-items:center;gap:8px}.admin-user-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--admin-muted);vertical-align:middle;cursor:help}.admin-user-icon.is-verified{color:#4ade80}.admin-user-icon.is-unverified{color:#9ca3af}.admin-user-icon:focus-visible{outline:2px solid var(--admin-accent);outline-offset:4px;border-radius:50%}.admin-email-meta a{color:var(--admin-accent);text-decoration:none}

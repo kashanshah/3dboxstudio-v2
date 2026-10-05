@@ -22,6 +22,7 @@ Module._resolveFilename = function (request, ...args) {
 require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, file);
 
 const { listUsers, listDesigns, listUserDesigns, listUserProjects, getDesignPreviewSource, listMedia, getUser, getDesign, findListedMedia, getAdminDesignView } = require('../src/server/admin/catalog.ts');
+const { emailUserHrefs } = require('../src/server/admin/email-users.ts');
 const { mediaFileId, storageKeyFromMediaFileId } = require('../src/lib/admin-media.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
 
@@ -70,6 +71,12 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(linked.designs[0].href, '/admin/designs/p1');
     assert.equal(front.designs[0].href, '/admin/designs/v1%3Ad1');
     assert.equal(anon.user, null);
+
+    assert.deepEqual(await emailUserHrefs(['Ada <ADA@EXAMPLE.COM>', ' no-name@example.com ', 'missing@example.com', 'ada@example.com']), {
+      'ada@example.com': '/admin/users/u1',
+      'no-name@example.com': '/admin/users/u2',
+    });
+    assert.deepEqual(await emailUserHrefs([]), {});
 
     const users = await listUsers();
     assert.equal(users.total, 2);
