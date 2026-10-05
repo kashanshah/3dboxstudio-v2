@@ -257,7 +257,7 @@ export async function readMediaAsset(userId:string,id:string){
   if(!row)return null;
   const object=await readStoredObject(row.storage_key);
   if(!object)return null;
-  return {row,bytes:object.bytes};
+  return {row,...object};
 }
 
 export async function headStoredObject(storageKey:string){
@@ -265,11 +265,25 @@ export async function headStoredObject(storageKey:string){
   return {byteSize:Number(object.ContentLength||0),contentType:object.ContentType||null};
 }
 
+// Streams the object instead of buffering it: large artwork stays out of
+// function memory, and buffered responses over Vercel's ~4.5 MB function
+// response limit failed to load.
 export async function readStoredObject(storageKey:string){
   const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
   if(!object.Body)return null;
-  const bytes=await object.Body.transformToByteArray();
-  return {bytes,contentType:object.ContentType||'application/octet-stream'};
+  const byteSize=typeof object.ContentLength==='number'?object.ContentLength:null;
+  return {body:object.Body.transformToWebStream() as ReadableStream<Uint8Array>,byteSize,contentType:object.ContentType||'application/octet-stream'};
+}
+
+export async function readStoredObjectBytes(storageKey:string){
+  const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
+  if(!object.Body)return null;
+  return {bytes:await object.Body.transformToByteArray(),contentType:object.ContentType||'application/octet-stream'};
+}
+
+/** Content-Length when S3 reported it; otherwise the response is chunked. */
+export function contentLengthHeader(byteSize:number|null):Record<string,string>{
+  return byteSize==null?{}:{'Content-Length':String(byteSize)};
 }
 
 function normalizePrefix(value:string){

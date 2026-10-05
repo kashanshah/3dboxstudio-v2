@@ -38,7 +38,11 @@ for (const route of routes) {
         'next/server': { NextResponse },
         '@/server/media-response-headers': helper,
         '@/server/design-shares': { getMigratedShareAsset: async () => meta, getShareMedia: async () => meta },
-        '@/server/media-assets': { readStoredObject: async () => ({ bytes, contentType: 'image/png' }), readMediaAsset: async () => ({ bytes, row: meta }) },
+        '@/server/media-assets': {
+          readStoredObject: async () => ({ body: new Blob([bytes]).stream(), byteSize: bytes.length, contentType: 'image/png' }),
+          readMediaAsset: async () => ({ body: new Blob([bytes]).stream(), byteSize: bytes.length, contentType: 'image/png', row: meta }),
+          contentLengthHeader: byteSize => byteSize == null ? {} : { 'Content-Length': String(byteSize) },
+        },
         '@/server/auth/session': { getCurrentUser: async () => ({ id: 'user' }) },
         '@/server/auth/action-request': {},
         '@/server/admin/auth': { requireAdminApi: async () => null },

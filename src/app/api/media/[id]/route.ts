@@ -2,7 +2,7 @@ import { inlineContentDisposition } from '@/server/media-response-headers';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
-import { deleteMediaAsset, readMediaAsset } from '@/server/media-assets';
+import { deleteMediaAsset, readMediaAsset, contentLengthHeader } from '@/server/media-assets';
 
 export const runtime='nodejs';
 
@@ -12,15 +12,11 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const media=await readMediaAsset(user.id,(await params).id);
     if(!media)return new NextResponse('Not found',{status:404});
-    const body=media.bytes.buffer.slice(
-      media.bytes.byteOffset,
-      media.bytes.byteOffset+media.bytes.byteLength,
-    ) as ArrayBuffer;
-    return new NextResponse(body,{
+    return new NextResponse(media.body,{
       status:200,
       headers:{
         'Content-Type':media.row.mime_type,
-        'Content-Length':String(media.bytes.byteLength),
+        ...contentLengthHeader(media.byteSize),
         'Cache-Control':'private, max-age=3600, must-revalidate',
         'Content-Disposition': inlineContentDisposition(media.row.name),
         'X-Content-Type-Options':'nosniff',
