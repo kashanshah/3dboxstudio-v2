@@ -129,9 +129,15 @@ test('share creation is counted only after save and API success, independently o
   }
 });
 
+function artworkUploadHelpers(){
+  const exports={};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/artwork-upload.ts'),'utf8')),{exports});
+  return exports;
+}
+
 test('artwork upload counts finalized files, but rejected uploads never produce success events',async()=>{
   for(const success of [true,false]) {
-    const context={mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:100,height:100}),
+    const context={...artworkUploadHelpers(),mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:100,height:100}),
       uploadMediaFile:async()=>{if(!success)throw Error('Upload failed');return {id:'asset',name:'private.png'};},window:{setTimeout:()=>{}}};
     for(const setter of ['setMediaLibraryOpen','setMessage','setMediaUploadProgress','setMediaAssets','setSelectedMediaAssetId','setMediaLibraryTab'])context[setter]=()=>{};
     const {handler,events}=callback('handleArtworkFiles',context);
@@ -139,6 +145,26 @@ test('artwork upload counts finalized files, but rejected uploads never produce 
     assert.equal(events.length,success?1:0);
     if(success){assert.equal(events[0][0],'artwork_uploaded');assert.equal(events[0][1].upload_surface,'media_library');assert.ok(!JSON.stringify(events).includes('private.png'));}
   }
+});
+
+test('a failed file mid-batch keeps earlier uploads visible, continues, and names the failures',async()=>{
+  let assets=[{id:'old',createdAt:1}];
+  const messages=[];
+  const outcomes={'a.png':{id:'a',createdAt:2},'b.png':Object.assign(Error('Artwork must be 100 MB or smaller.'),{code:'too_large'}),'c.svg':{id:'old',createdAt:1}};
+  const context={...artworkUploadHelpers(),mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:1,height:1}),
+    uploadMediaFile:async(file)=>{const outcome=outcomes[file.name];if(outcome instanceof Error)throw outcome;return outcome;},
+    setMediaAssets:update=>{assets=update(assets);},setMessage:message=>messages.push(message),window:{setTimeout:()=>{}}};
+  for(const setter of ['setMediaLibraryOpen','setMediaUploadProgress','setSelectedMediaAssetId','setMediaLibraryTab'])context[setter]=()=>{};
+  const {handler,events}=callback('handleArtworkFiles',context);
+  await handler([
+    {name:'a.png',type:'image/png',size:10},
+    {name:'b.png',type:'image/png',size:10},
+    {name:'c.svg',type:'',size:10},
+    {name:'d.heic',type:'image/heic',size:10},
+  ]);
+  assert.equal(events.length,2);
+  assert.equal(assets.map(asset=>asset.id).join(','),'a,old');
+  assert.equal(messages.at(-1),"2 of 4 images uploaded. Couldn't upload: d.heic (HEIC photo), b.png (too large). Convert HEIC photos to JPG or PNG first.");
 });
 
 test('saves count confirmed persistence and distinguish autosaves; rejected saves are not successes',async()=>{
