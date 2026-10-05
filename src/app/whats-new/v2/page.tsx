@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Box, CheckCircle2, LayoutGrid, Share2, Sparkles } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '@/components/site-shell';
-import { site } from '@/lib/site';
+import { site, defaultOgImage } from '@/lib/site';
 import styles from './page.module.css';
 import { ZoomGallery, ZoomImage } from './zoom-image';
 
@@ -13,8 +13,8 @@ export const metadata:Metadata={
   title,
   description,
   alternates:{canonical:'/whats-new/v2'},
-  openGraph:{title,description,type:'website',url:'/whats-new/v2'},
-  twitter:{card:'summary_large_image',title,description},
+  openGraph:{ images:[defaultOgImage],title,description,type:'website',url:'/whats-new/v2'},
+  twitter:{card:'summary_large_image',title,description,images:[defaultOgImage.url]},
   robots:{index:true,follow:true}
 };
 

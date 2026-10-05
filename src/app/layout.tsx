@@ -3,7 +3,7 @@ import { defaultLocale, localeDirection } from '@/lib/i18n/config';
 import { LocaleProvider } from '@/components/i18n/locale-provider';
 import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
-import { site } from '@/lib/site';
+import { defaultOgImage, site } from '@/lib/site';
 import '@fontsource/manrope/400.css';
 import '@fontsource/manrope/500.css';
 import '@fontsource/manrope/600.css';
@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   // Emitting it everywhere contradicted the noindex Next.js adds to 404s.
   ...(site.indexable ? {} : { robots: { index: false, follow: false } }),
   icons: { icon: '/favicon.svg' },
+  openGraph: { siteName: site.name, type: 'website', images: [defaultOgImage] },
+  twitter: { card: 'summary_large_image', images: [defaultOgImage.url] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,7 +1,7 @@
 import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { HOME_FAQS, OriginalHome } from '@/components/original-home';
-import { site } from '@/lib/site';
+import { site, defaultOgImage } from '@/lib/site';
 import './lovable-original.css';
 
 const title=translate("metadata.home.free_3d_box_designer_packaging_mockup_generator_3d_box_studio");
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   description,
   keywords:['3d box designer','3d box maker','free 3d box maker','online box designer','packaging mockup generator','free packaging mockup','3d packaging simulator','carton mockup','folding carton mockup','mailer box mockup','product box mockup','box design software','packaging box designer','pacdora alternative','3d box studio'],
   alternates:{canonical:'/',languages:{en:'/',fr:'/fr',es:'/es',de:'/de','x-default':'/'}},
-  openGraph:{title,description,type:'website',url:'/'},
-  twitter:{card:'summary_large_image',title,description}
+  openGraph:{ images:[defaultOgImage],title,description,type:'website',url:'/'},
+  twitter:{card:'summary_large_image',title,description,images:[defaultOgImage.url]}
 };
 
 export default function Home() {

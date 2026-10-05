@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
-import { site } from "@/lib/site";
+import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "Pacdora Alternative for Free 3D Box Mockups | 3D Box Studio" },
   description: "Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG export, saving and sharing.",
   alternates: { canonical: "/pacdora-alternative" },
-  openGraph: { title: "Pacdora Alternative for Free 3D Box Mockups | 3D Box Studio", description: "Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG export, saving and sharing.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Pacdora Alternative for Free 3D Box Mockups | 3D Box Studio", description: "Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG export, saving and sharing.", type: "website" }
 };
 
 const sections = [

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
-import { site } from "@/lib/site";
+import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "Free 3D Box Mockup Generator Online | 3D Box Studio" },
   description: "Create a free 3D box mockup online from real dimensions and your own artwork. Rotate, open, review, save, share, and export PNG packaging previews in your browser.",
   alternates: { canonical: "/3d-box-mockup-generator" },
-  openGraph: { title: "Free 3D Box Mockup Generator Online | 3D Box Studio", description: "Create a free 3D box mockup online from real dimensions and your own artwork. Rotate, open, review, save, share, and export PNG packaging previews in your browser.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Free 3D Box Mockup Generator Online | 3D Box Studio", description: "Create a free 3D box mockup online from real dimensions and your own artwork. Rotate, open, review, save, share, and export PNG packaging previews in your browser.", type: "website" }
 };
 
 const sections = [
