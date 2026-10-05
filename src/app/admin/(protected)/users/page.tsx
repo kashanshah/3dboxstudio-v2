@@ -1,3 +1,4 @@
+import { AdminSignupMethod, AdminVerificationStatus } from '@/components/admin/admin-user-status';
 import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -53,8 +54,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
               {result.items.length ? result.items.map((user) => (
                 <tr key={user.id}>
                   <td><Link href={adminUserHref(user.id)}>{user.name}</Link></td>
-                  <td>{user.email}</td>
-                  <td>{user.verified ? 'Yes' : 'No'}</td>
+                  <td><span className="admin-user-email"><AdminSignupMethod method={user.signupMethod} />{user.email}</span></td>
+                  <td><AdminVerificationStatus verified={user.verified} /></td>
                   <td>
                     <AdminUserProjectsButton userId={user.id} userEmail={user.email} userName={user.name} projectCount={user.projectCount} />
                   </td>

@@ -1,3 +1,4 @@
+import { emailUserHrefs } from '@/server/admin/email-users';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminEmailTable } from '@/components/admin/admin-email-table';
@@ -22,6 +23,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
   const before = after ? undefined : sentEmailCursor(params.before);
   const result = await listSentEmails({ after, before });
   const emails = result.ok ? result.data.emails : [];
+  const userHrefs = await emailUserHrefs(emails.flatMap((email) => email.to));
   const firstId = emails[0]?.id;
   const lastId = emails[emails.length - 1]?.id;
   const showOlder = Boolean(before) || (result.ok && result.data.hasMore);
@@ -38,7 +40,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
             <h2>Sent mail</h2>
             <p>{emails.length} on this page</p>
           </div>
-          {emails.length ? <AdminEmailTable emails={emails} /> : (
+          {emails.length ? <AdminEmailTable emails={emails} userHrefs={userHrefs} /> : (
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead><tr><th>Sent</th><th>To</th><th>Subject</th><th>Status</th></tr></thead>
