@@ -1,13 +1,41 @@
 import {
   PDFDocument, PDFName, PDFNumber, PDFString, PDFDict, PDFOperator, PDFOperatorNames,
-  StandardFonts, rgb, type PDFPage, type PDFRef,
+  PDFStream, StandardFonts, rgb, type PDFPage, type PDFRef,
 } from 'pdf-lib';
 import type { DielineExportGeometry, LineMm } from './export-geometry';
-import { validatePdfOptions, validatePdfDimensions, type DielinePdfOptions } from './pdf-options';
+import { validatePdfOptions, validatePdfDimensions, PdfExportError, type DielinePdfOptions } from './pdf-options';
 
 export const MM_TO_PT = 72 / 25.4;
 const pt = (mm: number) => mm * MM_TO_PT;
-export type PdfPanelImage = { bytes: Uint8Array; x: number; y: number; width: number; height: number; dpi: number };
+export type PdfPanelImage = {
+  /** Encoded panel raster: PNG (with alpha) or JPEG (opaque; see `alpha`). */
+  bytes: Uint8Array;
+  format?: 'png' | 'jpeg';
+  /** JPEG only: one 8-bit alpha sample per pixel, row-major; omitted when fully opaque. */
+  alpha?: Uint8Array | null;
+  pixelWidth?: number;
+  pixelHeight?: number;
+  x: number; y: number; width: number; height: number; dpi: number;
+};
+
+/** Lets the browser paint and collect garbage between panels. */
+export const yieldToEventLoop = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
+async function embedPanelImage(doc: PDFDocument, image: PdfPanelImage) {
+  if (image.format !== 'jpeg') return doc.embedPng(image.bytes);
+  const embedded = await doc.embedJpg(image.bytes);
+  if (image.alpha) {
+    const { pixelWidth: w, pixelHeight: h } = image;
+    if (!w || !h || image.alpha.length !== w * h) throw new PdfExportError('Could not encode PDF artwork transparency. Export without artwork.');
+    const smask = doc.context.register(doc.context.flateStream(image.alpha, {
+      Type: 'XObject', Subtype: 'Image', Width: w, Height: h, ColorSpace: 'DeviceGray', BitsPerComponent: 8,
+    }));
+    // Write the image XObject now so the soft mask can be attached to it.
+    await embedded.embed();
+    doc.context.lookup(embedded.ref, PDFStream).dict.set(PDFName.of('SMask'), smask);
+  } else await embedded.embed();
+  return embedded;
+}
 export type DielinePdfInput = {
   geometry: DielineExportGeometry;
   options: DielinePdfOptions;
@@ -69,7 +97,7 @@ export async function createDielinePdf(input: DielinePdfInput) {
   const height = geometry.bounds.height + 2 * margin + footer;
   // Standard PDF page dimensions above 200 inches need UserUnit support in every tool.
   if (!Number.isFinite(width + height) || width <= 0 || height <= 0 || Math.max(width, height) > 5080) {
-    throw new Error('This dieline exceeds the supported PDF page size of 5,080 mm. Reduce the box dimensions.');
+    throw new PdfExportError('This dieline exceeds the supported PDF page size of 5,080 mm. Reduce the box dimensions.');
   }
   const doc = await PDFDocument.create();
   doc.setTitle(input.title);
@@ -87,9 +115,10 @@ export async function createDielinePdf(input: DielinePdfInput) {
     const begin = addLayer(doc, page, 'Artwork', layers);
     begin();
     for (let i = 0; i < geometry.panels.length; i++) {
+      if (i > 0) await yieldToEventLoop();
       const image = await input.renderPanel(i);
       if (!image) continue;
-      const embedded = await doc.embedPng(image.bytes);
+      const embedded = await embedPanelImage(doc, image);
       minDpi = Math.min(minDpi, image.dpi);
       page.drawImage(embedded, {
         x: pt(origin.x + image.x), y: pt(origin.top - image.y - image.height),
