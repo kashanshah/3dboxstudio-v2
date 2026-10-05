@@ -1,6 +1,7 @@
 import { changelogReleases } from '@/content/changelog';
 import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
+import { homeLanguageAlternates, localizedHomeLocales } from '@/content/localized-home';
 
 type SitemapEntry = {
   path: string;
@@ -24,20 +25,11 @@ const xmlEscape = (value: string) =>
 
 const absoluteUrl = (path: string) => new URL(path, site.url).toString();
 
-const homeAlternates = {
-  en: '/',
-  fr: '/fr',
-  es: '/es',
-  de: '/de',
-  'x-default': '/',
-};
 
 function getEntries(): SitemapEntry[] {
   const staticEntries: SitemapEntry[] = [
-    { path: '/', changeFrequency: 'weekly', priority: 1, alternates: homeAlternates },
-    { path: '/fr', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
-    { path: '/es', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
-    { path: '/de', changeFrequency: 'weekly', priority: 0.8, alternates: homeAlternates },
+    { path: '/', changeFrequency: 'weekly', priority: 1, alternates: homeLanguageAlternates },
+    ...localizedHomeLocales.map((locale): SitemapEntry => ({ path: `/${locale}`, changeFrequency: 'weekly', priority: 0.8, alternates: homeLanguageAlternates })),
     { path: '/studio', changeFrequency: 'weekly', priority: 0.95 },
     { path: '/features', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/changelog', lastModified: new Date(changelogReleases[0].date), changeFrequency: 'weekly', priority: 0.7 },

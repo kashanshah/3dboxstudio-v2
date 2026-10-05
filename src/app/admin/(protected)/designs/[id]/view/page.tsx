@@ -15,5 +15,5 @@ export default async function AdminDesignViewPage({ params }: Props) {
   const { id: rawId } = await params;
   const design = await getAdminDesignView(decodeRouteParam(rawId));
   if (!design) notFound();
-  return <SharedDesignViewer name={design.name} state={design.state} legacy={design.legacy} />;
+  return <SharedDesignViewer name={design.name} state={design.state} legacy={design.legacy} promo={false} />;
 }

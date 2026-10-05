@@ -1,19 +1,32 @@
 import type { Metadata } from 'next';
-import { notFoundMetadata } from '@/lib/not-found-metadata';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
-import { SiteHeader, SiteFooter } from '@/components/site-shell';
-import { isMigratedLocale, localeMeta, migratedLocales } from '@/lib/legacy-locales';
+import { notFoundMetadata } from '@/lib/not-found-metadata';
+import { LocalizedHome } from '@/components/localized-home';
+import { homeLanguageAlternates, isLocalizedHomeLocale, localizedHome, localizedHomeLocales } from '@/content/localized-home';
+import { site, defaultOgImage } from '@/lib/site';
+import '../lovable-original.css';
 
 type Props={params:Promise<{locale:string}>};
-export function generateStaticParams(){return migratedLocales.map(locale=>({locale}));}
+export function generateStaticParams(){return localizedHomeLocales.map(locale=>({locale}));}
 export async function generateMetadata({params}:Props):Promise<Metadata>{
- const {locale}=await params; if(!isMigratedLocale(locale)) return notFoundMetadata;
- const meta=localeMeta[locale];
- return {title:{absolute:meta.homeTitle},description:meta.homeDescription,alternates:{canonical:`/${locale}`,languages:{en:'/',fr:'/fr',es:'/es',de:'/de','x-default':'/'}},robots:locale==='zh'?{index:false,follow:true}:undefined};
+ const {locale}=await params; if(!isLocalizedHomeLocale(locale)) return notFoundMetadata;
+ const c=localizedHome[locale];
+ return {
+  title:{absolute:c.title},
+  description:c.description,
+  alternates:{canonical:`/${locale}`,languages:homeLanguageAlternates},
+  openGraph:{images:[defaultOgImage],title:c.title,description:c.description,type:'website',url:`/${locale}`,locale:c.ogLocale},
+  twitter:{card:'summary_large_image',title:c.title,description:c.description,images:[defaultOgImage.url]},
+ };
 }
-export default async function LocalizedHome({params}:Props){
- const {locale}=await params; if(!isMigratedLocale(locale)) notFound(); const meta=localeMeta[locale];
- return <><SiteHeader/><main id="main" className="section seo-static-page localized-landing"><span className="eyebrow">3D BOX STUDIO</span><h1>{meta.homeTitle.replace(' | 3D Box Studio','')}</h1><p className="page-intro">{meta.homeDescription}</p><div className="localized-actions"><Link className="button" href={`/${locale}/studio`}>Open Studio <ArrowUpRight size={16}/></Link><Link className="text-link" href="/blog">Packaging guides</Link></div></main><SiteFooter/></>;
+export default async function LocalizedHomePage({params}:Props){
+ const {locale}=await params; if(!isLocalizedHomeLocale(locale)) notFound();
+ const c=localizedHome[locale];
+ const origin=site.url.toString().replace(/\/$/,'');
+ const schema={'@context':'https://schema.org','@graph':[
+  {'@type':'WebPage',name:c.title,description:c.description,url:`${origin}/${locale}`,inLanguage:c.lang},
+  {'@type':'WebApplication',name:'3D Box Studio',applicationCategory:'DesignApplication',operatingSystem:'Any',offers:{'@type':'Offer',price:'0',priceCurrency:'USD'},description:c.description,url:`${origin}/studio`,inLanguage:'en'},
+  {'@type':'FAQPage',inLanguage:c.lang,mainEntity:c.faq.items.map(item=>({'@type':'Question',name:item.question,acceptedAnswer:{'@type':'Answer',text:item.answer}}))},
+ ]};
+ return <><LocalizedHome locale={locale}/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

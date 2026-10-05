@@ -115,6 +115,17 @@ export default async function BlogPostPage({ params }: Props) {
       </div>
     </article>
 
+    <nav className="related-tools" aria-labelledby="related-tools-title">
+      <p className="content-eyebrow">Try it in the Studio</p>
+      <h2 id="related-tools-title">Free 3D box tools</h2>
+      <ul>
+        <li><Link href="/3d-box-mockup-generator"><strong>3D box mockup generator</strong><span>Turn your artwork into a 3D box mockup from real dimensions.</span></Link></li>
+        <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Generate a flat dieline with cut, crease and bleed guides.</span></Link></li>
+        <li><Link href="/box-templates"><strong>Box templates</strong><span>Reverse tuck-end cartons, split-top boxes, base boxes and pizza boxes.</span></Link></li>
+        <li><Link href="/pacdora-alternative"><strong>Pacdora alternative</strong><span>A free browser workflow for dieline-to-3D packaging previews.</span></Link></li>
+      </ul>
+    </nav>
+
     {related.length ? <section className="related-section"><p className="content-eyebrow">Keep reading</p><h2>Related packaging guides</h2><div className="content-article-grid">{related.slice(0,3).map((item) => <article className="content-article-card" key={item.slug}><Link href={`/blog/${item.slug}`}><div className="content-article-card-media"><img loading="lazy" src={getBlogPostImagePath(item.slug)} alt="" width="1200" height="800"/></div><div className="content-article-meta"><span>{getBlogCategoryLabel(getBlogCategory(item.slug))}</span><span>{item.readMinutes} min read</span></div><h3>{item.title}</h3><p>{item.description}</p></Link></article>)}</div></section> : null}
 
     <StudioCta title="Put the next packaging concept into motion." />

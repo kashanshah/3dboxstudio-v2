@@ -1047,7 +1047,7 @@ body{font-size:var(--type-body)}
 }
 .marketing-footer-links{
   display:grid;
-  grid-template-columns:repeat(2,minmax(130px,1fr));
+  grid-template-columns:repeat(3,minmax(130px,1fr));
   gap:48px;
 }
 .marketing-footer-links>div{display:flex;flex-direction:column;gap:10px}
@@ -5327,3 +5327,27 @@ body{font-size:var(--type-body)}
   .pro-export-tabs button{min-height:44px;font-size:12px}
   .pro-export-tab-panel{min-height:0}
 }
+
+/* Shared design promotion: shared links are an acquisition channel. */
+.shared-design-header>a.shared-design-header-cta{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border-radius:10px;background:var(--accent);color:#fff;font-size:13px;white-space:nowrap}
+.shared-design-header>a.shared-design-header-cta:hover{background:var(--accent-hover)}
+.shared-design-controls>p{margin:0}
+.shared-design-promo{margin-top:auto;padding:16px;border:1px solid var(--accent-line);border-radius:14px;background:var(--accent-soft);display:flex;flex-direction:column;gap:8px}
+.shared-design-promo>span{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.shared-design-promo h2{margin:0;font-size:18px;line-height:1.25}
+.shared-design-promo p{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.shared-design-promo a{margin-top:4px;min-height:42px;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px}
+.shared-design-promo a:hover{background:var(--accent-hover)}
+.shared-design-promo small{font-size:11px;color:var(--muted);text-align:center}
+@media(max-width:560px){.shared-design-header>a.shared-design-header-cta{font-size:12px;padding:0 10px}}
+
+/* Language switcher on the translated home pages (a <details>, so it works without JS). */
+.language-switcher{position:relative}
+.language-switcher summary{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--line,#e4e7ec);border-radius:999px;cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--ink,#101828);background:var(--surface,#fff)}
+.language-switcher summary::-webkit-details-marker{display:none}
+.language-switcher summary svg{width:16px;height:16px}
+.language-switcher ul{position:absolute;right:0;top:calc(100% + 6px);z-index:60;min-width:190px;margin:0;padding:6px;list-style:none;background:var(--surface,#fff);border:1px solid var(--line,#e4e7ec);border-radius:14px;box-shadow:0 18px 40px rgba(15,23,42,.14)}
+.language-switcher a{display:block;padding:8px 10px;border-radius:9px;font-size:14px;color:var(--ink,#101828);text-decoration:none}
+.language-switcher a:hover{background:#f2f4f7}
+.language-switcher a[aria-current="page"]{font-weight:700;color:var(--blue,#0f67e8)}
+@media (max-width:560px){.language-switcher summary span{display:none}}

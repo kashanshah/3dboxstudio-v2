@@ -11,6 +11,7 @@ import { Button } from "./original-button";
 import { SiteHeader } from "./site-shell";
 import { FaqSection } from "./faq-section";
 import { CookieSettingsButton } from "./analytics/ConsentBanner";
+import { homeLanguages } from "./localized-home";
 
 const capabilities = [
   [Ruler, "Set real dimensions", "Work with finished width, height, depth, and units instead of being locked to one static mockup."],
@@ -102,9 +103,9 @@ export function OriginalHome() {
 
     <section className="home-hero">
       <div className="hero-copy animate-fade-in">
-        <div className="hero-badge"><Sparkles /> Free online packaging design workspace</div>
+        <div className="hero-badge"><Sparkles /> Free 3D box generator &amp; mockup maker</div>
         <h1>Design <br/>the box.<br/><span>See it in 3D.</span></h1>
-        <p>3D Box Studio is a free browser-based 3D box designer and packaging mockup generator. Choose a structure, set finished dimensions, design on the dieline, preview the package in 3D, and export a polished PNG. All you need is a free account—no software to install.</p>
+        <p>3D Box Studio is a free online 3D box maker and simulator. Choose a box style, enter exact dimensions, design on the dieline, fold it in 3D, and export a PNG mockup or a print-ready PDF dieline. All you need is a free account—no software to install.</p>
         <div className="hero-actions"><Button asChild size="lg"><Link href="/studio">Start designing <ArrowRight /></Link></Button><Button variant="outline" size="lg" asChild><a href="#workflow"><CirclePlay /> See how it works</a></Button></div>
         <div className="hero-proof"><span>No install</span><i/><span>2D + 3D in one workflow</span><i/><span>Free account</span></div>
       </div>
@@ -199,6 +200,6 @@ export function OriginalHome() {
     />
 
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Create a free account, choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
-    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><CookieSettingsButton /></nav><span>© 2026 3D Box Studio</span></footer>
+    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/3d-box-mockup-generator">3D box mockup generator</Link><Link href="/box-dieline-generator">Box dieline generator</Link><Link href="/pacdora-alternative">Pacdora alternative</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><CookieSettingsButton /></nav><nav className="footer-languages" aria-label="Languages">{homeLanguages.filter(language => language.locale !== "en").map(language => <a key={language.locale} href={language.href} hrefLang={language.lang} lang={language.lang}>{language.name}</a>)}</nav><span>© 2026 3D Box Studio</span></footer>
   </main></>
 }
