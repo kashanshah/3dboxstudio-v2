@@ -323,8 +323,9 @@ test('PostHog init sends one pageview per route, honours consent, and drops ever
       throw new Error('unexpected import '+name);
     },
   });
+  assert.equal(initOptions,undefined,'PostHog does not start, or contact PostHog, before consent');
+  consentApi.setConsentState('granted');
   assert.equal(initOptions.capture_pageview,false);
-  assert.equal(initOptions.opt_out_capturing_by_default,true,'no capture before consent');
   const event=url=>({event:'$autocapture',properties:{$current_url:url}});
   assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin/users')),null);
   assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin')),null);
@@ -334,6 +335,6 @@ test('PostHog init sends one pageview per route, honours consent, and drops ever
   window.location={pathname:'/admin/settings'};
   assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/studio')),null,'events sent while on an admin page are dropped');
   window.location={pathname:'/'};
-  consentApi.setConsentState('granted');consentApi.setConsentState('denied');
-  assert.deepEqual(listeners,['in','out']);
+  consentApi.setConsentState('denied');consentApi.setConsentState('granted');
+  assert.deepEqual(listeners,['out','in'],'later changes opt out and back in');
 });

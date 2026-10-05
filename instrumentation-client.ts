@@ -27,8 +27,12 @@ function dropBlockedPaths(event:CaptureResult|null):CaptureResult|null{
   return paths.some(path=>path!==null&&isAnalyticsBlockedPath(path))?null:event;
 }
 
-if(token&&host){
-  const consented=getConsentState()==='granted';
+// PostHog is not started until the visitor has consented: even an opted-out
+// SDK fetches remote config and feature flags with an anonymous id.
+let started=false;
+function startPostHog(){
+  if(started||!token||!host)return;
+  started=true;
   posthog.init(token,{
     api_host:host,
     defaults:'2026-05-30',
@@ -39,13 +43,16 @@ if(token&&host){
     capture_exceptions:true,
     session_recording:{blockSelector:REPLAY_BLOCK_SELECTOR},
     before_send:dropBlockedPaths,
-    // Nothing is captured, recorded or stored until the visitor has consented.
-    opt_out_capturing_by_default:!consented,
-    opt_out_persistence_by_default:!consented,
     debug:process.env.NODE_ENV==='development',
   });
-  onConsentChange(state=>{
-    if(state==='granted')posthog.opt_in_capturing({captureEventName:false});
-    else if(state==='denied')posthog.opt_out_capturing();
-  });
 }
+
+if(getConsentState()==='granted')startPostHog();
+onConsentChange(state=>{
+  if(state==='granted'){
+    if(started)posthog.opt_in_capturing({captureEventName:false});
+    else startPostHog();
+  }else if(state==='denied'&&started){
+    posthog.opt_out_capturing();
+  }
+});
