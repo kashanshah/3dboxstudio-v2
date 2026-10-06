@@ -23,6 +23,7 @@ export function MarketingProductPage({
   scrollHero = false,
   showStudioProof = true,
   heroSecondary,
+  afterHero,
 }: {
   eyebrow: string;
   title: string;
@@ -37,6 +38,8 @@ export function MarketingProductPage({
   scrollHero?: boolean;
   showStudioProof?: boolean;
   heroSecondary?: { eyebrow: string; title: string; body: string };
+  /** Rendered between the hero and the Studio tour, e.g. links to template pages. */
+  afterHero?: ReactNode;
 }) {
   return <>
     <SiteHeader />
@@ -63,6 +66,8 @@ export function MarketingProductPage({
       </section>
 
       </div>
+
+      {afterHero}
 
       {showStudioProof ? <section className="mpp-studio-proof" tabIndex={scrollHero ? -1 : undefined}>
         <div>

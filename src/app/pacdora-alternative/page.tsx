@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
+import { ComparisonLinks } from "@/components/compare-table";
 import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -60,5 +61,5 @@ export default function Page(){
     {"@type":"WebPage",name:"A focused Pacdora alternative for browser-based 3D box design.",description:"Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG export, saving and sharing.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Pacdora alternative" title="A focused Pacdora alternative for browser-based 3D box design." intro="If your main job is to choose a box structure, set dimensions, place artwork, preview it in 3D, and share or export the result, 3D Box Studio offers a simpler focused workflow. It is not intended to copy every feature of Pacdora." secondaryHref="/blog/free-pacdora-alternative-3d-box-mockups" secondaryLabel="Read the detailed comparison" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Pacdora alternative" title="A focused Pacdora alternative for browser-based 3D box design." intro="If your main job is to choose a box structure, set dimensions, place artwork, preview it in 3D, and share or export the result, 3D Box Studio offers a simpler focused workflow. It is not intended to copy every feature of Pacdora." secondaryHref="/blog/free-pacdora-alternative-3d-box-mockups" secondaryLabel="Read the detailed comparison" sections={sections} faqs={faqs} afterHero={<div style={{marginTop:48}}><ComparisonLinks current="/pacdora-alternative" /></div>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

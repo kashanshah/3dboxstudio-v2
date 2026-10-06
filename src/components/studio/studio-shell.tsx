@@ -174,7 +174,7 @@ const studioAreas: { id: StudioArea; label: MessageKey; helper: MessageKey; icon
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
-export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;newDesignProjects?:NewDesignProject[]} = {}) {
+export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialDimensions:requestedDimensions,initialUnit,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;newDesignProjects?:NewDesignProject[]} = {}) {
   const t = useTranslations();
 
   const initial = initialProject?.state;
@@ -254,10 +254,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(initial?.legacySourceId ? 57.34 : 82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
-  const initialDimensions=initial?.dimensions ?? initialTemplate.defaultDimensions;
+  const initialDimensions=initial?.dimensions ?? (requestedTemplate ? requestedDimensions : undefined) ?? initialTemplate.defaultDimensions;
   if(!initialDimensions)throw new Error(`Ready template ${initialTemplate.id} is missing default dimensions.`);
   const [dimensions, setDimensions] = useState<CartonDimensions>(initialRuntime.sanitizeParameters(initialDimensions));
-  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? 'mm');
+  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? (requestedTemplate ? initialUnit : undefined) ?? 'mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
   const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.outsideArtworkLayers ?? []);
   const [insideDielineLayers, setInsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.insideArtworkLayers ?? []);
