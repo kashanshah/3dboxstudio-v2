@@ -4,6 +4,7 @@ export type AdminMediaItem = {
   id: string;
   name: string;
   mimeType: string;
+  byteSize: number | null;
   createdAt: string | null;
   previewUrl: string;
   user: AdminMediaUser | null;
@@ -11,6 +12,16 @@ export type AdminMediaItem = {
 };
 
 const KEY_PATTERN = /^(?:shares|v2)\/[^\u0000]{1,900}$/;
+
+export function formatMediaSize(bytes: number | null): string {
+  if (bytes == null || !Number.isFinite(bytes) || bytes < 0) return 'Size unavailable';
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+  return `${Number(value.toFixed(2))} ${units[unit]}`;
+}
 
 export function isCatalogMediaKey(key: string): boolean {
   return KEY_PATTERN.test(key) && !key.includes('..') && !key.includes('\\');

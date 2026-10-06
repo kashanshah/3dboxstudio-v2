@@ -194,6 +194,13 @@ export async function ensureV2Schema(): Promise<void> {
     await db`CREATE INDEX IF NOT EXISTS idx_media_assets_user_created ON media_assets(user_id,created_at DESC)`;
     await db`CREATE INDEX IF NOT EXISTS idx_media_assets_user_fingerprint ON media_assets(user_id,fingerprint)`;
     await db`
+      CREATE TABLE IF NOT EXISTS admin_media_sizes (
+        storage_key TEXT PRIMARY KEY,
+        byte_size BIGINT,
+        checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await db`
       CREATE TABLE IF NOT EXISTS legacy_migrations (
         source TEXT NOT NULL,
         entity_type TEXT NOT NULL,
