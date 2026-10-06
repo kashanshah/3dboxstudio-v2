@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { MarketingProductPage } from "@/components/marketing-product-page";
+import { TemplatePageLinks } from "@/components/template-page-links";
 import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -29,8 +31,8 @@ const sections = [
 ];
 const faqs = [
   {
-    "question": "How many box templates are available?",
-    "answer": "The template library is actively expanding. The Studio intentionally avoids publishing a fabricated template count; open the current template browser to see what is available now."
+    "question": "Which box templates are available?",
+    "answer": "Reverse tuck end carton, pizza box, split top box and a general base box are ready now. Straight tuck end, mailer, sleeve, rigid lid and base, and drawer boxes are planned."
   },
   {
     "question": "Can I resize a template?",
@@ -61,10 +63,10 @@ export default function Page(){
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
   const heroAside=<div className="template-hero-visual" aria-label="Illustration of several packaging structure templates">
-    <div className="template-hero-card"><strong>Folding carton</strong><span>Panel-specific geometry</span><i/></div>
-    <div className="template-hero-card"><strong>Mailer</strong><span>Structure-specific folds</span><i/></div>
-    <div className="template-hero-card"><strong>Lid + box</strong><span>Independent opening behavior</span><i/></div>
-    <div className="template-hero-note">One template = one structural system</div>
+    <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>
+    <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Tray with hinged lid</span><i/></Link>
+    <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Two-flap shipper</span><i/></Link>
+    <div className="template-hero-note">Straight tuck, mailer and sleeve boxes are planned</div>
   </div>;
-  return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} afterHero={<TemplatePageLinks />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

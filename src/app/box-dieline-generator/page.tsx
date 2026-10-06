@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
+import { TemplatePageLinks } from "@/components/template-page-links";
 import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -76,5 +77,5 @@ export default function Page(){
     {"@type":"WebPage",name:"Box dieline generator—design the flat layout, preview in 3D.",description:"Generate a box dieline from supported packaging structures and dimensions, design artwork on the flat layout, and preview the result in 3D. Validate final production dielines before manufacturing.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Box dieline generator" title="Box dieline generator—design the flat layout, preview in 3D." intro="For supported packaging structures, 3D Box Studio can derive the flat layout from the template and finished dimensions so you can plan artwork, understand panels, and visualize the assembled package." secondaryHref="/blog/how-to-generate-box-dieline-online" secondaryLabel="Read the dieline guide" sections={sections} faqs={faqs} note="Use generated dielines for design, panel planning, and visualization. Before production, validate final geometry, bleed, folds, tolerances, material behavior, and tooling requirements with the printer or structural packaging workflow responsible for manufacturing." /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Box dieline generator" title="Box dieline generator—design the flat layout, preview in 3D." intro="For supported packaging structures, 3D Box Studio can derive the flat layout from the template and finished dimensions so you can plan artwork, understand panels, and visualize the assembled package." secondaryHref="/blog/how-to-generate-box-dieline-online" secondaryLabel="Read the dieline guide" sections={sections} faqs={faqs} note="Use generated dielines for design, panel planning, and visualization. Before production, validate final geometry, bleed, folds, tolerances, material behavior, and tooling requirements with the printer or structural packaging workflow responsible for manufacturing." afterHero={<TemplatePageLinks title="Generate a dieline for your box" />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

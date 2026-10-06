@@ -1,6 +1,7 @@
 import { changelogReleases } from '@/content/changelog';
 import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
+import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
 import { homeLanguageAlternates, localizedHomeLocales } from '@/content/localized-home';
 
 type SitemapEntry = {
@@ -38,7 +39,11 @@ function getEntries(): SitemapEntry[] {
     { path: '/3d-box-mockup-generator', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/packaging-design-online', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/pacdora-alternative', changeFrequency: 'monthly', priority: 0.8 },
+    { path: '/adobe-dimension-alternative', lastModified: new Date('2026-10-06'), changeFrequency: 'monthly', priority: 0.75 },
+    { path: '/boxshot-alternative', lastModified: new Date('2026-10-06'), changeFrequency: 'monthly', priority: 0.75 },
+    { path: '/placeit-box-mockup-alternative', lastModified: new Date('2026-10-06'), changeFrequency: 'monthly', priority: 0.75 },
     { path: '/box-templates', changeFrequency: 'monthly', priority: 0.8 },
+    ...BOX_TEMPLATE_PAGES.map((page): SitemapEntry => ({ path: `/box-templates/${page.slug}`, lastModified: new Date(page.updated), changeFrequency: 'monthly', priority: 0.85 })),
     { path: '/faq', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/contact', changeFrequency: 'monthly', priority: 0.5 },
     { path: '/blog', changeFrequency: 'weekly', priority: 0.8 },

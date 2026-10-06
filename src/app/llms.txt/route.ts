@@ -1,5 +1,6 @@
 import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
+import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
 
 export const dynamic = 'force-static';
 
@@ -14,6 +15,8 @@ export function GET() {
   const guides = [...BLOG_POSTS]
     .sort((a, b) => (b.updated ?? b.published).localeCompare(a.updated ?? a.published))
     .map(post => `- [${post.title}](${url(`/blog/${post.slug}`)}): ${post.description}`);
+
+  const templates = BOX_TEMPLATE_PAGES.map(page => `- [${page.name} template](${url(`/box-templates/${page.slug}`)}): ${page.description}`);
 
   const body = `# 3D Box Studio
 
@@ -30,6 +33,7 @@ export function GET() {
 - Commercial use: exports of your own designs can be used for client work, marketing and e-commerce, provided you have rights to the uploaded artwork.
 - Devices: works in modern desktop browsers; phones and tablets can view and export, but detailed editing is most comfortable on a larger screen.
 - Compared with Pacdora: a focused, free browser workflow for supported box structures, dielines and 3D review. Pacdora has a larger template library and ecosystem; compare the specific feature you need.
+- Compared with Adobe Dimension, Boxshot and Placeit: no install or subscription, boxes built from exact dimensions, and a dieline in the same project. Those tools are stronger for photoreal scenes (Dimension, Boxshot) or lifestyle photo templates (Placeit).
 
 ## Main pages
 
@@ -39,8 +43,12 @@ export function GET() {
 - [3D box mockup generator](${url('/3d-box-mockup-generator')}): Create 3D box mockups from real dimensions and artwork.
 - [Box dieline generator](${url('/box-dieline-generator')}): Generate a flat dieline layout with cut, crease and bleed guides.
 - [Box templates](${url('/box-templates')}): Supported packaging structures.
+${templates.join('\n')}
 - [Packaging design online](${url('/packaging-design-online')}): Browser workflow from dieline artwork to 3D preview.
 - [Pacdora alternative](${url('/pacdora-alternative')}): How 3D Box Studio compares with Pacdora.
+- [Adobe Dimension alternative](${url('/adobe-dimension-alternative')}): For Dimension users now that it is in maintenance mode.
+- [Boxshot alternative](${url('/boxshot-alternative')}): Browser-based box mockups and dielines compared with Boxshot.
+- [Placeit box mockup alternative](${url('/placeit-box-mockup-alternative')}): Real-dimension 3D boxes compared with photo templates.
 - [FAQ](${url('/faq')}): Answers about pricing, templates, exports, accounts and data.
 - [What's new](${url('/whats-new/v2')}): The V2 release.
 
