@@ -165,3 +165,5 @@ removes that job's scheduling blocker. Stopping cannot race a leased batch; an
 interrupted request may need up to five minutes for its lease to expire. Refresh
 the segment in admin after Resend finishes the CSV import, then review recipients
 before scheduling. Exporting itself does not add contacts or change subscriptions.
+
+To rename a segment, choose it under **Campaigns → Segments**, edit **Segment name**, and click **Rename segment**. The name updates in Resend and refreshed admin dropdowns. Blank names, names over 100 characters, and names used by another segment are rejected.

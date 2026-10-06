@@ -3,7 +3,7 @@ import { requireAdminApi } from '@/server/admin/auth';
 import { requestOrigin } from '@/server/request-origin';
 import { enforceRateLimit } from '@/server/rate-limit';
 import { CAMPAIGN_EVENTS, CampaignError, requireId } from '@/lib/email-campaigns';
-import { campaignActivity, cancelCampaign, createCampaign, createSegment, enableCampaignTracking, getCampaign, exportCampaignContacts, stopSegmentImport, importCandidates, listCampaigns, listSegments, refreshCampaign, refreshCampaignTotals, reviewCampaign, runImportChunk, saveCampaign, scheduleCampaign, segmentContacts, startSegmentImport, testCampaign } from '@/server/email/campaigns';
+import { campaignActivity, cancelCampaign, createCampaign, createSegment, renameSegment, enableCampaignTracking, getCampaign, exportCampaignContacts, stopSegmentImport, importCandidates, listCampaigns, listSegments, refreshCampaign, refreshCampaignTotals, reviewCampaign, runImportChunk, saveCampaign, scheduleCampaign, segmentContacts, startSegmentImport, testCampaign } from '@/server/email/campaigns';
 import { configureCampaignWebhook } from '@/server/email/campaign-webhook';
 import { resendCampaignRequest } from '@/server/email/campaign-resend';
 
@@ -62,6 +62,7 @@ export async function POST(req: Request) {
   try {
     if (body.action === 'refresh-overview') { await refreshCampaignTotals(); return json(await listCampaigns(Math.max(1,Math.min(10000,Math.floor(Number(body.page) || 1))))); }
     if (body.action === 'create') return json({campaign:await createCampaign(body.content)});
+    if (body.action === 'rename-segment') return json({segment:await renameSegment(requireId(body.segmentId),body.name)});
     if (body.action === 'create-segment') return json({segment:await createSegment(body.name)});
     if (body.action === 'configure-webhook') return json({webhook:await configureCampaignWebhook()});
     if (body.action === 'enable-tracking') { if (typeof body.from !== 'string') throw new CampaignError('Choose a sender.'); return json({domain:await enableCampaignTracking(body.from)}); }
