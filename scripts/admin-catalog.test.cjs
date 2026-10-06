@@ -10,10 +10,16 @@ const { PGlite } = require('@electric-sql/pglite');
 const originalLoad = Module._load;
 const originalResolve = Module._resolveFilename;
 let db;
+const sizeLookups = [];
 const sql = async (strings, ...params) => (await db.query(strings.reduce((query, part, index) => query + part + (index < params.length ? '$' + (index + 1) : ''), ''), params)).rows;
 sql.query = async (query, params) => (await db.query(query, params)).rows;
 Module._load = function (request, ...args) {
   if (request === '@/server/db') return { ensureV2Schema: async () => {}, getSql: () => sql };
+  if (request === '@/server/media-assets') return { headStoredObject: async (key) => {
+    sizeLookups.push(key);
+    if (key === 'shares/d1/front.png') return { byteSize: 2048 };
+    throw new Error('Object unavailable');
+  } };
   return originalLoad.call(this, request, ...args);
 };
 Module._resolveFilename = function (request, ...args) {
@@ -23,7 +29,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
 
 const { listUsers, listDesigns, listUserDesigns, listUserProjects, getDesignPreviewSource, listMedia, getUser, getDesign, findListedMedia, getAdminDesignView } = require('../src/server/admin/catalog.ts');
 const { emailUserHrefs } = require('../src/server/admin/email-users.ts');
-const { mediaFileId, storageKeyFromMediaFileId } = require('../src/lib/admin-media.ts');
+const { mediaFileId, storageKeyFromMediaFileId, formatMediaSize } = require('../src/lib/admin-media.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
 
 test('admin catalog links media to owners and designs without inventing a design', async () => {
@@ -34,7 +40,8 @@ test('admin catalog links media to owners and designs without inventing a design
       CREATE TABLE workspace_projects(id text primary key, user_id text not null, name text not null, is_default boolean not null default false, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, workspace_project_id text, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE scenes(id text primary key, user_id text, workspace_project_id text, name text, scene_state jsonb, created_at timestamptz default now(), updated_at timestamptz default now());
-      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, storage_key text, created_at timestamptz default now());
+      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, byte_size bigint, storage_key text, created_at timestamptz default now());
+      CREATE TABLE admin_media_sizes(storage_key text primary key, byte_size bigint, checked_at timestamptz default now());
       CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz);`);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google'),('u2','no-name@example.com',NULL,NULL,'password')");
@@ -45,6 +52,7 @@ test('admin catalog links media to owners and designs without inventing a design
       'm1', 'u1', 'loose.png', 'image/png', 'v2/uploads/users/u1/artwork/m1/loose.png',
       'm2', 'u1', 'box.png', 'image/png', 'v2/uploads/users/u1/artwork/m2/box.png',
     ]);
+    await db.query("UPDATE media_assets SET byte_size=CASE WHEN id='m1' THEN 1024 ELSE 1048576 END");
     await db.query("INSERT INTO legacy_records(source,entity_type,source_id,payload,source_hash) VALUES('v1','shared_designs',$1,$2,'hash')", ['d1', JSON.stringify({
       name: 'Mailer', user_id: 'u1', created_at: now, updated_at: now, view_count: 4, preview_token: 'previewtoken1',
       images: {
@@ -71,6 +79,16 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(linked.designs[0].href, '/admin/designs/p1');
     assert.equal(front.designs[0].href, '/admin/designs/v1%3Ad1');
     assert.equal(anon.user, null);
+    assert.equal(loose.byteSize, 1024);
+    assert.equal(linked.byteSize, 1048576);
+    assert.equal(front.byteSize, 2048);
+    assert.equal(anon.byteSize, null);
+    assert.equal(sizeLookups.length, 4);
+    await listMedia({ pageSize: 50 });
+    assert.equal(sizeLookups.length, 4, 'Both successful and failed metadata lookups are persisted');
+    assert.equal(formatMediaSize(loose.byteSize), '1 KB');
+    assert.equal(formatMediaSize(linked.byteSize), '1 MB');
+    assert.equal(formatMediaSize(anon.byteSize), 'Size unavailable');
 
     assert.deepEqual(await emailUserHrefs(['Ada <ADA@EXAMPLE.COM>', ' no-name@example.com ', 'missing@example.com', 'ada@example.com']), {
       'ada@example.com': '/admin/users/u1',

@@ -260,8 +260,8 @@ export async function readMediaAsset(userId:string,id:string){
   return {row,...object};
 }
 
-export async function headStoredObject(storageKey:string){
-  const object=await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:storageKey}));
+export async function headStoredObject(storageKey:string,abortSignal?:AbortSignal){
+  const object=await s3().send(new HeadObjectCommand({Bucket:bucket(),Key:storageKey}),{abortSignal});
   return {byteSize:Number(object.ContentLength||0),contentType:object.ContentType||null};
 }
 

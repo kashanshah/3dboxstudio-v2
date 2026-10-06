@@ -1,4 +1,5 @@
 import { ensureV2Schema, getSql } from '@/server/db';
+import { resolveMediaSizes } from './media-sizes';
 import { adminDesignHref, adminDesignViewHref, adminUserHref, isCatalogMediaKey, mediaFileId, type AdminMediaItem } from '@/lib/admin-media';
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
 import type { LocalMediaAsset } from '@/lib/packaging/artwork';
@@ -45,6 +46,7 @@ legacy_faces AS (
   SELECT img.value->>'s3Key' AS storage_key,
     COALESCE(NULLIF(img.value->>'name',''), NULLIF(img.key,''), 'Artwork') AS name,
     NULLIF(img.value->>'mime','') AS mime_type,
+    NULL::bigint AS byte_size,
     (payload->>'created_at')::timestamptz AS created_at,
     NULLIF(payload->>'user_id','') AS user_id,
     source || ':' || source_id AS design_id,
@@ -57,6 +59,7 @@ legacy_previews AS (
   SELECT payload->>'og_image_key' AS storage_key,
     COALESCE(NULLIF(regexp_replace(payload->>'og_image_key', '^.*/', ''), ''), 'Preview') AS name,
     'image/png' AS mime_type,
+    NULL::bigint AS byte_size,
     (payload->>'created_at')::timestamptz AS created_at,
     NULLIF(payload->>'user_id','') AS user_id,
     source || ':' || source_id AS design_id,
@@ -65,7 +68,7 @@ legacy_previews AS (
   WHERE entity_type='shared_designs' AND deleted_at IS NULL AND NULLIF(payload->>'og_image_key','') IS NOT NULL
 ),
 native_uses AS (
-  SELECT m.storage_key, m.name, m.mime_type, m.created_at, m.user_id, p.id AS design_id, p.name AS design_name
+  SELECT m.storage_key, m.name, m.mime_type, NULLIF(m.byte_size, 0) AS byte_size, m.created_at, m.user_id, p.id AS design_id, p.name AS design_name
   FROM media_assets m
   LEFT JOIN projects p ON position(m.id in p.studio_state::text) > 0
 ),
@@ -79,6 +82,7 @@ type MediaQueryRow = {
   storage_key: string;
   name: string | null;
   mime_type: string | null;
+  byte_size: number | string | null;
   created_at: string | Date | null;
   user_id: string | null;
   user_name: string | null;
@@ -253,6 +257,7 @@ function presentMedia(row: MediaQueryRow): AdminMediaItem {
     id: mediaFileId(row.storage_key),
     name: row.name?.trim() || fileName(row.storage_key),
     mimeType: row.mime_type || 'application/octet-stream',
+    byteSize: row.byte_size == null ? null : Number(row.byte_size),
     createdAt: iso(row.created_at),
     previewUrl: `/api/admin/media/file?id=${encodeURIComponent(mediaFileId(row.storage_key))}`,
     user: row.user_id ? {
@@ -706,6 +711,7 @@ export async function listMedia(input: { q?: string; page?: number; pageSize?: n
       SELECT storage_key,
         (array_agg(name ORDER BY created_at DESC NULLS LAST))[1] AS name,
         (array_agg(mime_type ORDER BY created_at DESC NULLS LAST) FILTER (WHERE mime_type IS NOT NULL))[1] AS mime_type,
+        MAX(byte_size) AS byte_size,
         MAX(created_at) AS created_at,
         (array_agg(user_id ORDER BY created_at DESC NULLS LAST) FILTER (WHERE user_id IS NOT NULL))[1] AS user_id,
         COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', design_id, 'name', design_name)) FILTER (WHERE design_id IS NOT NULL), '[]'::jsonb) AS designs
@@ -713,7 +719,7 @@ export async function listMedia(input: { q?: string; page?: number; pageSize?: n
       WHERE storage_key IS NOT NULL
       GROUP BY storage_key
     )
-    SELECT g.storage_key, g.name, g.mime_type, g.created_at, g.user_id, g.designs,
+    SELECT g.storage_key, g.name, g.mime_type, g.byte_size, g.created_at, g.user_id, g.designs,
       u.name AS user_name, u.email AS user_email, COUNT(*) OVER()::int AS total
     FROM grouped g
     LEFT JOIN users u ON u.id=g.user_id
@@ -724,6 +730,9 @@ export async function listMedia(input: { q?: string; page?: number; pageSize?: n
     ORDER BY ${orderSql(MEDIA_SORT_SQL[sort], dir, 'g.storage_key')}
     LIMIT $4 OFFSET $5
   `, [userId, designId, q, pageSize, offset]) as MediaQueryRow[];
+  const missing = rows.filter((row) => row.byte_size == null);
+  const sizes = await resolveMediaSizes(missing.map((row) => row.storage_key));
+  for (const row of missing) row.byte_size = sizes.get(row.storage_key) ?? null;
   return { items: rows.map(presentMedia), total: Number(rows[0]?.total ?? 0), page, pageSize };
 }
 

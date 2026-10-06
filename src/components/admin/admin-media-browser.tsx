@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { X } from 'lucide-react';
 import { AdminDeleteButton } from './admin-delete-button';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
-import type { AdminMediaItem } from '@/lib/admin-media';
+import { formatMediaSize, type AdminMediaItem } from '@/lib/admin-media';
 
 function designLabel(item: AdminMediaItem): string {
   if (item.designs.length === 0) return 'Not used in a design';
@@ -38,6 +38,7 @@ export function AdminMediaBrowser({ items }: { items: AdminMediaItem[] }) {
               <img src={entry.previewUrl} alt="" loading="lazy" />
             ) : <span className="admin-media-fallback">File</span>}
             <strong>{entry.name}</strong>
+            <span>{formatMediaSize(entry.byteSize)}</span>
             <span>{entry.user?.name ?? 'No account'}</span>
             <span>{designLabel(entry)}</span>
           </button>
@@ -65,6 +66,10 @@ export function AdminMediaBrowser({ items }: { items: AdminMediaItem[] }) {
               </div>
               <AdminDeleteButton kind="media" id={item.id} name={item.name} onDeleted={() => setOpenId(null)} />
               <dl className="admin-detail">
+                <div>
+                  <dt>File size</dt>
+                  <dd>{formatMediaSize(item.byteSize)}</dd>
+                </div>
                 <div>
                   <dt>Uploaded by</dt>
                   <dd>{item.user ? <Link href={item.user.href}>{item.user.name}</Link> : 'No account on file'}</dd>
