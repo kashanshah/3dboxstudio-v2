@@ -52,7 +52,7 @@ const rows = [
   {
     "label": "Sharing",
     "ours": "View-only 3D link for clients",
-    "theirs": "Export files to share"
+    "theirs": "Share exported images, animations or 3D HTML files"
   }
 ];
 
@@ -100,5 +100,5 @@ export default function Page() {
     { "@type": "WebPage", name: "A free, browser-based Boxshot alternative for boxes.", description, url },
     { "@type": "FAQPage", mainEntity: faqs.map(item => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })) },
   ] };
-  return <><MarketingProductPage eyebrow={"Boxshot alternative"} title="A free, browser-based Boxshot alternative for boxes." intro={"Boxshot is a capable desktop renderer for product shots. If you mainly need box mockups built from real dimensions, with a dieline you can hand to a printer, 3D Box Studio does that in the browser without an install or a licence."} primaryCta="Start designing free" secondaryHref="/box-templates" secondaryLabel="Browse box templates" sections={sections} faqs={faqs} afterHero={<><CompareTable competitor={"Boxshot"} rows={rows} checked={"Boxshot details checked in October 2026 from the publisher’s website; pricing and features may change."} /><ComparisonLinks current="/boxshot-alternative" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} /></>;
+  return <><MarketingProductPage eyebrow={"Boxshot alternative"} title="A free, browser-based Boxshot alternative for boxes." intro={"Boxshot is a capable desktop renderer for product shots. If you mainly need box mockups built from real dimensions, with a dieline you can hand to a printer, 3D Box Studio does that in the browser without an install or a licence."} primaryCta="Start designing free" secondaryHref="/box-templates" secondaryLabel="Browse box templates" sections={sections} faqs={faqs} afterHero={<><CompareTable competitor={"Boxshot"} rows={rows} checked={"Boxshot details from public sources as of October 2026; check boxshot.com for current pricing and features."} /><ComparisonLinks current="/boxshot-alternative" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} /></>;
 }
