@@ -103,6 +103,10 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "3d-box-generator-with-dimensions": "tools",
   "how-to-generate-box-dieline-online": "tools",
   "2d-dieline-to-3d-packaging-mockup-workflow": "workflow",
+  "how-to-measure-a-box-inside-vs-outside-dimensions": "getting-started",
+  "standard-box-sizes-carton-mailer-shipping": "getting-started",
+  "packaging-bleed-safe-zone-dieline": "tools",
+  "dieline-in-illustrator-vs-online-generator": "tools",
 };
 
 export function getBlogCategory(slug: string): BlogCategoryId {
@@ -2202,6 +2206,171 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
   },
 
+  {
+    slug: "how-to-measure-a-box-inside-vs-outside-dimensions",
+    title: "How to Measure a Box: Inside vs Outside Dimensions (L × W × D)",
+    seoTitle: "How to Measure a Box: Inside vs Outside Dimensions | 3D Box Studio",
+    description: "Learn how box dimensions are written (L × W × D), why packaging is sized from the inside, how much clearance to add, and how to enter your size in a 3D box template.",
+    published: "2026-10-06",
+    readMinutes: 6,
+    keywords: ["how to measure a box","box dimensions order","inside vs outside box dimensions","l x w x d box","box size clearance"],
+    imagePath: "/images/blog/3d-box-design-maker-workflow.webp",
+    imageAlt: "Box with length, width and depth measurements marked",
+    relatedSlugs: ["standard-box-sizes-carton-mailer-shipping","3d-box-generator-with-dimensions","how-to-generate-box-dieline-online"],
+    faqs: [
+      { question: "What order are box dimensions written in?", answer: "Length × Width × Depth (L × W × D). Length and width describe the opening, with length the longer side; depth is the distance from the opening to the bottom." },
+      { question: "Are box dimensions inside or outside measurements?", answer: "Packaging suppliers usually quote inside dimensions, because that is the space your product needs. Outside dimensions are larger by roughly the board thickness on each side, which matters for shipping rates and shelf space." },
+      { question: "How much clearance should I add around my product?", answer: "For a snug folding carton, a few millimetres per side is common. For shipping boxes with padding, add the thickness of the padding on every side. Test with a sample when the fit matters." },
+      { question: "Which numbers do I enter in 3D Box Studio?", answer: "For a tuck end carton, enter the opening's long side as width, the opening's short side as depth, and the distance between the two closures as height." },
+    ],
+    sections: [
+      { type: "p", text: "Most sizing mistakes come from two things: writing the numbers in the wrong order, and mixing up inside and outside measurements. Both are easy to avoid once you know the conventions." },
+      { type: "h2", text: "The order: length × width × depth" },
+      { type: "p", text: "Box sizes are written as L × W × D. Look at the box from the side that opens. Length is the longer side of that opening, width is the shorter side, and depth is the distance from the opening to the opposite end. A 12 × 9 × 4 in mailer opens on a 12 × 9 in face and is 4 in deep." },
+      { type: "callout", text: "Depth is sometimes called height. That is why a tall carton that opens at the top can be written as 70 × 70 × 130 mm: the 130 mm is the depth from the opening down." },
+      { type: "h2", text: "Inside vs outside dimensions" },
+      { type: "p", text: "Suppliers usually quote inside dimensions, the space available for the product. Outside dimensions add the board thickness on each wall, plus extra where flaps overlap. On thin folding board the difference is small; on corrugated board it can be several millimetres per side, which affects shipping rates, pallets and shelf space." },
+      { type: "h2", text: "How to measure your product" },
+      { type: "ol", items: [
+        "Measure the product at its widest points, including caps, handles and anything that sticks out.",
+        "Decide which face the customer opens and measure that face first: the long side is length, the short side is width.",
+        "Measure the remaining dimension as depth.",
+        "Add clearance: a few millimetres per side for a snug carton, or the thickness of inserts and padding for a shipper.",
+        "Round to sizes your supplier can make, and confirm whether they quote inside or outside dimensions."
+      ] },
+      { type: "h2", text: "Entering the size in a 3D template" },
+      { type: "p", text: "In the [reverse tuck end box template](/box-templates/reverse-tuck-end-box) the closures are at the top and bottom, so the opening is the width × depth face. Enter the opening's long side as width, its short side as depth, and the distance between the closures as height. The [pizza box](/box-templates/pizza-box) and [split top box](/box-templates/split-top-box) templates follow the same width × depth footprint with height as the wall." },
+      { type: "p", text: "The templates draw panels at the size you enter, without allowances for board thickness, so use your inside dimensions and let your printer adjust the final die for their board." },
+      { type: "cta", label: "Try your size on a tuck end box", href: "/box-templates/reverse-tuck-end-box" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "standard-box-sizes-carton-mailer-shipping",
+    title: "Standard Box Sizes: Common Carton, Mailer, Pizza and Shipping Box Dimensions",
+    seoTitle: "Standard Box Sizes & Common Box Dimensions | 3D Box Studio",
+    description: "Common box sizes for retail cartons, mailer boxes, pizza boxes and shipping boxes, with notes on how to choose a size and when a custom size makes more sense.",
+    published: "2026-10-06",
+    readMinutes: 7,
+    keywords: ["standard box sizes","common box dimensions","pizza box sizes","mailer box sizes","shipping box sizes","carton sizes"],
+    imagePath: "/images/blog/corrugated-shipping-box-branding.webp",
+    imageAlt: "Cartons, mailers and shipping boxes in several common sizes",
+    relatedSlugs: ["how-to-measure-a-box-inside-vs-outside-dimensions","mailer-box-mockup-online","corrugated-shipping-box-branding"],
+    faqs: [
+      { question: "Is there an official standard box size?", answer: "No single standard covers all packaging. Suppliers stock common sizes, carriers publish their own box programs, and most retail cartons are sized to the product." },
+      { question: "What size is a 12 inch pizza box?", answer: "About 12 × 12 inches on the base with walls around 1.5 to 2 inches high. Suppliers often add a little clearance, so check their inside dimensions." },
+      { question: "Should I use a stock size or a custom size?", answer: "Stock sizes are cheaper in small runs and ship faster. A custom size reduces empty space, filler and shipping cost, and usually looks more premium. Preview both in 3D before deciding." },
+    ],
+    sections: [
+      { type: "p", text: "There is no single standard for box sizes. What exists are sizes that suppliers stock in volume, sizes set by product categories such as pizza, and carrier box programs. The examples below are common starting points, not specifications; always confirm the exact inside dimensions with your supplier." },
+      { type: "h2", text: "Retail folding cartons" },
+      { type: "p", text: "Folding cartons are almost always sized to the product, so there are few true stock sizes. Typical proportions look like this (width × depth × height):" },
+      { type: "ul", items: [
+        "Lip balm or small tube: around 25 × 25 × 80 mm.",
+        "50 ml perfume: around 55 × 55 × 120 mm.",
+        "Supplement bottle: around 70 × 70 × 130 mm.",
+        "Tea or dry food carton: around 120 × 55 × 180 mm.",
+        "Bar soap: around 95 × 65 × 35 mm."
+      ] },
+      { type: "p", text: "Each of these is a preset in the [reverse tuck end box template](/box-templates/reverse-tuck-end-box), so you can see the dieline and fold it in 3D at that size." },
+      { type: "h2", text: "Pizza boxes" },
+      { type: "p", text: "Pizza boxes are named after the pizza they hold. The base is roughly the pizza diameter in each direction, and walls are usually 1.5 to 2 inches high:" },
+      { type: "ul", items: [
+        "10 inch: about 10 × 10 × 1.75 in.",
+        "12 inch: about 12 × 12 × 1.75 in.",
+        "14 inch: about 14 × 14 × 1.75 in.",
+        "16 inch: about 16 × 16 × 2 in."
+      ] },
+      { type: "p", text: "All four are presets in the [pizza box template](/box-templates/pizza-box)." },
+      { type: "h2", text: "Mailer and shipping boxes" },
+      { type: "p", text: "Corrugated suppliers stock many sizes. Cubes such as 6 × 6 × 6, 8 × 8 × 8 and 12 × 12 × 12 inches are widely available, as are flat mailers for apparel and subscription boxes around 9 × 6 × 2 and 12 × 9 × 4 inches. If you ship through a carrier box program, use that carrier's published dimensions." },
+      { type: "h2", text: "Stock size or custom size?" },
+      { type: "p", text: "A stock box is quicker and cheaper for small runs. A custom size removes empty space, reduces filler and dimensional-weight shipping costs, and often looks better on a shelf. The quickest way to decide is to [measure your product](/blog/how-to-measure-a-box-inside-vs-outside-dimensions), then compare the stock and custom sizes side by side in 3D." },
+      { type: "cta", label: "Compare sizes in the box templates", href: "/box-templates" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "packaging-bleed-safe-zone-dieline",
+    title: "Bleed, Safe Zone and Trim on a Packaging Dieline, Explained",
+    seoTitle: "Packaging Bleed & Safe Zone on a Dieline | 3D Box Studio",
+    description: "What bleed, trim and safe zones mean on a box dieline, typical sizes printers ask for, and how to set up artwork so nothing important is cut off or lands on a fold.",
+    published: "2026-10-06",
+    readMinutes: 6,
+    keywords: ["packaging bleed","dieline bleed","safe zone packaging","bleed and trim box","how much bleed for packaging"],
+    imagePath: "/images/blog/tuck-end-folding-carton-mockup.webp",
+    imageAlt: "Box dieline showing bleed, trim and safe zone areas",
+    relatedSlugs: ["how-to-generate-box-dieline-online","dieline-in-illustrator-vs-online-generator","2d-dieline-to-3d-packaging-mockup-workflow"],
+    faqs: [
+      { question: "How much bleed does packaging need?", answer: "3 mm (about 1/8 inch) is the most common request for folding cartons. Some printers ask for more on corrugated board. Your printer's spec sheet always wins." },
+      { question: "What is a safe zone?", answer: "The area inside each panel, a few millimetres in from cut and fold lines, where text and logos stay clear of trimming tolerance and folds." },
+      { question: "Can I set bleed in 3D Box Studio?", answer: "Yes. The PDF dieline export has an adjustable bleed from 0 to 10 mm, with 3 mm as the default, and keeps cut and crease lines on separate layers." },
+    ],
+    sections: [
+      { type: "p", text: "Cutting a printed sheet is never perfectly exact. Bleed and safe zones are the margins that hide that small variation, so backgrounds run to the edge and nothing important gets trimmed or folded." },
+      { type: "h2", text: "Trim (cut) line" },
+      { type: "p", text: "The trim or cut line is where the die cuts the sheet. On a dieline it is usually a solid line, kept separate from the crease lines where the board folds." },
+      { type: "h2", text: "Bleed" },
+      { type: "p", text: "Bleed is artwork that extends past the cut line, so that a slightly misaligned cut never shows a white edge. For folding cartons, 3 mm (about 1/8 inch) is the most common request. Extend background colours and images into the bleed; keep text out of it." },
+      { type: "h2", text: "Safe zone" },
+      { type: "p", text: "The safe zone sits a few millimetres inside every cut and fold line, commonly 3 to 5 mm. Keep text, logos, barcodes and anything that must be read whole inside it. A logo centred on a fold will crack and look misaligned once the box is assembled." },
+      { type: "h2", text: "Glue areas and flaps" },
+      { type: "p", text: "Glue flaps often need to stay free of ink or varnish so the adhesive bonds, and tuck flaps and dust flaps are usually left plain because they are hidden. Ask your printer which areas they want knocked out." },
+      { type: "h2", text: "A quick checklist" },
+      { type: "ol", items: [
+        "Confirm the bleed and safe zone your printer wants.",
+        "Run background art into the bleed on every outside edge.",
+        "Keep text, logos and barcodes inside the safe zone and off the folds.",
+        "Leave glue areas clear if your printer asks for it.",
+        "Check the artwork folded in 3D before you send the file."
+      ] },
+      { type: "h2", text: "Setting bleed in 3D Box Studio" },
+      { type: "p", text: "Place your artwork on the flat layout of a [box template](/box-templates), fold it in 3D to check that nothing important sits on a fold, then export the PDF dieline. Bleed is adjustable from 0 to 10 mm (3 mm by default), and cut and crease lines are exported on separate layers for your printer." },
+      { type: "cta", label: "Open a box template", href: "/box-templates/reverse-tuck-end-box" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "dieline-in-illustrator-vs-online-generator",
+    title: "How to Make a Box Dieline: Illustrator vs an Online Generator",
+    seoTitle: "Make a Box Dieline in Illustrator vs Online | 3D Box Studio",
+    description: "Compare drawing a box dieline in Adobe Illustrator with generating one online from your dimensions: speed, accuracy, cost, and when to use each.",
+    published: "2026-10-06",
+    readMinutes: 7,
+    keywords: ["how to make a box dieline","dieline in illustrator","box dieline generator","online dieline maker","create dieline"],
+    imagePath: "/images/blog/packaging-mockup-without-photoshop.webp",
+    imageAlt: "Box dieline being drawn in a vector editor next to a generated online dieline",
+    relatedSlugs: ["how-to-generate-box-dieline-online","packaging-bleed-safe-zone-dieline","2d-dieline-to-3d-packaging-mockup-workflow"],
+    faqs: [
+      { question: "Can I make a dieline in Illustrator?", answer: "Yes. Most production dielines are drawn or finalised in a vector editor such as Illustrator, with cut and crease lines on separate layers or spot colours." },
+      { question: "Is an online dieline generator accurate?", answer: "It is accurate to the dimensions you enter, but it does not know your board thickness, crease allowances or printer's conventions. Use it for design and proofs, and let your printer finalise the die." },
+      { question: "Can I edit a generated dieline in Illustrator?", answer: "Yes. 3D Box Studio exports a vector PDF that opens in Illustrator, with cut and crease lines on separate layers." },
+    ],
+    sections: [
+      { type: "p", text: "A dieline is the flat outline of a box: where it is cut and where it folds. You can draw one by hand in a vector editor, start from a printer's template, or generate one from your dimensions. Each route suits a different stage of a project." },
+      { type: "h2", text: "Drawing a dieline in Illustrator" },
+      { type: "ol", items: [
+        "Start from your inside dimensions and the box structure, for example a reverse tuck end carton.",
+        "Draw the main panels as rectangles: front, side, back, side, plus a glue flap.",
+        "Add the closure panels, tuck tongues and dust flaps at the top and bottom.",
+        "Put cut lines and crease lines on separate layers, using the spot colour names your printer asks for.",
+        "Add bleed around the outline and mark safe zones.",
+        "Check every measurement and ask your printer to approve the file."
+      ] },
+      { type: "p", text: "Drawing by hand gives full control, and it is how production dielines are usually finalised. It is also slow, easy to get subtly wrong, and has to be redone every time the size changes." },
+      { type: "h2", text: "Generating a dieline online" },
+      { type: "p", text: "A generator builds the dieline from the box style and your dimensions. In 3D Box Studio you pick a template such as the [reverse tuck end box](/box-templates/reverse-tuck-end-box), enter width, height and depth, and the flat layout redraws instantly. You can then place artwork on it, fold it in 3D, and export a 1:1 vector PDF with cut and crease lines on separate layers and adjustable bleed." },
+      { type: "h2", text: "Which should you use?" },
+      { type: "ul", items: [
+        "Early design and client approval: generate online. Changing the size takes seconds and you can review it in 3D.",
+        "Unusual structures, inserts or windows: draw in Illustrator or use your printer's structural team.",
+        "Production: whichever you start with, your printer should finalise the die for their board, creasing rules and tooling."
+      ] },
+      { type: "callout", text: "A common workflow is to generate the dieline, design and approve the artwork in 3D, then open the exported PDF in Illustrator for final production edits." },
+      { type: "cta", label: "Generate a dieline from your size", href: "/box-dieline-generator" },
+      { type: "faq" }
+    ],
+  },
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {

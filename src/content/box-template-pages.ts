@@ -80,7 +80,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Does it adjust for board thickness?', answer: 'No. Panels are drawn at the nominal size you enter, without caliper or crease compensation. Your printer should adapt the final die to their board and tooling.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the unit to inches in the size picker; the Studio keeps the same unit when you open the template.' },
     ],
-    guides: ['tuck-end-folding-carton-mockup', 'how-to-generate-box-dieline-online', 'cosmetics-packaging-3d-preview', 'supplement-vitamin-packaging-3d-preview'],
+    guides: ['how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'tuck-end-folding-carton-mockup', 'dieline-in-illustrator-vs-online-generator'],
     updated: '2026-10-06',
   },
   {
@@ -131,7 +131,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Is this a production-ready pizza box die?', answer: 'No. It is a layout proof for artwork and 3D review. Locking slots, vents and the allowances needed for corrugated board are not included; use your box supplier’s die for production.' },
       { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a PDF of the flat layout with your artwork.' },
     ],
-    guides: ['food-beverage-carton-shelf-preview', 'corrugated-shipping-box-branding', 'small-business-product-box-design'],
+    guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'food-beverage-carton-shelf-preview'],
     updated: '2026-10-06',
   },
   {
@@ -181,7 +181,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Is it the same as a standard shipping box?', answer: 'It is close in appearance, but the template only has the two flaps that meet in the middle at each end. Use your supplier’s RSC die for production.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the size picker to inches; the Studio opens with the same unit.' },
     ],
-    guides: ['corrugated-shipping-box-branding', 'subscription-box-unboxing-preview', 'mailer-box-mockup-online'],
+    guides: ['standard-box-sizes-carton-mailer-shipping', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'corrugated-shipping-box-branding', 'subscription-box-unboxing-preview'],
     updated: '2026-10-06',
   },
 ];
