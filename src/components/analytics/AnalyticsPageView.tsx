@@ -4,12 +4,21 @@ import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { ANALYTICS_ENABLED, isAnalyticsBlockedPath } from "@/lib/analytics/policy";
+import { SIGNUP_COOKIE, readSignupCookie } from "@/lib/analytics/signup";
 
 export function AnalyticsPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const previousLocation = useRef<string | null>(null);
   const lastKey = useRef<string | null>(null);
+
+  // Report a Google sign-up once, on the first page after the OAuth redirect.
+  useEffect(() => {
+    const method = readSignupCookie(document.cookie);
+    if (!method) return;
+    document.cookie = `${SIGNUP_COOKIE}=; Max-Age=0; Path=/; SameSite=Lax`;
+    trackEvent("sign_up", { method }, { posthog: false });
+  }, []);
 
   useEffect(() => {
     if (!ANALYTICS_ENABLED || !pathname) return;
