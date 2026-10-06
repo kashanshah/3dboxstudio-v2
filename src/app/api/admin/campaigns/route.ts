@@ -3,7 +3,7 @@ import { requireAdminApi } from '@/server/admin/auth';
 import { requestOrigin } from '@/server/request-origin';
 import { enforceRateLimit } from '@/server/rate-limit';
 import { CAMPAIGN_EVENTS, CampaignError, requireId } from '@/lib/email-campaigns';
-import { campaignActivity, cancelCampaign, createCampaign, createSegment, enableCampaignTracking, getCampaign, importCandidates, listCampaigns, listSegments, refreshCampaign, refreshCampaignTotals, reviewCampaign, runImportChunk, saveCampaign, scheduleCampaign, segmentContacts, startSegmentImport, testCampaign } from '@/server/email/campaigns';
+import { campaignActivity, cancelCampaign, createCampaign, createSegment, enableCampaignTracking, getCampaign, exportCampaignContacts, stopSegmentImport, importCandidates, listCampaigns, listSegments, refreshCampaign, refreshCampaignTotals, reviewCampaign, runImportChunk, saveCampaign, scheduleCampaign, segmentContacts, startSegmentImport, testCampaign } from '@/server/email/campaigns';
 import { configureCampaignWebhook } from '@/server/email/campaign-webhook';
 import { resendCampaignRequest } from '@/server/email/campaign-resend';
 
@@ -21,6 +21,11 @@ export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   try {
     const view = params.get('view');
+    if (view === 'export-contacts') {
+      const filter = params.get('filter') || 'verified';
+      const csv = await exportCampaignContacts(filter);
+      return new Response(csv,{headers:{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':`attachment; filename="resend-contacts-${filter}-${new Date().toISOString().slice(0,10)}.csv"`,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
+    }
     if (view === 'segments') return json({segments:await listSegments()});
     if (view === 'contacts') return json(await segmentContacts(requireId(params.get('segmentId')),params.get('after') || ''));
     if (view === 'candidates') { const recipients = await importCandidates(params.get('filter') || 'verified'); return json({count:recipients.length,sample:recipients.slice(0,10)}); }
@@ -61,6 +66,7 @@ export async function POST(req: Request) {
     if (body.action === 'configure-webhook') return json({webhook:await configureCampaignWebhook()});
     if (body.action === 'enable-tracking') { if (typeof body.from !== 'string') throw new CampaignError('Choose a sender.'); return json({domain:await enableCampaignTracking(body.from)}); }
     if (body.action === 'start-import') return json({job:await startSegmentImport(requireId(body.segmentId),String(body.filter || ''),body.confirmed === true)});
+    if (body.action === 'stop-import') return json({job:await stopSegmentImport(requireId(body.jobId))});
     if (body.action === 'import-chunk') return json({job:await runImportChunk(requireId(body.jobId))});
     const id = requireId(body.id);
     const revision = Number(body.revision);
