@@ -144,4 +144,4 @@ Rule of thumb: answer the question first, mention the tool second, and always sa
 
 ## 7. IndexNow (automatic)
 
-After every successful production deploy, `.github/workflows/indexnow.yml` sends new or changed sitemap URLs to Bing, Yandex, Seznam and Naver. The first run submits all of them. To resubmit everything, run the **IndexNow** workflow from the Actions tab with "Submit every sitemap URL" ticked. Google doesn't use IndexNow, so request indexing for new pages in Search Console → URL Inspection.
+After every successful production deploy, `.github/workflows/indexnow.yml` sends new or changed sitemap URLs to Bing, Yandex, Seznam and Naver. A page counts as changed when its sitemap last-modified date changes or, for pages without one, when the text of the page changes. The first run submits all of them. To resubmit everything, run the **IndexNow** workflow from the Actions tab with "Submit every sitemap URL" ticked. Google doesn't use IndexNow, so request indexing for new pages in Search Console → URL Inspection.
