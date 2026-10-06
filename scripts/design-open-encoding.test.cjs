@@ -15,6 +15,7 @@ sql.query = async (query, params) => (await db.query(query, params)).rows;
 Module._load = function (request, ...args) {
   if (request === '@/server/db' || request === './db') return { ensureV2Schema: async () => {}, getSql: () => sql };
   if (request === '@/server/legacy-media') return { ensureLegacyMediaForDesign: async () => ({}) };
+  if (request === '@/server/media-assets') return { headStoredObject: async () => ({ byteSize: 1024 }) };
   return originalLoad.call(this, request, ...args);
 };
 Module._resolveFilename = function (request, ...args) {
@@ -73,7 +74,8 @@ test('admin design detail resolves percent-encoded legacy ids from listing links
     await db.exec(LEGACY_SYNC_SCHEMA);
     await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now());
       CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, created_at timestamptz default now(), updated_at timestamptz default now());
-      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, storage_key text, created_at timestamptz default now());
+      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, byte_size bigint, storage_key text, created_at timestamptz default now());
+      CREATE TABLE admin_media_sizes(storage_key text primary key, byte_size bigint, checked_at timestamptz default now());
       CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz);`);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google')");
@@ -85,6 +87,7 @@ test('admin design detail resolves percent-encoded legacy ids from listing links
     const encoded = await getDesign('v1%3Ad1');
     assert.equal(encoded?.name, 'Mailer');
     assert.equal(encoded?.legacy, true);
+    assert.equal(encoded?.images[0].byteSize, 1024);
 
     const doubleEncoded = await getDesign(encodeURIComponent('v1%3Ad1'));
     assert.equal(doubleEncoded?.id, 'v1:d1');
