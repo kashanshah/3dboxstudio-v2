@@ -9,6 +9,11 @@ const root = path.resolve('src');
 function transpile(source) {
   return ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 }
+function signupModule() {
+  const exports = {};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/signup.ts'),'utf8')),{exports});
+  return exports;
+}
 function storageStub(values={}) {
   return {getItem:key=>values[key]??null,setItem:(key,value)=>{values[key]=String(value);},removeItem:key=>{delete values[key];}};
 }
@@ -229,6 +234,7 @@ test('pageview effect deduplicates replay, updates SPA referrer, and excludes ad
       if(name==='next/navigation')return {usePathname:()=>pathname,useSearchParams:()=>({toString:()=>query})};
       if(name==='@/lib/analytics')return {trackEvent:(...args)=>events.push(args)};
       if(name==='@/lib/analytics/policy')return {ANALYTICS_ENABLED:true,isAnalyticsBlockedPath:p=>p==='/admin'||p.startsWith('/admin/')};
+      if(name==='@/lib/analytics/signup')return signupModule();
       throw Error(name);
     },
   });
@@ -337,4 +343,38 @@ test('PostHog init sends one pageview per route, honours consent, and drops ever
   window.location={pathname:'/'};
   consentApi.setConsentState('denied');consentApi.setConsentState('granted');
   assert.deepEqual(listeners,['out','in'],'later changes opt out and back in');
+});
+
+test('GA-only events skip PostHog, which already records sign-ups on the server',()=>{
+  const {api,window} = analytics();
+  api.trackEvent('sign_up',{method:'email'},{posthog:false});
+  const event=window.dataLayer.map(args=>Array.from(args)).find(args=>args[0]==='event');
+  assert.deepEqual(event.slice(0,2),['event','sign_up']);
+  assert.equal(event[2].method,'email');
+  assert.equal(window.__posthogCaptureQueue,undefined);
+});
+
+test('the Google sign-up cookie is reported once to GA4 and then cleared',()=>{
+  const {readSignupCookie,SIGNUP_COOKIE}=signupModule();
+  assert.equal(readSignupCookie('a=1; 3dbs_signup=google; b=2'),'google');
+  assert.equal(readSignupCookie('3dbs_signup=evil'),null);
+  assert.equal(readSignupCookie(''),null);
+  const events=[],effects=[];
+  const doc={title:'Studio',referrer:'',cookie:`${SIGNUP_COOKIE}=google`};
+  const exports={};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'components/analytics/AnalyticsPageView.tsx'),'utf8')),{
+    exports,window:{location:{href:'https://www.3dboxstudio.com/studio'}},document:doc,
+    require:name=>{
+      if(name==='react')return {useRef:value=>({current:value}),useEffect:fn=>effects.push(fn)};
+      if(name==='next/navigation')return {usePathname:()=>'/studio',useSearchParams:()=>({toString:()=>''})};
+      if(name==='@/lib/analytics')return {trackEvent:(...args)=>events.push(args)};
+      if(name==='@/lib/analytics/policy')return {ANALYTICS_ENABLED:true,isAnalyticsBlockedPath:()=>false};
+      if(name==='@/lib/analytics/signup')return signupModule();
+      throw Error(name);
+    },
+  });
+  exports.AnalyticsPageView();
+  effects[0]();
+  assert.equal(JSON.stringify(events),JSON.stringify([['sign_up',{method:'google'},{posthog:false}]]));
+  assert.match(doc.cookie,/^3dbs_signup=; Max-Age=0/);
 });

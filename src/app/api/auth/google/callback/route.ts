@@ -7,6 +7,8 @@ import { exchangeGoogleCode,GoogleAuthError,OAUTH_RETURN_COOKIE } from '@/server
 import { alertAdmin } from '@/server/ops-alerts';
 import { findOrCreateGoogleUser } from '@/server/auth/users';
 import { requestOrigin } from '@/server/request-origin';
+import { captureServerUserEvent } from '@/lib/posthog-server';
+import { SIGNUP_COOKIE,SIGNUP_COOKIE_MAX_AGE } from '@/lib/analytics/signup';
 
 export const runtime='nodejs';
 
@@ -21,12 +23,18 @@ export async function GET(req:Request){
   try{
     await ensureV2Schema();
     const profile=await exchangeGoogleCode(req,code,state);
-    const {user}=await findOrCreateGoogleUser(profile);
+    const {user,isNew}=await findOrCreateGoogleUser(profile);
     const token=await createSession(user.id);
     await setSessionCookie(token);
     const store=await cookies(),next=safeReturnTo(store.get(OAUTH_RETURN_COOKIE)?.value);
     store.delete(OAUTH_RETURN_COOKIE);
-    return NextResponse.redirect(new URL(next,origin));
+    const response=NextResponse.redirect(new URL(next,origin));
+    if(isNew){
+      // Analytics must never turn a successful sign-in into an error page.
+      await captureServerUserEvent(user.id,'user_signed_up',{method:'google'},{email:user.email,name:user.name,signup_method:user.signup_method}).catch(()=>{});
+      response.cookies.set(SIGNUP_COOKIE,'google',{path:'/',maxAge:SIGNUP_COOKIE_MAX_AGE,sameSite:'lax',secure:origin.startsWith('https:')});
+    }
+    return response;
   }catch(failure){
     const reason=failure instanceof GoogleAuthError?failure.reason:'unexpected';
     const detail=failure instanceof GoogleAuthError?failure.detail:undefined;

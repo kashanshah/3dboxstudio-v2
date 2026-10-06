@@ -9,6 +9,7 @@ import { AuthShell,AuthNotice } from './auth-shell';
 import { GoogleSignInButton } from './google-sign-in-button';
 import { useAuth } from './auth-provider';
 import { safeReturnTo } from '@/lib/auth-navigation';
+import { trackEvent } from '@/lib/analytics';
 export type AuthPageKind='login'|'signup'|'forgot-password'|'reset-password'|'verify-email';
 export function PasswordField({id,label,value,onChange,autoComplete='new-password',minLength=8}:{id:string;label:string;value:string;onChange:(value:string)=>void;autoComplete?:string;minLength?:number}){
  const t = useTranslations();
@@ -28,7 +29,7 @@ export function AuthForm({kind,next,token,authError}:{kind:AuthPageKind;next?:st
  async function submit(event:FormEvent){event.preventDefault();if((signup||reset)&&password!==confirm){setError('Passwords do not match.');return;}
  const result=await request(`/api/auth/${kind}`,login?{email,password}:signup?{name,email,password}:reset?{token,password}:verify?{token}:{email});if(!result)return;
  if(login){auth.setUser(result.user);router.replace(returnTo);router.refresh();return;}
- if(signup){auth.setUser(result.user);setMessage(result.verificationSent?'We sent a verification link to your email.':'Your account is created. Request a verification email below.');}else{setMessage(result.message);if(verify)await auth.refresh();}
+ if(signup){auth.setUser(result.user);trackEvent('sign_up',{method:'email'},{posthog:false});setMessage(result.verificationSent?'We sent a verification link to your email.':'Your account is created. Request a verification email below.');}else{setMessage(result.message);if(verify)await auth.refresh();}
  setPassword('');setConfirm('');setComplete(true);
  }
  async function resend(){const result=await request('/api/auth/resend-verification',{});if(result)setMessage(result.message);}
