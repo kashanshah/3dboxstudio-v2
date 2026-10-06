@@ -11,6 +11,7 @@ on:
         default: false
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: indexnow
   cancel-in-progress: false
@@ -26,14 +27,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # The last submitted sitemap snapshot, so only new or changed URLs are sent.
-      - uses: actions/cache/restore@v4
-        with:
-          path: .indexnow-state.json
-          key: indexnow-state-${{ github.run_id }}
-          restore-keys: indexnow-state-
+      # The last submitted sitemap snapshot, so only new or changed URLs are
+      # sent. It is kept as an artifact of the previous successful run: the
+      # Actions cache cannot be used here because deployment_status events
+      # are not tied to a branch.
+      - name: Download previous state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for id in $(gh run list --repo "$GITHUB_REPOSITORY" --workflow indexnow.yml --status success --limit 30 --json databaseId --jq '.[].databaseId'); do
+            if gh run download "$id" --repo "$GITHUB_REPOSITORY" --name indexnow-state --dir . 2>/dev/null; then
+              echo "Using state from run $id"; exit 0
+            fi
+          done
+          echo "No previous state found; every sitemap URL will be submitted."
       - run: node scripts/indexnow.mjs ${{ inputs.all && '--all' || '' }}
-      - uses: actions/cache/save@v4
+      - uses: actions/upload-artifact@v4
         with:
+          name: indexnow-state
           path: .indexnow-state.json
-          key: indexnow-state-${{ github.run_id }}
+          retention-days: 90
+          if-no-files-found: error
