@@ -7,3 +7,4 @@ out/
 coverage/
 .vercel
 .env.local
+.indexnow-state.json

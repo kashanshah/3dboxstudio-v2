@@ -139,3 +139,9 @@ Rule of thumb: answer the question first, mention the tool second, and always sa
 
 - After each listing goes live, note the date. AlternativeTo, G2 and Product Hunt show up in GA4 as referrals within a day or two.
 - In about 4 weeks, check Search Console for impressions on /box-templates/*, the comparison pages and "alternative" queries. I can pull those numbers for you.
+
+---
+
+## 7. IndexNow (automatic)
+
+After every successful production deploy, `.github/workflows/indexnow.yml` sends new or changed sitemap URLs to Bing, Yandex, Seznam and Naver. The first run submits all of them. To resubmit everything, run the **IndexNow** workflow from the Actions tab with "Submit every sitemap URL" ticked. Google doesn't use IndexNow, so request indexing for new pages in Search Console → URL Inspection.

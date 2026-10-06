@@ -1,0 +1,39 @@
+name: IndexNow
+# After Vercel reports a successful production deployment, tell Bing and the
+# other IndexNow engines which sitemap URLs are new or changed.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      all:
+        description: Submit every sitemap URL, not only new or changed ones
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: indexnow
+  cancel-in-progress: false
+jobs:
+  submit:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       startsWith(github.event.deployment.environment, 'Production'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The last submitted sitemap snapshot, so only new or changed URLs are sent.
+      - uses: actions/cache/restore@v4
+        with:
+          path: .indexnow-state.json
+          key: indexnow-state-${{ github.run_id }}
+          restore-keys: indexnow-state-
+      - run: node scripts/indexnow.mjs ${{ inputs.all && '--all' || '' }}
+      - uses: actions/cache/save@v4
+        with:
+          path: .indexnow-state.json
+          key: indexnow-state-${{ github.run_id }}
