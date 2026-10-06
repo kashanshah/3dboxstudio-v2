@@ -251,6 +251,23 @@ export async function importCandidates(filter: string) {
   const rows = await campaignSql().query(`SELECT LOWER(TRIM(email)) AS email,MAX(name) AS name FROM users WHERE ${FILTERS[filter]} GROUP BY LOWER(TRIM(email)) ORDER BY LOWER(TRIM(email))`);
   return rows.map(row=>({email:String(row.email),name:row.name == null ? null : String(row.name)})).filter(row=>EMAIL.test(row.email));
 }
+/** CSV for Resend's native importer; subscription state remains owned by Resend. */
+export async function exportCampaignContacts(filter: string) {
+  const recipients = await importCandidates(filter);
+  const cell = (value: string) => `"${value.replace(/"/g,'""')}"`;
+  const rows = recipients.map(recipient=>{
+    const names = (recipient.name || '').trim().split(/\s+/);
+    return [recipient.email,names[0] || '',names.slice(1).join(' ')].map(cell).join(',');
+  });
+  return ['email,first_name,last_name',...rows].join('\r\n')+'\r\n';
+}
+export async function stopSegmentImport(id: string) {
+  requireId(id); await ensureCampaignSchema();
+  const rows = await campaignSql()`UPDATE email_campaign_imports SET status='canceled',last_error=NULL,updated_at=NOW() WHERE id=${id} AND status IN ('pending','running','failed') AND (lock_until IS NULL OR lock_until<NOW()) RETURNING *`;
+  if (!rows.length) throw new CampaignError('Pause the import and wait for the current batch to finish before stopping it.',409);
+  await campaignAudit(null,'segment_import_stopped',{jobId:id,segmentId:rows[0].segment_id,processed:Number(rows[0].processed)});
+  return mapImport(rows[0]);
+}
 export async function startSegmentImport(segmentId: string, filter: string, confirmed: boolean) {
   requireId(segmentId);
   if (!confirmed) throw new CampaignError('Confirm that these contacts are eligible to receive product updates.');

@@ -179,6 +179,28 @@ test('empty segments, incomplete webhook setup and active segment leases block s
  await assert.rejects(schedule(c),/Another operation is updating this segment/);
  assert.equal(remoteBroadcasts.length,0);
 });
+test('CSV export is authenticated, complete, deduplicated and ready for direct Resend import without provider calls',async()=>{
+ await db.query(`INSERT INTO users VALUES ('a',' ADA@EXAMPLE.COM ','Ada Lovelace',NOW(),NULL),('b','ada@example.com',NULL,NOW(),NULL),('c','lin@example.com','林 "Li", Chen',NULL,'legacy'),('d','bad-address','Invalid',NOW(),NULL),('e','plus+tag@example.com',NULL,NULL,NULL)`);
+ const response=await route.GET(new Request('https://example.com/api/admin/campaigns?view=export-contacts&filter=all'));
+ assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/csv/);assert.match(response.headers.get('content-disposition'),/resend-contacts-all-.*\.csv/);assert.equal(response.headers.get('cache-control'),'no-store');
+ const csv=await response.text();assert.equal(csv,'email,first_name,last_name\r\n"ada@example.com","Ada","Lovelace"\r\n"lin@example.com","林","""Li"", Chen"\r\n"plus+tag@example.com","",""\r\n');
+ assert.equal(providerCalls.length,0);assert.doesNotMatch(csv,/unsubscribed/);
+ const verified=await service.exportCampaignContacts('verified');assert.match(verified,/ada@example.com/);assert.doesNotMatch(verified,/lin@example.com/);
+ const migrated=await service.exportCampaignContacts('migrated');assert.match(migrated,/lin@example.com/);assert.doesNotMatch(migrated,/ada@example.com/);
+ assert.equal((await route.GET(new Request('https://example.com/api/admin/campaigns?view=export-contacts&filter=invalid'))).status,400);
+ authenticated=false;assert.equal((await route.GET(new Request('https://example.com/api/admin/campaigns?view=export-contacts&filter=all'))).status,401);
+});
+test('stopping a paused import preserves progress and releases its scheduling blocker without racing a batch',async()=>{
+ await db.query("INSERT INTO users VALUES ('a','ada@example.com','Ada',NOW(),NULL)");
+ const c=await tested();const job=await service.startSegmentImport(segmentId,'verified',true);
+ await assert.rejects(schedule(c),/Finish the segment import/);
+ await db.query("UPDATE email_campaign_imports SET lock_until=NOW()+INTERVAL '5 minutes' WHERE id=$1",[job.id]);
+ await assert.rejects(service.stopSegmentImport(job.id),/current batch/);
+ await db.query('UPDATE email_campaign_imports SET lock_until=NULL,processed=1 WHERE id=$1',[job.id]);
+ const stopped=await service.stopSegmentImport(job.id);assert.equal(stopped.status,'canceled');assert.equal(stopped.processed,1);assert.equal(contacts.size,1);
+ await assert.rejects(service.runImportChunk(job.id),/Import is complete/);
+ assert.equal((await schedule(c)).status,'scheduled');
+});
 test('signed webhooks reject forgeries, deduplicate redeliveries and tolerate out-of-order events',async()=>{
  const c=await tested();await schedule(c);const broadcastId=remoteBroadcasts[0].id,emailId=randomUUID();
  const event={type:'email.clicked',created_at:new Date().toISOString(),data:{broadcast_id:broadcastId,email_id:emailId,to:['ada@example.com'],click:{link:'https://www.3dboxstudio.com/studio?utm_campaign=v2_launch',ipAddress:'sensitive-ip'}}};

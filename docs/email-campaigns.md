@@ -147,3 +147,21 @@ Primary references:
 - https://resend.com/docs/api-reference/segments/create-segment
 - https://resend.com/docs/webhooks/verify-webhooks-requests
 - https://github.com/resend/resend-openapi
+
+## Fast CSV transfer to Resend
+
+In **Campaigns → Segments**, select Verified, Migrated or All registered users,
+confirm eligibility, then click **Export Resend CSV**. This downloads all matching
+valid, normalized and deduplicated addresses in one request without Resend calls.
+It contains `email,first_name,last_name`, with UTF-8 encoding and CSV quoting for
+commas and quotes. Names split on the first word, matching the admin importer.
+Subscription status is deliberately omitted; the registered-user database does
+not hold Resend's current unsubscribe state. Import directly into Resend Contacts,
+review field mapping and subscription handling, and select the desired segment.
+
+When switching an unfinished admin import to CSV, **Pause after this batch**, wait
+for it to finish, then **Stop import**. This keeps contacts already added and
+removes that job's scheduling blocker. Stopping cannot race a leased batch; an
+interrupted request may need up to five minutes for its lease to expire. Refresh
+the segment in admin after Resend finishes the CSV import, then review recipients
+before scheduling. Exporting itself does not add contacts or change subscriptions.
