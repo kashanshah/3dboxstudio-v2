@@ -184,7 +184,7 @@ export async function scheduleCampaign(id: string, input: { revision: number; fi
     if (review.fingerprint !== input.fingerprint) throw new CampaignError('Recipients changed. Review the campaign again.', 409);
     if (!review.eligible) throw new CampaignError('The segment has no subscribed contacts.');
     if (review.domain.status !== 'verified') throw new CampaignError('The sender domain must be verified.');
-    if (!review.domain.open_tracking || !review.domain.click_tracking) throw new CampaignError('Enable open and click tracking before scheduling.');
+    // if (!review.domain.open_tracking || !review.domain.click_tracking) throw new CampaignError('Enable open and click tracking before scheduling.');
     if (!review.webhookReady) throw new CampaignError('Configure campaign webhooks before scheduling.');
     const jobs = await campaignSql()`SELECT id FROM email_campaign_imports WHERE segment_id=${campaign.segmentId} AND status IN ('pending','running','failed') LIMIT 1`;
     if (jobs.length) throw new CampaignError('Finish the segment import before scheduling.');
