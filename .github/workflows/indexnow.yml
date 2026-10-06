@@ -48,3 +48,5 @@ jobs:
           path: .indexnow-state.json
           retention-days: 90
           if-no-files-found: error
+          # The state file is a dotfile, which upload-artifact v4 skips by default.
+          include-hidden-files: true
