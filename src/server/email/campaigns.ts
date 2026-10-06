@@ -78,6 +78,18 @@ export async function createSegment(name: unknown) {
   await ensureCampaignSchema(); await campaignAudit(null, 'segment_created', { segmentId: segment.id, name: name.trim() });
   return { id: segment.id, name: name.trim() };
 }
+export async function renameSegment(segmentId: string, name: unknown) {
+  requireId(segmentId);
+  if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) throw new CampaignError('Enter a segment name (up to 100 characters).');
+  const trimmed = name.trim();
+  const segments = await listSegments();
+  if (!segments.some(segment=>segment.id===segmentId)) throw new CampaignError('This segment no longer exists. Refresh the segments list.',404);
+  if (segments.some(segment=>segment.id!==segmentId && segment.name.toLowerCase()===trimmed.toLowerCase())) throw new CampaignError('A segment with that name already exists.',409);
+  await ensureCampaignSchema();
+  await resendCampaignRequest(`/segments/${segmentId}`,'PATCH',{name:trimmed});
+  await campaignAudit(null,'segment_renamed',{segmentId,name:trimmed});
+  return {id:segmentId,name:trimmed};
+}
 export async function segmentContacts(segmentId: string, after = '') {
   requireId(segmentId);
   return resendCampaignRequest<ProviderPage<ProviderContact>>(`/segments/${segmentId}/contacts?limit=25${after ? `&after=${encodeURIComponent(after)}` : ''}`);
