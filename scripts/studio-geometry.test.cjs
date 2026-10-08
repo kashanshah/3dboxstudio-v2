@@ -773,3 +773,27 @@ test('reverse tuck glue strip follows its own physical hinge in the correct dire
   assert.equal(closed.find(mesh=>mesh.panel==='Glue'),undefined);
   assert.equal(closed.find(mesh=>mesh.panel==='Interior Glue'),undefined);
 });
+
+test('thick board edges never lie in the same plane as a printed face (no z-fighting seams)',()=>{
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+  const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  const unit=v=>{const l=Math.hypot(...v)||1;return v.map(x=>x/l);};
+  const corners=mesh=>[0,1,2,5].map(i=>Array.from(mesh.vertices.slice(i*8,i*8+3)));
+  const inside=(point,quad,normal)=>quad.every((a,i)=>dot(cross(sub(quad[(i+1)%4],a),sub(point,a)),normal)>1e-6)
+    ||quad.every((a,i)=>dot(cross(sub(quad[(i+1)%4],a),sub(point,a)),normal)<-1e-6);
+  for(const dimensions of [{width:120,height:180,depth:55,thickness:6},{width:300,height:120,depth:200,thickness:4},{width:60,height:60,depth:60,thickness:10}]){
+    for(let formation=0;formation<100;formation+=3){
+      const meshes=buildMeshes(dimensions,formation,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation});
+      const faces=meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior')).map(mesh=>{const q=corners(mesh);return {q,n:unit(cross(sub(q[1],q[0]),sub(q[3],q[0])))};});
+      for(const edge of meshes.filter(mesh=>!mesh.panel)){
+        const q=corners(edge),n=unit(cross(sub(q[1],q[0]),sub(q[3],q[0])));
+        const centroid=[0,1,2].map(k=>(q[0][k]+q[1][k]+q[2][k]+q[3][k])/4);
+        for(const face of faces){
+          const coplanar=Math.abs(Math.abs(dot(n,face.n))-1)<1e-6&&Math.abs(dot(sub(centroid,face.q[0]),face.n))<1e-4;
+          assert.ok(!(coplanar&&inside(centroid,face.q,face.n)),`board edge overlaps a printed face at ${formation}% (${JSON.stringify(dimensions)})`);
+        }
+      }
+    }
+  }
+});
