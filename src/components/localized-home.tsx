@@ -41,6 +41,7 @@ export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
         <Brand />
         <nav className="marketing-nav-links" aria-label="3D Box Studio">
           <a href="#features">{c.nav.features}</a>
+          <Link href="/box-templates" hrefLang="en">{c.nav.templates}</Link>
           <a href="#faq">{c.nav.faq}</a>
           <Link href="/blog" hrefLang="en">{c.nav.guides}</Link>
         </nav>

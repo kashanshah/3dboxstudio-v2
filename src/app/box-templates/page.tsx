@@ -22,7 +22,7 @@ const sections = [
   },
   {
     "title": "Mailer-style packaging",
-    "body": "Mailer and corrugated-style structures can use their own panel layout and folding behavior rather than inheriting carton assumptions."
+    "body": "A mailer template is planned, with its own panel layout and folding behavior. Until then, the split top box covers two-flap corrugated shippers."
   },
   {
     "title": "Template-specific behavior",
