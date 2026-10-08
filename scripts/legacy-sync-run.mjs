@@ -114,6 +114,9 @@ export async function runLegacySync({source,target,sourceName='3dboxstudio-v1',a
     preflightMigration({users,oauth,targetUsers:identities,targetOAuth:accounts,ledger:users.map(user=>({source_id:user.id}))});
     if (users.some(user=>!identities.some(row=>row.id===user.id)) || oauth.some(account=>!accounts.some(row=>row.provider===account.provider && row.provider_account_id===account.provider_account_id && row.user_id===account.user_id))) throw new Error('Identity verification failed');
     await target.query('INSERT INTO legacy_sync_runs(id,source,snapshot_at,counts) VALUES($1,$2,$3,$4::jsonb)',[randomUUID(),sourceName,snapshot_at,JSON.stringify(report)]);
+    // The app's schema setup also backfills default folders and share owners
+    // for imported users; forget its fingerprint so the next cold start reruns it.
+    if (tables.has('app_schema_meta')) await target.query("DELETE FROM app_schema_meta WHERE key='v2_schema'");
   }
   onProgress('Verification complete; committing target transaction');
   await target.query('COMMIT');
