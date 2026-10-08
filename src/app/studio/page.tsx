@@ -1,7 +1,8 @@
 import { defaultOgImage } from '@/lib/site';
 import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
-import { StudioHome,StudioGate } from '@/components/auth/studio-home';
+import { redirect } from 'next/navigation';
+import { StudioHome } from '@/components/auth/studio-home';
 import { getCurrentUser } from '@/server/auth/session';
 import { getWorkspaceDesigns } from '@/server/projects';
 import { listWorkspaceProjects } from '@/server/workspace-projects';
@@ -18,7 +19,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Studio({searchParams}:{searchParams:Promise<{q?:string;sort?:string;page?:string;workspace?:string}>}) {
- const user=await getCurrentUser();if(!user)return <StudioGate/>;
+ // Signed-out visitors (every "Start designing" button) go straight to the
+ // sign-up form, which also offers Google and a log-in link that keeps ?next.
+ const user=await getCurrentUser();if(!user)redirect('/signup?next=%2Fstudio');
  const p=await searchParams,search=(p.q??'').slice(0,80),sort=p.sort==='name'?'name':'recent',page=Math.max(1,Math.min(10000,Number.parseInt(p.page??'1',10)||1));
  const projects=await listWorkspaceProjects(user.id);
  const activeProjectId=p.workspace&&projects.some(project=>project.id===p.workspace)?p.workspace:null;

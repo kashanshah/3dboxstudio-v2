@@ -263,7 +263,7 @@ test('pageview effect deduplicates replay, updates SPA referrer, and excludes ad
       if(name==='react')return {useRef:value=>refs[index++]??(refs[index-1]={current:value}),useEffect:fn=>effects.push(fn)};
       if(name==='next/navigation')return {usePathname:()=>pathname,useSearchParams:()=>({toString:()=>query})};
       if(name==='@/lib/analytics')return {trackEvent:(...args)=>events.push(args)};
-      if(name==='@/lib/analytics/policy')return {ANALYTICS_ENABLED:true,isAnalyticsBlockedPath:p=>p==='/admin'||p.startsWith('/admin/')};
+      if(name==='@/lib/analytics/policy'){const out={};vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:out,process:{env:{}}});return {...out,ANALYTICS_ENABLED:true};}
       if(name==='@/lib/analytics/signup')return signupModule();
       throw Error(name);
     },
@@ -347,6 +347,7 @@ test('analytics waits for consent: pending events are sent on accept and dropped
 });
 
 test('PostHog init sends one pageview per route, honours consent, and drops every admin event',()=>{
+  const sendThrough=event=>[].concat(initOptions.before_send).reduce((current,hook)=>current&&hook(current),event);
   let initOptions;
   const consentApi={};
   const window={location:{pathname:'/'},localStorage:storageStub({})};
@@ -364,13 +365,16 @@ test('PostHog init sends one pageview per route, honours consent, and drops ever
   consentApi.setConsentState('granted');
   assert.equal(initOptions.capture_pageview,false);
   const event=url=>({event:'$autocapture',properties:{$current_url:url}});
-  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin/users')),null);
-  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/admin')),null);
-  assert.ok(initOptions.before_send(event('https://www.3dboxstudio.com/administrators-guide')));
-  assert.ok(initOptions.before_send(event('https://www.3dboxstudio.com/studio')));
-  for (const key of ['$current_url','page_location','page_path']) assert.equal(initOptions.before_send({properties:{[key]:'/admin/users?tab=projects'}}),null);
+  assert.equal(sendThrough(event('https://www.3dboxstudio.com/admin/users')),null);
+  assert.equal(sendThrough(event('https://www.3dboxstudio.com/admin')),null);
+  assert.ok(sendThrough(event('https://www.3dboxstudio.com/administrators-guide')));
+  assert.ok(sendThrough(event('https://www.3dboxstudio.com/studio')));
+  for (const key of ['$current_url','page_location','page_path']) assert.equal(sendThrough({properties:{[key]:'/admin/users?tab=projects'}}),null);
+  const secret=sendThrough({properties:{$current_url:'https://www.3dboxstudio.com/reset-password?token=abc123&next=%2Fstudio',$referrer:'https://www.3dboxstudio.com/verify-email?token=xyz'},$set_once:{$initial_current_url:'https://www.3dboxstudio.com/verify-email?token=xyz'}});
+  assert.ok(!JSON.stringify(secret).includes('abc123')&&!JSON.stringify(secret).includes('xyz'),'reset and verification tokens never reach PostHog');
+  assert.ok(secret.properties.$current_url.endsWith('token=[redacted]&next=%2Fstudio'));
   window.location={pathname:'/admin/settings'};
-  assert.equal(initOptions.before_send(event('https://www.3dboxstudio.com/studio')),null,'events sent while on an admin page are dropped');
+  assert.equal(sendThrough(event('https://www.3dboxstudio.com/studio')),null,'events sent while on an admin page are dropped');
   window.location={pathname:'/'};
   consentApi.setConsentState('denied');consentApi.setConsentState('granted');
   assert.deepEqual(listeners,['out','in'],'later changes opt out and back in');
@@ -408,4 +412,12 @@ test('the Google sign-up cookie is reported once to GA4 and then cleared',()=>{
   effects[0]();
   assert.equal(JSON.stringify(events),JSON.stringify([['sign_up',{method:'google'},{posthog:false}]]));
   assert.match(doc.cookie,/^3dbs_signup=; Max-Age=0/);
+});
+
+test('secret query values are redacted from analytics URLs, other parameters are kept', () => {
+  const out = {};
+  vm.runInNewContext(transpile(fs.readFileSync(path.join(root, 'lib/analytics/policy.ts'), 'utf8')), { exports: out, process: { env: {} } });
+  assert.equal(out.redactUrl('/reset-password?token=abc&next=%2Fstudio'), '/reset-password?token=[redacted]&next=%2Fstudio');
+  assert.equal(out.redactUrl('https://www.3dboxstudio.com/verify-email?next=%2Fstudio&token=abc#top'), 'https://www.3dboxstudio.com/verify-email?next=%2Fstudio&token=[redacted]#top');
+  assert.equal(out.redactUrl('/blog?q=tokens'), '/blog?q=tokens');
 });

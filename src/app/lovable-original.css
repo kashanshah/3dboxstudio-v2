@@ -1,10 +1,10 @@
 /* Faithful port of Lovable f4c3c7d; scoped to preserve other V2 routes. */
 .lovable-original {
   --radius: .5rem; --background: oklch(.985 .004 250); --foreground: oklch(.19 .02 258); --card: oklch(1 0 0); --card-foreground: oklch(.19 .02 258);
-  --popover: oklch(1 0 0); --popover-foreground: oklch(.19 .02 258); --primary: oklch(.59 .18 240); --primary-foreground: oklch(.99 .003 240);
+  --popover: oklch(1 0 0); --popover-foreground: oklch(.19 .02 258); --primary: oklch(.54 .18 240); --primary-foreground: oklch(.99 .003 240);
   --secondary: oklch(.95 .01 250); --secondary-foreground: oklch(.25 .025 258); --muted: oklch(.955 .008 250); --muted-foreground: oklch(.53 .025 255);
   --accent: oklch(.93 .035 235); --accent-foreground: oklch(.35 .12 240); --destructive: oklch(.58 .22 27); --destructive-foreground: oklch(.99 0 0);
-  --border: oklch(.89 .012 252); --input: oklch(.89 .012 252); --ring: oklch(.59 .18 240); --success: oklch(.66 .15 155); --studio: oklch(.975 .005 250); --studio-foreground: oklch(.19 .02 258);
+  --border: oklch(.89 .012 252); --input: oklch(.89 .012 252); --ring: oklch(.54 .18 240); --success: oklch(.66 .15 155); --studio: oklch(.975 .005 250); --studio-foreground: oklch(.19 .02 258);
   --shadow-soft: 0 1px 2px oklch(.2 .03 250 / .06), 0 8px 24px oklch(.2 .03 250 / .06); --shadow-lift: 0 24px 70px oklch(.2 .03 250 / .15), 0 2px 8px oklch(.2 .03 250 / .08);
 font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacing:0;background:var(--background);}
 .lovable-original *, .lovable-original *::before, .lovable-original *::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:var(--border)}

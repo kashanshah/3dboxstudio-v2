@@ -1,6 +1,6 @@
 import posthog from 'posthog-js';
 import type { CaptureResult } from 'posthog-js';
-import { REPLAY_BLOCK_SELECTOR, isAnalyticsBlockedPath } from '@/lib/analytics/policy';
+import { REPLAY_BLOCK_SELECTOR, isAnalyticsBlockedPath, redactUrl } from '@/lib/analytics/policy';
 import { getConsentState, onConsentChange } from '@/lib/analytics/consent';
 
 const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
@@ -27,6 +27,22 @@ function dropBlockedPaths(event:CaptureResult|null):CaptureResult|null{
   return paths.some(path=>path!==null&&isAnalyticsBlockedPath(path))?null:event;
 }
 
+function redactStrings(record:Record<string,unknown>|undefined){
+  if(!record)return;
+  for(const [key,value] of Object.entries(record))if(typeof value==='string'&&value.includes('token='))record[key]=redactUrl(value);
+}
+// Reset and verification links carry single-use tokens. Strip them from every
+// URL PostHog records: event properties, person properties and replay meta.
+function redactSecrets(event:CaptureResult|null):CaptureResult|null{
+  if(!event)return event;
+  redactStrings(event.properties);
+  redactStrings(event.$set as Record<string,unknown>|undefined);
+  redactStrings(event.$set_once as Record<string,unknown>|undefined);
+  const snapshots=event.properties?.$snapshot_data;
+  if(Array.isArray(snapshots))for(const item of snapshots)redactStrings((item as {data?:Record<string,unknown>})?.data);
+  return event;
+}
+
 // PostHog is not started until the visitor has consented: even an opted-out
 // SDK fetches remote config and feature flags with an anonymous id.
 let started=false;
@@ -42,7 +58,7 @@ function startPostHog(){
     capture_pageleave:true,
     capture_exceptions:true,
     session_recording:{blockSelector:REPLAY_BLOCK_SELECTOR},
-    before_send:dropBlockedPaths,
+    before_send:[dropBlockedPaths,redactSecrets],
     debug:process.env.NODE_ENV==='development',
   });
 }

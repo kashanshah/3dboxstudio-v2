@@ -408,7 +408,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Choose a supported mailer or carton template and set dimensions from your supplier’s specification. Place artwork from Canva or Illustrator on the flat layout, review the package at a three-quarter angle, and export a PNG for your listing draft. Check the marketplace’s current image requirements before publishing.",
+        text: "Choose a carton template (or the split top box for a shipper-style look) and set dimensions from your supplier’s specification. Place artwork from Canva or Illustrator on the flat layout, review the package at a three-quarter angle, and export a PNG for your listing draft. Check the marketplace’s current image requirements before publishing.",
       },
       {
         type: "h2",
@@ -601,7 +601,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio, choose a supported mailer template, and place outside and inside artwork on the flat layout. Send a PNG or view-only preview link to your team for feedback on the next seasonal box refresh.",
+        text: "Open 3D Box Studio, choose the split top box (a dedicated mailer template is planned), and place outside and inside artwork on the flat layout. Send a PNG or view-only preview link to your team for feedback on the next seasonal box refresh.",
       },
     ],
   },
@@ -930,7 +930,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I use custom box dimensions?",
         answer:
-          "Yes. Enter width, height, and length (depth) in millimeters or inches. You can start from a ready-made template (such as mailer or tuck-end) and override the sizes at any time.",
+          "Yes. Enter width, height, and length (depth) in millimeters or inches. You can start from a ready-made template (such as reverse tuck end, pizza box or split top box) and override the sizes at any time.",
       },
       {
         question: "Can I add different artwork to every side?",
@@ -950,7 +950,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I create a clothing packaging mockup?",
         answer:
-          "Yes. Start from the mailer template or enter custom apparel-box dimensions, upload lid and side branding, set a lid opening, and export open and closed PNG frames for e-commerce or unboxing decks.",
+          "Yes. Start from the split top box or pizza box (a mailer template is planned) with custom apparel-box dimensions, upload lid and side branding, set a lid opening, and export open and closed PNG frames for e-commerce or unboxing decks.",
       },
       {
         question: "Can I export the mockup as PNG?",
@@ -1168,7 +1168,7 @@ export const BLOG_POSTS: BlogPost[] = [
         type: "ol",
         items: [
           "Open the Studio and start a new project.",
-          "Start from the Mailer / shipping box template (or enter exact cm sizes from the carton quote).",
+          "Start from the split top box, the closest shipper available today (a mailer template is planned), and enter exact cm sizes from the carton quote.",
           "Confirm the lid-from-back opening and set open amount to about 35–50% for a mid-open hero shot.",
           "Choose white folding carton or kraft depending on brand positioning.",
           "Upload lid (top) artwork with the logo centered; upload side and front panels with brand color fields.",
@@ -1178,7 +1178,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Interior lid messaging is still prepared outside the Studio for print—there is no editable interior artwork in the 3D tool. The open mailer preview is still useful for judging how much of the cavity appears on camera during early creative buy-in.",
+        text: "Interior lid messaging can be placed on the inside of the dieline in the Studio, so you can check it in the open view before you prepare print files. The open mailer preview is still useful for judging how much of the cavity appears on camera during early creative buy-in.",
       },
       {
         type: "h2",
@@ -1691,7 +1691,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Choose a supported mailer structure, enter width × height × depth in inches or millimeters, and select Kraft or White board for visual review. Position logo and side artwork on the flat layout, then export a PNG for your operations discussion or listing draft.",
+        text: "A dedicated mailer template is planned; today, use the split top box as your shipper. Enter width × height × depth in inches or millimeters, and select Kraft or White board for visual review. Position logo and side artwork on the flat layout, then export a PNG for your operations discussion or listing draft.",
       },
       {
         type: "h2",
@@ -1699,7 +1699,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio in the browser and create a custom mailer box mockup from a supported template. Export viewport PNGs or share a view-only preview link for your launch deck and team review.",
+        text: "Open 3D Box Studio in the browser and create a custom shipper mockup from the split top box template. Export viewport PNGs or share a view-only preview link for your launch deck and team review.",
       },
     ],
   },

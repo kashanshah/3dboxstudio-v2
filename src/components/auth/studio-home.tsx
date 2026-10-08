@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
 import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Pencil,Trash2,Move,ExternalLink,X } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
-import { GoogleSignInButton } from './google-sign-in-button';
 import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
 import type { WorkspaceDesign } from '@/server/projects';
@@ -15,12 +14,6 @@ import { PACKAGING_TEMPLATES } from '@/lib/packaging/template-registry';
 import { TemplateVisual } from '@/components/studio/template-visual';
 import './studio-home.css';
 import './auth-pages.css';
-
-export function StudioGate({next='/studio'}:{next?:string}){
-  const t = useTranslations();
-
-  return <main className="studio-auth-gate"><header className="studio-gate-header"><Brand/><GoogleSignInButton next={next}/></header><div className="studio-gate-body"><section className="studio-gate-content"><div className="studio-gate-preview" aria-hidden="true"><div className="studio-gate-cube">{t("workspace.your")}<br/>{t("workspace.next")}<br/>{t("workspace.idea")}</div></div><h1>{t("workspace.your_packaging_workspace")}</h1><p>{t("workspace.sign_in_to_create_designs_save_your_artwork_and_review_your_packaging_in_3d")}</p><div className="studio-gate-actions"><Link className="button button-primary" href={`/signup?next=${encodeURIComponent(next)}`}>{t("workspace.create_an_account")}</Link><GoogleSignInButton next={next} large/></div><p>{t("workspace.already_have_an_account") + " "}<Link className="auth-inline-link" href={`/login?next=${encodeURIComponent(next)}`}>{t("workspace.sign_in")}</Link></p></section></div></main>;
-}
 
 export function StudioHome({
   user,designs,total,projects,activeProjectId,search,sort,page,

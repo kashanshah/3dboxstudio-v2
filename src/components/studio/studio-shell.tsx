@@ -2090,7 +2090,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 <div className="pro-new-design-size-grid">
                   {(['width','height','depth'] as const).map(axis=><label key={axis} htmlFor={`new-design-${axis}`}>
                     <span>{axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
-                    <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?1:1/25.4} step="any" defaultValue={measurementUnit==='mm'?dimensions[axis]:dimensions[axis]/25.4} onChange={event=>{
+                    <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?1:1/25.4} step="any" defaultValue={formatDimension(dimensions[axis],measurementUnit)} onChange={event=>{
                       const millimetres=parseDimension(event.currentTarget.valueAsNumber,measurementUnit);
                       if(Number.isFinite(millimetres)&&millimetres>=1)setDimensions(current=>({...current,[axis]:millimetres}));
                     }}/>
@@ -2257,11 +2257,11 @@ function Inspector(props: {
                   </div>
                 </div>
                 <div className="pro-current-box-size-fields" aria-label={t("studio.finished_box_size")}>
-                  <label><small>{t("studio.w_2")}</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.width,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,width:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                  <label><small>{t("studio.w_2")}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.width} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,width:mm})}/></label>
                   <i>×</i>
-                  <label><small>{t("studio.h_2")}</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.height,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,height:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                  <label><small>{t("studio.h_2")}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.height} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,height:mm})}/></label>
                   <i>×</i>
-                  <label><small>{t("studio.d_2")}</small><input type="number" min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} value={formatDimension(props.dimensions.depth,props.measurementUnit)} onChange={e=>props.setDimensions({...props.dimensions,depth:parseDimension(Number(e.target.value),props.measurementUnit)})}/></label>
+                  <label><small>{t("studio.d_2")}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.depth} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,depth:mm})}/></label>
                   <em>{props.measurementUnit}</em>
                 </div>
                 <button type="button" className="pro-reset-box-size" title={t("studio.restore_this_template_s_default_width_height_and_depth")} onClick={() => {
@@ -2273,13 +2273,12 @@ function Inspector(props: {
                 <div className="pro-current-box-thickness">
                   <span>{t("studio.board_thickness")}</span>
                   <label>
-                    <input
-                      type="number"
+                    <DimensionInput
                       min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
                       max={props.measurementUnit === 'mm' ? 2 : 0.079}
                       step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
-                      value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
-                      onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+                      valueMm={props.dimensions.thickness} unit={props.measurementUnit} minMm={MIN_BOARD_MM} maxMm={MAX_BOARD_MM}
+                      onCommit={mm=>props.setDimensions({...props.dimensions,thickness:mm})}
                     />
                     <em>{props.measurementUnit}</em>
                   </label>
@@ -2340,13 +2339,12 @@ function Inspector(props: {
             <span>{t("studio.physical_board_edge")}</span>
           </div>
           <label>
-            <input
-              type="number"
+            <DimensionInput
               min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
               max={props.measurementUnit === 'mm' ? 2 : 0.079}
               step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
-              value={formatDimension(props.dimensions.thickness,props.measurementUnit)}
-              onChange={e=>props.setDimensions({...props.dimensions,thickness:parseDimension(Number(e.target.value),props.measurementUnit)})}
+              valueMm={props.dimensions.thickness} unit={props.measurementUnit} minMm={MIN_BOARD_MM} maxMm={MAX_BOARD_MM}
+              onCommit={mm=>props.setDimensions({...props.dimensions,thickness:mm})}
             />
             <em>{props.measurementUnit}</em>
           </label>
@@ -3467,6 +3465,40 @@ function formatDimension(valueMm: number, unit: MeasurementUnit) {
 function parseDimension(value: number, unit: MeasurementUnit) {
   if (!Number.isFinite(value)) return 0;
   return unit === 'mm' ? value : value * 25.4;
+}
+
+const MIN_BOX_MM = 1, MAX_BOX_MM = 3000, MIN_BOARD_MM = 0.1, MAX_BOARD_MM = 2;
+
+/** The typed text as millimetres when it is a usable size, otherwise null. */
+function parseDimensionDraft(text: string, unit: MeasurementUnit, minMm: number, maxMm: number) {
+  if (!text.trim()) return null;
+  const mm = parseDimension(Number(text), unit);
+  return Number.isFinite(mm) && mm >= minMm && mm <= maxMm ? mm : null;
+}
+
+/**
+ * A size field that never writes an empty, zero, negative or out-of-range
+ * value into the design. Valid values apply as you type; anything else is
+ * flagged and reverts to the last good size when the field loses focus.
+ */
+function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }: {
+  valueMm: number; unit: MeasurementUnit; minMm: number; maxMm: number; onCommit: (mm: number) => void;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const invalid = draft !== null && parseDimensionDraft(draft, unit, minMm, maxMm) === null;
+  return <input
+    {...inputProps}
+    type="number"
+    value={draft ?? String(formatDimension(valueMm, unit))}
+    aria-invalid={invalid || undefined}
+    onChange={event => {
+      setDraft(event.target.value);
+      const mm = parseDimensionDraft(event.target.value, unit, minMm, maxMm);
+      if (mm !== null) onCommit(mm);
+    }}
+    onBlur={() => setDraft(null)}
+    onKeyDown={event => { if (event.key === 'Enter') setDraft(null); }}
+  />;
 }
 
 function formatBytes(bytes: number) {
