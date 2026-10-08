@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
 const {JSDOM}=require('jsdom');
-const dom=new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:'https://example.com/studio/editor?project=p1',pretendToBeVisual:true});
-for(const name of ['window','document','navigator','location','history','sessionStorage','getComputedStyle','HTMLElement','HTMLInputElement','HTMLCanvasElement','HTMLDialogElement','Event','MutationObserver','localStorage','requestAnimationFrame','cancelAnimationFrame'])Object.defineProperty(global,name,{value:dom.window[name],configurable:true});
+const dom=new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:'https://example.com/studio/editor',pretendToBeVisual:true});
+for(const name of ['window','document','navigator','location','HTMLElement','HTMLCanvasElement','localStorage','requestAnimationFrame','cancelAnimationFrame'])Object.defineProperty(global,name,{value:dom.window[name],configurable:true});
 global.ResizeObserver=class{observe(){}unobserve(){}disconnect(){}};
 dom.window.HTMLCanvasElement.prototype.getContext=()=>null;
-global.fetch=async()=>Response.json({});
 const resolve=Module._resolveFilename;
 Module._resolveFilename=function(request,...args){return resolve.call(this,request.startsWith('@/')?path.resolve(__dirname,'../src',request.slice(2)):request,...args);};
 const transpile=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,file);

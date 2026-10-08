@@ -175,6 +175,22 @@ const studioAreas: { id: StudioArea; label: MessageKey; helper: MessageKey; icon
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Front','Back','Left','Right','Top'];
 
+type HistoryStatus = {canUndo:boolean;canRedo:boolean};
+const sameHistoryStatus = (a:HistoryStatus, b:HistoryStatus) => a.canUndo === b.canUndo && a.canRedo === b.canRedo;
+
+// Effects set these after every edit. A same-value setState still queues a render, and a fast
+// stream of edits (a color picker drag) then piles up nested updates until React throws #185.
+function useChangedState<T>(initial:T, same:(a:T, b:T)=>boolean = Object.is) {
+  const [value,setValue] = useState(initial);
+  const lastRef = useRef(initial);
+  const setChanged = useCallback((next:T) => {
+    if (same(lastRef.current, next)) return;
+    lastRef.current = next;
+    setValue(next);
+  }, [same]);
+  return [value,setChanged] as const;
+}
+
 export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialDimensions:requestedDimensions,initialUnit,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;newDesignProjects?:NewDesignProject[]} = {}) {
   const t = useTranslations();
 
@@ -189,13 +205,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [workspaceProjectId,setWorkspaceProjectId] = useState(initialProject?(initialWorkspaceProjectId??initialProject.workspaceProjectId??null):defaults.workspaceProjectId);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
-  const [hasUnsavedChanges,setHasUnsavedChangesState] = useState(false);
-  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
-  const setHasUnsavedChanges = useCallback((value:boolean) => {
-    if (hasUnsavedChangesRef.current === value) return;
-    hasUnsavedChangesRef.current = value;
-    setHasUnsavedChangesState(value);
-  }, []);
+  const [hasUnsavedChanges,setHasUnsavedChanges] = useChangedState(false);
   const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
   const [fileMenuOpen,setFileMenuOpen] = useState(false);
   const [deleteModalOpen,setDeleteModalOpen] = useState(false);
@@ -352,16 +362,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const historyCommittedSerializedRef = useRef(historySerialized);
   const historyApplyingSerializedRef = useRef<string | null>(null);
   const historyTimerRef = useRef<number | null>(null);
-  const [historyStatus,setHistoryStatusState] = useState({canUndo:false,canRedo:false});
-  const historyStatusRef = useRef(historyStatus);
-  // Effects call this after every edit. A same-value setState still queues a render, and a fast
-  // stream of edits (a color picker drag) then piles up nested updates until React throws #185.
-  const setHistoryStatus = useCallback((status:{canUndo:boolean;canRedo:boolean}) => {
-    const current = historyStatusRef.current;
-    if (current.canUndo === status.canUndo && current.canRedo === status.canRedo) return;
-    historyStatusRef.current = status;
-    setHistoryStatusState(status);
-  }, []);
+  const [historyStatus,setHistoryStatus] = useChangedState<HistoryStatus>({canUndo:false,canRedo:false}, sameHistoryStatus);
 
   useEffect(() => {
     historySnapshotRef.current = historySnapshot;
