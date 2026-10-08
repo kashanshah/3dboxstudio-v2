@@ -115,17 +115,19 @@ function buildReverseTuckMeshes(
     corners: number[][];
     surfaceColor: [number, number, number];
     aspect: number;
+    /** Edge indices (corner i → i+1) that are folds onto another panel, not cut edges. */
+    creases: number[];
   }> = [
     // Once the back wall reaches its final fold, it covers the glue flap.
     // Keeping both surfaces coplanar makes the depth buffer alternate between
     // the unprinted flap and the printed back artwork (a visible grey strip).
-    ...(fold.back < 0.999 ? [{ name: 'Glue', corners: glueCorners, surfaceColor: color, aspect: glueWidth/h }] : []),
-    { name: 'Front', corners: frontCorners, surfaceColor: color, aspect: w / h },
-    { name: 'Left', corners: leftCorners, surfaceColor: color, aspect: d / h },
-    { name: 'Right', corners: rightCorners, surfaceColor: color, aspect: d / h },
-    { name: 'Back', corners: backCorners, surfaceColor: color, aspect: w / h },
-    { name: 'Top', corners: topCorners, surfaceColor: color, aspect: w / d },
-    { name: 'Bottom', corners: bottomCorners, surfaceColor: color, aspect: w / d },
+    ...(fold.back < 0.999 ? [{ name: 'Glue', corners: glueCorners, surfaceColor: color, aspect: glueWidth/h, creases: [1] }] : []),
+    { name: 'Front', corners: frontCorners, surfaceColor: color, aspect: w / h, creases: [0, 1, 2, 3] },
+    { name: 'Left', corners: leftCorners, surfaceColor: color, aspect: d / h, creases: [1, 3] },
+    { name: 'Right', corners: rightCorners, surfaceColor: color, aspect: d / h, creases: [1, 3] },
+    { name: 'Back', corners: backCorners, surfaceColor: color, aspect: w / h, creases: [3] },
+    { name: 'Top', corners: topCorners, surfaceColor: color, aspect: w / d, creases: [0] },
+    { name: 'Bottom', corners: bottomCorners, surfaceColor: color, aspect: w / d, creases: [2] },
   ];
 
   const exteriorMeshes: Mesh[] = [];
@@ -170,6 +172,11 @@ function buildReverseTuckMeshes(
     if (!showExposedBoardEdges) continue;
 
     for (let index = 0; index < 4; index += 1) {
+      // A crease is where this board bends into its neighbour, so no cut edge
+      // is exposed there. Drawing one puts a board-thick strip in the same
+      // plane as the neighbour's printed face, and the two flicker against
+      // each other (striped seams that grow with board thickness).
+      if (panel.creases.includes(index)) continue;
       const nextIndex = (index + 1) % 4;
       const edgeCorners = [
         panel.corners[index],
@@ -191,7 +198,27 @@ function buildReverseTuckMeshes(
     }
   }
 
-  return [...exteriorMeshes, ...interiorMeshes, ...edgeMeshes];
+  // Free edges can also end flush against another panel's printed face (the
+  // back's end against the left wall, closed flaps against the back). Those
+  // strips are hidden in a real carton and flicker when drawn, so drop them.
+  const visibleEdges = edgeMeshes.filter(edge => !exteriorMeshes.some(face => overlapsCoplanar(edge, face)));
+  return [...exteriorMeshes, ...interiorMeshes, ...visibleEdges];
+}
+
+const corners = (mesh: Mesh) => [0, 1, 2, 5].map(index => Array.from(mesh.vertices.slice(index * 8, index * 8 + 3)));
+const sub = (a: number[], b: number[]) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const dot = (a: number[], b: number[]) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a: number[], b: number[]) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+
+/** True when the edge strip lies in the face's plane with its centre inside the face. */
+function overlapsCoplanar(edge: Mesh, face: Mesh) {
+  const quad = corners(face), strip = corners(edge);
+  const normal = faceNormal(quad), stripNormal = faceNormal(strip);
+  if (Math.abs(Math.abs(dot(normal, stripNormal)) - 1) > 1e-4) return false;
+  const centre = [0, 1, 2].map(axis => strip.reduce((sum, point) => sum + point[axis], 0) / 4);
+  if (Math.abs(dot(sub(centre, quad[0]), normal)) > 1e-3) return false;
+  const sides = quad.map((point, index) => dot(cross(sub(quad[(index + 1) % 4], point), sub(centre, point)), normal));
+  return sides.every(side => side > 0) || sides.every(side => side < 0);
 }
 
 
