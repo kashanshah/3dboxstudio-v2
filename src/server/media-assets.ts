@@ -29,6 +29,10 @@ function s3(){
     const secretAccessKey=optionalEnv('AWS_SECRET_ACCESS_KEY');
     client = new S3Client({
       region: requireEnv('AWS_REGION'),
+      // The SDK's default checksum would bake the CRC32 of an *empty* body into
+      // presigned PUT URLs, so S3 rejects every real browser upload (BadDigest).
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
       ...(accessKeyId&&secretAccessKey ? {credentials:{accessKeyId,secretAccessKey}} : {}),
       ...(optionalEnv('AWS_S3_ENDPOINT') ? {
         endpoint: optionalEnv('AWS_S3_ENDPOINT'),

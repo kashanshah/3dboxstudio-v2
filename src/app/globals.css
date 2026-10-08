@@ -103,6 +103,11 @@
 .carton-engine-canvas:active{cursor:grabbing}
 .carton-engine-canvas.is-pan-enabled{cursor:move}
 .carton-engine-canvas.is-pan-enabled:active{cursor:grabbing}
+.carton-engine-fallback{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center;color:#334155;font-size:13px;line-height:1.45;pointer-events:none}
+.carton-engine-fallback strong{font-size:14px;color:#0f172a}
+.carton-engine-fallback span{max-width:34ch}
+.pro-view-error{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:160px;height:100%;padding:24px;text-align:center;font-size:13px;color:#334155}
+.pro-view-error .pro-secondary-button{display:inline-flex;align-items:center;gap:6px}
 .pro-3d-stage .pro-grid-floor{z-index:0}.pro-3d-stage .pro-stage-badge,.pro-3d-stage .pro-stage-meta{z-index:3;pointer-events:none}
 .pro-dieline-live{width:min(72%,720px);height:auto;max-height:68%;transform:scale(var(--studio-zoom));position:relative}
 .dl-live{position:absolute!important;border:1.5px solid var(--accent)!important;background:#fff!important;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:8px;min-width:0;overflow:hidden}
@@ -1171,6 +1176,12 @@ body{font-size:var(--type-body)}
 /* Reserve the optional progress row even when no upload is active. */
 .pro-media-modal-unified>.pro-media-modal-header{grid-row:1}
 .pro-media-modal-unified>.pro-media-upload-progress{grid-row:2}
+.pro-media-modal-unified>.pro-media-upload-error{grid-row:2}
+.pro-media-upload-error{display:flex;align-items:center;gap:10px;margin:12px 18px;padding:10px 12px;border:1px solid #fecaca;border-radius:10px;background:#fef2f2;color:#991b1b;font-size:12px;line-height:1.4}
+.pro-media-upload-error>svg{flex:0 0 auto}
+.pro-media-upload-error p{flex:1;margin:0;min-width:0}
+.pro-media-upload-error .pro-secondary-button{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px}
+.pro-media-upload-error-dismiss{flex:0 0 auto;width:28px;height:28px;display:grid;place-items:center;border-radius:6px;color:inherit}
 .pro-media-modal-unified>.pro-media-unified-workspace{grid-row:3}
 .pro-media-modal-unified>.pro-media-modal-footer{grid-row:4}
 .pro-media-modal-unified .pro-media-modal-header{height:auto;min-height:84px;padding-block:14px}

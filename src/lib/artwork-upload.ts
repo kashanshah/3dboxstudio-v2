@@ -18,12 +18,21 @@ const HEIC_EXTENSIONS = new Set(['heic', 'heif']);
 
 export type ArtworkUploadErrorCode = 'too_large' | 'unsupported_type' | 'heic' | 'empty' | 'rate_limited' | 'failed';
 
+/** Where a browser upload failed: asking our API for an upload URL, sending bytes to storage, or confirming it. */
+export type ArtworkUploadStage = 'prepare' | 'storage' | 'finalize';
+
 export class ArtworkUploadError extends Error {
   readonly code: ArtworkUploadErrorCode;
-  constructor(message: string, code: ArtworkUploadErrorCode) {
+  readonly stage?: ArtworkUploadStage;
+  readonly status?: number;
+  readonly timedOut?: boolean;
+  constructor(message: string, code: ArtworkUploadErrorCode, details: { stage?: ArtworkUploadStage; status?: number; timedOut?: boolean } = {}) {
     super(message);
     this.name = 'ArtworkUploadError';
     this.code = code;
+    this.stage = details.stage;
+    this.status = details.status;
+    this.timedOut = details.timedOut;
   }
 }
 
@@ -81,6 +90,11 @@ const REASONS: Record<ArtworkUploadErrorCode, string> = {
 };
 
 export type ArtworkUploadFailure = { name: string; code: ArtworkUploadErrorCode };
+
+/** Failures worth offering a retry for: network, storage and rate-limit problems, not bad files. */
+export function isRetryableArtworkFailure(code: ArtworkUploadErrorCode) {
+  return code === 'failed' || code === 'rate_limited';
+}
 
 /**
  * One clear status line for a (possibly partial) multi-file upload, e.g.
