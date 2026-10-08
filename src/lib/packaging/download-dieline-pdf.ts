@@ -22,17 +22,26 @@ type DownloadInput = {
   /** Defaults to the current navigator; overridable for tests. */
   deviceInfo?: ExportDeviceInfo;
   rasterBudget?: PdfRasterBudget;
+  onPanelProgress?: (done: number, total: number) => void;
 };
 
 const JPEG_QUALITY = 0.92;
 const SVG_MIN_RASTER_SIDE = 2048;
+// Fail with a clear message instead of leaving "Preparing PDF…" up forever.
+const ARTWORK_LOAD_TIMEOUT_MS = 45_000;
 
 function loadImageElement(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
+    const timer = setTimeout(() => {
+      image.onload = image.onerror = null;
+      image.src = '';
+      reject(new PdfExportError('Artwork took too long to load for the PDF. Check your connection and retry, or export without artwork.'));
+    }, ARTWORK_LOAD_TIMEOUT_MS);
+    const settle = (finish: () => void) => { clearTimeout(timer); finish(); };
     image.crossOrigin = 'anonymous';
-    image.onload = () => image.decode().then(() => resolve(image), () => reject(new PdfExportError('Could not decode artwork. Retry after the image has loaded.')));
-    image.onerror = () => reject(new PdfExportError('Could not load artwork for PDF. Retry or export without artwork.'));
+    image.onload = () => settle(() => image.decode().then(() => resolve(image), () => reject(new PdfExportError('Could not decode artwork. Retry after the image has loaded.'))));
+    image.onerror = () => settle(() => reject(new PdfExportError('Could not load artwork for PDF. Retry or export without artwork.')));
     image.src = url;
   });
 }
@@ -347,7 +356,7 @@ export async function downloadDielinePdf(input: DownloadInput) {
     dispose = prepared.dispose;
     const result = await createDielinePdf({
       geometry: prepared.geometry, renderPanel: input.options.includeArtwork ? prepared.renderPanel : undefined,
-      options: input.options, dimensions: input.dimensions, scope: input.scope,
+      options: input.options, dimensions: input.dimensions, scope: input.scope, onPanelProgress: input.onPanelProgress,
       title: `3D Box Studio - ${input.templateId} - ${input.scope} - 1:1`,
     });
     dispose();

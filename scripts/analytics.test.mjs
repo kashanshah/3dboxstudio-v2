@@ -292,7 +292,7 @@ test('PDF completion follows generated download; generation failures are reporte
     const events=[],statuses=[];
     let resolveDownload;
     const pending=new Promise(resolve=>{resolveDownload=resolve;});
-    const context={Error,exports:{},pdfRunning:{current:false},pdfExportOptions:{bleedMm:3},pdfBaseColor:null,artworkByPanel:{},
+    const context={Error,performance,exports:{},pdfRunning:{current:false},pdfExportOptions:{bleedMm:3},pdfBaseColor:null,artworkByPanel:{},
       selectedTemplateId:'fixture',dimensions:{},openingMode:'closed',splitTopHingeSide:'side_a',layers:[],artworkScope:'outside',
       setPrintError:()=>{},setPrinting:()=>{},onPdfStatus:(...args)=>statuses.push(args),trackEvent:(...args)=>events.push(args),
       require:()=>({downloadDielinePdf:async()=>{await pending;if(!success)throw Error('Image failed');return {widthMm:100,heightMm:200};}})};
@@ -304,6 +304,7 @@ test('PDF completion follows generated download; generation failures are reporte
     await first;
     assert.equal(events[0][0],'export_clicked');
     assert.equal(events[1][0],success?'export_completed':'export_failed');
+    assert.equal(typeof events[1][1].duration_ms,'number');
     assert.equal(events.length,2);
     assert.equal(context.pdfRunning.current,false);
     assert.equal(statuses.at(-1)[0],false);
