@@ -1,14 +1,14 @@
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { ensureV2Schema, getSql } from '@/server/db';
 
-export async function saveExportRating(input:{rating:number;format:string;templateId:string;userId:string|null}) {
+export async function saveExportRating(input:{rating:number;format:string;templateId:string;userId:string|null;editKey:string}) {
   await ensureV2Schema();
   const id=randomUUID();
   const db=getSql();
   await db`INSERT INTO export_feedback(id,user_id,rating,export_format,template_id) VALUES (${id},${input.userId},${input.rating},${input.format},${input.templateId})`;
   return id;
 }
-export async function saveExportComment(id:string,comment:string,userId:string|null) {
+export async function saveExportComment(id:string,comment:string,editKey:string) {
   await ensureV2Schema();
   const db=getSql();
   const rows=await db`UPDATE export_feedback SET comment=${comment},updated_at=NOW() WHERE id=${id} AND comment IS NULL RETURNING id`;
