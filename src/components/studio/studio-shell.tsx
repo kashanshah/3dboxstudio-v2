@@ -1585,7 +1585,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     try {
       const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
       trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
-      if (exported) window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'png',templateId:selectedTemplateId}}));
+      if (exported) if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'png',templateId:selectedTemplateId}}));
       setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
     } catch {
       trackEvent('export_failed', {...context, failure_category:'render_error'});
@@ -2621,7 +2621,7 @@ function DielinePrototype({
       const {downloadDielinePdf}=await import('@/lib/packaging/download-dieline-pdf');
       const result=await downloadDielinePdf({templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},layers,artworkByPanel,scope:artworkScope,baseColor:pdfBaseColor,options:pdfExportOptions});
       trackEvent('export_completed',{...context,page_width_mm:result.widthMm,page_height_mm:result.heightMm});
-      window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'pdf',templateId:selectedTemplateId}}));
+      if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'pdf',templateId:selectedTemplateId}}));
       onPdfStatus(false,'PDF downloaded at 1:1 scale. Print at Actual size / 100%.');
     } catch(error) {
       const message=error instanceof Error?error.message:'Could not prepare the PDF. Please retry.';
