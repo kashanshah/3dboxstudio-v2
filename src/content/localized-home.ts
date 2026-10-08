@@ -17,7 +17,7 @@ export type LocalizedHomeContent = {
   nativeName: string;
   title: string;
   description: string;
-  nav: { features: string; faq: string; guides: string; openStudio: string; languages: string; skip: string };
+  nav: { features: string; templates: string; faq: string; guides: string; openStudio: string; languages: string; skip: string };
   hero: { badge: string; line1: string; line2: string; intro: string; primaryCta: string; secondaryCta: string; proof: [string, string, string]; appNote: string };
   steps: { eyebrow: string; title: string; items: [Item, Item, Item]; alts: [string, string, string] };
   features: { eyebrow: string; title: string; items: Item[] };
@@ -35,7 +35,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     nativeName: 'Español (España)',
     title: 'Diseñador de cajas 3D y mockups gratis | 3D Box Studio',
     description: 'Generador de cajas 3D online y gratuito: medidas exactas, diseño sobre el troquel, vista 3D que se pliega y exportación en PNG y PDF a escala 1:1. Cuenta gratuita.',
-    nav: { features: 'Funciones', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Saltar al contenido' },
+    nav: { features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Saltar al contenido' },
     hero: {
       badge: 'Generador de cajas 3D y mockups gratis',
       line1: 'Diseña la caja.',
@@ -93,7 +93,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     nativeName: 'Español (México)',
     title: 'Diseñador de cajas 3D y empaques gratis | 3D Box Studio',
     description: 'Crea cajas en 3D gratis en línea: medidas exactas, diseño sobre el suaje, vista 3D que se arma y exportación en PNG y PDF a escala 1:1. Cuenta gratuita.',
-    nav: { features: 'Funciones', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Ir al contenido' },
+    nav: { features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Ir al contenido' },
     hero: {
       badge: 'Generador de cajas 3D y mockups de empaque gratis',
       line1: 'Diseña la caja.',
@@ -151,7 +151,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     nativeName: 'Français',
     title: 'Créateur de boîtes 3D et mockups gratuit | 3D Box Studio',
     description: 'Créateur de boîtes 3D gratuit en ligne : dimensions exactes, design sur le tracé de découpe, pliage en 3D et export PNG ou PDF à l’échelle 1:1. Compte gratuit.',
-    nav: { features: 'Fonctionnalités', faq: 'FAQ', guides: 'Guides', openStudio: 'Ouvrir le Studio', languages: 'Langue', skip: 'Aller au contenu' },
+    nav: { features: 'Fonctionnalités', templates: 'Modèles de boîtes', faq: 'FAQ', guides: 'Guides', openStudio: 'Ouvrir le Studio', languages: 'Langue', skip: 'Aller au contenu' },
     hero: {
       badge: 'Générateur de boîtes 3D et mockups gratuit',
       line1: 'Dessinez la boîte.',
@@ -209,7 +209,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     nativeName: 'Português (Brasil)',
     title: 'Criador de caixas 3D e mockups grátis | 3D Box Studio',
     description: 'Crie caixas em 3D grátis online: medidas exatas, arte sobre a faca de corte, montagem em 3D e exportação em PNG e PDF na escala 1:1. Conta gratuita.',
-    nav: { features: 'Recursos', faq: 'Perguntas', guides: 'Guias', openStudio: 'Abrir o Studio', languages: 'Idioma', skip: 'Pular para o conteúdo' },
+    nav: { features: 'Recursos', templates: 'Modelos de caixa', faq: 'Perguntas', guides: 'Guias', openStudio: 'Abrir o Studio', languages: 'Idioma', skip: 'Pular para o conteúdo' },
     hero: {
       badge: 'Gerador de caixas 3D e mockups grátis',
       line1: 'Crie a caixa.',
@@ -267,7 +267,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     nativeName: 'Deutsch',
     title: 'Kostenloser 3D-Box-Generator & Mockups | 3D Box Studio',
     description: 'Kostenloser 3D-Box-Generator im Browser: exakte Maße, Gestaltung auf der Stanzkontur, Faltung in 3D und Export als PNG oder PDF im Maßstab 1:1. Kostenloses Konto.',
-    nav: { features: 'Funktionen', faq: 'FAQ', guides: 'Ratgeber', openStudio: 'Studio öffnen', languages: 'Sprache', skip: 'Zum Inhalt springen' },
+    nav: { features: 'Funktionen', templates: 'Schachtelvorlagen', faq: 'FAQ', guides: 'Ratgeber', openStudio: 'Studio öffnen', languages: 'Sprache', skip: 'Zum Inhalt springen' },
     hero: {
       badge: 'Kostenloser 3D-Box-Generator und Mockup-Tool',
       line1: 'Gestalte die Box.',
@@ -325,7 +325,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     nativeName: '简体中文',
     title: '免费 3D 包装盒设计与效果图生成器 | 3D Box Studio',
     description: '免费在线 3D 包装盒生成器：输入精确尺寸，在刀版图上排版，实时 3D 折叠预览，并导出 PNG 效果图或 1:1 PDF 刀版图。需注册免费账户。',
-    nav: { features: '功能', faq: '常见问题', guides: '指南', openStudio: '打开 Studio', languages: '语言', skip: '跳到正文' },
+    nav: { features: '功能', templates: '盒型模板', faq: '常见问题', guides: '指南', openStudio: '打开 Studio', languages: '语言', skip: '跳到正文' },
     hero: {
       badge: '免费 3D 包装盒生成器与效果图工具',
       line1: '设计包装盒，',

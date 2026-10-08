@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 
 const navLinks = [
   { href: '/features', label: "navigation.features" },
+  { href: '/box-templates', label: "navigation.box_templates" },
   { href: '/#showcase', label: "navigation.examples", homeHash: '#showcase' },
   { href: '/#workflow', label: "navigation.workflow", homeHash: '#workflow' },
   { href: '/blog', label: "navigation.guides" },

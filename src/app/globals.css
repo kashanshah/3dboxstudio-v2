@@ -1070,6 +1070,14 @@ body{font-size:var(--type-body)}
   font-size:12px;
 }
 
+/* Examples and Workflow are sections of the home page; drop them first so the
+   header keeps room for Box templates and the Open Studio button. */
+@media(max-width:1180px){
+  .marketing-nav-links a[href^="/#"]{display:none}
+}
+@media(max-width:880px){
+  .marketing-nav-links a[href="/contact"]{display:none}
+}
 @media(max-width:920px){
   .marketing-header-inner{width:calc(100% - 40px);gap:18px}
   .marketing-nav-links{gap:18px;font-size:13px}
