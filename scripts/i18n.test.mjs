@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import ts from 'typescript';
 const require = createRequire(import.meta.url);
 const root = path.resolve(import.meta.dirname, '..');
@@ -20,7 +21,7 @@ function load(relative) {
   return exports;
 }
 const { resolveLocale, supportedLocales, localeDirection } = load('src/lib/i18n/config.ts');
-const { translate, localizeContent, formatNumber, pluralCategory } = load('src/lib/i18n/index.ts');
+const { translate, localizeContent, formatNumber, formatDate, pluralCategory } = load('src/lib/i18n/index.ts');
 const { PACKAGING_TEMPLATES } = load('src/lib/packaging/template-registry.ts');
 const { getPackagingTemplateCopy } = load('src/lib/i18n/template-copy.ts');
 
@@ -59,4 +60,17 @@ test('sitemap advertises actual translated content and excludes redirecting Stud
   assert.ok(xml.includes('/fr/blog/how-to-create-3d-product-box-mockup-online'));
   assert.doesNotMatch(xml, /\/(fr|es|de|zh)\/studio/);
   for (const file of ['src/app/studio/page.tsx', 'src/app/studio/editor/page.tsx', 'src/app/[locale]/studio/page.tsx']) assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'), /languages:/);
+});
+test('dates render the same text on the server and in browsers with another region or time zone', () => {
+  const updatedAt = '2026-10-07T21:30:00.000Z';
+  assert.equal(formatDate(updatedAt), 'Oct 7, 2026');
+  const script = `import fs from 'node:fs';import path from 'node:path';import { createRequire } from 'node:module';import ts from 'typescript';const require=createRequire(${JSON.stringify(import.meta.url)});const root=${JSON.stringify(root)};const cache=new Map();${load};process.stdout.write(load('src/lib/i18n/index.ts').formatDate(process.argv[1]));`;
+  for (const env of [{ LANG: 'en_GB.UTF-8', TZ: 'Asia/Karachi' }, { LANG: 'de_DE.UTF-8', TZ: 'Pacific/Kiritimati' }, { LANG: 'en_US.UTF-8', TZ: 'America/Los_Angeles' }]) {
+    assert.equal(execFileSync(process.execPath, ['--input-type=module', '-e', script, updatedAt], { cwd: root, env: { ...process.env, LC_ALL: env.LANG, ...env } }).toString(), 'Oct 7, 2026', JSON.stringify(env));
+  }
+});
+test('server-rendered client components do not format dates or numbers with the browser locale', () => {
+  for (const file of ['src/components/auth/studio-home.tsx', 'src/components/auth/account-page.tsx', 'src/components/admin-dashboard.tsx']) {
+    assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'), /toLocale(Date|Time)?String\((undefined)?[,)]/, file);
+  }
 });
