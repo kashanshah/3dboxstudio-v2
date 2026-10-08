@@ -83,25 +83,44 @@ export function PostExportFeedback() {
   };
 
   if (!open) return null;
+  const moods = [
+    { emoji: "😣", label: "Very poor" },
+    { emoji: "🙁", label: "Not great" },
+    { emoji: "😐", label: "Okay" },
+    { emoji: "😊", label: "Good" },
+    { emoji: "🤩", label: "Amazing" },
+  ];
   return <div className="export-feedback-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setOpen(false); }}>
-    <div className="export-feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="export-feedback-title" tabIndex={-1} ref={dialogRef}>
+    <div className="export-feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="export-feedback-title" aria-describedby="export-feedback-description" tabIndex={-1} ref={dialogRef}>
       <button type="button" className="export-feedback-close" onClick={() => setOpen(false)} aria-label="Close feedback survey">×</button>
-      {rating === null ? <>
-        <span className="export-feedback-kicker">Download complete ✓</span>
-        <h2 id="export-feedback-title">How was your experience?</h2>
-        <p>Your feedback helps us make 3DBoxStudio better.</p>
-        <div className="export-feedback-ratings" role="group" aria-label="Rate your export experience">
-          {["😞","😕","😐","🙂","😍"].map((emoji, index) => <button key={emoji} type="button" aria-label={`Rate ${index+1} out of 5`} title={`${index+1} out of 5`} onClick={() => chooseRating(index+1)}>{emoji}</button>)}
-        </div>
-        <button className="export-feedback-skip" type="button" onClick={() => setOpen(false)}>Skip for now</button>
-      </> : <>
-        <span className="export-feedback-kicker">Rating saved ✓</span>
-        <h2 id="export-feedback-title">Thank you!</h2>
-        <p>Anything you'd like us to improve? <span>(Optional)</span></p>
-        <textarea aria-label="Optional feedback" value={feedback} onChange={event => setFeedback(event.target.value)} maxLength={1000} rows={3} placeholder="Tell us what worked, or what could be better…" />
-        <button type="button" className="export-feedback-submit" onClick={submit}>{feedback.trim() ? "Send feedback" : "Done"}</button>
-        <button type="button" className="export-feedback-skip" onClick={() => setOpen(false)}>No thanks, close</button>
-      </>}
+      <div className="export-feedback-hero">
+        <div className="export-feedback-hero-icon" aria-hidden="true">{rating === null ? "↓" : "♥"}</div>
+        <span className="export-feedback-kicker">{rating === null ? "EXPORT COMPLETE" : "RATING SAVED ✓"}</span>
+      </div>
+      <div className="export-feedback-content">
+        {rating === null ? <>
+          <h2 id="export-feedback-title">How was your experience?</h2>
+          <p id="export-feedback-description">Your download is ready! One tap helps us make 3DBoxStudio even better.</p>
+          <div className="export-feedback-ratings" role="group" aria-label="Rate your export experience">
+            {moods.map((mood, index) => <button key={mood.label} type="button" aria-label={`Rate ${index + 1} out of 5: ${mood.label}`} onClick={() => chooseRating(index + 1)}>
+              <span className="export-feedback-emoji" aria-hidden="true">{mood.emoji}</span><span className="export-feedback-mood">{mood.label}</span>
+            </button>)}
+          </div>
+          <span className="export-feedback-hint">Tap an emoji to save your rating instantly</span>
+          <button className="export-feedback-skip" type="button" onClick={() => setOpen(false)}>No thanks, skip</button>
+        </> : <>
+          <h2 id="export-feedback-title">Thanks for helping us grow!</h2>
+          <p id="export-feedback-description">Your rating has been saved. Want to tell us more? <span>Totally optional.</span></p>
+          <div className="export-feedback-saved-rating" aria-label={`Your saved rating: ${rating} out of 5`}>
+            <span aria-hidden="true">{moods[rating-1].emoji}</span> {moods[rating-1].label} <span className="export-feedback-saved-check">✓ Saved</span>
+          </div>
+          <label htmlFor="export-feedback-comment" className="export-feedback-label">What could we improve?</label>
+          <textarea id="export-feedback-comment" value={feedback} onChange={event => setFeedback(event.target.value)} maxLength={1000} rows={3} placeholder="Share an idea, issue, or something you loved…" />
+          <button type="button" className="export-feedback-submit" onClick={submit}>{feedback.trim() ? "Send feedback →" : "All done ✓"}</button>
+          <button type="button" className="export-feedback-skip" onClick={() => setOpen(false)}>Skip comment & close</button>
+        </>}
+      </div>
+      <div className="export-feedback-footer"><span aria-hidden="true">✦</span> Made better with your feedback</div>
     </div>
   </div>;
 }
