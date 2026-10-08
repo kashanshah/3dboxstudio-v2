@@ -13,7 +13,8 @@ export async function saveProject(req:Request,id?:string){
  await ensureV2Schema();const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to save your design.'},{status:401});
  const raw=await req.text();if(Buffer.byteLength(raw)>3*1024*1024)return NextResponse.json({error:'This design exceeds the current 3 MB save limit. Use smaller artwork images and try again.'},{status:413});
  let body;try{body=JSON.parse(raw);}catch{return NextResponse.json({error:'Invalid design data.'},{status:400});}
- if(typeof body?.name!=='string'||!body.name.trim()||body.name.length>120||!validProjectState(body.state)||typeof body.preview!=='string'||body.preview.length>250000||!/^data:image\/png;base64,/.test(body.preview))return NextResponse.json({error:'Invalid design data.'},{status:400});
+ if(typeof body?.name!=='string'||!body.name.trim()||body.name.length>120||!validProjectState(body.state)||typeof body.preview!=='string'||!/^data:image\/png;base64,/.test(body.preview))return NextResponse.json({error:'Invalid design data.'},{status:400});
+ if(body.preview.length>250000)return NextResponse.json({error:'The design preview image is too large to save. Try again, or reduce the zoom on the 3D preview.'},{status:400});
  const sql=getSql();let rows;
  const workspaceProjectId=await resolveWorkspaceProjectId(user.id,typeof body.workspaceProjectId==='string'?body.workspaceProjectId:null);
  if(id){
