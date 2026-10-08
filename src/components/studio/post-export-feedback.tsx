@@ -23,6 +23,10 @@ export function PostExportFeedback() {
   const [rating, setRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [saveState, setSaveState] = useState<"idle"|"saving"|"saved"|"error">("idle");
+  const [commentError, setCommentError] = useState("");
+  const savePromise = useRef<Promise<string> | null>(null);
+  const editKey = useRef("");
   const context = useRef<ExportDetail>({});
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -35,7 +39,7 @@ export function PostExportFeedback() {
       context.current = (event as CustomEvent<ExportDetail>).detail ?? {};
       store(LAST_PROMPT_KEY, String(Date.now()));
       previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      window.setTimeout(() => { setRating(null); setFeedback(""); setSubmitted(false); setOpen(true); }, 450);
+      window.setTimeout(() => { setRating(null); setFeedback(""); setSubmitted(false); setSaveState("idle"); setCommentError(""); savePromise.current=null; setOpen(true); }, 450);
     };
     window.addEventListener(POST_EXPORT_FEEDBACK_EVENT, onExport);
     return () => window.removeEventListener(POST_EXPORT_FEEDBACK_EVENT, onExport);
@@ -57,29 +61,71 @@ export function PostExportFeedback() {
     return () => { document.removeEventListener("keydown", onKey); previousFocus.current?.focus(); };
   }, [open]);
 
-  const chooseRating = (value: number) => {
-    if (rating !== null) return;
-    // This is captured immediately; closing the modal never discards the rating.
-    setRating(value);
-    store(RATED_KEY, String(Date.now()));
-    trackEvent("export_feedback_rated", {
-      rating: value, export_format: context.current.format ?? "unknown",
-      template_id: context.current.templateId ?? "unknown", survey_version: 1,
+  const persistRating = (value:number, key:string): Promise<string> => {
+    return fetch("/api/feedback/export", {
+      method:"POST",headers:{"Content-Type":"application/json"},
+      credentials:"same-origin",keepalive:true,
+      body:JSON.stringify({rating:value,format:context.current.format??"png",templateId:context.current.templateId??"unknown",editKey:key}),
+    }).then(async response=>{
+      if(!response.ok)throw Error("Could not save rating");
+      const result=await response.json() as {id:string};
+      return result.id;
     });
   };
 
-  const submit = () => {
+  const chooseRating = (value: number) => {
+    if (rating !== null) return;
+    setRating(value);
+    setSaveState("saving");
+    const key=crypto.randomUUID();
+    editKey.current=key;
+    // Start persistence on the rating click, not on the optional comment step.
+    // Keepalive allows this request to continue when the page is closed.
+    const pending=persistRating(value,key);
+    savePromise.current=pending;
+    pending.then(()=>{
+      setSaveState("saved");
+      store(RATED_KEY,String(Date.now()));
+      trackEvent("export_feedback_rated", {
+        rating:value,export_format:context.current.format??"unknown",
+        template_id:context.current.templateId??"unknown",survey_version:2,
+      });
+    }).catch(()=>setSaveState("error"));
+  };
+
+  const retryRating = () => {
+    if(rating===null)return;
+    setSaveState("saving");
+    const pending=persistRating(rating,editKey.current);
+    savePromise.current=pending;
+    pending.then(()=>{
+      setSaveState("saved");
+      store(RATED_KEY,String(Date.now()));
+    }).catch(()=>setSaveState("error"));
+  };
+
+  const submit = async () => {
     if (rating === null || submitted) return;
     const comment = feedback.trim().slice(0, 1000);
-    if (comment) {
-      // Free-form feedback stays in PostHog, not GA4 event parameters.
-      capturePostHog("export_feedback_submitted", {
-        rating, feedback: comment, export_format: context.current.format ?? "unknown",
-        template_id: context.current.templateId ?? "unknown", survey_version: 1,
-      });
-    }
+    if (!comment) { setOpen(false); return; }
+    setCommentError("");
     setSubmitted(true);
-    setOpen(false);
+    try {
+      const id=await savePromise.current;
+      if(!id)throw Error("Rating has not saved yet");
+      const response=await fetch(`/api/feedback/export/${id}`,{
+        method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({comment,editKey:editKey.current}),credentials:"same-origin",
+      });
+      if(!response.ok)throw Error("Could not save your comment. Please retry.");
+      capturePostHog("export_feedback_submitted", {
+        rating, export_format: context.current.format ?? "unknown",
+        template_id: context.current.templateId ?? "unknown", survey_version: 2,
+      });
+      setOpen(false);
+    }catch(error){
+      setCommentError(error instanceof Error?error.message:"Could not save feedback.");
+    }finally{setSubmitted(false);}
   };
 
   if (!open) return null;
@@ -95,7 +141,7 @@ export function PostExportFeedback() {
       <button type="button" className="export-feedback-close" onClick={() => setOpen(false)} aria-label="Close feedback survey">×</button>
       <div className="export-feedback-hero">
         <div className="export-feedback-hero-icon" aria-hidden="true">{rating === null ? "↓" : "♥"}</div>
-        <span className="export-feedback-kicker">{rating === null ? "EXPORT COMPLETE" : "RATING SAVED ✓"}</span>
+        <span className="export-feedback-kicker">{rating === null ? "EXPORT COMPLETE" : saveState==="saved" ? "RATING SAVED ✓" : saveState==="saving" ? "SAVING RATING…" : "SAVE NEEDS RETRY"}</span>
       </div>
       <div className="export-feedback-content">
         {rating === null ? <>
@@ -110,13 +156,15 @@ export function PostExportFeedback() {
           <button className="export-feedback-skip" type="button" onClick={() => setOpen(false)}>No thanks, skip</button>
         </> : <>
           <h2 id="export-feedback-title">Thanks for helping us grow!</h2>
-          <p id="export-feedback-description">Your rating has been saved. Want to tell us more? <span>Totally optional.</span></p>
+          <p id="export-feedback-description">{saveState==="saved" ? "Your rating has been saved. Want to tell us more?" : "Your rating is being saved. Want to tell us more?"} <span>Totally optional.</span></p>
           <div className="export-feedback-saved-rating" aria-label={`Your saved rating: ${rating} out of 5`}>
-            <span aria-hidden="true">{moods[rating-1].emoji}</span> {moods[rating-1].label} <span className="export-feedback-saved-check">✓ Saved</span>
+            <span aria-hidden="true">{moods[rating-1].emoji}</span> {moods[rating-1].label} <span className="export-feedback-saved-check">{saveState==="saved"?"✓ Saved":saveState==="saving"?"Saving…":"Not saved"}</span>
           </div>
+          {saveState==="error"&&<button type="button" className="export-feedback-submit" onClick={retryRating}>Retry saving rating</button>}
+          {commentError&&<p role="alert">{commentError}</p>}
           <label htmlFor="export-feedback-comment" className="export-feedback-label">What could we improve?</label>
           <textarea id="export-feedback-comment" value={feedback} onChange={event => setFeedback(event.target.value)} maxLength={1000} rows={3} placeholder="Share an idea, issue, or something you loved…" />
-          <button type="button" className="export-feedback-submit" onClick={submit}>{feedback.trim() ? "Send feedback →" : "All done ✓"}</button>
+          <button type="button" className="export-feedback-submit" onClick={()=>void submit()} disabled={submitted||saveState==="saving"||saveState==="error"}>{feedback.trim() ? "Send feedback →" : "All done ✓"}</button>
           <button type="button" className="export-feedback-skip" onClick={() => setOpen(false)}>Skip comment & close</button>
         </>}
       </div>

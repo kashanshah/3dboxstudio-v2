@@ -16,6 +16,20 @@ export async function ensureV2Schema(): Promise<void> {
     const db = getSql();
     for (const statement of LEGACY_SYNC_SCHEMA.split(';').filter(part => part.trim())) await db.query(statement);
     await db`
+      CREATE TABLE IF NOT EXISTS export_feedback (
+        id UUID PRIMARY KEY,
+        user_id TEXT,
+        edit_key_hash TEXT NOT NULL,
+        rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT,
+        export_format TEXT NOT NULL,
+        template_id TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `;
+    await db`CREATE INDEX IF NOT EXISTS idx_export_feedback_created ON export_feedback(created_at DESC)`;
+    await db`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
