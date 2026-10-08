@@ -189,7 +189,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [workspaceProjectId,setWorkspaceProjectId] = useState(initialProject?(initialWorkspaceProjectId??initialProject.workspaceProjectId??null):defaults.workspaceProjectId);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
-  const [hasUnsavedChanges,setHasUnsavedChanges] = useState(false);
+  const [hasUnsavedChanges,setHasUnsavedChangesState] = useState(false);
+  const hasUnsavedChangesRef = useRef(hasUnsavedChanges);
+  const setHasUnsavedChanges = useCallback((value:boolean) => {
+    if (hasUnsavedChangesRef.current === value) return;
+    hasUnsavedChangesRef.current = value;
+    setHasUnsavedChangesState(value);
+  }, []);
   const [favorite,setFavorite] = useState(initialProject?.favorite ?? false);
   const [fileMenuOpen,setFileMenuOpen] = useState(false);
   const [deleteModalOpen,setDeleteModalOpen] = useState(false);
@@ -346,7 +352,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const historyCommittedSerializedRef = useRef(historySerialized);
   const historyApplyingSerializedRef = useRef<string | null>(null);
   const historyTimerRef = useRef<number | null>(null);
-  const [historyStatus,setHistoryStatus] = useState({canUndo:false,canRedo:false});
+  const [historyStatus,setHistoryStatusState] = useState({canUndo:false,canRedo:false});
+  const historyStatusRef = useRef(historyStatus);
+  // Effects call this after every edit. A same-value setState still queues a render, and a fast
+  // stream of edits (a color picker drag) then piles up nested updates until React throws #185.
+  const setHistoryStatus = useCallback((status:{canUndo:boolean;canRedo:boolean}) => {
+    const current = historyStatusRef.current;
+    if (current.canUndo === status.canUndo && current.canRedo === status.canRedo) return;
+    historyStatusRef.current = status;
+    setHistoryStatusState(status);
+  }, []);
 
   useEffect(() => {
     historySnapshotRef.current = historySnapshot;
@@ -396,7 +411,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     historyCommittedSerializedRef.current = serialized;
     setHistoryStatus({canUndo:historyPastRef.current.length > 0,canRedo:false});
     return true;
-  }, []);
+  }, [setHistoryStatus]);
 
   const undoStudioAction = useCallback(() => {
     if (historyApplyingSerializedRef.current !== null) return;
@@ -453,7 +468,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         historyTimerRef.current = null;
       }
     };
-  }, [historySerialized, historySnapshot, commitCurrentHistory]);
+  }, [historySerialized, historySnapshot, commitCurrentHistory, setHistoryStatus]);
 
   useEffect(() => {
     const onHistoryKeyDown = (event:KeyboardEvent) => {
@@ -1395,7 +1410,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     artworkByPanel, outsideDielineLayers, insideDielineLayers,
     mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
-    projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId, historySerialized, saveFingerprint, newDesignOpen,
+    projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId, historySerialized, saveFingerprint, newDesignOpen, setHasUnsavedChanges,
   ]);
 
   useEffect(()=>{
@@ -1434,7 +1449,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         autosaveTimerRef.current = null;
       }
     };
-  }, [saveFingerprint, projectId, saving, saveConflictOpen, saveDesign]);
+  }, [saveFingerprint, projectId, saving, saveConflictOpen, saveDesign, setHasUnsavedChanges]);
 
   useEffect(() => {
     if (!hasUnsavedChanges && !saveFailed) return;
