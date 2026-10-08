@@ -15,7 +15,6 @@ export const metadata:Metadata={
   alternates:{canonical:'/whats-new/v2'},
   openGraph:{ images:[defaultOgImage],title,description,type:'website',url:'/whats-new/v2'},
   twitter:{card:'summary_large_image',title,description,images:[defaultOgImage.url]},
-  robots:{index:true,follow:true}
 };
 
 const faqs=[

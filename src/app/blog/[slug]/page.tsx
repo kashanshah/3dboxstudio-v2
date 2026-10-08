@@ -8,6 +8,7 @@ import { AdaptiveArticleImage } from '@/components/adaptive-article-image';
 import { BlogShareButtons } from '@/components/blog-share-buttons';
 import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel, getBlogPostImagePath } from '@/content/blogPosts';
 import { site } from '@/lib/site';
+import { FR_BLOG_POSTS } from '@/content/blogLocales/fr';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -25,7 +26,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: { absolute: post.seoTitle ?? `${post.title} | 3D Box Studio` },
     description: post.description,
     keywords: post.keywords,
-    alternates: { canonical: path },
+    // Hreflang must be declared on both language versions or Google ignores it.
+    alternates: FR_BLOG_POSTS[post.slug]
+      ? { canonical: path, languages: { en: path, fr: `/fr${path}`, 'x-default': path } }
+      : { canonical: path },
     openGraph: {
       title: post.seoTitle ?? post.title,
       description: post.description,

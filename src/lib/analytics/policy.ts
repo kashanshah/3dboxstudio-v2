@@ -23,6 +23,15 @@ export const REPLAY_BLOCK_SELECTOR = PRIVATE_MEDIA_PATHS
   .flatMap(path => [`[src*="${path}"]`, `[srcset*="${path}"]`, `[style*="${path}"]`])
   .join(", ");
 
+// Password-reset and email-verification links carry single-use secrets in the
+// query string. They must never reach analytics, replays or referrers.
+const SECRET_QUERY_PARAM = /([?&](?:token)=)[^&#]*/gi;
+
+/** Replaces secret query values in a full URL or a path?query string. */
+export function redactUrl(value: string): string {
+  return value.replace(SECRET_QUERY_PARAM, "$1[redacted]");
+}
+
 export function isAnalyticsBlockedPath(pathname: string): boolean {
   return pathname === "/admin" || pathname.startsWith("/admin/");
 }

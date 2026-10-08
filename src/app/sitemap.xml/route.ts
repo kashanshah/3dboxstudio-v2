@@ -31,7 +31,6 @@ function getEntries(): SitemapEntry[] {
   const staticEntries: SitemapEntry[] = [
     { path: '/', changeFrequency: 'weekly', priority: 1, alternates: homeLanguageAlternates },
     ...localizedHomeLocales.map((locale): SitemapEntry => ({ path: `/${locale}`, changeFrequency: 'weekly', priority: 0.8, alternates: homeLanguageAlternates })),
-    { path: '/studio', changeFrequency: 'weekly', priority: 0.95 },
     { path: '/features', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/changelog', lastModified: new Date(changelogReleases[0].date), changeFrequency: 'weekly', priority: 0.7 },
     { path: '/whats-new/v2', lastModified: new Date('2026-10-01'), changeFrequency: 'weekly', priority: 0.85 },

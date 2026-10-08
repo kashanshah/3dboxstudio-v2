@@ -39,7 +39,17 @@ const nextConfig: NextConfig = {
       ...((process.env.SITE_INDEXABLE === 'false' || (process.env.SITE_INDEXABLE == null && process.env.VERCEL_ENV !== 'production')) ? [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }] : []),
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-    ] }];
+    ] }, {
+      // Stop other sites framing the Studio and account pages (clickjacking).
+      // PostHog's heatmap and toolbar views load the site in a frame, so they
+      // stay allowed; modern browsers use frame-ancestors over X-Frame-Options.
+      // API routes are left out so the SVG media routes keep their own sandbox CSP.
+      source: '/((?!api/).*)',
+      headers: [
+        { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://*.posthog.com" },
+        { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      ],
+    }];
   },
 };
 export default nextConfig;
