@@ -2690,18 +2690,20 @@ function DielinePrototype({
     setPrintError('');
     setPrinting(true);
     onPdfStatus(true,`Preparing ${artworkScope} 1:1 PDF…`);
+    const startedAt=performance.now();
     const context={template_id:selectedTemplateId,app_version:'v2',export_format:'pdf',artwork_scope:artworkScope,bleed_mm:pdfExportOptions.bleedMm};
     trackEvent('export_clicked',context);
     try {
       const {downloadDielinePdf}=await import('@/lib/packaging/download-dieline-pdf');
-      const result=await downloadDielinePdf({templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},layers,artworkByPanel,scope:artworkScope,baseColor:pdfBaseColor,options:pdfExportOptions});
-      trackEvent('export_completed',{...context,page_width_mm:result.widthMm,page_height_mm:result.heightMm});
+      const result=await downloadDielinePdf({templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},layers,artworkByPanel,scope:artworkScope,baseColor:pdfBaseColor,options:pdfExportOptions,
+        onPanelProgress:(done,total)=>onPdfStatus(true,`Preparing ${artworkScope} 1:1 PDF… artwork ${done} of ${total} panels`)});
+      trackEvent('export_completed',{...context,page_width_mm:result.widthMm,page_height_mm:result.heightMm,duration_ms:Math.round(performance.now()-startedAt)});
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'pdf',templateId:selectedTemplateId}}));
       onPdfStatus(false,'PDF downloaded at 1:1 scale. Print at Actual size / 100%.');
     } catch(error) {
       const message=error instanceof Error?error.message:'Could not prepare the PDF. Please retry.';
       setPrintError(message);
-      trackEvent('export_failed',{...context,failure_category:'pdf_generation'});
+      trackEvent('export_failed',{...context,failure_category:'pdf_generation',duration_ms:Math.round(performance.now()-startedAt)});
       onPdfStatus(false,message);
     } finally {
       pdfRunning.current=false;

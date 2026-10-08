@@ -17,6 +17,10 @@ import { requireTemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh } from '@/lib/packaging/template-mesh';
 import { trackEvent } from '@/lib/analytics';
 
+const THUMBNAIL_WIDTHS = [320, 240, 180, 120];
+// Under the server's 250,000-character limit for a saved preview, with headroom.
+const MAX_THUMBNAIL_CHARS = 200_000;
+
 // Report a missing or lost WebGL context once per page, not once per canvas.
 let renderFailureReported = false;
 function reportRenderFailure(reason: 'unavailable' | 'lost', templateId: string) {
@@ -121,12 +125,20 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       if (!source || !source.width || !source.height) return null;
       rendererRef.current?.render();
       const canvas = document.createElement('canvas');
-      canvas.width = 320;
-      canvas.height = Math.max(1, Math.round(320 * source.height / source.width));
       const context = canvas.getContext('2d');
       if (!context) return null;
-      context.drawImage(source, 0, 0, canvas.width, canvas.height);
-      return canvas.toDataURL('image/png');
+      // Saves reject previews over 250,000 characters, and a detailed render on
+      // a real GPU can exceed that at full size, so step the width down until it fits.
+      let preview = '';
+      for (const width of THUMBNAIL_WIDTHS) {
+        canvas.width = width;
+        canvas.height = Math.max(1, Math.round(width * source.height / source.width));
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(source, 0, 0, canvas.width, canvas.height);
+        preview = canvas.toDataURL('image/png');
+        if (preview.length <= MAX_THUMBNAIL_CHARS) break;
+      }
+      return preview;
     },
     exportPng(filename = '3d-box-studio-carton.png') {
       const canvas = canvasRef.current;

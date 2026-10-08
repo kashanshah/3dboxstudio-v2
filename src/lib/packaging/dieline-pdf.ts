@@ -44,6 +44,8 @@ export type DielinePdfInput = {
   dimensions: { width: number; height: number; depth: number; thickness: number };
   /** One panel at a time bounds browser memory; null means an unprinted panel. */
   renderPanel?: (index: number) => Promise<PdfPanelImage | null>;
+  /** Called after each panel's artwork is placed, so the UI can show progress. */
+  onPanelProgress?: (done: number, total: number) => void;
 };
 
 function addLayer(doc: PDFDocument, page: PDFPage, name: string, layers: PDFRef[]) {
@@ -117,6 +119,7 @@ export async function createDielinePdf(input: DielinePdfInput) {
     for (let i = 0; i < geometry.panels.length; i++) {
       if (i > 0) await yieldToEventLoop();
       const image = await input.renderPanel(i);
+      input.onPanelProgress?.(i + 1, geometry.panels.length);
       if (!image) continue;
       const embedded = await embedPanelImage(doc, image);
       minDpi = Math.min(minDpi, image.dpi);
