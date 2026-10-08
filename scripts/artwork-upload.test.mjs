@@ -136,3 +136,32 @@ test('direct-upload finalize stores the SHA-256 fingerprint for new artwork, and
     (error) => error.code === 'heic' && /Convert HEIC photos to JPG or PNG first/.test(error.message),
   );
 });
+
+test('presigned artwork upload URLs carry no precomputed body checksum', async () => {
+  // With the SDK's default checksum, the URL pins the CRC32 of an empty body
+  // and S3 rejects every real browser upload.
+  const env = { AWS_REGION: 'us-east-1', AWS_S3_BUCKET: 'bucket', AWS_ACCESS_KEY_ID: 'AKIDEXAMPLE', AWS_SECRET_ACCESS_KEY: 'secret' };
+  const media = loadTs('src/server/media-assets.ts', {
+    '@aws-sdk/client-s3': require('@aws-sdk/client-s3'),
+    '@aws-sdk/s3-request-presigner': require('@aws-sdk/s3-request-presigner'),
+    '@/server/db': { ensureV2Schema: async () => {}, getSql: () => async () => [] },
+    '@/server/env': { optionalEnv: (name, fallback = '') => env[name] ?? fallback, requireEnv: (name) => env[name] },
+    '@/lib/artwork-upload': upload,
+  });
+  const prepared = await media.createMediaUpload('u1', { name: 'art.png', mimeType: 'image/png', byteSize: 65_000 });
+  const params = new URL(prepared.uploadUrl).searchParams;
+  assert.equal(params.get('x-amz-checksum-crc32'), null);
+  assert.equal(params.get('x-amz-sdk-checksum-algorithm'), null);
+  assert.ok(params.get('X-Amz-Signature'));
+});
+
+test('upload errors keep the failing stage and status for analytics', () => {
+  const error = new upload.ArtworkUploadError('Could not reach image storage.', 'failed', { stage: 'storage', status: 0, timedOut: true });
+  assert.equal(upload.artworkUploadErrorCode(error), 'failed');
+  assert.equal(error.stage, 'storage');
+  assert.equal(error.status, 0);
+  assert.equal(error.timedOut, true);
+  assert.equal(upload.isRetryableArtworkFailure('failed'), true);
+  assert.equal(upload.isRetryableArtworkFailure('rate_limited'), true);
+  assert.equal(upload.isRetryableArtworkFailure('heic'), false);
+});

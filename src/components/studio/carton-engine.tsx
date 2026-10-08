@@ -15,6 +15,15 @@ import type { LegacyOpeningMode } from '@/lib/studio-project';
 import { getDefaultPackagingTemplate } from '@/lib/packaging/template-registry';
 import { requireTemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh } from '@/lib/packaging/template-mesh';
+import { trackEvent } from '@/lib/analytics';
+
+// Report a missing or lost WebGL context once per page, not once per canvas.
+let renderFailureReported = false;
+function reportRenderFailure(reason: 'unavailable' | 'lost', templateId: string) {
+  if (renderFailureReported) return;
+  renderFailureReported = true;
+  trackEvent('preview_render_failed', { reason, template_id: templateId, app_version: 'v2' });
+}
 
 export type CartonEngineHandle = {
   thumbnail: () => string | null;
@@ -50,6 +59,11 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<ReturnType<typeof createRenderer> | null>(null);
+  const [glStatus, setGlStatus] = useState<'ok' | 'unavailable' | 'lost'>('ok');
+  // Bumped when a renderer is (re)created so the scene is pushed to it again.
+  const [rendererVersion, setRendererVersion] = useState(0);
+  const templateIdRef = useRef(templateId);
+  templateIdRef.current = templateId;
   const [yaw, setYaw] = useState(-0.55);
   const [pitch, setPitch] = useState(0.28);
   const [hoverPanel, setHoverPanel] = useState<string | null>(null);
@@ -135,19 +149,59 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const renderer = createRenderer(canvas);
-    if (!renderer) return;
-    rendererRef.current = renderer;
+    let renderer: ReturnType<typeof createRenderer> = null;
+    let observer: ResizeObserver | null = null;
 
-    const observer = new ResizeObserver(() => renderer.resize());
-    observer.observe(canvas);
-    renderer.resize();
+    const start = () => {
+      try {
+        renderer = createRenderer(canvas);
+      } catch {
+        renderer = null;
+      }
+      if (!renderer) {
+        setGlStatus('unavailable');
+        reportRenderFailure('unavailable', templateIdRef.current);
+        return;
+      }
+      const active = renderer;
+      rendererRef.current = active;
+      setGlStatus('ok');
+      setRendererVersion(version => version + 1);
+      observer = new ResizeObserver(() => active.resize());
+      observer.observe(canvas);
+      active.resize();
+    };
+    const stop = () => {
+      observer?.disconnect();
+      observer = null;
+      renderer?.dispose();
+      renderer = null;
+      rendererRef.current = null;
+    };
+    const onLost = (event: Event) => {
+      // preventDefault asks the browser to restore the context when it can.
+      event.preventDefault();
+      stop();
+      setGlStatus('lost');
+      reportRenderFailure('lost', templateIdRef.current);
+    };
+    const onRestored = () => start();
+
+    canvas.addEventListener('webglcontextlost', onLost);
+    canvas.addEventListener('webglcontextrestored', onRestored);
+    start();
 
     return () => {
-      observer.disconnect();
+      canvas.removeEventListener('webglcontextlost', onLost);
+      canvas.removeEventListener('webglcontextrestored', onRestored);
       cancelCameraAnimation();
-      renderer.dispose();
-      rendererRef.current = null;
+      stop();
+      // Browsers keep only ~16 live WebGL contexts and silently drop the oldest,
+      // so free this one as soon as the canvas is really gone (not on a
+      // Strict Mode remount, where the same canvas is reused).
+      window.setTimeout(() => {
+        if (!canvas.isConnected) canvas.getContext('webgl')?.getExtension('WEBGL_lose_context')?.loseContext();
+      }, 0);
     };
   }, [cancelCameraAnimation]);
 
@@ -172,7 +226,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       lightIntensity,
       hoverPanel,
     });
-  }, [dimensions, templateId, opening, formation, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
+  }, [rendererVersion, dimensions, templateId, opening, formation, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
@@ -220,7 +274,12 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   };
 
 
-  return <canvas
+  return <>{glStatus !== 'ok' && <div className="carton-engine-fallback" role="status">
+    <strong>{glStatus === 'lost' ? '3D preview paused' : '3D preview unavailable'}</strong>
+    <span>{glStatus === 'lost'
+      ? 'Your browser reset the graphics context. It should come back on its own; reload the page if it doesn’t.'
+      : 'This browser has WebGL turned off or unsupported. You can still set up, design and save your box.'}</span>
+  </div>}<canvas
     ref={canvasRef}
     className={`carton-engine-canvas${panEnabled?' is-pan-enabled':''}`}
     aria-label="Interactive 3D packaging preview"
@@ -229,7 +288,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     onPointerUp={onPointerUp}
     onPointerCancel={() => { dragRef.current = null; }}
     onPointerLeave={() => { dragRef.current = null; setHoverPanel(null); }}
-  />;
+  /></>;
 });
 
 type Scene = {

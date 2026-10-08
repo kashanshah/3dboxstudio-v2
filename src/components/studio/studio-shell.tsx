@@ -2,7 +2,7 @@
 
 import { trackEvent } from '@/lib/analytics';
 import { PostExportFeedback, POST_EXPORT_FEEDBACK_EVENT } from './post-export-feedback';
-import { ArtworkUploadError, artworkUploadErrorCode, checkArtworkFile, mergeMediaAssets, summarizeArtworkUpload, type ArtworkUploadFailure } from '@/lib/artwork-upload';
+import { ArtworkUploadError, artworkUploadErrorCode, checkArtworkFile, isRetryableArtworkFailure, mergeMediaAssets, summarizeArtworkUpload, type ArtworkUploadFailure, type ArtworkUploadStage } from '@/lib/artwork-upload';
 import { newDesignDefaults, type NewDesignProject } from '@/lib/new-design';
 import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
@@ -11,11 +11,12 @@ import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
 import { NewDesignPreview } from './new-design-preview';
+import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
+  AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X, Eye, EyeOff
@@ -120,9 +121,50 @@ async function readUploadJson<T>(response:Response):Promise<T&{error?:string;cod
   }
 }
 
-function uploadResponseError(response:Response,body:{error?:string;code?:string},fallback:string){
-  if(response.status===429)return new ArtworkUploadError('Too many uploads. Try again in a few minutes.','rate_limited');
-  return new ArtworkUploadError(body.error||fallback,artworkUploadErrorCode(body));
+function uploadResponseError(response:Response,body:{error?:string;code?:string},fallback:string,stage:ArtworkUploadStage){
+  if(response.status===429)return new ArtworkUploadError('Too many uploads. Try again in a few minutes.','rate_limited',{stage,status:429});
+  return new ArtworkUploadError(body.error||fallback,artworkUploadErrorCode(body),{stage,status:response.status});
+}
+
+// Abort a storage upload that makes no progress for this long, instead of
+// leaving the progress bar stuck forever on a dead connection.
+const STORAGE_STALL_MS=45_000;
+
+/**
+ * Send the file straight to storage with XHR (fetch has no upload progress).
+ * Network errors and stalls reject with status 0 so the caller can retry.
+ */
+function putToStorage(url:string,file:File,mimeType:string,onProgress:(percent:number)=>void){
+  return new Promise<void>((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    let stall=0;
+    let timedOut=false;
+    const armStall=()=>{
+      window.clearTimeout(stall);
+      stall=window.setTimeout(()=>{timedOut=true;xhr.abort();},STORAGE_STALL_MS);
+    };
+    const fail=(message:string,status:number)=>{
+      window.clearTimeout(stall);
+      reject(new ArtworkUploadError(message,'failed',{stage:'storage',status,timedOut}));
+    };
+    xhr.open('PUT',url);
+    xhr.setRequestHeader('Content-Type',mimeType);
+    xhr.upload.onprogress=event=>{
+      armStall();
+      // Hold back the last few percent until storage confirms the upload.
+      if(event.lengthComputable&&event.total>0)onProgress(Math.min(95,Math.round(event.loaded/event.total*95)));
+    };
+    xhr.upload.onload=armStall;
+    xhr.onload=()=>{
+      window.clearTimeout(stall);
+      if(xhr.status>=200&&xhr.status<300)resolve();
+      else fail(`Storage rejected the artwork upload (${xhr.status}).`,xhr.status);
+    };
+    xhr.onerror=()=>fail('Could not reach image storage. Check your connection and try again.',0);
+    xhr.onabort=()=>fail(timedOut?'The upload stalled. Check your connection and try again.':'The upload was cancelled.',0);
+    armStall();
+    xhr.send(file);
+  });
 }
 
 async function uploadMediaFile(
@@ -143,17 +185,25 @@ async function uploadMediaFile(
     onProgress(100,'processing');
     return prepared.asset;
   }
-  if(!prepare.ok||!prepared.id||!prepared.key||!prepared.uploadUrl)throw uploadResponseError(prepare,prepared,'Could not prepare artwork upload.');
+  if(!prepare.ok||!prepared.id||!prepared.key||!prepared.uploadUrl)throw uploadResponseError(prepare,prepared,'Could not prepare artwork upload.','prepare');
 
-  const uploadResponse=await fetch(prepared.uploadUrl,{method:'PUT',headers:{'Content-Type':mimeType},body:file});
-  if(!uploadResponse.ok)throw new ArtworkUploadError('Storage rejected the artwork upload.','failed');
+  const uploadUrl=prepared.uploadUrl;
+  const sendToStorage=()=>putToStorage(uploadUrl,file,mimeType,percent=>onProgress(percent,'uploading'));
+  try{
+    await sendToStorage();
+  }catch(error){
+    // A dropped connection (status 0) gets one more try with the same signed URL.
+    if(!(error instanceof ArtworkUploadError)||error.status!==0)throw error;
+    onProgress(0,'uploading');
+    await sendToStorage();
+  }
   onProgress(100,'processing');
 
   const finalize=await fetch('/api/media',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     action:'finalize',id:prepared.id,key:prepared.key,name:file.name,mimeType,byteSize:file.size,width:dimensions.width,height:dimensions.height,
   })});
   const result=await readUploadJson<{asset?:LocalMediaAsset;existing?:boolean}>(finalize);
-  if(!finalize.ok||!result.asset)throw uploadResponseError(finalize,result,'Could not finalize artwork upload.');
+  if(!finalize.ok||!result.asset)throw uploadResponseError(finalize,result,'Could not finalize artwork upload.','finalize');
   return result.asset;
 }
 
@@ -285,6 +335,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const mediaAssetsRef = useRef<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
   const [mediaUploadProgress,setMediaUploadProgress] = useState<MediaUploadProgress|null>(null);
+  // Shown inside the media modal: the page toast sits underneath the modal backdrop.
+  const [mediaUploadError,setMediaUploadError] = useState<{message:string;retryFiles:File[]}|null>(null);
   const [mediaLibraryTab, setMediaLibraryTab] = useState<'library' | 'upload'>('library');
   const [selectedMediaAssetId, setSelectedMediaAssetId] = useState<string | null>(null);
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
@@ -948,6 +1000,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     });
   };
 
+  const trackArtworkUploadFailure = (error: unknown, file: File, surface: 'media_library'|'dieline_drop') => {
+    const details = error instanceof ArtworkUploadError ? error : null;
+    trackEvent('artwork_upload_failed', {
+      template_id:selectedTemplateId, app_version:'v2', upload_surface:surface,
+      code:artworkUploadErrorCode(error), stage:details?.stage ?? 'unknown', status:details?.status ?? null,
+      timed_out:details?.timedOut ?? false, file_type:file.type, file_size_bytes:file.size,
+    });
+  };
+
   const handleArtworkFiles = async (files: File[]) => {
     if (files.length === 0) return;
     if(mediaUploadProgress?.active)return;
@@ -967,8 +1028,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
 
     setMediaLibraryOpen(true);
+    setMediaUploadError(null);
     setMessage(`Uploading ${imageFiles.length} image${imageFiles.length===1?'':'s'}…`);
     const uploaded: LocalMediaAsset[]=[];
+    const retryFiles: File[]=[];
     for(let index=0;index<imageFiles.length;index++){
       const file=imageFiles[index];
       setMediaUploadProgress({
@@ -987,6 +1050,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         setMediaAssets(current=>mergeMediaAssets(current,[asset]));
       }catch(error){
         failures.push({name:file.name,code:artworkUploadErrorCode(error)});
+        trackArtworkUploadFailure(error,file,'media_library');
+        if(isRetryableArtworkFailure(artworkUploadErrorCode(error)))retryFiles.push(file);
       }
     }
 
@@ -1005,7 +1070,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }else{
       setMediaUploadProgress(null);
     }
-    setMessage(summarizeArtworkUpload(files.length,failures,`${uploaded.length} image${uploaded.length===1?'':'s'} saved to My Images`));
+    const summary=summarizeArtworkUpload(files.length,failures,`${uploaded.length} image${uploaded.length===1?'':'s'} saved to My Images`);
+    if(failures.length)setMediaUploadError({message:summary,retryFiles});
+    setMessage(summary);
   };
 
   const handleBoardArtworkDrop = async (files: File[], point: {x:number;y:number}) => {
@@ -1040,6 +1107,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         setMediaAssets(current=>mergeMediaAssets(current,[asset]));
       } catch(error) {
         failures.push({name:file.name,code:artworkUploadErrorCode(error)});
+        trackArtworkUploadFailure(error,file,'dieline_drop');
       }
     }
 
@@ -1372,11 +1440,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         setHasUnsavedChanges(false);
       }
       trackEvent('project_saved', {template_id:selectedTemplateId, app_version:'v2', save_mode:quiet?'autosave':saveAsCopy?'copy':saveTrigger, is_new:!targetProjectId});
-      if(!quiet)setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
+      if(createNew)setMessage('Design created and saved to Your designs');
+      else if(!quiet)setMessage(forceOverwrite?'Newer saved version overwritten':saveAsCopy?(keepOriginalOpen?'Copy created':'Copy saved — you are now editing the copy'):'Design saved');
       return true;
     } catch(error) {
       setSaveFailed(true);
-      if(createNew)setNewDesignError(error instanceof Error?error.message:'Could not save your design. Please try again.');
+      if(createNew){
+        setNewDesignError(error instanceof Error?error.message:'Could not save your design. Please try again.');
+        trackEvent('design_create_failed', {template_id:selectedTemplateId, app_version:'v2', error:(error instanceof Error?error.message:'unknown').slice(0,200)});
+      }
       if(quiet)autosaveBlockedFingerprintRef.current=saveFingerprint;
       const conflict=error instanceof Error&&error.message==='SAVE_CONFLICT';
       if(conflict){
@@ -1593,7 +1665,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
   };
 
-  return <><PostExportFeedback/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" style={boxStyle}>
+  return <><PostExportFeedback/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" translate="no" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -1702,7 +1774,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
           <div className="pro-grid-floor" />
           <div className="pro-stage-badge"><span/>{" " + t("studio.drag_to_rotate")}</div>
-          <CartonEngine
+          <StudioViewBoundary view="3d"><CartonEngine
             ref={engineRef}
             dimensions={dimensions}
             templateId={selectedTemplateId}
@@ -1726,7 +1798,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               setFaceAction({ panel: selectedPanel, x: point.x, y: point.y });
               setMessage(`${parsed.scope === 'inside' ? 'Inside ' : ''}${parsed.panel} selected`);
             }}
-          />
+          /></StudioViewBoundary>
           <div className="pro-stage-meta"><span>{family}</span><span>{material}</span><span>{assemblyStage} · {Math.round(assemblyProgress)}%</span></div>
 
           {faceAction && <div
@@ -1766,7 +1838,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>}
         </div>
         <div className={`pro-view-pane${mode === 'dieline' ? ' is-active' : ''}`} inert={mode !== 'dieline'} aria-hidden={mode !== 'dieline'}>
-        <DielinePrototype
+        <StudioViewBoundary view="dieline"><DielinePrototype
           artworkByPanel={artworkByPanel}
           layers={artworkScope === 'inside' ? insideDielineLayers : outsideDielineLayers}
           selectedLayerId={artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId}
@@ -1826,7 +1898,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           pdfExportOptions={pdfExportOptions}
           pdfBaseColor={artworkScope==='inside' ? (insideColorMode==='custom' ? insideCustomColor : null) : (outsideColorMode==='custom' ? outsideCustomColor : null)}
           onPdfStatus={(busy,message)=>{setPdfBusy(busy);setMessage(message);}}
-        />
+        /></StudioViewBoundary>
 
         </div>
           <div className={`pro-canvas-control-bar pro-shared-canvas-control-bar${mode==='dieline'?' is-2d':''}`} aria-label={t("studio.canvas_controls")}>
@@ -1911,7 +1983,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <Inspector tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} />}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -1956,9 +2028,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       onUpload={() => { if(!mediaUploadProgress?.active) fileRef.current?.click(); }}
       uploadProgress={mediaUploadProgress}
       onDropFiles={handleArtworkFiles}
+      uploadError={mediaUploadError?.message ?? null}
+      onRetryUpload={mediaUploadError?.retryFiles.length ? () => { void handleArtworkFiles(mediaUploadError.retryFiles); } : undefined}
+      onDismissUploadError={() => setMediaUploadError(null)}
       onUse={(asset, options) => applyAssetToPanel(asset, mediaTargetPanel, options)}
       onDelete={removeMediaAsset}
-      onClose={() => setMediaLibraryOpen(false)}
+      onClose={() => { setMediaLibraryOpen(false); setMediaUploadError(null); }}
     />}
 
     {shareOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!shareBusy)setShareOpen(false);}}>
@@ -3165,6 +3240,9 @@ function MediaLibraryModal(props: {
   setSelectedAssetId: (id:string|null)=>void;
   onUpload: ()=>void;
   uploadProgress: MediaUploadProgress|null;
+  uploadError: string|null;
+  onRetryUpload?: ()=>void;
+  onDismissUploadError: ()=>void;
   onDropFiles: (files:File[])=>void;
   onUse: (asset:LocalMediaAsset, options:{ mode:ArtworkMode; scale:number; rotation:number })=>void;
   onDelete: (assetId:string)=>Promise<{deleted:boolean;usages?:Array<{id:string;name:string}>;error?:string}>;
@@ -3213,12 +3291,19 @@ function MediaLibraryModal(props: {
             <span>{props.uploadProgress.fileName}</span>
           </div>
           <div>
-            <span>{props.uploadProgress.totalFiles>1?`${props.uploadProgress.fileIndex} of ${props.uploadProgress.totalFiles} · `:''}{props.uploadProgress.percent}%</span>
+            <span>{`${props.uploadProgress.totalFiles>1?`${props.uploadProgress.fileIndex} of ${props.uploadProgress.totalFiles} · `:''}${props.uploadProgress.percent}%`}</span>
           </div>
         </div>
         <div className="pro-media-upload-progress-track" aria-hidden="true">
           <span style={{width:`${props.uploadProgress.percent}%`}}/>
         </div>
+      </div>}
+
+      {props.uploadError && !props.uploadProgress && <div className="pro-media-upload-error" role="alert">
+        <AlertTriangle size={16} aria-hidden="true"/>
+        <p>{props.uploadError}</p>
+        {props.onRetryUpload && <button type="button" className="pro-secondary-button" onClick={props.onRetryUpload}><RotateCcw size={14}/> Retry</button>}
+        <button type="button" className="pro-media-upload-error-dismiss" aria-label="Dismiss upload error" onClick={props.onDismissUploadError}><X size={16}/></button>
       </div>}
 
       <div className="pro-media-unified-workspace">

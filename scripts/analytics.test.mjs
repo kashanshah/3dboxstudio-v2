@@ -145,9 +145,16 @@ test('artwork upload counts finalized files, but rejected uploads never produce 
     const context={...artworkUploadHelpers(),mediaUploadProgress:null,selectedTemplateId:'reverse-tuck',readUploadDimensions:async()=>({width:100,height:100}),
       uploadMediaFile:async()=>{if(!success)throw Error('Upload failed');return {id:'asset',name:'private.png'};},window:{setTimeout:()=>{}}};
     for(const setter of ['setMediaLibraryOpen','setMessage','setMediaUploadProgress','setMediaAssets','setSelectedMediaAssetId','setMediaLibraryTab'])context[setter]=()=>{};
+    const tracked=[],shownErrors=[];
+    context.trackArtworkUploadFailure=(error,file,surface)=>tracked.push([file.name,surface]);
+    context.setMediaUploadError=value=>shownErrors.push(value);
     const {handler,events}=callback('handleArtworkFiles',context);
     await handler([{name:'private.png',type:'image/png',size:42}]);
     assert.equal(events.length,success?1:0);
+    assert.equal(tracked.length,success?0:1);
+    // The error is shown inside the media modal, with the failed file offered for retry.
+    assert.equal(shownErrors.at(-1)?.retryFiles.length??0,success?0:1);
+    if(!success)assert.equal(tracked[0][1],'media_library');
     if(success){assert.equal(events[0][0],'artwork_uploaded');assert.equal(events[0][1].upload_surface,'media_library');assert.ok(!JSON.stringify(events).includes('private.png'));}
   }
 });
@@ -160,6 +167,9 @@ test('a failed file mid-batch keeps earlier uploads visible, continues, and name
     uploadMediaFile:async(file)=>{const outcome=outcomes[file.name];if(outcome instanceof Error)throw outcome;return outcome;},
     setMediaAssets:update=>{assets=update(assets);},setMessage:message=>messages.push(message),window:{setTimeout:()=>{}}};
   for(const setter of ['setMediaLibraryOpen','setMediaUploadProgress','setSelectedMediaAssetId','setMediaLibraryTab'])context[setter]=()=>{};
+  const tracked=[],shownErrors=[];
+  context.trackArtworkUploadFailure=(error,file)=>tracked.push(file.name);
+  context.setMediaUploadError=value=>shownErrors.push(value);
   const {handler,events}=callback('handleArtworkFiles',context);
   await handler([
     {name:'a.png',type:'image/png',size:10},
@@ -168,8 +178,25 @@ test('a failed file mid-batch keeps earlier uploads visible, continues, and name
     {name:'d.heic',type:'image/heic',size:10},
   ]);
   assert.equal(events.length,2);
+  assert.deepEqual(tracked,['b.png']);
+  // A file that is too large won't succeed on retry, so it is not offered.
+  assert.equal(shownErrors.at(-1).retryFiles.length,0);
+  assert.equal(shownErrors.at(-1).message,messages.at(-1));
   assert.equal(assets.map(asset=>asset.id).join(','),'a,old');
   assert.equal(messages.at(-1),"2 of 4 images uploaded. Couldn't upload: d.heic (HEIC photo), b.png (too large). Convert HEIC photos to JPG or PNG first.");
+});
+
+test('upload failures report the failing stage and status without the file name',()=>{
+  const helpers=artworkUploadHelpers();
+  const {handler,events}=callback('trackArtworkUploadFailure',{...helpers,selectedTemplateId:'reverse-tuck'});
+  handler(new helpers.ArtworkUploadError('Could not reach image storage.','failed',{stage:'storage',status:0,timedOut:true}),{name:'private.png',type:'image/png',size:65_632},'media_library');
+  handler(Error('boom'),{name:'private.png',type:'image/png',size:10},'dieline_drop');
+  assert.equal(events.length,2);
+  assert.equal(events[0][0],'artwork_upload_failed');
+  assert.equal(JSON.stringify(events[0][1]),JSON.stringify({template_id:'reverse-tuck',app_version:'v2',upload_surface:'media_library',code:'failed',stage:'storage',status:0,timed_out:true,file_type:'image/png',file_size_bytes:65_632}));
+  assert.equal(events[1][1].stage,'unknown');
+  assert.equal(events[1][1].status,null);
+  assert.ok(!JSON.stringify(events).includes('private'));
 });
 
 test('saves count confirmed persistence and distinguish autosaves; rejected saves are not successes',async()=>{
@@ -188,6 +215,9 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
     const {handler,events}=callback('saveDesign',context);
     const saved=await handler(false,false,undefined,false,mode==='autosave','manual',creating);
     assert.equal(saved,!failed&&mode!=='unconfirmed');
+    const createFailures=events.filter(event=>event[0]==='design_create_failed');
+    assert.equal(createFailures.length,mode==='create-failed'?1:0);
+    if(createFailures.length){assert.equal(createFailures[0][1].template_id,'pizza-box');assert.ok(!JSON.stringify(createFailures).includes('private'));events.splice(events.indexOf(createFailures[0]),1);}
     assert.equal(events.length,saved?1:0);
     if(saved){assert.equal(events[0][0],'project_saved');assert.equal(events[0][1].save_mode,creating?'manual':mode);assert.ok(!JSON.stringify(events).includes('private'));}
     if(mode==='unconfirmed')assert.equal(requests.length,0);
