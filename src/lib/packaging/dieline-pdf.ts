@@ -26,7 +26,7 @@ async function embedPanelImage(doc: PDFDocument, image: PdfPanelImage) {
   const embedded = await doc.embedJpg(image.bytes);
   if (image.alpha) {
     const { pixelWidth: w, pixelHeight: h } = image;
-    if (!w || !h || image.alpha.length !== w * h) throw new PdfExportError('Could not encode PDF artwork transparency. Export without artwork.');
+    if (!w || !h || image.alpha.length !== w * h) throw new PdfExportError('Could not encode PDF artwork transparency. Please retry or use a desktop browser.');
     const smask = doc.context.register(doc.context.flateStream(image.alpha, {
       Type: 'XObject', Subtype: 'Image', Width: w, Height: h, ColorSpace: 'DeviceGray', BitsPerComponent: 8,
     }));

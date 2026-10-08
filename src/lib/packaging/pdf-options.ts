@@ -120,10 +120,10 @@ export function friendlyPdfError(error: unknown): Error {
   const name = (error as { name?: string } | null)?.name ?? '';
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
   if (name === 'RangeError' || name === 'QuotaExceededError' || /out of memory|allocat|array buffer|invalid array length/i.test(message)) {
-    return new PdfExportError('This device ran out of memory while preparing the PDF. Try exporting without artwork, reduce the box size, or use a desktop browser.');
+    return new PdfExportError('This device ran out of memory while preparing the PDF. Reduce the box size or use a desktop browser.');
   }
   if (name === 'SecurityError') {
-    return new PdfExportError('Artwork could not be embedded due to image permissions. Export without artwork or re-upload the image.');
+    return new PdfExportError('Artwork could not be embedded due to image permissions. Re-upload the image and retry.');
   }
   if (error instanceof Error && message) return error;
   return new PdfExportError('Could not prepare the PDF. Please retry.');

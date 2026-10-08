@@ -2571,7 +2571,6 @@ function Inspector(props: {
           {(['outside','inside'] as const).map(side=><button key={side} type="button" aria-pressed={props.artworkScope===side} onClick={()=>props.setArtworkScope(side)}>{side==='outside'?'Outside':'Inside'}</button>)}
         </div>
         <label className="pro-pdf-bleed"><span>Bleed</span><input aria-label="PDF bleed in millimetres" type="number" min="0" max="10" step="0.5" value={props.pdfOptions.bleedMm} onChange={event=>props.setPdfOptions(current=>({...current,bleedMm:Number(event.target.value)}))}/><span>mm</span></label>
-        <label><input type="checkbox" checked={props.pdfOptions.includeArtwork} onChange={event=>props.setPdfOptions(current=>({...current,includeArtwork:event.target.checked}))}/><span>Include artwork</span></label>
         <label><input type="checkbox" checked={props.pdfOptions.includeCutCrease} onChange={event=>props.setPdfOptions(current=>({...current,includeCutCrease:event.target.checked}))}/><span>Cut and crease lines</span></label>
         <label><input type="checkbox" checked={props.pdfOptions.includeCalibration} onChange={event=>props.setPdfOptions(current=>({...current,includeCalibration:event.target.checked}))}/><span>100 mm calibration ruler</span></label>
         <p>Artwork must extend past the cut to fill the bleed. Print at Actual size / 100%.</p>
@@ -2695,7 +2694,7 @@ function DielinePrototype({
     trackEvent('export_clicked',context);
     try {
       const {downloadDielinePdf}=await import('@/lib/packaging/download-dieline-pdf');
-      const result=await downloadDielinePdf({templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},layers,artworkByPanel,scope:artworkScope,baseColor:pdfBaseColor,options:pdfExportOptions,
+      const result=await downloadDielinePdf({templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},layers,artworkByPanel,scope:artworkScope,baseColor:pdfBaseColor,options:{...pdfExportOptions,includeArtwork:true},
         onPanelProgress:(done,total)=>onPdfStatus(true,`Preparing ${artworkScope} 1:1 PDF… artwork ${done} of ${total} panels`)});
       trackEvent('export_completed',{...context,page_width_mm:result.widthMm,page_height_mm:result.heightMm,duration_ms:Math.round(performance.now()-startedAt)});
       if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'pdf',templateId:selectedTemplateId}}));

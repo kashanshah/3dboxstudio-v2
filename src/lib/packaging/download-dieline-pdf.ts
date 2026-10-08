@@ -36,12 +36,12 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
     const timer = setTimeout(() => {
       image.onload = image.onerror = null;
       image.src = '';
-      reject(new PdfExportError('Artwork took too long to load for the PDF. Check your connection and retry, or export without artwork.'));
+      reject(new PdfExportError('Artwork took too long to load for the PDF. Check your connection and retry.'));
     }, ARTWORK_LOAD_TIMEOUT_MS);
     const settle = (finish: () => void) => { clearTimeout(timer); finish(); };
     image.crossOrigin = 'anonymous';
     image.onload = () => settle(() => image.decode().then(() => resolve(image), () => reject(new PdfExportError('Could not decode artwork. Retry after the image has loaded.'))));
-    image.onerror = () => settle(() => reject(new PdfExportError('Could not load artwork for PDF. Retry or export without artwork.')));
+    image.onerror = () => settle(() => reject(new PdfExportError('Could not load artwork for PDF. Please retry.')));
     image.src = url;
   });
 }
@@ -223,7 +223,7 @@ export function preparePdfArtwork(input: DownloadInput) {
       canvas.width = Math.max(1, Math.round(w * pixelsPerMm));
       canvas.height = Math.max(1, Math.round(h * pixelsPerMm));
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new PdfExportError('Canvas is unavailable. Export without artwork.');
+      if (!ctx) throw new PdfExportError('Canvas is unavailable, so the PDF could not be prepared. Please retry in a desktop browser.');
       ctx.scale(canvas.width / w, canvas.height / h);
       ctx.translate(bleed, bleed);
       if (input.baseColor) { ctx.fillStyle = input.baseColor; ctx.fillRect(-bleed, -bleed, w, h); }
@@ -251,7 +251,7 @@ export function preparePdfArtwork(input: DownloadInput) {
       // edges are not invented or stretched to manufacture missing bleed.
       mask.width = canvas.width; mask.height = canvas.height;
       const m = mask.getContext('2d');
-      if (!m) throw new PdfExportError('Canvas is unavailable. Export without artwork.');
+      if (!m) throw new PdfExportError('Canvas is unavailable, so the PDF could not be prepared. Please retry in a desktop browser.');
       m.scale(canvas.width / w, canvas.height / h);
       m.translate(bleed - panel.x, bleed - panel.y);
       m.fillStyle = '#fff';
@@ -299,8 +299,8 @@ export function preparePdfArtwork(input: DownloadInput) {
           format = 'png';
           blob = await encodeCanvas(canvas, 'image/png');
         }
-      } catch { throw new PdfExportError('Artwork could not be embedded due to image permissions. Export without artwork or re-upload the image.'); }
-      if (!blob) throw new PdfExportError('Could not encode PDF artwork. This device may be low on memory; export without artwork or use a desktop browser.');
+      } catch { throw new PdfExportError('Artwork could not be embedded due to image permissions. Re-upload the image and retry.'); }
+      if (!blob) throw new PdfExportError('Could not encode PDF artwork. This device may be low on memory; use a desktop browser.');
       const bytes = new Uint8Array(await blob.arrayBuffer());
       return {
         bytes, format, alpha, pixelWidth, pixelHeight,
