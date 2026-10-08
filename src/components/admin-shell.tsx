@@ -1,5 +1,5 @@
 'use client'; import Link from 'next/link'; import { Box } from 'lucide-react'; import { usePathname,useRouter } from 'next/navigation';
-const NAV=[{href:'/admin',label:'Dashboard',exact:true},{href:'/admin/users',label:'Users'},{href:'/admin/designs',label:'Designs'},{href:'/admin/media',label:'Media'},{href:'/admin/contacts',label:'Contacts'},{href:'/admin/emails',label:'Emails'},{href:'/admin/campaigns',label:'Campaigns'},{href:'/admin/settings',label:'Settings'}];
+const NAV=[{href:'/admin',label:'Dashboard',exact:true},{href:'/admin/users',label:'Users'},{href:'/admin/designs',label:'Designs'},{href:'/admin/media',label:'Media'},{href:'/admin/contacts',label:'Contacts'},{href:'/admin/feedback',label:'Feedback'},{href:'/admin/emails',label:'Emails'},{href:'/admin/campaigns',label:'Campaigns'},{href:'/admin/settings',label:'Settings'}];
 export function AdminShell({children}:{children:React.ReactNode}){
   const path=usePathname();
   const router=useRouter();
