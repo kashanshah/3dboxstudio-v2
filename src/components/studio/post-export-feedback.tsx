@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { trackEvent } from "@/lib/analytics";
+import { capturePostHog } from "@/lib/analytics/posthog";
 import "./post-export-feedback.css";
 
 export const POST_EXPORT_FEEDBACK_EVENT = "3dbs:export-success";
@@ -71,10 +72,11 @@ export function PostExportFeedback() {
     if (rating === null || submitted) return;
     const comment = feedback.trim().slice(0, 1000);
     if (comment) {
-      trackEvent("export_feedback_submitted", {
+      // Free-form feedback stays in PostHog, not GA4 event parameters.
+      capturePostHog("export_feedback_submitted", {
         rating, feedback: comment, export_format: context.current.format ?? "unknown",
         template_id: context.current.templateId ?? "unknown", survey_version: 1,
-      }, { posthog: true });
+      });
     }
     setSubmitted(true);
     setOpen(false);
