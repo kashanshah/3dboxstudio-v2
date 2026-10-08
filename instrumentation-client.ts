@@ -1,7 +1,7 @@
-import posthog from 'posthog-js';
-import type { CaptureResult } from 'posthog-js';
+import type { CaptureResult, PostHog } from 'posthog-js';
 import { REPLAY_BLOCK_SELECTOR, isAnalyticsBlockedPath, redactUrl } from '@/lib/analytics/policy';
 import { getConsentState, onConsentChange } from '@/lib/analytics/consent';
+import { setPostHogClient } from '@/lib/analytics/posthog';
 
 const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
 const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
@@ -44,31 +44,45 @@ function redactSecrets(event:CaptureResult|null):CaptureResult|null{
 }
 
 // PostHog is not started until the visitor has consented: even an opted-out
-// SDK fetches remote config and feature flags with an anonymous id.
-let started=false;
+// SDK fetches remote config and feature flags with an anonymous id. The SDK is
+// not downloaded until then either, which keeps it out of every page's bundle.
+let loading:Promise<PostHog|null>|null=null;
 function startPostHog(){
-  if(started||!token||!host)return;
-  started=true;
-  posthog.init(token,{
-    api_host:host,
-    defaults:'2026-05-30',
-    // AnalyticsPageView sends the one $pageview per route; the SDK's automatic
-    // pageview counted every page twice.
-    capture_pageview:false,
-    capture_pageleave:true,
-    capture_exceptions:true,
-    session_recording:{blockSelector:REPLAY_BLOCK_SELECTOR},
-    before_send:[dropBlockedPaths,redactSecrets],
-    debug:process.env.NODE_ENV==='development',
+  if(loading||!token||!host)return;
+  const current:Promise<PostHog|null>=import('posthog-js').then(({default:posthog})=>{
+    // Consent was withdrawn while the SDK downloaded.
+    if(getConsentState()!=='granted'){
+      if(loading===current)loading=null;
+      return null;
+    }
+    posthog.init(token,{
+      api_host:host,
+      defaults:'2026-05-30',
+      // AnalyticsPageView sends the one $pageview per route; the SDK's automatic
+      // pageview counted every page twice.
+      capture_pageview:false,
+      capture_pageleave:true,
+      capture_exceptions:true,
+      session_recording:{blockSelector:REPLAY_BLOCK_SELECTOR},
+      before_send:[dropBlockedPaths,redactSecrets],
+      debug:process.env.NODE_ENV==='development',
+    });
+    setPostHogClient(posthog);
+    return posthog;
+  },()=>{
+    // A failed download is retried on the next consent change.
+    if(loading===current)loading=null;
+    return null;
   });
+  loading=current;
 }
 
 if(getConsentState()==='granted')startPostHog();
 onConsentChange(state=>{
   if(state==='granted'){
-    if(started)posthog.opt_in_capturing({captureEventName:false});
+    if(loading)void loading.then(posthog=>posthog?.opt_in_capturing({captureEventName:false}));
     else startPostHog();
-  }else if(state==='denied'&&started){
-    posthog.opt_out_capturing();
+  }else if(state==='denied'&&loading){
+    void loading.then(posthog=>posthog?.opt_out_capturing());
   }
 });

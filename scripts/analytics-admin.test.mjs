@@ -78,10 +78,15 @@ test('admin route boundaries suppress GA, autocapture and replay before SDK hist
 test('direct GA and PostHog dispatch cannot bypass admin exclusion or queue admin events', () => {
   const h = harness('/admin/settings');
   h.load('src/lib/analytics/gtag.ts').sendGaEvent('test');
-  h.load('src/lib/analytics/posthog.ts').capturePostHog('test');
+  const posthog = h.load('src/lib/analytics/posthog.ts');
+  posthog.capturePostHog('test');
   assert.equal(h.w.dataLayer, undefined);
-  assert.equal(h.w.__posthogCaptureQueue, undefined);
+  const captured = [];
+  posthog.setPostHogClient({ capture: name => captured.push(name) });
+  assert.deepEqual(captured, [], 'admin events are not queued for when the SDK starts');
   h.w.location = new URL('https://www.3dboxstudio.com/studio');
+  posthog.capturePostHog('test');
+  assert.deepEqual(captured, ['test']);
   h.load('src/lib/analytics/gtag.ts').sendGaEvent('test');
   assert.deepEqual(Array.from(h.w.dataLayer, args => args[0]), ['consent', 'js', 'config', 'event'], 'Consent Mode defaults precede config');
   assert.equal(h.w.dataLayer[0][2].analytics_storage, 'granted');

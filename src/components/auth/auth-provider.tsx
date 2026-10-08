@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter,usePathname } from 'next/navigation';
-import posthog from 'posthog-js';
 import { createContext,useCallback,useContext,useEffect,useMemo,useState,type ReactNode } from 'react';
+import { withPostHog } from '@/lib/analytics/posthog';
 
 export type AuthUser={
   id:string;
@@ -34,11 +34,11 @@ export function AuthProvider({children}:{children:ReactNode}){
   const setAuthenticatedUser=useCallback((nextUser:AuthUser|null)=>{
     setUser(nextUser);
     if(nextUser){
-      posthog.identify(nextUser.id,{
+      withPostHog(posthog=>posthog.identify(nextUser.id,{
         email:nextUser.email,
         name:nextUser.name??undefined,
         signup_method:nextUser.signupMethod??undefined,
-      });
+      }));
     }
   },[]);
 
@@ -68,8 +68,7 @@ export function AuthProvider({children}:{children:ReactNode}){
 
   const signOut=useCallback(async()=>{
     await fetch('/api/auth/logout',{method:'POST'});
-    posthog.capture('user_logged_out');
-    posthog.reset();
+    withPostHog(posthog=>{posthog.capture('user_logged_out');posthog.reset();});
     setUser(null);router.push('/login');router.refresh();
   },[router]);
 
