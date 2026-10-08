@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/server/auth/session';
 import { saveExportComment } from '@/server/export-feedback';
 import { enforceRateLimit } from '@/server/rate-limit';
 export const runtime='nodejs';
@@ -12,9 +11,8 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}) 
   if(!/^[0-9a-f-]{36}$/.test(id))return NextResponse.json({error:'Invalid ID'},{status:400});
   const body=await req.json().catch(()=>null);
   const comment=typeof body?.comment==='string'?body.comment.trim():'';
+  if(typeof body?.editKey!=='string'|| !/^[0-9a-f-]{36}$/.test(body.editKey))return NextResponse.json({error:'Invalid edit key'},{status:400});
   if(!comment||comment.length>1000)return NextResponse.json({error:'Invalid comment'},{status:400});
-  const user=await getCurrentUser();
-  // Only the owner can modify their rating; unauthenticated records need an unguessable edit token.
-  const ok=await saveExportComment(id,comment,user?.id??null);
+  const ok=await saveExportComment(id,comment,body.editKey);
   return NextResponse.json({ok},{status:ok?200:404});
 }
