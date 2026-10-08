@@ -1,6 +1,7 @@
 'use client';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
-import { useTranslations } from '@/components/i18n/locale-provider';
+import { useI18n, useTranslations } from '@/components/i18n/locale-provider';
+import { formatDate } from '@/lib/i18n';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
@@ -34,7 +35,7 @@ export function StudioHome({
   sort:string;
   page:number;
 }){
-  const t = useTranslations();
+  const { t, locale } = useI18n();
 
  const router=useRouter();
  const [renameProject,setRenameProject]=useState<WorkspaceProject|null>(null);
@@ -215,7 +216,7 @@ export function StudioHome({
         <div className="studio-recent-copy">
           <span><Sparkles size={14}/> {design.legacy?t("workspace.legacy_design"):t("workspace.box_design")}</span>
           <strong>{design.name}</strong>
-          <small><Clock3 size={13}/>{" " + t("workspace.edited") + " "}{new Date(design.updatedAt).toLocaleDateString()}</small>
+          <small><Clock3 size={13}/>{" " + t("workspace.edited") + " "}{formatDate(design.updatedAt,locale)}</small>
         </div>
       </Link>)}
     </div>
@@ -235,7 +236,7 @@ export function StudioHome({
         return <article className={`studio-project-card studio-project-folder${activeProjectId===project.id?' is-active':''}${projectMenuId===project.id?' has-open-menu':''}`} key={project.id}>
           <Link className="studio-project-card-link" href={`/studio?workspace=${encodeURIComponent(project.id)}`}>
             <div className="studio-project-card-icon"><Folder size={22}/></div>
-            <div className="studio-project-card-copy"><div><strong>{project.name}</strong>{project.isDefault&&<em>{t("workspace.default")}</em>}</div><span>{project.designCount}{" " + t("workspace.design")}{project.designCount===1?'':t("workspace.s")} · {project.sceneCount}{" " + t("workspace.scene_2")}{project.sceneCount===1?'':t("workspace.s")}</span><small>{t("workspace.updated") + " "}{new Date(project.updatedAt).toLocaleDateString()}</small></div>
+            <div className="studio-project-card-copy"><div><strong>{project.name}</strong>{project.isDefault&&<em>{t("workspace.default")}</em>}</div><span>{project.designCount}{" " + t("workspace.design")}{project.designCount===1?'':t("workspace.s")} · {project.sceneCount}{" " + t("workspace.scene_2")}{project.sceneCount===1?'':t("workspace.s")}</span><small>{t("workspace.updated") + " "}{formatDate(project.updatedAt,locale)}</small></div>
           </Link>
           <div className="studio-card-menu-wrap" ref={projectMenuId===project.id?projectMenuRef:undefined}>
             <button type="button" className="studio-card-menu-trigger" aria-label={`Project options for ${project.name}`} aria-haspopup="menu" aria-expanded={projectMenuId===project.id} onClick={()=>{setOpenMenuId(null);setProjectMenuId(current=>current===project.id?null:project.id);}}><MoreHorizontal size={20}/></button>
@@ -267,7 +268,7 @@ export function StudioHome({
     <div className="studio-favorite-grid">
       {favoriteDesigns.map(design=><Link className="studio-favorite-card" href={design.href??'/studio'} key={design.id} target="_blank" rel="noopener noreferrer">
         <span className="studio-favorite-thumb">{design.preview?<img src={design.preview} alt="" loading="lazy"/>:<Box size={30} strokeWidth={1.2}/>}</span>
-        <span className="studio-favorite-copy"><strong>{design.name}</strong><small><Clock3 size={12}/>{" " + t("workspace.edited") + " "}{new Date(design.updatedAt).toLocaleDateString()}</small></span>
+        <span className="studio-favorite-copy"><strong>{design.name}</strong><small><Clock3 size={12}/>{" " + t("workspace.edited") + " "}{formatDate(design.updatedAt,locale)}</small></span>
         <Star size={18} fill="currentColor"/>
       </Link>)}
     </div>
@@ -307,7 +308,7 @@ export function StudioHome({
       <div className="studio-design-meta">
         <div className="studio-design-info">
           <div className="studio-design-title-row"><h3>{design.href?<Link href={design.href} target="_blank" rel="noopener noreferrer">{design.name}</Link>:design.name}</h3>{design.favorite&&<span className="studio-favorite-label"><Star size={12} fill="currentColor"/>{" " + t("workspace.favorite_2")}</span>}</div>
-          <small><Clock3/>{" " + t("workspace.edited") + " "}{new Date(design.updatedAt).toLocaleDateString()}</small>
+          <small><Clock3/>{" " + t("workspace.edited") + " "}{formatDate(design.updatedAt,locale)}</small>
         </div>
         {design.href?<Link className="studio-card-open" href={design.href} target="_blank" rel="noopener noreferrer">{t("workspace.open") + " "}<ExternalLink size={15}/></Link>:<span className="studio-legacy-label">{t("workspace.preserved_conversion_pending")}</span>}
       </div>

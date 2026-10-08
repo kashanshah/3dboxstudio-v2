@@ -32,6 +32,11 @@ export function formatNumber(value: number, options?: Intl.NumberFormatOptions, 
   return new Intl.NumberFormat(locale, options).format(value);
 }
 
+/** Fixed locale and time zone so server-rendered dates match the browser during hydration. */
+export function formatDate(value: string | number | Date, locale: Locale = defaultLocale) {
+  return new Date(value).toLocaleDateString(locale, { dateStyle: 'medium', timeZone: 'UTC' });
+}
+
 export function pluralCategory(count: number, locale: Locale = defaultLocale) {
   return new Intl.PluralRules(locale).select(count);
 }
