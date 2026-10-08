@@ -5,7 +5,8 @@ import { formatDate } from '@/lib/i18n';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Pencil,Trash2,Move,ExternalLink,X } from 'lucide-react';
+import { menuKeyDown,useDialogFocus,useMenuFocus } from './use-dialog-focus';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Pencil,Trash2,Move,ExternalLink,ArrowRight,X } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
@@ -34,7 +35,6 @@ export function StudioHome({
  const [renameProject,setRenameProject]=useState<WorkspaceProject|null>(null);
  const [deleteProject,setDeleteProject]=useState<WorkspaceProject|null>(null);
  const [projectMenuId,setProjectMenuId]=useState<string|null>(null);
- const projectMenuRef=useRef<HTMLDivElement>(null);
  const firstName=user.name?.split(' ')[0]||'there';
  const [creatingProject,setCreatingProject]=useState(false);
  const [projectName,setProjectName]=useState('');
@@ -45,9 +45,20 @@ export function StudioHome({
  const [openMenuId,setOpenMenuId]=useState<string|null>(null);
  const [moveDesign,setMoveDesign]=useState<WorkspaceDesign|null>(null);
  const [deleteDesign,setDeleteDesign]=useState<WorkspaceDesign|null>(null);
+ const [renameDesign,setRenameDesign]=useState<WorkspaceDesign|null>(null);
+ const [designName,setDesignName]=useState('');
+ const [designError,setDesignError]=useState('');
  const [actionBusy,setActionBusy]=useState(false);
  const [actionMessage,setActionMessage]=useState('');
- const menuRef=useRef<HTMLDivElement>(null);
+ const menuTriggerRef=useRef<HTMLElement|null>(null);
+ const menuRef=useMenuFocus(openMenuId,()=>setOpenMenuId(null));
+ const projectMenuRef=useMenuFocus(projectMenuId,()=>setProjectMenuId(null));
+ const closeProjectModal=()=>{setCreatingProject(false);setProjectError('');};
+ const projectModalRef=useDialogFocus(creatingProject,closeProjectModal,projectBusy,menuTriggerRef);
+ const renameDesignRef=useDialogFocus(!!renameDesign,()=>setRenameDesign(null),actionBusy,menuTriggerRef);
+ const moveDialogRef=useDialogFocus(!!moveDesign,()=>setMoveDesign(null),actionBusy,menuTriggerRef);
+ const deleteProjectRef=useDialogFocus(!!deleteProject,()=>setDeleteProject(null),projectBusy,menuTriggerRef);
+ const deleteDesignRef=useDialogFocus(!!deleteDesign,()=>setDeleteDesign(null),actionBusy,menuTriggerRef);
  const activeProject=projects.find(project=>project.id===activeProjectId)??null;
  const scope=activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:'';
  const pageLink=(target:number)=>`/studio?q=${encodeURIComponent(search)}&sort=${sort}&page=${target}${scope}`;
@@ -57,23 +68,6 @@ export function StudioHome({
    .map(design=>Object.prototype.hasOwnProperty.call(favoriteOverrides,design.id)?{...design,favorite:favoriteOverrides[design.id]}:design);
  const recentDesigns=!search&&sort==='recent'&&page===1?libraryDesigns.slice(0,4):[];
  const favoriteDesigns=!search&&page===1?libraryDesigns.filter(design=>design.favorite).slice(0,4):[];
- useEffect(()=>{
-   if(!openMenuId)return;
-   const close=(event:PointerEvent)=>{if(!menuRef.current?.contains(event.target as Node))setOpenMenuId(null);};
-   const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpenMenuId(null);};
-   document.addEventListener('pointerdown',close);
-   document.addEventListener('keydown',escape);
-   return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
- },[openMenuId]);
- useEffect(()=>{
-   if(!projectMenuId)return;
-   const close=(event:PointerEvent)=>{if(!projectMenuRef.current?.contains(event.target as Node))setProjectMenuId(null);};
-   const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){projectMenuRef.current?.querySelector<HTMLButtonElement>('.studio-card-menu-trigger')?.focus();setProjectMenuId(null);}};
-   projectMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
-   document.addEventListener('pointerdown',close);
-   document.addEventListener('keydown',escape);
-   return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);};
- },[projectMenuId]);
  useEffect(()=>{
    if(!actionMessage)return;
    const timeout=window.setTimeout(()=>setActionMessage(''),2800);
@@ -105,6 +99,22 @@ export function StudioHome({
      setActionMessage('Design moved');
      router.refresh();
    }catch(error){setActionMessage(error instanceof Error?error.message:'Could not move this design.');}
+   finally{setActionBusy(false);}
+ };
+
+ const confirmRenameDesign=async()=>{
+   if(!renameDesign||actionBusy)return;
+   const name=designName.trim();
+   if(!name){setDesignError('Enter a design name.');return;}
+   setActionBusy(true);setDesignError('');
+   try{
+     const response=await fetch(`/api/projects/${encodeURIComponent(renameDesign.id)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+     const result=await response.json().catch(()=>({error:'Could not rename this design.'}));
+     if(!response.ok)throw new Error(result.error||'Could not rename this design.');
+     setRenameDesign(null);
+     setActionMessage('Design renamed');
+     router.refresh();
+   }catch(error){setDesignError(error instanceof Error?error.message:'Could not rename this design.');}
    finally{setActionBusy(false);}
  };
 
@@ -163,7 +173,7 @@ export function StudioHome({
      </div>
      <div className="studio-home-welcome-actions">
       <div className="studio-create-project-link flex justify-end text-end">
-        <button className="button button-primary" type="button" onClick={()=>{setRenameProject(null);setProjectName('');setProjectError('');setCreatingProject(true);}}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
+        <button className="button button-secondary" type="button" onClick={()=>{setRenameProject(null);setProjectName('');setProjectError('');setCreatingProject(true);}}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
       </div>
       <Link className="studio-create-action is-primary" href={createDesignHref}>
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
@@ -177,20 +187,38 @@ export function StudioHome({
    </section>
    {!user.emailVerified&&<aside className="studio-demo-note"><MailNotice/></aside>}
 
-   {creatingProject&&<div className="studio-project-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!projectBusy){setCreatingProject(false);setProjectError('');}}}>
-     <section className="studio-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title" onKeyDown={event=>{if(event.key==='Escape'&&!projectBusy){event.stopPropagation();setCreatingProject(false);setProjectError('');}}}>
+   {creatingProject&&<div className="studio-project-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!projectBusy)closeProjectModal();}}>
+     <section ref={projectModalRef} className="studio-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
        <header className="studio-project-modal-header">
          <div><h2 id="new-project-title">{renameProject?'Rename project':t("workspace.new_project")}</h2><p>{t("workspace.keep_related_designs_and_scenes_together_under_one_umbrella")}</p></div>
-         <button type="button" className="studio-project-modal-close" aria-label={t("workspace.cancel")} disabled={projectBusy} onClick={()=>{setCreatingProject(false);setProjectError('');}}><X size={18}/></button>
+         <button type="button" className="studio-project-modal-close" aria-label={t("workspace.cancel")} disabled={projectBusy} onClick={closeProjectModal}><X size={18}/></button>
        </header>
        <label className="studio-project-modal-field">
          <span>{t("workspace.project_name")}</span>
-         <input value={projectName} maxLength={120} autoFocus placeholder={t("workspace.project_name")} onChange={event=>{setProjectName(event.target.value);setProjectError('');}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();void createProject();}}}/>
+         <input value={projectName} maxLength={120} placeholder={t("workspace.project_name")} onChange={event=>{setProjectName(event.target.value);setProjectError('');}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();void createProject();}}}/>
        </label>
        {projectError&&<span className="studio-project-create-error" role="alert">{projectError}</span>}
        <div className="studio-project-modal-actions">
-         <button className="button button-secondary" type="button" disabled={projectBusy} onClick={()=>{setCreatingProject(false);setProjectError('');}}>{t("workspace.cancel")}</button>
+         <button className="button button-secondary" type="button" disabled={projectBusy} onClick={closeProjectModal}>{t("workspace.cancel")}</button>
          <button className="button button-primary" type="button" disabled={projectBusy||!projectName.trim()} onClick={()=>void createProject()}>{projectBusy?(renameProject?'Saving…':t("workspace.creating")):(renameProject?'Save changes':t("workspace.create"))}</button>
+       </div>
+     </section>
+   </div>}
+
+   {renameDesign&&<div className="studio-project-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!actionBusy)setRenameDesign(null);}}>
+     <section ref={renameDesignRef} className="studio-project-modal" role="dialog" aria-modal="true" aria-labelledby="rename-design-title">
+       <header className="studio-project-modal-header">
+         <div><h2 id="rename-design-title">Rename design</h2><p>Give “{renameDesign.name}” a name that is easy to find later.</p></div>
+         <button type="button" className="studio-project-modal-close" aria-label={t("workspace.cancel")} disabled={actionBusy} onClick={()=>setRenameDesign(null)}><X size={18}/></button>
+       </header>
+       <label className="studio-project-modal-field">
+         <span>Design name</span>
+         <input value={designName} maxLength={120} placeholder="Design name" onChange={event=>{setDesignName(event.target.value);setDesignError('');}} onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();void confirmRenameDesign();}}}/>
+       </label>
+       {designError&&<span className="studio-project-create-error" role="alert">{designError}</span>}
+       <div className="studio-project-modal-actions">
+         <button className="button button-secondary" type="button" disabled={actionBusy} onClick={()=>setRenameDesign(null)}>{t("workspace.cancel")}</button>
+         <button className="button button-primary" type="button" disabled={actionBusy||!designName.trim()} onClick={()=>void confirmRenameDesign()}>{actionBusy?'Saving…':'Save changes'}</button>
        </div>
      </section>
    </div>}
@@ -201,7 +229,7 @@ export function StudioHome({
       <span>{activeProject?activeProject.name:t("workspace.across_your_projects")}</span>
     </div>
     <div className="studio-recent-grid">
-      {recentDesigns.map(design=><Link className="studio-recent-card" href={design.href??'/studio'} key={design.id} target="_blank" rel="noopener noreferrer">
+      {recentDesigns.map(design=><Link className="studio-recent-card" href={design.href??'/studio'} key={design.id}>
         <div className="studio-recent-thumb">
           {design.preview?<img src={design.preview} alt="" loading="lazy"/>:<Box size={54} strokeWidth={1}/>}
           {design.favorite&&<span className="studio-recent-favorite" aria-label={t("workspace.favourite")}><Star size={14} fill="currentColor"/></span>}
@@ -232,15 +260,8 @@ export function StudioHome({
             <div className="studio-project-card-copy"><div><strong>{project.name}</strong>{project.isDefault&&<em>{t("workspace.default")}</em>}</div><span>{project.designCount}{" " + t("workspace.design")}{project.designCount===1?'':t("workspace.s")} · {project.sceneCount}{" " + t("workspace.scene_2")}{project.sceneCount===1?'':t("workspace.s")}</span><small>{t("workspace.updated") + " "}{formatDate(project.updatedAt,locale)}</small></div>
           </Link>
           <div className="studio-card-menu-wrap" ref={projectMenuId===project.id?projectMenuRef:undefined}>
-            <button type="button" className="studio-card-menu-trigger" aria-label={`Project options for ${project.name}`} aria-haspopup="menu" aria-expanded={projectMenuId===project.id} onClick={()=>{setOpenMenuId(null);setProjectMenuId(current=>current===project.id?null:project.id);}}><MoreHorizontal size={20}/></button>
-            {projectMenuId===project.id&&<div className="studio-card-menu" role="menu" aria-label={`Options for ${project.name}`} onKeyDown={event=>{
-              if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
-              event.preventDefault();
-              const items=Array.from(event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)'));
-              const index=items.indexOf(document.activeElement as HTMLElement);
-              const next=event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length;
-              items[next]?.focus();
-            }}>
+            <button type="button" className="studio-card-menu-trigger" aria-label={`Project options for ${project.name}`} aria-haspopup="menu" aria-expanded={projectMenuId===project.id} onClick={event=>{menuTriggerRef.current=event.currentTarget;setOpenMenuId(null);setProjectMenuId(current=>current===project.id?null:project.id);}}><MoreHorizontal size={20}/></button>
+            {projectMenuId===project.id&&<div className="studio-card-menu" role="menu" aria-label={`Options for ${project.name}`} onKeyDown={menuKeyDown}>
               <Link role="menuitem" href={`/studio?workspace=${encodeURIComponent(project.id)}`} onClick={()=>setProjectMenuId(null)}><Folder size={16}/><span><strong>Open project</strong><small>View designs in this project</small></span></Link>
               <button type="button" role="menuitem" disabled={projectBusy} onClick={()=>{setProjectMenuId(null);setRenameProject(project);setProjectName(project.name);setProjectError('');setCreatingProject(true);}}><Pencil size={16}/><span><strong>Rename</strong><small>Change the project name</small></span></button>
               <Link role="menuitem" href={`/studio/editor?workspace=${encodeURIComponent(project.id)}`} onClick={()=>setProjectMenuId(null)}><FilePlus2 size={16}/><span><strong>New box design</strong><small>Create a design in this project</small></span></Link>
@@ -259,7 +280,7 @@ export function StudioHome({
       <span>{favoriteDesigns.length}{" " + t("workspace.favorite")}{favoriteDesigns.length===1?'':t("workspace.s")}</span>
     </div>
     <div className="studio-favorite-grid">
-      {favoriteDesigns.map(design=><Link className="studio-favorite-card" href={design.href??'/studio'} key={design.id} target="_blank" rel="noopener noreferrer">
+      {favoriteDesigns.map(design=><Link className="studio-favorite-card" href={design.href??'/studio'} key={design.id}>
         <span className="studio-favorite-thumb">{design.preview?<img src={design.preview} alt="" loading="lazy"/>:<Box size={30} strokeWidth={1.2}/>}</span>
         <span className="studio-favorite-copy"><strong>{design.name}</strong><small><Clock3 size={12}/>{" " + t("workspace.edited") + " "}{formatDate(design.updatedAt,locale)}</small></span>
         <Star size={18} fill="currentColor"/>
@@ -277,14 +298,15 @@ export function StudioHome({
     </form>
     {libraryDesigns.length?<div className="studio-design-grid">{libraryDesigns.map(design=><article className={`studio-design-card${design.favorite?' is-favorite':''}`} key={design.id}>
       <div className="studio-design-thumb tone-sage">
-        {design.href?<Link className="studio-design-thumb-link" href={design.href} target="_blank" rel="noopener noreferrer" aria-label={`Open ${design.name} in a new tab`}>{design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}</Link>:design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}
+        {design.href?<Link className="studio-design-thumb-link" href={design.href} aria-label={`Open ${design.name}`}>{design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}</Link>:design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}
         <span className="studio-design-type">{design.legacy?t("workspace.legacy_design"):t("workspace.box_design")}</span>
         {!design.legacy&&<button type="button" className={`studio-card-star${design.favorite?' is-active':''}`} aria-label={design.favorite?t("workspace.remove_from_favorites"):t("workspace.add_to_favorites")} title={design.favorite?t("workspace.remove_from_favorites"):t("workspace.add_to_favorites")} disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={18} fill={design.favorite?'currentColor':'none'}/></button>}
         <div className="studio-card-menu-wrap" ref={openMenuId===design.id?menuRef:undefined}>
-          <button type="button" className="studio-card-menu-trigger" aria-label={`More actions for ${design.name}`} aria-expanded={openMenuId===design.id} onClick={()=>setOpenMenuId(current=>current===design.id?null:design.id)}><MoreHorizontal size={20}/></button>
-          {openMenuId===design.id&&<div className="studio-card-menu" role="menu">
+          <button type="button" className="studio-card-menu-trigger" aria-label={`More actions for ${design.name}`} aria-haspopup="menu" aria-expanded={openMenuId===design.id} onClick={event=>{menuTriggerRef.current=event.currentTarget;setProjectMenuId(null);setOpenMenuId(current=>current===design.id?null:design.id);}}><MoreHorizontal size={20}/></button>
+          {openMenuId===design.id&&<div className="studio-card-menu" role="menu" aria-label={`Actions for ${design.name}`} onKeyDown={menuKeyDown}>
             {design.href&&<Link role="menuitem" href={design.href} target="_blank" rel="noopener noreferrer" onClick={()=>setOpenMenuId(null)}><ExternalLink size={16}/><span><strong>{t("workspace.open_in_new_tab")}</strong><small>{design.legacy?t("workspace.open_and_convert_in_v2"):t("workspace.continue_editing")}</small></span></Link>}
             {!design.legacy&&<>
+              <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>{setOpenMenuId(null);setRenameDesign(design);setDesignName(design.name);setDesignError('');}}><Pencil size={16}/><span><strong>Rename</strong><small>Change the design name</small></span></button>
               <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={16} fill={design.favorite?'currentColor':'none'}/><span><strong>{design.favorite?t("workspace.remove_from_favorites"):t("workspace.add_to_favorites")}</strong><small>{t("workspace.keep_important_designs_handy")}</small></span></button>
               <button type="button" role="menuitem" disabled={actionBusy||projects.length<2} onClick={()=>{setOpenMenuId(null);setMoveDesign(design);}}><Move size={16}/><span><strong>{t("workspace.move_to_project")}</strong><small>{projects.length<2?t("workspace.create_another_project_first"):t("workspace.organize_this_design")}</small></span></button>
               <span className="studio-card-menu-separator" aria-hidden="true"/>
@@ -300,10 +322,10 @@ export function StudioHome({
       </div>
       <div className="studio-design-meta">
         <div className="studio-design-info">
-          <div className="studio-design-title-row"><h3>{design.href?<Link href={design.href} target="_blank" rel="noopener noreferrer">{design.name}</Link>:design.name}</h3>{design.favorite&&<span className="studio-favorite-label"><Star size={12} fill="currentColor"/>{" " + t("workspace.favorite_2")}</span>}</div>
+          <div className="studio-design-title-row"><h3>{design.href?<Link href={design.href}>{design.name}</Link>:design.name}</h3>{design.favorite&&<span className="studio-favorite-label"><Star size={12} fill="currentColor"/>{" " + t("workspace.favorite_2")}</span>}</div>
           <small><Clock3/>{" " + t("workspace.edited") + " "}{formatDate(design.updatedAt,locale)}</small>
         </div>
-        {design.href?<Link className="studio-card-open" href={design.href} target="_blank" rel="noopener noreferrer">{t("workspace.open") + " "}<ExternalLink size={15}/></Link>:<span className="studio-legacy-label">{t("workspace.preserved_conversion_pending")}</span>}
+        {design.href?<Link className="studio-card-open" href={design.href}>{t("workspace.open") + " "}<ArrowRight size={15}/></Link>:<span className="studio-legacy-label">{t("workspace.preserved_conversion_pending")}</span>}
       </div>
     </article>)}</div>:<div className="studio-library-empty"><Box/><h3>{search?t("workspace.no_matching_designs"):activeProject?t("workspace.no_designs_in_this_project_yet"):t("workspace.your_first_design_starts_here")}</h3><p>{search?t("workspace.try_a_different_search"):activeProject?t("workspace.create_a_design_here_and_it_will_stay_grouped_with_this_project"):t("workspace.create_a_design_and_save_it_to_see_it_in_this_library")}</p><Link className="button button-primary" href={search?(activeProjectId?`/studio?workspace=${encodeURIComponent(activeProjectId)}`:'/studio'):createDesignHref}>{search?t("workspace.clear_search"):t("workspace.create_new_design")}</Link></div>}
     {total>24&&<nav className="studio-pagination" aria-label={t("workspace.design_pages")}>{page>1&&<Link href={pageLink(page-1)}>{t("workspace.previous")}</Link>}<span>{t("workspace.page") + " "}{page}{" " + t("workspace.of") + " "}{Math.ceil(total/24)}</span>{page*24<total&&<Link href={pageLink(page+1)}>{t("workspace.next_2")}</Link>}</nav>}
@@ -312,11 +334,11 @@ export function StudioHome({
    {actionMessage&&<div className="studio-library-toast" role="status" aria-live="polite">{actionMessage}</div>}
 
    {moveDesign&&<div className="studio-card-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!actionBusy)setMoveDesign(null);}}>
-    <section className="studio-card-modal" role="dialog" aria-modal="true" aria-labelledby="move-design-title">
+    <section ref={moveDialogRef} className="studio-card-modal" role="dialog" aria-modal="true" aria-labelledby="move-design-title">
       <header><div><span>{t("workspace.organize_design")}</span><h2 id="move-design-title">{t("workspace.move")}{moveDesign.name}”</h2></div><button type="button" aria-label={t("workspace.close")} disabled={actionBusy} onClick={()=>setMoveDesign(null)}><X size={19}/></button></header>
       <p>{t("workspace.choose_the_project_where_this_design_should_live")}</p>
       <div className="studio-move-project-list">
-        {projects.filter(project=>project.id!==moveDesign.workspaceProjectId).map(project=><button type="button" key={project.id} disabled={actionBusy} onClick={()=>void moveDesignToProject(project.id)}>
+        {projects.filter(project=>project.id!==moveDesign.workspaceProjectId).map((project,index)=><button type="button" key={project.id} data-autofocus={index===0?'':undefined} disabled={actionBusy} onClick={()=>void moveDesignToProject(project.id)}>
           <span className="studio-project-card-icon"><Folder size={19}/></span><span><strong>{project.name}</strong><small>{project.designCount}{" " + t("workspace.design")}{project.designCount===1?'':t("workspace.s")} · {project.sceneCount}{" " + t("workspace.scene_2")}{project.sceneCount===1?'':t("workspace.s")}</small></span><Move size={16}/>
         </button>)}
       </div>
@@ -325,19 +347,19 @@ export function StudioHome({
    </div>}
 
    {deleteProject&&<div className="studio-card-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!projectBusy)setDeleteProject(null);}}>
-    <section className="studio-card-modal studio-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-project-title" onKeyDown={event=>{if(event.key==='Escape'&&!projectBusy)setDeleteProject(null);}}>
+    <section ref={deleteProjectRef} className="studio-card-modal studio-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-project-title">
       <header><div><span>Delete project</span><h2 id="delete-project-title">Delete “{deleteProject.name}”?</h2></div><button type="button" aria-label="Close" disabled={projectBusy} onClick={()=>setDeleteProject(null)}><X size={19}/></button></header>
       <p>This empty project will be permanently deleted. This action cannot be undone.</p>
       {projectError&&<p className="studio-project-create-error" role="alert">{projectError}</p>}
-      <footer><button autoFocus type="button" className="button button-secondary button-small" disabled={projectBusy} onClick={()=>setDeleteProject(null)}>{t("workspace.cancel")}</button><button type="button" className="studio-danger-button" disabled={projectBusy} onClick={()=>void confirmDeleteProject()}>{projectBusy?t("workspace.deleting"):'Delete project'}</button></footer>
+      <footer><button data-autofocus type="button" className="button button-secondary button-small" disabled={projectBusy} onClick={()=>setDeleteProject(null)}>{t("workspace.cancel")}</button><button type="button" className="studio-danger-button" disabled={projectBusy} onClick={()=>void confirmDeleteProject()}>{projectBusy?t("workspace.deleting"):'Delete project'}</button></footer>
     </section>
    </div>}
 
    {deleteDesign&&<div className="studio-card-modal-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!actionBusy)setDeleteDesign(null);}}>
-    <section className="studio-card-modal studio-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title">
+    <section ref={deleteDesignRef} className="studio-card-modal studio-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title">
       <header><div><span>{t("workspace.delete_design")}</span><h2 id="delete-design-title">{t("workspace.delete_2")}{deleteDesign.name}”?</h2></div><button type="button" aria-label={t("workspace.close")} disabled={actionBusy} onClick={()=>setDeleteDesign(null)}><X size={19}/></button></header>
       <p>{deleteDesign.legacy?t("workspace.this_removes_the_legacy_design_and_turns_off_its_share_links_this_action_cannot_be_undone"):t("workspace.this_permanently_removes_the_saved_v2_design_this_action_cannot_be_undone")}</p>
-      <footer><button type="button" className="button button-secondary button-small" disabled={actionBusy} onClick={()=>setDeleteDesign(null)}>{t("workspace.cancel")}</button><button type="button" className="studio-danger-button" disabled={actionBusy} onClick={()=>void confirmDeleteDesign()}>{actionBusy?t("workspace.deleting"):t("workspace.delete_design")}</button></footer>
+      <footer><button data-autofocus type="button" className="button button-secondary button-small" disabled={actionBusy} onClick={()=>setDeleteDesign(null)}>{t("workspace.cancel")}</button><button type="button" className="studio-danger-button" disabled={actionBusy} onClick={()=>void confirmDeleteDesign()}>{actionBusy?t("workspace.deleting"):t("workspace.delete_design")}</button></footer>
     </section>
    </div>}
 

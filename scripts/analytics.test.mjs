@@ -232,10 +232,10 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
       dimensions:{width:10,height:20,length:30},material:'Kraft',opening:0,formation:100,openingMode:'closed',splitTopHingeSide:'side_a',measurementUnit:'mm',
       initial:undefined,outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'',insideCustomColor:'',projectName:'Private name',
       projectRevision:creating?undefined:1,workspaceProjectId:'private-workspace',projectId:creating?undefined:'private-project',historySerialized:'{}',saveFingerprint:'{}',
-      lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},Blob,
+      lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},savedNameRef:{current:'Private name'},Blob,
       window:{history:{replaceState:()=>{}}},setNewDesignOpen:open=>closed.push(open),setNewDesignError:error=>errors.push(error),
       fetch:async(url,request)=>{requests.push({url,...request});return {ok:!failed,status:failed?(creating?500:409):200,json:async()=>failed?{error:'Service unavailable'}:{project:{id:'private-project',revision:creating?1:2}}};}};
-    for(const setter of ['setSaving','setSaveFailed','setProjectId','setProjectRevision','setWorkspaceProjectId','setSaveConflictOpen','setHasUnsavedChanges','setMessage'])context[setter]=()=>{};
+    for(const setter of ['setSaving','setSaveFailed','setProjectId','setProjectRevision','setProjectName','setWorkspaceProjectId','setSaveConflictOpen','setHasUnsavedChanges','setMessage'])context[setter]=()=>{};
     const {handler,events}=callback('saveDesign',context);
     const saved=await handler(false,false,undefined,false,mode==='autosave','manual',creating);
     assert.equal(saved,!failed&&mode!=='unconfirmed');
@@ -245,6 +245,7 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
     assert.equal(events.length,saved?1:0);
     if(saved){assert.equal(events[0][0],'project_saved');assert.equal(events[0][1].save_mode,creating?'manual':mode);assert.ok(!JSON.stringify(events).includes('private'));}
     if(mode==='unconfirmed')assert.equal(requests.length,0);
+    if(['manual','autosave'].includes(mode))assert.equal(JSON.parse(requests[0].body).baseName,'Private name');
     if(creating){
       assert.equal(requests[0].method,'POST');assert.equal(requests[0].url,'/api/projects');
       const body=JSON.parse(requests[0].body);

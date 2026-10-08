@@ -7,6 +7,20 @@ import { ensureLegacyMediaForDesign } from '@/server/legacy-media';
 
 export type WorkspaceDesign={id:string;name:string;updatedAt:string;preview:string|null;legacy:boolean;href:string|null;favorite:boolean;workspaceProjectId:string|null};
 
+export function cleanDesignName(value:unknown){
+ if(typeof value!=='string')return null;
+ const name=value.trim();
+ return name&&name.length<=120?name:null;
+}
+
+// Renames only touch the name: the revision stays put so an editor tab open on
+// this design can keep saving without a conflict (see saveProject's baseName).
+export async function renameDesign(userId:string,id:string,name:string){
+ await ensureV2Schema();
+ const rows=await getSql()`UPDATE projects SET name=${name},updated_at=NOW() WHERE id=${id} AND user_id=${userId} RETURNING id,name,revision` as {id:string;name:string;revision:number}[];
+ return rows[0]??null;
+}
+
 export async function getWorkspaceDesigns(userId:string,search='',sort='recent',page=1,workspaceProjectId?:string|null){
  await ensureV2Schema();const sql=getSql(),offset=(page-1)*24;
  const rows=await sql`WITH designs AS (

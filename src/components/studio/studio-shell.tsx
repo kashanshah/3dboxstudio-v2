@@ -252,6 +252,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? defaults.name);
   const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
+  // Name as last loaded/saved: lets the server keep a dashboard rename when this tab didn't edit the name.
+  const savedNameRef = useRef(initialProject?.name ?? defaults.name);
   const [workspaceProjectId,setWorkspaceProjectId] = useState(initialProject?(initialWorkspaceProjectId??initialProject.workspaceProjectId??null):defaults.workspaceProjectId);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
@@ -1431,7 +1433,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       }
       const targetName=saveAsCopy?`${projectName} copy`:projectName;
       const targetWorkspaceProjectId=destinationWorkspaceProjectId??workspaceProjectId;
-      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,force:forceOverwrite,workspaceProjectId:targetWorkspaceProjectId});
+      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,baseName:saveAsCopy?undefined:savedNameRef.current,force:forceOverwrite,workspaceProjectId:targetWorkspaceProjectId});
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
       const targetProjectId=saveAsCopy?undefined:projectId;
       const response=await fetch(targetProjectId?`/api/projects/${targetProjectId}`:'/api/projects',{method:targetProjectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
@@ -1451,7 +1453,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       if(createNew)setNewDesignOpen(false);
       setSaveConflictOpen(false);
       if(!saveAsCopy||!keepOriginalOpen){
-        lastSavedFingerprintRef.current=JSON.stringify({name:targetName,state:historySerialized});
+        const savedName=typeof result.project.name==='string'?result.project.name:targetName;
+        savedNameRef.current=savedName;
+        if(savedName!==targetName)setProjectName(savedName);
+        lastSavedFingerprintRef.current=JSON.stringify({name:savedName,state:historySerialized});
         autosaveBlockedFingerprintRef.current=null;
         setHasUnsavedChanges(false);
       }
