@@ -109,7 +109,10 @@ function buildLegacyBoxMeshes(
   // Door modes articulate an already folding rigid wall around its actual
   // front vertical crease. Scaling by formation keeps the 0% state identical
   // to the physical flat dieline instead of twisting a flat sheet in 3D.
-  const doorAngle=openingT*formationT*(Math.PI/2);
+  // The door wall forms with the carton and only swings open once the body
+  // is nearly square, so it never drags its neighbours off their creases.
+  const doorSwing=clamp((formationT-0.8)/0.2,0,1);
+  const doorAngle=openingT*doorSwing*doorSwing*(3-2*doorSwing)*(Math.PI/2);
   if((openingMode==='door_left'||openingMode==='double_doors')&&leftCorners.length){
     const hingeA=frontCorners[0],hingeB=frontCorners[3];
     leftCorners=transformAll(leftCorners,p=>rotateAroundAxis(p,hingeA,hingeB,doorAngle));
@@ -171,7 +174,11 @@ function buildLegacyBoxMeshes(
 
   const result:Mesh[]=[];
   if(formationT<.999){
-    const glueCorners=bodyCorners('Glue');
+    let glueCorners=bodyCorners('Glue');
+    // In the legacy net the glue tab hangs off Left, so it swings with a left door.
+    if(!splitTop&&(openingMode==='door_left'||openingMode==='double_doors')&&glueCorners.length){
+      glueCorners=transformAll(glueCorners,p=>rotateAroundAxis(p,frontCorners[0],frontCorners[3],doorAngle));
+    }
     if(glueCorners.length){
       resultGlue(glueCorners);
     }

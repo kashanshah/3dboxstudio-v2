@@ -44,7 +44,7 @@ import {
   textureTransform,
   type Scene,
 } from './carton-scene';
-import { analyseSurfaces, withCutEdges } from './carton-surfaces';
+import { analyseSurfaces, solidify } from './carton-surfaces';
 
 /**
  * How each stock reacts to light. Colours still come from the material or the
@@ -162,6 +162,10 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   let scene: Scene = defaultScene();
   let meshes: Mesh[] = [];
   let pixelRatio = Math.min(3, window.devicePixelRatio || 1);
+  // While a video is being recorded the canvas renders at the video size on
+  // a backdrop, and live scene updates wait until recording ends.
+  let capture: { width: number; height: number; liveScene: Scene } | null = null;
+  let backdrop: CanvasTexture | null = null;
 
   const resize = () => {
     const width = Math.max(1, canvas.clientWidth);
@@ -176,7 +180,9 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   };
 
   const updateCamera = () => {
-    const { view, projection, eye } = sceneViewMatrices(scene, Math.max(1, canvas.clientWidth), Math.max(1, canvas.clientHeight));
+    const { view, projection, eye } = capture
+      ? sceneViewMatrices(scene, capture.width, capture.height)
+      : sceneViewMatrices(scene, Math.max(1, canvas.clientWidth), Math.max(1, canvas.clientHeight));
     camera.matrixWorldInverse.fromArray(view);
     camera.matrixWorld.copy(camera.matrixWorldInverse).invert();
     camera.projectionMatrix.fromArray(projection);
@@ -186,7 +192,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
 
   const syncMeshes = () => {
     const thickness = scene.dimensions.thickness;
-    meshes = withCutEdges(sceneMeshes(scene), thickness);
+    meshes = solidify(sceneMeshes(scene), thickness);
     const shading = analyseSurfaces(meshes, thickness);
     const flat = scene.renderStyle === 'flat';
     // Folds bend over roughly their own board thickness; keep at least a
@@ -319,6 +325,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   };
 
   const render = () => {
+    if (capture) return;
     resize();
     const eye = updateCamera();
     stageLights(eye);
@@ -372,6 +379,11 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   return {
     gl: renderer.getContext(),
     setScene(next: Scene) {
+      if (capture) {
+        if (artworkUrlSignature(capture.liveScene.artworkByPanel) !== artworkUrlSignature(next.artworkByPanel)) syncArtwork(next.artworkByPanel);
+        capture.liveScene = { ...next, dimensions: requireTemplateRuntime(next.templateId).sanitizeParameters(next.dimensions) };
+        return;
+      }
       const previous = scene;
       const artworkChanged = artworkUrlSignature(previous.artworkByPanel) !== artworkUrlSignature(next.artworkByPanel);
       scene = { ...next, dimensions: requireTemplateRuntime(next.templateId).sanitizeParameters(next.dimensions) };
@@ -385,6 +397,40 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       return pickScenePanel(scene, meshes, localX, localY, canvas.clientWidth, canvas.clientHeight);
     },
     resize() {
+      render();
+    },
+    /** The scene as last set by the page. */
+    currentScene() {
+      return capture ? capture.liveScene : scene;
+    },
+    /** Start drawing frames at a fixed video size on an opaque studio backdrop. */
+    beginCapture(width: number, height: number) {
+      if (capture) return;
+      capture = { width, height, liveScene: scene };
+      backdrop ??= backdropTexture();
+      world.background = backdrop;
+      renderer.setPixelRatio(1);
+      renderer.setSize(width, height, false);
+    },
+    /** Draw one video frame: the live scene with these fields changed. */
+    captureFrame(overrides: Partial<Scene>) {
+      if (!capture) throw new Error('Video capture has not started.');
+      const previous = scene;
+      scene = { ...capture.liveScene, hoverPanel: null, ...overrides };
+      if (!meshes.length || CONTENT_KEYS.some(key => previous[key] !== scene[key])) syncMeshes();
+      const eye = updateCamera();
+      stageLights(eye);
+      renderer.render(world, camera);
+      return canvas;
+    },
+    endCapture() {
+      if (!capture) return;
+      scene = capture.liveScene;
+      capture = null;
+      world.background = null;
+      renderer.setPixelRatio(pixelRatio);
+      renderer.setSize(Math.max(1, canvas.clientWidth), Math.max(1, canvas.clientHeight), false);
+      syncMeshes();
       render();
     },
     /** A PNG of the current view with its longest side at `longSide` pixels. */
@@ -421,6 +467,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       contact.geometry.dispose();
       contact.material.map?.dispose();
       contact.material.dispose();
+      backdrop?.dispose();
       renderer.dispose();
     },
   };
@@ -504,6 +551,24 @@ function createCartonMaterial() {
       .replace('#include <opaque_fragment>', `${OVERLAY_FRAGMENT}\n#include <opaque_fragment>`);
   };
   return material;
+}
+
+/** The light studio gradient behind exported videos, which cannot be transparent. */
+function backdropTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 4;
+  canvas.height = 256;
+  const context = canvas.getContext('2d');
+  if (context) {
+    const gradient = context.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, '#f4f7f9');
+    gradient.addColorStop(1, '#dfe5eb');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, 4, 256);
+  }
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  return texture;
 }
 
 function contactShadowTexture() {

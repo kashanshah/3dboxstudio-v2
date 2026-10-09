@@ -19,7 +19,7 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -225,7 +225,7 @@ const studioAreas: { id: StudioArea; label: MessageKey; shortLabel?: MessageKey;
 ];
 
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
-const cameras = ['Perspective','Front','Back','Left','Right','Top'];
+const cameras = ['Perspective','Hero','Back angle','Overhead','Front','Back','Left','Right','Top'];
 
 type HistoryStatus = {canUndo:boolean;canRedo:boolean};
 const sameHistoryStatus = (a:HistoryStatus, b:HistoryStatus) => a.canUndo === b.canUndo && a.canRedo === b.canRedo;
@@ -349,6 +349,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [pdfExportRequest,setPdfExportRequest] = useState(0);
   const [pdfExportOptions,setPdfExportOptions] = useState<DielinePdfOptions>(DEFAULT_DIELINE_PDF_OPTIONS);
   const [pdfBusy,setPdfBusy] = useState(false);
+  const [videoProgress,setVideoProgress] = useState<number|null>(null);
   const liveMapTokenRef = useRef(0);
   const panelMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
@@ -1387,13 +1388,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
     const start = assemblyProgress;
     const startedAt = performance.now();
-    const duration = 1500;
+    // Each fold stage eases on its own, so the overall pace stays gentle and
+    // close to even: about three seconds for a full flat-to-closed run.
+    const duration = Math.max(700, 3000 * Math.abs(target - start) / 100);
 
     const frame = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / duration);
-      const eased = progress < 0.5
-        ? 4 * progress * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+      const eased = 0.5 - 0.5 * Math.cos(Math.PI * progress);
       setAssemblyProgress(start + (target - start) * eased);
       if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
       else foldAnimationRef.current = null;
@@ -1701,6 +1702,31 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
   };
 
+  const exportVideo = async () => {
+    if (workflowStep !== 'preview' || mode !== '3d') {
+      goToWorkflowStep('preview','export');
+      setMessage('Preview is ready — download from the output panel');
+      return;
+    }
+    if (videoProgress !== null) return;
+    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'mp4'};
+    trackEvent('export_clicked', context);
+    setVideoProgress(0);
+    setMessage('Rendering your video…');
+    try {
+      const exported = await engineRef.current?.exportVideo(`3d-box-studio-${selectedTemplateId}.mp4`, fraction => setVideoProgress(fraction));
+      trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
+      if (exported) window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'mp4',templateId:selectedTemplateId}}));
+      setMessage(exported ? 'MP4 video downloaded' : 'Renderer is not ready yet');
+    } catch (error) {
+      const unsupported = error instanceof Error && error.name === 'VideoExportUnsupportedError';
+      trackEvent('export_failed', {...context, failure_category: unsupported ? 'unsupported_browser' : 'render_error'});
+      setMessage(unsupported ? error.message : 'Could not create the video. Please try again.');
+    } finally {
+      setVideoProgress(null);
+    }
+  };
+
   // Phones lay the open panel out as a bottom sheet; the canvas fits the area above it.
   const hasSheet = workflowStep==='design' ? mode==='dieline' && designToolsOpen : inspectorOpen && Boolean(tool);
   const designViewSwitch = (className:string) => <div className={className} role="group" aria-label={t("studio.design_view")}>
@@ -1786,7 +1812,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             }}
             className={camera === item ? 'is-active' : ''}
           >
-            <span className={`pro-camera-view-icon is-${item.toLowerCase()}`} aria-hidden="true"><i/><i/><i/></span>
+            <span className={`pro-camera-view-icon is-${item.toLowerCase().replace(/\s+/g,'-')}`} aria-hidden="true"><i/><i/><i/></span>
             <b>{item}</b>
           </button>)}
         </div>}
@@ -2036,7 +2062,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2254,14 +2280,14 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; onExportVideo:()=>void; videoProgress:number|null; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
   renderStyle:RenderStyle; onRenderStyleChange:(style:RenderStyle)=>void; floorShadow:boolean; setFloorShadow:(value:boolean)=>void;
 }) {
   const t = useTranslations();
 
   const { tool } = props;
   const [structureTab,setStructureTab] = useState<'size'|'templates'>('size');
-  const [exportTab,setExportTab] = useState<'image'|'pdf'>('image');
+  const [exportTab,setExportTab] = useState<'image'|'video'|'pdf'>('image');
   const exportRuntime = getTemplateRuntime(props.selectedTemplateId);
   if (tool === 'structure') {
     const categories = getPackagingTemplateCategories();
@@ -2599,6 +2625,7 @@ function Inspector(props: {
 
     <div className="pro-export-tabs" role="tablist" aria-label="Download format">
       <button type="button" role="tab" aria-selected={exportTab==='image'} className={exportTab==='image'?'is-active':''} onClick={()=>setExportTab('image')}><ImageIcon size={17}/> Image</button>
+      <button type="button" role="tab" aria-selected={exportTab==='video'} className={exportTab==='video'?'is-active':''} onClick={()=>setExportTab('video')}><Film size={17}/> {t("studio.video")}</button>
       <button type="button" role="tab" aria-selected={exportTab==='pdf'} className={exportTab==='pdf'?'is-active':''} onClick={()=>setExportTab('pdf')}><Grid3X3 size={17}/> PDF layout</button>
     </div>
 
@@ -2608,6 +2635,13 @@ function Inspector(props: {
         <div><strong>{t("studio.png_image")}</strong><span>{t("studio.downloads_the_current_3d_camera_view")}</span></div>
       </div>
       <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/>{" " + t("studio.download_png")}</button>
+    </section> : exportTab==='video' ? <section className="pro-export-tab-panel" role="tabpanel">
+      <div className="pro-export-ready">
+        <Film size={22}/>
+        <div><strong>{t("studio.mp4_video")}</strong><span>{t("studio.mp4_video_help")}</span></div>
+      </div>
+      <button className="pro-primary pro-export-button" disabled={props.videoProgress!==null} onClick={props.onExportVideo}><Download size={16}/>{" " + (props.videoProgress===null ? t("studio.download_mp4") : t("studio.rendering_video", {percent: Math.round(props.videoProgress*100)}))}</button>
+      {props.videoProgress!==null && <progress className="pro-video-progress" max={1} value={props.videoProgress} aria-label={t("studio.rendering_video", {percent: Math.round(props.videoProgress*100)})}/>}
     </section> : <section className="pro-export-tab-panel" role="tabpanel">
       <div className="pro-export-ready pro-export-pdf-ready">
         <Grid3X3 size={22}/>
