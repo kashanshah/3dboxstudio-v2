@@ -3175,7 +3175,7 @@ function DielinePrototype({
                 >
                   <span className="pro-layer-visibility" role="button" tabIndex={0} title={layer.visible===false?'Show layer':'Hide layer'} aria-label={layer.visible===false?'Show layer':'Hide layer'} onClick={event=>{event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}}}>{layer.visible===false?<EyeOff size={15}/>:<Eye size={15}/>}</span>
                   <img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>
-                  <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°{layer.panels ? ` · ${layer.panels.length===1 ? `${panelDisplayName(cartonPanels,layer.panels[0])} only` : 'not on new flaps'}` : ''}</small></span>
+                  <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°{layer.panels ? ` · ${layer.panels.length===1 ? `${panelDisplayName(cartonPanels,layer.panels[0])} only` : `not on ${cartonPanels.filter(panel=>!layer.panels!.includes(panel.id)).map(panel=>panelDisplayName(cartonPanels,panel.id)).join(', ')}`}` : ''}</small></span>
                   <i>{realIndex===layers.length-1?t("studio.top"):realIndex+1}</i>
                 </button>;
               })}
