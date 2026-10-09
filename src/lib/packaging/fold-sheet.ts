@@ -31,7 +31,9 @@ export type SheetHinge = {
   /**
    * Moves the effective crease this many millimetres into the parent, so a
    * flap that tucks behind another panel comes to rest inside it, the way
-   * real dielines offset such creases by the board thickness.
+   * real dielines offset such creases by the board thickness. A negative
+   * setback moves it into the child, for a lid that rests on the edges of the
+   * walls it closes over.
    */
   setback?: number;
 };
@@ -52,6 +54,17 @@ export type Mat4 = number[];
 
 const BEND_SEGMENTS = 6;
 
+
+/**
+ * The setback for a lid or flap that closes over the cut edges of the walls
+ * it meets and rests on them, rather than cutting into them.
+ */
+export function restingSetback(thickness: number) {
+  const t = Math.max(0, thickness);
+  // A plain square fold puts the child's outside 2·3t/π − 1.5t beyond the cut
+  // line; a resting lid needs its inside just clear of that line.
+  return (6 / Math.PI - 1.5) * t - t * 1.05;
+}
 
 export function foldSheet(input: FoldSheetInput): Mesh[] {
   const t = Math.max(0.05, input.thickness);
@@ -80,14 +93,14 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
       if (dot(sub(centroid, q0), across) < 0) across = scale(across, -1);
       // The score sits `setback` into the parent; the strip of parent between
       // the score and the cut line folds with the child.
-      const shift = Math.max(0, hinge.setback ?? 0);
       const half = crease / 2;
+      const shift = Math.max(-half, hinge.setback ?? 0);
       const local = hingeFrame(sub(q0, scale(across, shift)), along, across, hinge.angle, half, half);
-      // Trim the parent where the bend begins, unless the child covers only
-      // part of that edge (a narrow tongue), where the bend simply tucks in.
+      // Trim the parent where the bend begins, unless the child covers only a
+      // small part of that edge, where the bend simply tucks in.
       const parentEdge = shared.parentEdge;
       const parentLength = distance2(parent.outline[parentEdge], parent.outline[(parentEdge + 1) % parent.outline.length]);
-      if (distance2(shared.start, shared.end) >= parentLength * 0.9) addTrim(trims, parent.id, parentEdge, shift + half);
+      if (distance2(shared.start, shared.end) >= parentLength * 0.75) addTrim(trims, parent.id, parentEdge, shift + half);
       addTrim(trims, child.id, shared.childEdge, Math.max(0, half - shift));
       const childMatrix = multiply(matrix, local);
       if (!parent.hidden && !child.hidden) {
@@ -141,7 +154,10 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     const flip = dot(normalCheck, expected) < 0;
     const order = flip ? [1, 0, 3, 2] : [0, 1, 2, 3];
     const outside = quad(order.map(i => outer[i]), order.map(i => uv[i]), input.color, panel.name);
-    outside.pickCorners = order.map(i => place(full[i]));
+    // Picking outlines run from the artwork's lower-left corner, as every
+    // template's panels do; the inside face is picked from its own surface.
+    const pick = cornersByArtwork(panel);
+    outside.pickCorners = pick.map(i => place(full[i]));
     const box = boundsOf(panel.outline);
     outside.faceAspect = box.width / box.height;
     outside.uvSize = [box.width, box.height];
@@ -149,7 +165,8 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     if (panel.closureFlap) outside.closureFlap = true;
     if (panel.layer !== undefined) outside.layer = panel.layer;
     const insideOrder = [order[3], order[2], order[1], order[0]];
-    const inside = quad(insideOrder.map(i => inner[i]), insideOrder.map(i => uv[i]), input.interiorColor, `Interior ${panel.name}`);
+    const inside = quad(insideOrder.map(i => inner[i]), insideOrder.map(i => insideUv(uv[i])), input.interiorColor, `Interior ${panel.name}`);
+    inside.pickCorners = [...pick].reverse().map(i => place([panel.outline[i].x, -panel.outline[i].y, -t]));
     inside.faceAspect = outside.faceAspect;
     inside.uvSize = outside.uvSize;
     if (panel.closureFlap) inside.closureFlap = true;
@@ -231,7 +248,7 @@ function bendMeshes(args: {
     meshes.push(smoothQuad(
       [place(pointAt(s1, from, t)), place(pointAt(s1, to, t)), place(pointAt(s0, to, t)), place(pointAt(s0, from, t))],
       [scale(normal1, -1), scale(normal1, -1), scale(normal0, -1), scale(normal0, -1)],
-      [dieline(s1, from), dieline(s1, to), dieline(s0, to), dieline(s0, from)],
+      [dieline(s1, from), dieline(s1, to), dieline(s0, to), dieline(s0, from)].map(insideUv),
       input.interiorColor, `Interior ${owner.name}`, true, ownerSize,
     ));
     // Cut faces at both ends of the bend.
@@ -257,7 +274,7 @@ function bendMeshes(args: {
     meshes.push(smoothQuad(outer.map(placeChild), [normal, normal, normal, normal], uvs, input.color, parent.name, false, size));
     const inner = [flatAt(shift, from, t), flatAt(shift, to, t), flatAt(b, to, t), flatAt(b, from, t)];
     const back = scale(normal, -1);
-    meshes.push(smoothQuad(inner.map(placeChild), [back, back, back, back], [uvs[3], uvs[2], uvs[1], uvs[0]], input.interiorColor, `Interior ${parent.name}`, true, size));
+    meshes.push(smoothQuad(inner.map(placeChild), [back, back, back, back], [uvs[3], uvs[2], uvs[1], uvs[0]].map(insideUv), input.interiorColor, `Interior ${parent.name}`, true, size));
   }
   return meshes;
 }
@@ -284,6 +301,25 @@ function quad(corners: Vec3[], uvs: number[][], color: Vec3, panel: string): Mes
   const vertices: number[] = [];
   for (const i of order) vertices.push(...corners[i], ...normal, uvs[i][0], uvs[i][1]);
   return { vertices: new Float32Array(vertices), useTexture: true, color, panel };
+}
+
+/**
+ * Inside artwork runs the same way across the panel as the outside and is
+ * turned over top to bottom, as every template has always mapped it, so
+ * inside designs keep printing and showing exactly as they were made.
+ */
+function insideUv(uv: number[]) {
+  return [uv[0], 1 - uv[1]];
+}
+
+/** Outline corner indices nearest the artwork's (0,0), (1,0), (1,1) and (0,1). */
+function cornersByArtwork(panel: SheetPanel) {
+  const uvs = panel.outline.map(point => panelUv(panel, point));
+  return [[0, 0], [1, 0], [1, 1], [0, 1]].map(([u, v]) => {
+    let best = 0;
+    uvs.forEach((uv, i) => { if (Math.hypot(uv[0] - u, uv[1] - v) < Math.hypot(uvs[best][0] - u, uvs[best][1] - v)) best = i; });
+    return best;
+  });
 }
 
 /** Texture coordinates inside the panel's bounding box, v up, as the 3D view expects. */
