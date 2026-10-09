@@ -20,7 +20,7 @@ const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6, `${a} differs from ${b}
 const defaultDimensions = { width: 120, height: 180, depth: 55, thickness: 0.5 };
 const fixtures = [defaultDimensions, { width: 2 * 25.4, height: 3 * 25.4, depth: 25.4, thickness: 0.5 }, { width: 1500, height: 80, depth: 50, thickness: 2 }];
 
-test('reverse-tuck cutting layout has exact nominal faces, opposite hinges and closure flaps', () => {
+test('reverse-tuck cutting layout has exact nominal faces, opposite hinges and closure flaps, and is the design grid', () => {
   for (const d of fixtures) {
     const original = getTemplateGeometry('reverse-tuck-carton', d);
     const g = getTemplateExportGeometry('reverse-tuck-carton', d);
@@ -36,7 +36,10 @@ test('reverse-tuck cutting layout has exact nominal faces, opposite hinges and c
     const back = g.panels.find(p => p.id === 'back');
     near(top.x, front.x); near(top.y + top.height, front.y);
     near(bottom.x, back.x); near(bottom.y, back.y + back.height);
-    assert.equal(bottom.sourceRotation, 180);
+    // The design grid is the cutting template itself: artwork prints as laid out.
+    assert.equal(bottom.sourceRotation, undefined);
+    assert.deepEqual(original.panels.map(p => [p.id, p.x, p.y, p.width, p.height]), g.panels.map(p => [p.id, p.x, p.y, p.width, p.height]));
+    assert.ok(g.panels.every(p => p.sourceId === p.id));
     assert.equal(g.panels.filter(p => p.id.endsWith('dust')).length, 4);
     assert.equal(g.panels.filter(p => p.id.endsWith('tuck')).length, 2);
     assert.deepEqual(getTemplateGeometry('reverse-tuck-carton', d), original, 'export must not change mockup geometry');

@@ -19,7 +19,16 @@ export type FullDielineArtworkLayer = {
   aspectRatio: number;
   visible?: boolean;
   opacity?: number;
+  /**
+   * Panel ids this layer prints on; all panels when absent. Designs moved to a
+   * new dieline layout keep printing exactly where they did through this.
+   */
+  panels?: string[];
 };
+
+export function layerPrintsOn(layer: FullDielineArtworkLayer, panelId: string) {
+  return !layer.panels || layer.panels.includes(panelId);
+}
 
 export const DEFAULT_FULL_DIELINE_TRANSFORM: FullDielineTransform = {
   x: 50,
@@ -125,6 +134,7 @@ export async function rasterizeFullDielineLayers(
     const scaleY=panelCanvas.height/panel.height;
 
     for(const {layer,image} of loaded){
+      if(!layerPrintsOn(layer,panel.id)) continue;
       const physical=sheetTransformToPhysical(layer.transform,bounds);
       ctx.save();
       ctx.globalAlpha=Math.max(0,Math.min(1,(layer.opacity ?? 100)/100));
