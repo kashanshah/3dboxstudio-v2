@@ -371,3 +371,27 @@ export async function deleteMediaAsset(userId:string,id:string){
 export async function deleteStoredObject(storageKey: string) {
   await s3().send(new DeleteObjectCommand({ Bucket: bucket(), Key: storageKey }));
 }
+
+/**
+ * Copy a stored image into another account's media library under its own
+ * storage key, so deleting it there never removes the original owner's file.
+ * Artwork the account already holds (same fingerprint) is reused.
+ */
+export async function copyStoredObjectToUser(userId:string,source:{storageKey:string;name:string;mimeType:string;byteSize?:number|null;width:number|null;height:number|null;fingerprint:string|null}):Promise<MediaAssetDto>{
+  await ensureV2Schema();
+  if(source.fingerprint){
+    const existing=await findAssetByFingerprint(userId,source.fingerprint);
+    if(existing)return toDto(existing);
+  }
+  const id=randomUUID();
+  const configuredPrefix=optionalEnv('AWS_S3_PREFIX','v2/uploads/').replace(/^\/+|\/+$/g,'');
+  const key=`${configuredPrefix ? configuredPrefix+'/' : ''}users/${userId}/artwork/${id}/${safeFilename(source.name)}`;
+  await s3().send(new CopyObjectCommand({Bucket:bucket(),Key:key,CopySource:encodeCopySource(bucket(),source.storageKey),MetadataDirective:'COPY'}));
+  const byteSize=source.byteSize&&source.byteSize>0?source.byteSize:(await headStoredObject(key)).byteSize;
+  const rows=await getSql()`
+    INSERT INTO media_assets(id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint)
+    VALUES(${id},${userId},${source.name.slice(0,255)},${source.mimeType},${byteSize},${source.width},${source.height},${key},${source.fingerprint})
+    RETURNING id,user_id,name,mime_type,byte_size,width,height,storage_key,fingerprint,created_at
+  ` as MediaAssetRow[];
+  return toDto(rows[0]);
+}
