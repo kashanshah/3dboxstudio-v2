@@ -61,18 +61,20 @@ test('reverse-tuck designs move onto the cutting-template grid and print exactly
       const { panels, bounds } = getTemplateGeometry('reverse-tuck-carton', dimensions);
       for (const panel of panels) {
         const old = oldPanels.find(item => item.id === panel.id);
+        // Every panel but the bottom moved down by the top tuck's height.
+        const shift = panels.find(item => item.id === 'top').y - oldPanels.find(item => item.id === 'top').y;
+        // Whether the old bottom printed any layer, which it then keeps.
+        const bottomPrinted = migrated.outsideArtworkLayers.some(layer => layer.id.endsWith('-bottom'));
         for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) {
           // A point in the printed panel, in panel-local millimetres.
           const q = { x: panel.width * (0.02 + 0.96 * i / 8), y: panel.height * (0.02 + 0.96 * j / 8) };
           const now = imageAt(migrated.outsideArtworkLayers, bounds, { x: panel.x + q.x, y: panel.y + q.y }, panel.id);
-          if (!old) {
-            // Closure flaps were unprinted before, and stay so for moved designs.
-            assert.equal(now, null, `${panel.id} stays blank`);
-            continue;
-          }
-          // Before: the print file drew the old grid panel, turning the bottom half a turn.
-          const turned = panel.id === 'bottom' ? { x: panel.width - q.x, y: panel.height - q.y } : q;
-          const before = imageAt(layers, oldBounds, { x: old.x + turned.x, y: old.y + turned.y }, panel.id);
+          // Before, the print file drew the old grid panel, turning the bottom
+          // half a turn. Flaps the old grid lacked, and a bottom it printed
+          // blank, now print what the layers hold there, moved with the body.
+          const before = panel.id === 'bottom' && bottomPrinted
+            ? imageAt(layers, oldBounds, { x: old.x + panel.width - q.x, y: old.y + panel.height - q.y }, panel.id)
+            : imageAt(layers, oldBounds, { x: panel.x + q.x, y: panel.y + q.y - shift }, panel.id);
           if (!before) { assert.equal(now, null, `${panel.id} blank at ${q.x},${q.y}`); continue; }
           assert.ok(now, `${panel.id} lost artwork at ${q.x},${q.y}`);
           assert.equal(now.layer, before.layer);
@@ -133,12 +135,30 @@ test('migration runs once, and only for templates whose grid changed', () => {
   const other = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(3, 2)), templateId: 'base-box' };
   assert.deepEqual(migrateStudioLayout(other), other);
   assert.equal(layoutVersionFor('base-box'), 1);
-  assert.equal(layoutVersionFor('reverse-tuck-carton'), 3);
+  assert.equal(layoutVersionFor('reverse-tuck-carton'), 4);
   assert.equal(layoutVersionFor('pizza-box'), 2);
-  // A design already on version 2 of the reverse tuck takes only the last step.
+  // A design already on version 2 of the reverse tuck takes only the later steps.
   const bottom = { name: 'b', url: '/api/media/b', mode: 'fill', scale: 100, rotation: 0, alignX: 0, alignY: 0, transform: { x: 20, y: 30, width: 50, height: 50, rotation: 0 } };
   const v2 = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(5, 2), { Bottom: bottom }), layoutVersion: 2 };
   const v3 = migrateStudioLayout(v2);
   assert.deepEqual(v3.outsideArtworkLayers, v2.outsideArtworkLayers);
   assert.deepEqual(v3.artworkByPanel.Bottom.transform, { x: 80, y: 70, width: 50, height: 50, rotation: 180 });
+  assert.equal(v3.layoutVersion, 4);
+});
+
+test('reverse-tuck layers moved earlier print on the flaps they cover, and the bottom prints as before', () => {
+  const dimensions = { width: 120, height: 180, depth: 55, thickness: 0.5 };
+  const [body, turned] = randomLayers(11, 2);
+  // As saved after the move to the cutting template (version 3).
+  const v3 = { ...state(dimensions, [{ ...body, panels: ['glue', 'left', 'front', 'right', 'back', 'top'] }, { ...turned, id: `${body.id}-bottom`, panels: ['bottom'] }]), layoutVersion: 3 };
+  const v4 = migrateStudioLayout(v3);
+  assert.equal(v4.layoutVersion, 4);
+  const ids = getTemplateGeometry('reverse-tuck-carton', dimensions).panels.map(panel => panel.id);
+  assert.deepEqual(v4.outsideArtworkLayers[0].panels, ids.filter(id => id !== 'bottom'));
+  assert.deepEqual(v4.outsideArtworkLayers[1].panels, ['bottom']);
+  assert.deepEqual(v4.outsideArtworkLayers.map(layer => layer.transform), v3.outsideArtworkLayers.map(layer => layer.transform));
+  assert.deepEqual(v4.insideArtworkLayers, v4.outsideArtworkLayers);
+  // With nothing printed on the old bottom, the layer prints everywhere it covers.
+  const blankBottom = migrateStudioLayout({ ...state(dimensions, [{ ...body, panels: ['glue', 'left', 'front', 'right', 'back', 'top'] }]), layoutVersion: 3 });
+  assert.equal(blankBottom.outsideArtworkLayers[0].panels, undefined);
 });

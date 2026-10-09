@@ -19,6 +19,10 @@ const STEPS: Record<string, Step[]> = {
     // 3: artwork placed on the bottom panel alone is turned to read upright
     // on the box; stored bottom artwork turns back to match.
     state => ({ ...state, artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Bottom']) }),
+    // 4: sheet layers moved in step 2 also print on the flaps (and, unless
+    // they have a turned bottom copy, the bottom) they cover, as artwork made
+    // on the full dieline should. Panels printed before print as before.
+    reverseTuckLayersOnFlaps,
   ],
   'pizza-box': [
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
@@ -90,6 +94,18 @@ function reverseTuckToCuttingTemplate(state: StudioProjectState): StudioProjectS
     insideArtworkLayers: moveLayers(state.insideArtworkLayers),
     artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Bottom']),
   };
+}
+
+function reverseTuckLayersOnFlaps(state: StudioProjectState): StudioProjectState {
+  const notBottom = reverseTuckSheet(sanitizeCartonDimensions(state.dimensions)).panels.map(panel => panel.id).filter(id => id !== 'bottom');
+  const isTurnedBottom = (layer: FullDielineArtworkLayer) => layer.panels?.length === 1 && layer.panels[0] === 'bottom';
+  const widen = (layers: FullDielineArtworkLayer[]) => {
+    // A bottom printed before (through turned copies) prints exactly as
+    // before; a bottom left blank takes the layers that cover it now.
+    const panels = layers.some(isTurnedBottom) ? notBottom : undefined;
+    return layers.map(layer => layer.panels && !isTurnedBottom(layer) ? { ...layer, panels } : layer);
+  };
+  return { ...state, outsideArtworkLayers: widen(state.outsideArtworkLayers), insideArtworkLayers: widen(state.insideArtworkLayers) };
 }
 
 /** Turns the named panels' own artwork (outside and inside) half a turn. */
