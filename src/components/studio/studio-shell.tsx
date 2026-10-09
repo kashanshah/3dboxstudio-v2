@@ -19,11 +19,11 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff
+  Trash2, Upload, X, Eye, EyeOff, Contrast
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
-import { CartonEngine, type CartonEngineHandle } from '@/components/studio/carton-engine';
+import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
@@ -369,6 +369,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [message, setMessage] = useState('Ready');
   const fileRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<CartonEngineHandle>(null);
+  const [renderStyle, setRenderStyle] = useState<RenderStyle>('realistic');
+  const [floorShadow, setFloorShadow] = useState(true);
   const newDesignPreviewRef = useRef<CartonEngineHandle>(null);
   const studioCanvasRef = useRef<HTMLElement>(null);
   const faceActionRef = useRef<HTMLDivElement>(null);
@@ -1674,19 +1676,25 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onSaveShortcut);
   }, [saveDesign, saving]);
 
+  const changeRenderStyle = (next: RenderStyle) => {
+    if (next === renderStyle) return;
+    setRenderStyle(next);
+    trackEvent('studio_render_style_changed', { render_style: next });
+  };
+
   const exportPng = () => {
     if (workflowStep !== 'preview' || mode !== '3d') {
       goToWorkflowStep('preview','export');
       setMessage('Preview is ready — download from the output panel');
       return;
     }
-    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'png', export_resolution:'viewport'};
+    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'png', export_resolution:'4k'};
     trackEvent('export_clicked', context);
     try {
       const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
       trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
       if (exported) if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'png',templateId:selectedTemplateId}}));
-      setMessage(exported ? 'PNG exported from the live WebGL canvas' : 'Renderer is not ready yet');
+      setMessage(exported ? 'High-resolution PNG downloaded' : 'Renderer is not ready yet');
     } catch {
       trackEvent('export_failed', {...context, failure_category:'render_error'});
       setMessage('Could not export the PNG. Please try again.');
@@ -1821,6 +1829,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             artworkByPanel={resolvedArtworkByPanel}
             cameraPreset={camera}
             zoom={zoom}
+            renderStyle={renderStyle}
+            floorShadow={floorShadow}
             viewPan={viewPan3d}
             panEnabled={mode==='3d' && (panEnabled || temporarySpacePanActive)}
             onViewPanChange={pan=>{viewPan3dRef.current=pan;setViewPan3d(pan);}}
@@ -1952,6 +1962,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-divider" />
             </>}
             {mode === '3d' && <>
+              <button
+                className={`pro-canvas-bar-icon${renderStyle === 'flat' ? ' is-active' : ''}`}
+                title={t("studio.flat_color_proof")}
+                aria-label={t("studio.flat_color_proof")}
+                aria-pressed={renderStyle === 'flat'}
+                onClick={() => changeRenderStyle(renderStyle === 'flat' ? 'realistic' : 'flat')}
+              ><Contrast size={18}/></button>
               <span className="pro-canvas-bar-divider" />
               <button
                 className="pro-canvas-bar-play"
@@ -2019,7 +2036,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2238,6 +2255,7 @@ function Inspector(props: {
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
   onExport:()=>void; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  renderStyle:RenderStyle; onRenderStyleChange:(style:RenderStyle)=>void; floorShadow:boolean; setFloorShadow:(value:boolean)=>void;
 }) {
   const t = useTranslations();
 
@@ -2559,7 +2577,15 @@ function Inspector(props: {
   }
 
   if (tool === 'scene') return <div className="pro-inspector-content">
-    <PanelIntro title={t("studio.scene_studio")} text={t("studio.product_photography_scenes_are_planned_for_a_later_v2_release")} />
+    <PanelIntro title={t("studio.scene_studio")} text={t("studio.scene_intro")} />
+    <div className="pro-pdf-options pro-scene-options">
+      <div className="pro-pdf-surface" role="group" aria-label={t("studio.scene_lighting")}>
+        <button type="button" aria-pressed={props.renderStyle==='realistic'} onClick={()=>props.onRenderStyleChange('realistic')}>{t("studio.scene_lighting_studio")}</button>
+        <button type="button" aria-pressed={props.renderStyle==='flat'} onClick={()=>props.onRenderStyleChange('flat')}>{t("studio.scene_lighting_flat")}</button>
+      </div>
+      <p>{props.renderStyle==='flat' ? t("studio.scene_lighting_flat_help") : t("studio.scene_lighting_studio_help")}</p>
+      <label><input type="checkbox" checked={props.floorShadow} disabled={props.renderStyle==='flat'} onChange={event=>props.setFloorShadow(event.target.checked)}/><span>{t("studio.scene_floor_shadow")}</span></label>
+    </div>
     <div className="pro-feature-empty pro-coming-soon-panel">
       <Lightbulb size={28}/>
       <span className="pro-coming-soon-badge">{t("studio.coming_soon")}</span>
