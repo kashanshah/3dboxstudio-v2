@@ -10,6 +10,15 @@ const PANEL_LABELS: Record<string, string> = {
   'bottom-right-dust': 'BOTTOM RIGHT DUST FLAP',
 };
 
+/**
+ * Tuck and dust flaps with no artwork of their own continue the panel they
+ * fold from, mirrored across the crease. The glue flap stays bare for gluing.
+ */
+export const REVERSE_TUCK_FLAP_SOURCES: Record<string, string> = {
+  'top-tuck': 'top', 'bottom-tuck': 'bottom',
+  'top-left-dust': 'left', 'bottom-left-dust': 'left', 'top-right-dust': 'right', 'bottom-right-dust': 'right',
+};
+
 /** Closure flap sizes shared by the cutting template and the 3D preview. */
 export function reverseTuckClosureSizes(d: CartonDimensions) {
   const clearance = Math.max(0.5, d.thickness);

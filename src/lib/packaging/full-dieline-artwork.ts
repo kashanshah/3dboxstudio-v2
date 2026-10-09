@@ -26,6 +26,16 @@ export type FullDielineArtworkLayer = {
   panels?: string[];
 };
 
+/** Whether the layer's rotated box overlaps the panel's box on the sheet. */
+export function layerOverlaps(layer: FullDielineArtworkLayer, panel: {x:number;y:number;width:number;height:number}, bounds: {width:number;height:number}) {
+  const t = sheetTransformToPhysical(layer.transform, bounds);
+  const angle = t.rotation * Math.PI / 180;
+  const halfWidth = (Math.abs(Math.cos(angle)) * t.width + Math.abs(Math.sin(angle)) * t.height) / 2;
+  const halfHeight = (Math.abs(Math.sin(angle)) * t.width + Math.abs(Math.cos(angle)) * t.height) / 2;
+  return t.centerX + halfWidth > panel.x && t.centerX - halfWidth < panel.x + panel.width
+    && t.centerY + halfHeight > panel.y && t.centerY - halfHeight < panel.y + panel.height;
+}
+
 export function layerPrintsOn(layer: FullDielineArtworkLayer, panelId: string) {
   return !layer.panels || layer.panels.includes(panelId);
 }
@@ -122,6 +132,9 @@ export async function rasterizeFullDielineLayers(
   // afterwards: each 3D texture is now generated from the exact panel rectangle
   // (Front W×H, sides D×H, top/bottom W×D).
   for (const panel of geometry.panels) {
+    // Panels no layer reaches get no texture, so a closure flap can continue
+    // its neighbour's artwork instead of showing an empty one.
+    if (!visibleLayers.some(layer=>layerPrintsOn(layer,panel.id)&&layerOverlaps(layer,panel,bounds))) continue;
     const raster=panelRasterSize(panel);
     const panelCanvas = document.createElement('canvas');
     panelCanvas.width = raster.width;

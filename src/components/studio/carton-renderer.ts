@@ -241,16 +241,21 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       uniforms.uRoundRadius.value = roundRadius;
       uniforms.uFlutePitch.value = surface === 'edge' ? flutePitch : 0;
 
-      const artworkKey = mesh.panel && scene.artworkByPanel[mesh.panel] ? mesh.panel : mesh.fallbackPanel;
+      // A face shows its own artwork; failing that, a bend shows its panel's,
+      // and a flap with none continues its neighbour's (mesh.fallbackUv).
+      const own = [mesh.panel, mesh.sourcePanel].find(key => key && scene.artworkByPanel[key]);
+      const artworkKey = own ?? mesh.fallbackPanel;
       const entry = artworkKey ? artwork.get(artworkKey) : undefined;
       const placement = artworkKey ? scene.artworkByPanel[artworkKey] : undefined;
-      const faceUv = artworkKey === mesh.fallbackPanel ? mesh.fallbackUv : undefined;
+      const faceUv = !own && artworkKey === mesh.fallbackPanel ? mesh.fallbackUv : undefined;
       uniforms.uFaceUv.value.set(...(faceUv ?? [0, 0, 1, 1]));
       const useArt = !!mesh.useTexture && !!entry?.loaded && !!placement;
       uniforms.uUseArt.value = useArt;
       uniforms.uArt.value = useArt && entry ? entry.texture : placeholder;
       if (useArt && entry && placement) {
-        const transform = textureTransform(placement, entry.width / entry.height, faceUv ? (mesh.faceAspect ?? 1) / 2 : mesh.faceAspect ?? 1);
+        // Placement is worked out on the panel the artwork belongs to.
+        const aspect = (mesh.faceAspect ?? 1) * (faceUv ? Math.abs(faceUv[3] / faceUv[2]) : 1);
+        const transform = textureTransform(placement, entry.width / entry.height, aspect);
         uniforms.uUvScale.value.set(transform.scaleX, transform.scaleY);
         uniforms.uUvOffset.value.set(transform.offsetX, transform.offsetY);
         uniforms.uUvRotation.value = placement.rotation * Math.PI / 180;

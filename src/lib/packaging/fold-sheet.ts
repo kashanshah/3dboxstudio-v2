@@ -21,6 +21,11 @@ export type SheetPanel = {
   layer?: number;
   /** Leave the panel out of the model (it still anchors its children). */
   hidden?: boolean;
+  /**
+   * With no artwork of its own, show this panel's artwork mirrored across
+   * their shared crease, so a flap continues the panel it folds from.
+   */
+  inheritFrom?: string;
 };
 
 export type SheetHinge = {
@@ -139,6 +144,24 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     limit: overlap(spanAlong(trimmedOutline(bend.parent), bend.q0, bend.along), spanAlong(trimmedOutline(bend.child), bend.q0, bend.along)),
   }));
 
+  // Flaps that continue a neighbour's artwork: where in that panel's artwork
+  // each point of the flap lands once mirrored across their crease.
+  const inheritance = new Map<string, { name: string; uv: [number, number, number, number]; insideUv: [number, number, number, number] }>();
+  for (const panel of input.panels) {
+    const source = panel.inheritFrom ? byId.get(panel.inheritFrom) : undefined;
+    const uv = source && mirroredArtworkUv(panel, source);
+    if (source && uv) inheritance.set(panel.id, { name: source.name, uv, insideUv: [uv[0], 1 - uv[1] - uv[3], uv[2], uv[3]] });
+  }
+  for (const mesh of bends) {
+    const owner = mesh.sourcePanel?.replace(/^Interior /, '');
+    const ownerPanel = input.panels.find(panel => panel.name === owner);
+    const inherited = ownerPanel && inheritance.get(ownerPanel.id);
+    if (!inherited) continue;
+    const inside = mesh.sourcePanel!.startsWith('Interior ');
+    mesh.fallbackPanel = inside ? `Interior ${inherited.name}` : inherited.name;
+    mesh.fallbackUv = inside ? inherited.insideUv : inherited.uv;
+  }
+
   const meshes: Mesh[] = [];
   for (const panel of input.panels) {
     const matrix = world.get(panel.id);
@@ -169,6 +192,13 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     inside.pickCorners = [...pick].reverse().map(i => place([panel.outline[i].x, -panel.outline[i].y, -t]));
     inside.faceAspect = outside.faceAspect;
     inside.uvSize = outside.uvSize;
+    const inherited = inheritance.get(panel.id);
+    if (inherited) {
+      outside.fallbackPanel = inherited.name;
+      outside.fallbackUv = inherited.uv;
+      inside.fallbackPanel = `Interior ${inherited.name}`;
+      inside.fallbackUv = inherited.insideUv;
+    }
     if (panel.closureFlap) inside.closureFlap = true;
     meshes.push(outside, inside);
   }
@@ -287,7 +317,8 @@ function smoothQuad(corners: Vec3[], normals: Vec3[], uvs: number[][], color: Ve
   if (uvSize) mesh.uvSize = uvSize;
   if (panel) {
     // Borrow the panel's artwork without becoming a pickable panel itself.
-    mesh.fallbackPanel = panel;
+    mesh.sourcePanel = panel;
+    if (uvSize) mesh.faceAspect = uvSize[0] / uvSize[1];
     mesh.bend = inside ? 'inside' : 'outside';
   } else {
     mesh.bend = 'edge';
@@ -310,6 +341,25 @@ function quad(corners: Vec3[], uvs: number[][], color: Vec3, panel: string): Mes
  */
 function insideUv(uv: number[]) {
   return [uv[0], 1 - uv[1]];
+}
+
+/**
+ * The rectangle of `source`'s artwork, as [u, v, width, height], that `panel`
+ * shows when that artwork is mirrored across their shared crease. Null when
+ * the two do not share an axis-aligned crease.
+ */
+export function mirroredArtworkUv(panel: SheetPanel, source: SheetPanel): [number, number, number, number] | null {
+  const shared = sharedEdge(source.outline, panel.outline) ?? sharedEdge(panel.outline, source.outline);
+  if (!shared) return null;
+  const horizontal = Math.abs(shared.start.y - shared.end.y) < 1e-6;
+  const vertical = Math.abs(shared.start.x - shared.end.x) < 1e-6;
+  if (!horizontal && !vertical) return null;
+  const mirror = (point: Vec2): Vec2 => horizontal ? { x: point.x, y: 2 * shared.start.y - point.y } : { x: 2 * shared.start.x - point.x, y: point.y };
+  const box = boundsOf(panel.outline);
+  // The flap's artwork corners (0,0) and (1,1), v up, as seen in the source.
+  const a = panelUv(source, mirror({ x: box.x, y: box.y + box.height }));
+  const b = panelUv(source, mirror({ x: box.x + box.width, y: box.y }));
+  return [a[0], a[1], b[0] - a[0], b[1] - a[1]];
 }
 
 /** Outline corner indices nearest the artwork's (0,0), (1,0), (1,1) and (0,1). */
