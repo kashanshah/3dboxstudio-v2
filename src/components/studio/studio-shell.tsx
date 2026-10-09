@@ -14,6 +14,7 @@ import { NewDesignPreview } from './new-design-preview';
 import { CameraAngleIcon } from './camera-angle-icon';
 import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
+import { attachTouchPinch } from '@/lib/touch-pinch';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
@@ -698,11 +699,30 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       lastGestureScale=null;
     };
 
+    // Touch screens: pinch to zoom around the fingers, two fingers to pan.
+    const detachPinch=attachTouchPinch(canvas,{
+      accepts:isBoardTarget,
+      onPinch:({scale,x,y,dx,dy})=>{
+        const current=mode==='3d'?zoomRef.current:dielineZoomRef.current;
+        applyAnchoredZoom(scaleStudioZoom(current,scale),x,y);
+        if(mode==='3d'){
+          const nextPan={x:viewPan3dRef.current.x+dx,y:viewPan3dRef.current.y+dy};
+          viewPan3dRef.current=nextPan;
+          setViewPan3d(nextPan);
+        }else{
+          const nextPan={x:canvasPanRef.current.x+dx,y:canvasPanRef.current.y+dy};
+          canvasPanRef.current=nextPan;
+          setCanvasPan(nextPan);
+        }
+      },
+    });
+
     canvas.addEventListener('wheel',handleWheel,{passive:false,capture:true});
     canvas.addEventListener('gesturestart',handleGestureStart,{passive:false,capture:true});
     canvas.addEventListener('gesturechange',handleGestureChange,{passive:false,capture:true});
     canvas.addEventListener('gestureend',handleGestureEnd,{passive:false,capture:true});
     return ()=>{
+      detachPinch();
       canvas.removeEventListener('wheel',handleWheel,{capture:true});
       canvas.removeEventListener('gesturestart',handleGestureStart,{capture:true});
       canvas.removeEventListener('gesturechange',handleGestureChange,{capture:true});

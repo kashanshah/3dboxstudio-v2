@@ -8,6 +8,7 @@ import type { StudioProjectState } from '@/lib/studio-project';
 import { migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { Brand } from '@/components/site-shell';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
+import { attachTouchPinch } from '@/lib/touch-pinch';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
 import { artworkImageLoader, flapFillColours, flapFillTextures } from '@/lib/packaging/flap-fill';
@@ -140,6 +141,21 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
     zoomRef.current=clamped;panRef.current=nextPan;
     setZoom(clamped);setViewPan(nextPan);
   };
+
+  // Touch screens: pinch to zoom around the fingers, two fingers to pan.
+  useEffect(()=>{
+    const wrap=canvasWrapRef.current;
+    if(!wrap)return;
+    return attachTouchPinch(wrap,{
+      accepts:target=>!(target instanceof Element&&target.closest('button,a,input')),
+      onPinch:({scale,x,y,dx,dy})=>{
+        applyZoom(zoomRef.current*scale,x,y);
+        const nextPan={x:panRef.current.x+dx,y:panRef.current.y+dy};
+        panRef.current=nextPan;setViewPan(nextPan);
+      },
+    });
+  // applyZoom reads refs only, so the first render's copy stays correct.
+  },[]);
 
   return <main className="shared-design-viewer">
     <header className="shared-design-header">

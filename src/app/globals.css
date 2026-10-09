@@ -2260,7 +2260,13 @@ body{font-size:var(--type-body)}
 .pro-dieline-workspace{
   overscroll-behavior:none;
 }
+/* Fingers on the sheet are the Studio's (drag, pinch to zoom, two-finger
+   pan), never the browser's page zoom; the side panels still scroll. */
 .pro-dieline-workspace{
+  touch-action:none;
+}
+.pro-2d-left-panel,
+.pro-design-context-stack{
   touch-action:pan-x pan-y;
 }
 .pro-2d-side-panels{
