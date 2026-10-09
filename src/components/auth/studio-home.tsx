@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
 import { menuKeyDown,useDialogFocus,useMenuFocus } from './use-dialog-focus';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,Pencil,Trash2,Move,ExternalLink,ArrowRight,X } from 'lucide-react';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,ChevronDown,Pencil,Trash2,Move,ExternalLink,ArrowRight,X } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
@@ -50,6 +50,7 @@ export function StudioHome({
  const [designError,setDesignError]=useState('');
  const [actionBusy,setActionBusy]=useState(false);
  const [actionMessage,setActionMessage]=useState('');
+ const [showUpcomingTemplates,setShowUpcomingTemplates]=useState(false);
  const menuTriggerRef=useRef<HTMLElement|null>(null);
  const menuRef=useMenuFocus(openMenuId,()=>setOpenMenuId(null));
  const projectMenuRef=useMenuFocus(projectMenuId,()=>setProjectMenuId(null));
@@ -66,6 +67,9 @@ export function StudioHome({
  const libraryDesigns=designs
    .filter(design=>!deletedDesignIds.has(design.id))
    .map(design=>Object.prototype.hasOwnProperty.call(favoriteOverrides,design.id)?{...design,favorite:favoriteOverrides[design.id]}:design);
+ const readyTemplates=PACKAGING_TEMPLATES.filter(template=>template.status==='ready');
+ const upcomingTemplates=PACKAGING_TEMPLATES.filter(template=>template.status!=='ready');
+ const templateCard=(template:(typeof PACKAGING_TEMPLATES)[number])=><article className="studio-template-card" key={template.id}><div className="studio-template-art"><TemplateVisual template={template}/></div><div className="studio-template-card-copy"><div><h3>{getPackagingTemplateCopy(template, t).shortName}</h3><p>{getPackagingTemplateCopy(template, t).category}</p></div>{template.status==='ready'?<Link className="button button-secondary button-small" href={`/studio/editor?template=${template.id}${activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:''}`}><PackageOpen size={16}/>{" " + t("workspace.use_template")}</Link>:<span className="studio-legacy-label">{t("workspace.coming_soon")}</span>}</div></article>;
  const recentDesigns=!search&&sort==='recent'&&page===1?libraryDesigns.slice(0,4):[];
  const favoriteDesigns=!search&&page===1?libraryDesigns.filter(design=>design.favorite).slice(0,4):[];
  useEffect(()=>{
@@ -147,6 +151,8 @@ export function StudioHome({
    finally{setProjectBusy(false);}
  };
 
+ const openNewProject=()=>{setRenameProject(null);setProjectName('');setProjectError('');setCreatingProject(true);};
+
  const createProject=async()=>{
    if(projectBusy)return;
    const name=projectName.trim();
@@ -173,7 +179,7 @@ export function StudioHome({
      </div>
      <div className="studio-home-welcome-actions">
       <div className="studio-create-project-link flex justify-end text-end">
-        <button className="button button-secondary" type="button" onClick={()=>{setRenameProject(null);setProjectName('');setProjectError('');setCreatingProject(true);}}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
+        <button className="button button-secondary" type="button" onClick={openNewProject}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
       </div>
       <Link className="studio-create-action is-primary" href={createDesignHref}>
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
@@ -247,6 +253,7 @@ export function StudioHome({
     <div className="studio-section-heading studio-project-heading">
       <div><p>{t("workspace.keep_related_work_together")}</p><h2 id="project-library-heading">{t("workspace.projects")}</h2></div>
       <div className="studio-project-view-actions">
+        <button type="button" className="studio-project-new-text" onClick={openNewProject}><Plus size={16}/>{" " + t("workspace.new_project")}</button>
         <Link className={`studio-all-work-link${!activeProjectId?' is-active':''}`} href="/studio"><Layers3 size={16}/>{" " + t("workspace.all_work")}</Link>
         <span>{projects.length}{" " + t("workspace.project")}{projects.length===1?'':t("workspace.s")}</span>
       </div>
@@ -290,12 +297,12 @@ export function StudioHome({
 
    <section className="studio-library" aria-labelledby="design-library-heading">
     <div className="studio-section-heading"><div><p>{activeProject?t("workspace.inside_this_project"):t("workspace.your_box_designs")}</p><h2 id="design-library-heading">{activeProject?activeProject.name:t("workspace.all_designs")}</h2></div><div className="studio-section-heading-actions">{activeProject&&<span className="studio-coming-soon-pill">{t("workspace.scene_coming_soon")}</span>}<span>{total}{" " + t("workspace.designs")}</span></div></div>
-    <form className="studio-library-controls" action="/studio">
+    {(total>0||search)&&<form className="studio-library-controls" action="/studio">
       {activeProjectId&&<input type="hidden" name="workspace" value={activeProjectId}/>}
       <label className="studio-search"><Search/><span className="sr-only">{t("workspace.search_designs")}</span><input name="q" defaultValue={search} placeholder={t("workspace.search_your_designs")} maxLength={80}/></label>
       <div className="studio-sort"><label htmlFor="design-sort">{t("workspace.sort")}</label><select id="design-sort" name="sort" defaultValue={sort}><option value="recent">{t("workspace.last_edited")}</option><option value="name">{t("workspace.name")}</option></select></div>
       <button className="button button-secondary button-small">{t("workspace.search")}</button>
-    </form>
+    </form>}
     {libraryDesigns.length?<div className="studio-design-grid">{libraryDesigns.map(design=><article className={`studio-design-card${design.favorite?' is-favorite':''}`} key={design.id}>
       <div className="studio-design-thumb tone-sage">
         {design.href?<Link className="studio-design-thumb-link" href={design.href} aria-label={`Open ${design.name}`}>{design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}</Link>:design.preview?<img src={design.preview} alt={`${design.name} preview`} loading="lazy"/>:<Box size={64} strokeWidth={1}/>}
@@ -327,7 +334,7 @@ export function StudioHome({
         </div>
         {design.href?<Link className="studio-card-open" href={design.href}>{t("workspace.open") + " "}<ArrowRight size={15}/></Link>:<span className="studio-legacy-label">{t("workspace.preserved_conversion_pending")}</span>}
       </div>
-    </article>)}</div>:<div className="studio-library-empty"><Box/><h3>{search?t("workspace.no_matching_designs"):activeProject?t("workspace.no_designs_in_this_project_yet"):t("workspace.your_first_design_starts_here")}</h3><p>{search?t("workspace.try_a_different_search"):activeProject?t("workspace.create_a_design_here_and_it_will_stay_grouped_with_this_project"):t("workspace.create_a_design_and_save_it_to_see_it_in_this_library")}</p><Link className="button button-primary" href={search?(activeProjectId?`/studio?workspace=${encodeURIComponent(activeProjectId)}`:'/studio'):createDesignHref}>{search?t("workspace.clear_search"):t("workspace.create_new_design")}</Link></div>}
+    </article>)}</div>:<div className="studio-library-empty"><Box/><h3>{search?t("workspace.no_matching_designs"):activeProject?t("workspace.no_designs_in_this_project_yet"):t("workspace.your_first_design_starts_here")}</h3><p>{search?t("workspace.try_a_different_search"):activeProject?t("workspace.create_a_design_here_and_it_will_stay_grouped_with_this_project"):t("workspace.create_a_design_and_save_it_to_see_it_in_this_library")}</p>{search&&<Link className="button button-primary" href={activeProjectId?`/studio?workspace=${encodeURIComponent(activeProjectId)}`:'/studio'}>{t("workspace.clear_search")}</Link>}</div>}
     {total>24&&<nav className="studio-pagination" aria-label={t("workspace.design_pages")}>{page>1&&<Link href={pageLink(page-1)}>{t("workspace.previous")}</Link>}<span>{t("workspace.page") + " "}{page}{" " + t("workspace.of") + " "}{Math.ceil(total/24)}</span>{page*24<total&&<Link href={pageLink(page+1)}>{t("workspace.next_2")}</Link>}</nav>}
    </section>
 
@@ -363,7 +370,13 @@ export function StudioHome({
     </section>
    </div>}
 
-   <section className="studio-templates" aria-labelledby="template-heading"><div className="studio-section-heading"><div><p>{t("workspace.start_from_structure")}</p><h2 id="template-heading">{t("workspace.packaging_templates")}</h2></div></div><div className="studio-template-grid">{PACKAGING_TEMPLATES.map(template=><article className="studio-template-card" key={template.id}><div className="studio-template-art"><TemplateVisual template={template}/></div><div className="studio-template-card-copy"><div><h3>{getPackagingTemplateCopy(template, t).shortName}</h3><p>{getPackagingTemplateCopy(template, t).category}</p></div>{template.status==='ready'?<Link className="button button-secondary button-small" href={`/studio/editor?template=${template.id}${activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:''}`}><PackageOpen size={16}/>{" " + t("workspace.use_template")}</Link>:<span className="studio-legacy-label">{t("workspace.coming_soon")}</span>}</div></article>)}</div></section>
+   <section className="studio-templates" aria-labelledby="template-heading"><div className="studio-section-heading"><div><p>{t("workspace.start_from_structure")}</p><h2 id="template-heading">{t("workspace.packaging_templates")}</h2></div></div>
+    <div className="studio-template-grid">{readyTemplates.map(templateCard)}</div>
+    {upcomingTemplates.length>0&&<>
+      <button type="button" className="studio-templates-more" aria-expanded={showUpcomingTemplates} aria-controls="upcoming-templates" onClick={()=>setShowUpcomingTemplates(open=>!open)}><ChevronDown size={16}/>More structures coming<span>{upcomingTemplates.length}</span></button>
+      {showUpcomingTemplates&&<div id="upcoming-templates" className="studio-template-grid is-upcoming">{upcomingTemplates.map(templateCard)}</div>}
+    </>}
+   </section>
   </div>
  </main>;
 }

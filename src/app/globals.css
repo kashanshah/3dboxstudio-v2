@@ -2465,6 +2465,9 @@ body{font-size:var(--type-body)}
 .pro-template-visual.is-combined{
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  /* Pin the row to the thumbnail height: a tall dieline (pizza box) must not
+     stretch the row and push the 3D shapes out of the clipped package half. */
+  grid-template-rows:minmax(0,1fr);
   align-items:stretch;
   padding:0;
 }
@@ -2472,6 +2475,7 @@ body{font-size:var(--type-body)}
 .pro-template-package{
   position:relative;
   min-width:0;
+  min-height:0;
   height:100%;
   display:flex;
   align-items:center;
