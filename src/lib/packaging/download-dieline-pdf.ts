@@ -1,8 +1,8 @@
-import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
-import { layerPrintsOn, sheetTransformToPhysical, type FullDielineArtworkLayer } from './full-dieline-artwork';
-import { getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, type TemplateGeometryOptions } from './template-runtime';
-import { inheritedFlaps, panelName } from './flap-artwork';
-import { continuationTransform } from './flap-continuation';
+import type { ArtworkByPanel } from './artwork';
+import { layerPrintsOn, type FullDielineArtworkLayer } from './full-dieline-artwork';
+import { getTemplateExportGeometry, getTemplateGeometry, type TemplateGeometryOptions } from './template-runtime';
+import { panelName } from './flap-artwork';
+import { drawPanelPrint, flapFillColours } from './flap-fill';
 import type { CartonDimensions } from './reverse-tuck';
 import {
   validatePdfOptions, validatePdfDimensions, getPdfRasterBudget, panelPixelsPerMm, choosePanelImageEncoding,
@@ -132,47 +132,6 @@ function readAlpha(ctx: CanvasRenderingContext2D, width: number, height: number)
 const encodeCanvas = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
   new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, quality));
 
-function drawPanelArtwork(ctx: CanvasRenderingContext2D, artwork: ArtworkPlacement, image: HTMLImageElement, width: number, height: number) {
-  ctx.save();
-  if (artwork.transform) {
-    const t = artwork.transform;
-    ctx.translate(width * t.x / 100, height * t.y / 100);
-    ctx.rotate(t.rotation * Math.PI / 180);
-    ctx.drawImage(image, -width * t.width / 200, -height * t.height / 200, width * t.width / 100, height * t.height / 100);
-  } else {
-    const anchorX = width * (artwork.alignX + 1) / 2;
-    const anchorY = height * (artwork.alignY + 1) / 2;
-    ctx.translate(anchorX, anchorY);
-    ctx.rotate(artwork.rotation * Math.PI / 180);
-    if (artwork.mode !== 'tile') ctx.scale(artwork.scale / 100, artwork.scale / 100);
-    ctx.translate(-anchorX, -anchorY);
-    if (artwork.crop) {
-      const c = artwork.crop;
-      ctx.drawImage(image, c.x * image.naturalWidth, c.y * image.naturalHeight, c.width * image.naturalWidth, c.height * image.naturalHeight, 0, 0, width, height);
-    } else if (artwork.panelTexture) {
-      ctx.drawImage(image, 0, 0, width, height);
-    } else if (artwork.mode === 'tile') {
-      const tileWidth = width * Math.max(12, 10000 / Math.max(25, artwork.scale)) / 100;
-      const tileHeight = tileWidth * image.naturalHeight / image.naturalWidth;
-      const pattern = ctx.createPattern(image, 'repeat');
-      if (!pattern) throw new Error('Could not prepare tiled artwork.');
-      const x = (width - tileWidth) * (artwork.alignX + 1) / 2;
-      const y = (height - tileHeight) * (artwork.alignY + 1) / 2;
-      pattern.setTransform(new DOMMatrix([tileWidth / image.naturalWidth, 0, 0, tileHeight / image.naturalHeight, x, y]));
-      ctx.fillStyle = pattern;
-      // The mask below provides the exact final clipping, including bleed.
-      ctx.fillRect(-width * 2, -height * 2, width * 5, height * 5);
-    } else {
-      const ratio = artwork.mode === 'fill'
-        ? Math.max(width / image.naturalWidth, height / image.naturalHeight)
-        : Math.min(width / image.naturalWidth, height / image.naturalHeight);
-      const w = image.naturalWidth * ratio, h = image.naturalHeight * ratio;
-      ctx.drawImage(image, (width - w) * (artwork.alignX + 1) / 2, (height - h) * (artwork.alignY + 1) / 2, w, h);
-    }
-  }
-  ctx.restore();
-}
-
 function panelCutEdges(panel: ExportPanel, cut: LineMm[]) {
   const onSegment = (point: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) =>
     Math.abs((point.x - a.x) * (b.y - a.y) - (point.y - a.y) * (b.x - a.x)) < 1e-5
@@ -209,22 +168,20 @@ export function preparePdfArtwork(input: DownloadInput) {
   const release = () => { for (const c of [canvas, mask]) if (c) c.width = c.height = 0; };
   const visible = input.layers.filter(layer => layer.visible !== false && (layer.opacity ?? 100) > 0);
   const prefix = input.scope === 'inside' ? 'Interior ' : '';
-  // Panels with no artwork of their own carry a neighbour's edge across the crease.
-  const inherited = new Map(inheritedFlaps(getTemplateRuntime(input.templateId)?.flapArtworkSources, source.panels, source.bounds, visible, input.artworkByPanel, prefix)
-    .map(item => [item.flap.id, item] as const));
+  // Panels with no artwork of their own print solid in their neighbour's edge colour.
+  let fills: Promise<Record<string, string>> | null = null;
   const renderPanel = async (index: number): Promise<PdfPanelImage | null> => {
     const panel = geometry.panels[index];
-    const flapPanel = source.panels.find(p => p.id === panel.sourceId);
-    const inherit = flapPanel ? inherited.get(flapPanel.id) : undefined;
-    // The panel whose artwork prints here: the panel itself, or a flap's source.
-    const original = inherit?.source ?? flapPanel;
+    const original = source.panels.find(p => p.id === panel.sourceId);
+    fills ??= flapFillColours({ ...input, layers: visible }, getImage);
+    const fill = original ? (await fills)[original.id] : undefined;
     const explicit = original ? input.artworkByPanel[`${prefix}${panelName(original.label)}`] : undefined;
-    if (!input.baseColor && (!original || (!visible.some(layer => layerPrintsOn(layer, original.id)) && !explicit))) return null;
+    if (!input.baseColor && !fill && (!original || (!visible.some(layer => layerPrintsOn(layer, original.id)) && !explicit))) return null;
     const w = panel.width + 2 * bleed, h = panel.height + 2 * bleed;
     const pixelsPerMm = panelPixelsPerMm(w, h, totalAreaMm2, budget);
     // Load artwork before allocating the canvas.
-    const explicitImage = original && explicit ? await getImage(explicit.url) : null;
-    const layerImages = original && !explicit ? await Promise.all(visible.map(layer => getImage(layer.url))) : [];
+    const explicitImage = original && explicit && !fill ? await getImage(explicit.url) : null;
+    const layerImages = original && !explicit && !fill ? await Promise.all(visible.map(async layer => ({ layer, image: await getImage(layer.url) }))) : [];
     canvas ??= document.createElement('canvas');
     mask ??= document.createElement('canvas');
     try {
@@ -235,41 +192,15 @@ export function preparePdfArtwork(input: DownloadInput) {
       ctx.scale(canvas.width / w, canvas.height / h);
       ctx.translate(bleed, bleed);
       if (input.baseColor) { ctx.fillStyle = input.baseColor; ctx.fillRect(-bleed, -bleed, w, h); }
-      if (original) {
+      if (fill) { ctx.fillStyle = fill; ctx.fillRect(-bleed, -bleed, w, h); }
+      else if (original) {
         ctx.save();
         ctx.translate(panel.width / 2, panel.height / 2);
         ctx.rotate((panel.sourceRotation ?? 0) * Math.PI / 180);
         ctx.translate(-panel.width / 2, -panel.height / 2);
-        if (inherit && flapPanel) {
-          // Draw the source panel's artwork with its edge strip stretched
-          // across the flap: a point d beyond the crease shows the source d/stretch inside it.
-          const { scale, offset } = continuationTransform(inherit.crease, inherit.stretch);
-          ctx.translate(-flapPanel.x, -flapPanel.y);
-          if (inherit.crease.axis === 'y') { ctx.translate(0, offset); ctx.scale(1, -scale); }
-          else { ctx.translate(offset, 0); ctx.scale(-scale, 1); }
-          ctx.translate(original.x, original.y);
-        }
         // Explicit face artwork replaces the sheet texture in the editor and 3D
         // preview. Transparent or uncovered areas reveal only the base color.
-        if (explicit && explicitImage) {
-          // Panel artwork is oriented to the folded box; a panel printed upside
-          // down on the sheet takes it turned half a turn.
-          if (original.artworkRotation === 180) {
-            ctx.translate(original.width, original.height);
-            ctx.rotate(Math.PI);
-          }
-          drawPanelArtwork(ctx, explicit, explicitImage, original.width, original.height);
-        }
-        else visible.forEach((layer, i) => {
-          if (!layerPrintsOn(layer, original.id)) return;
-          const t = sheetTransformToPhysical(layer.transform, source.bounds);
-          ctx.save();
-          ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 100) / 100));
-          ctx.translate(t.centerX - original.x, t.centerY - original.y);
-          ctx.rotate(t.rotation * Math.PI / 180);
-          ctx.drawImage(layerImages[i], -t.width / 2, -t.height / 2, t.width, t.height);
-          ctx.restore();
-        });
+        drawPanelPrint(ctx, original, source.bounds, explicit && explicitImage ? { placement: explicit, image: explicitImage } : null, layerImages);
         ctx.restore();
       }
       // An actual bleed mask: expand only external cut edges, never the fold edges.

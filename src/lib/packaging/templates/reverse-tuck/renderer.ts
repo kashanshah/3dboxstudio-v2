@@ -1,7 +1,7 @@
 import { reverseTuckFoldState, sanitizeCartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
-import { REVERSE_TUCK_FLAP_SOURCES, reverseTuckClosureSizes, reverseTuckSheet } from './export';
+import { reverseTuckClosureSizes, reverseTuckSheet } from './export';
 
 // The 3D carton is folded from the cutting template itself, so every flap in
 // the print file moves in 3D and each crease bends like scored card.
@@ -68,8 +68,6 @@ export const buildReverseTuckTemplateMeshes: TemplateMeshBuilder = ({ dimensions
     outline: panel.outline,
     artworkRotation: panel.artworkRotation,
     closureFlap: !['glue', 'left', 'front', 'right', 'back', 'top', 'bottom'].includes(panel.id),
-    // Tuck and dust flaps with no artwork of their own continue their panel's.
-    inheritFrom: REVERSE_TUCK_FLAP_SOURCES[panel.id],
     layer: panel.id === 'top' || panel.id === 'bottom' ? 2 : PARENT[panel.id] && !['left', 'right', 'back'].includes(panel.id) ? 0 : 1,
   }));
   const hinges: SheetHinge[] = Object.entries(PARENT).map(([child, parent]) => ({ child, parent, angle: angle[child] ?? 0, setback: setback[child] }));

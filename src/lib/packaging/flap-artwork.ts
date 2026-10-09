@@ -4,9 +4,9 @@ import { layerOverlaps, layerPrintsOn, type FullDielineArtworkLayer } from './fu
 import { continuationChain, type Crease } from './flap-continuation';
 
 // Panels that carry no artwork of their own (closure flaps, or an empty
-// bottom) continue a neighbour's artwork across the crease, see
-// flap-continuation.ts. The 2D grid, the 3D textures and the print file all
-// use this.
+// bottom) continue a neighbour's artwork across the crease in its edge colour,
+// see flap-continuation.ts and flap-fill.ts. The 2D grid, the 3D model and the
+// print file all use this.
 
 type Bounds = { width: number; height: number };
 
@@ -15,8 +15,6 @@ export type InheritedFlap = {
   /** The neighbour whose artwork is continued over the flap. */
   source: DielinePanel;
   crease: Crease;
-  /** The flap shows the source's edge strip stretched by this factor. */
-  stretch: number;
 };
 
 export const panelName = (label: string) => label.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());

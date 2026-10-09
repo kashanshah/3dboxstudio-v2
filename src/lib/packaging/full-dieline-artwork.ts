@@ -26,12 +26,18 @@ export type FullDielineArtworkLayer = {
   panels?: string[];
 };
 
-/** Whether the layer's rotated box overlaps the panel's box on the sheet. */
+/** Overlaps thinner than this (millimetres) are rounding, not artwork. */
+const OVERLAP_TOLERANCE_MM = 0.05;
+
+/**
+ * Whether the layer's rotated box overlaps the panel's box on the sheet. A
+ * layer that stops on a crease does not reach the panel beyond it.
+ */
 export function layerOverlaps(layer: FullDielineArtworkLayer, panel: {x:number;y:number;width:number;height:number}, bounds: {width:number;height:number}) {
   const t = sheetTransformToPhysical(layer.transform, bounds);
   const angle = t.rotation * Math.PI / 180;
-  const halfWidth = (Math.abs(Math.cos(angle)) * t.width + Math.abs(Math.sin(angle)) * t.height) / 2;
-  const halfHeight = (Math.abs(Math.sin(angle)) * t.width + Math.abs(Math.cos(angle)) * t.height) / 2;
+  const halfWidth = (Math.abs(Math.cos(angle)) * t.width + Math.abs(Math.sin(angle)) * t.height) / 2 - OVERLAP_TOLERANCE_MM;
+  const halfHeight = (Math.abs(Math.sin(angle)) * t.width + Math.abs(Math.cos(angle)) * t.height) / 2 - OVERLAP_TOLERANCE_MM;
   return t.centerX + halfWidth > panel.x && t.centerX - halfWidth < panel.x + panel.width
     && t.centerY + halfHeight > panel.y && t.centerY - halfHeight < panel.y + panel.height;
 }

@@ -8,8 +8,9 @@ import type { StudioProjectState } from '@/lib/studio-project';
 import { migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { Brand } from '@/components/site-shell';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
-import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
+import { artworkImageLoader, flapFillColours, flapFillTextures } from '@/lib/packaging/flap-fill';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 
 const PROMO_HREF='/studio?ref=shared-design';
@@ -34,13 +35,19 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
 
   useEffect(()=>{
     let cancelled=false;
+    const getImage=artworkImageLoader();
+    const fillBase={templateId:state.templateId,dimensions:state.dimensions,geometryOptions:{openingMode,splitTopHingeSide:state.splitTopHingeSide},artworkByPanel:state.artworkByPanel};
     void Promise.all([
       state.outsideArtworkLayers.length?rasterizeFullDielineLayers(state.outsideArtworkLayers,state.dimensions,state.templateId,'',{openingMode,splitTopHingeSide:state.splitTopHingeSide}):Promise.resolve({} as ArtworkByPanel),
       state.insideArtworkLayers.length?rasterizeFullDielineLayers(state.insideArtworkLayers,state.dimensions,state.templateId,'Interior ',{openingMode,splitTopHingeSide:state.splitTopHingeSide}):Promise.resolve({} as ArtworkByPanel),
       rasterizePanelArtwork(state.artworkByPanel,state.dimensions,state.templateId,{openingMode,splitTopHingeSide:state.splitTopHingeSide}),
-    ]).then(([outside,inside,panels])=>{
+      flapFillColours({...fillBase,layers:state.outsideArtworkLayers,scope:'outside'},getImage),
+      flapFillColours({...fillBase,layers:state.insideArtworkLayers,scope:'inside'},getImage),
+    ]).then(([outside,inside,panels,outsideFills,insideFills])=>{
       if(cancelled)return;
-      setSharedLayerArtwork({...outside,...inside});
+      // Empty flaps print solid in their neighbour's edge colour.
+      const geometry=getTemplateGeometry(state.templateId,state.dimensions,fillBase.geometryOptions).panels;
+      setSharedLayerArtwork({...flapFillTextures(outsideFills,geometry,''),...flapFillTextures(insideFills,geometry,'Interior '),...outside,...inside});
       setSharedPanelArtwork(panels);
     }).catch(error=>{console.error('shared artwork rasterization failed',error);});
     return()=>{cancelled=true;};
