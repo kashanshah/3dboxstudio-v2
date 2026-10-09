@@ -70,6 +70,8 @@ export function reverseTuckSheet(input: CartonDimensions) {
     ['top-tuck', frontX, tongue, -1],
     ['bottom-tuck', backX, bodyY + d.height + d.depth, 1],
   ] as const) {
+    // A carton no wider than the two clearances leaves no room for a tongue.
+    if (d.width <= 2 * clearance) continue;
     const y = direction === -1 ? hingeY - tongue : hingeY;
     const panel = rect(id, x + clearance, y, d.width - 2 * clearance, tongue, 'flap');
     const bevel = tongueBevel;

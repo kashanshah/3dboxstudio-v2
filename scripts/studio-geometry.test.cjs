@@ -116,6 +116,39 @@ test('the flat 3D sheet is exactly the cutting template',()=>{
   }
 });
 
+test('a carton no wider than its tongue clearances still folds in 3D, without tuck tongues',()=>{
+  // Tongues are width − 2·max(0.5, thickness) wide, so these leave none.
+  for(const d of [{width:1,height:40,depth:20,thickness:.5},{width:4,height:40,depth:20,thickness:2},{width:1.5,height:40,depth:20,thickness:1}]){
+    const ids=reverseTuckSheet(d).panels.map(panel=>panel.id);
+    assert.ok(!ids.includes('top-tuck')&&!ids.includes('bottom-tuck'),`${d.width}mm leaves no tongue`);
+    for(const progress of [0,50,100]){
+      const meshes=buildMeshes(d,progress,[1,1,1],[1,1,1],{templateId:'reverse-tuck-carton',formation:progress});
+      assert.ok(meshes.some(mesh=>mesh.panel==='Front'),`${d.width}mm front is drawn at ${progress}%`);
+      assert.ok(meshes.every(mesh=>[...mesh.vertices].every(Number.isFinite)),`${d.width}mm mesh is finite at ${progress}%`);
+    }
+  }
+});
+
+const {foldSheet,identity}=require('../src/lib/packaging/fold-sheet.ts');
+test('a hinge with no shared crease leaves its flap out instead of failing the preview',()=>{
+  const square=(x,y)=>[{x,y},{x:x+10,y},{x:x+10,y:y+10},{x,y:y+10}];
+  const input={
+    panels:[{id:'base',name:'Base',outline:square(0,0)},{id:'side',name:'Side',outline:square(10,0)},{id:'loose',name:'Loose',outline:square(40,40)}],
+    hinges:[{child:'side',parent:'base',angle:Math.PI/2},{child:'loose',parent:'base',angle:Math.PI/2}],
+    root:'base',thickness:.5,color:[1,1,1],interiorColor:[1,1,1],placement:identity(),
+  };
+  const warn=console.warn,warnings=[];
+  console.warn=message=>warnings.push(message);
+  try{
+    for(let i=0;i<2;i++){
+      const panels=foldSheet(input).map(mesh=>mesh.panel).filter(Boolean);
+      assert.ok(panels.includes('Base')&&panels.includes('Side'));
+      assert.ok(!panels.includes('Loose'));
+    }
+  }finally{console.warn=warn;}
+  assert.equal(warnings.length,1,'the missing crease is reported once');
+});
+
 test('raster canvas keeps the sheet aspect ratio for unusually wide and tall nets',()=>{
   for(const dimensions of [...fixtures,{width:30,height:4000,depth:15,thickness:.5}]){
     const bounds=reverseTuckBounds(dimensions),size=dielineRasterSize(bounds);

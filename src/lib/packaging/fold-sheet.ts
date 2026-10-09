@@ -52,6 +52,13 @@ export type Mat4 = number[];
 
 const BEND_SEGMENTS = 6;
 
+const reportedCreases = new Set<string>();
+function reportMissingCrease(hinge: SheetHinge) {
+  const key = `${hinge.parent}/${hinge.child}`;
+  if (reportedCreases.has(key)) return;
+  reportedCreases.add(key);
+  console.warn(`No crease between ${hinge.parent} and ${hinge.child}; leaving ${hinge.child} out of the 3D view`);
+}
 
 export function foldSheet(input: FoldSheetInput): Mesh[] {
   const t = Math.max(0.05, input.thickness);
@@ -72,7 +79,11 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
       const child = byId.get(hinge.child);
       if (!child) continue;
       const shared = sharedEdge(parent.outline, child.outline);
-      if (!shared) throw new Error(`No crease between ${hinge.parent} and ${hinge.child}`);
+      if (!shared) {
+        // Leave the flap off rather than lose the whole preview.
+        reportMissingCrease(hinge);
+        continue;
+      }
       const q0 = flat(shared.start), q1 = flat(shared.end);
       const along = normalize(sub(q1, q0));
       const centroid = average(child.outline.map(flat));
