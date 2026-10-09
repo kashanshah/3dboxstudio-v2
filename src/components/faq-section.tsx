@@ -14,6 +14,7 @@ export function FaqSection({
   links = [],
   id,
   eyebrow = "Frequently asked questions",
+  className,
 }: {
   items: readonly FaqSectionItem[];
   title?: string;
@@ -22,9 +23,11 @@ export function FaqSection({
   id?: string;
   /** Also the section's accessible name; pass a translation on localized pages. */
   eyebrow?: string;
+  /** Extra class on the section, so a page can align the heading with its own type scale. */
+  className?: string;
 }) {
   return (
-    <section id={id} className={styles.section} aria-label={eyebrow}>
+    <section id={id} className={className ? `${styles.section} ${className}` : styles.section} aria-label={eyebrow}>
       <div className={styles.intro}>
         <p className={styles.eyebrow}>{eyebrow}</p>
         <h2>{title}</h2>

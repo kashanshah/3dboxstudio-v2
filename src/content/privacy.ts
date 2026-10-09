@@ -62,6 +62,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     type: "ul",
     items: [
       "Session cookie (sb_session) — keeps you signed in when you use an account. HttpOnly, secure in production.",
+      "Signed-in hint (3dbs_signed_in cookie, 3dbs_session_checked in local storage) — lets pages skip checking your session when you are not signed in. Contains no account information.",
       "Analytics — Google Analytics and PostHog (product analytics and session recordings) set cookies or use local storage to measure how the site is used. In the EEA, the UK and Switzerland they only run after you accept in the cookie banner; elsewhere they run by default. You can accept or decline at any time from \"Cookie settings\" in the site footer. Uploaded artwork is excluded from session recordings.",
       "Consent choice (3dbs_analytics_consent, 3dbs_consent_region) — stored in your browser to remember your cookie choice and whether consent is required where you are.",
       "Cloudflare Turnstile — a third-party script loads on the contact form to verify that submissions come from a person.",

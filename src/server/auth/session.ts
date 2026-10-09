@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { getSql } from '@/server/db';
+import { SIGNED_IN_HINT_COOKIE } from '@/lib/auth-hint';
 import { toPublicUser,type PublicUser,type UserRow } from './users';
 
 export const SESSION_COOKIE='sb_session';
@@ -27,11 +28,25 @@ export async function setSessionCookie(value:string){
     path:'/',
     maxAge:SESSION_TTL_DAYS*24*60*60,
   });
+  await setSignedInHint(true);
 }
 
 export async function clearSessionCookie(){
   const store=await cookies();
   store.set(SESSION_COOKIE,'',{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',path:'/',maxAge:0});
+  await setSignedInHint(false);
+}
+
+/** Lets the client skip /api/auth/me when signed out. Never read on the server. */
+export async function setSignedInHint(signedIn:boolean){
+  const store=await cookies();
+  store.set(SIGNED_IN_HINT_COOKIE,signedIn?'1':'',{
+    httpOnly:false,
+    secure:process.env.NODE_ENV==='production',
+    sameSite:'lax',
+    path:'/',
+    maxAge:signedIn?SESSION_TTL_DAYS*24*60*60:0,
+  });
 }
 
 export async function deleteCurrentSession(){
@@ -53,6 +68,15 @@ async function rowForSession(value:string):Promise<UserRow|null>{
     LIMIT 1
   ` as UserRow[];
   return rows[0]??null;
+}
+
+/** Like getCurrentUser, but a failed lookup throws instead of reading as signed out. */
+export async function lookupCurrentUser():Promise<PublicUser|null>{
+  const store=await cookies();
+  const value=store.get(SESSION_COOKIE)?.value;
+  if(!value) return null;
+  const row=await rowForSession(value);
+  return row?toPublicUser(row):null;
 }
 
 export async function getCurrentUser():Promise<PublicUser|null>{

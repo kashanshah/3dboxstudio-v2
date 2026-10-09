@@ -6,6 +6,7 @@ import { guardAuthAction } from '@/server/auth/action-request';
 import { moveDesignToWorkspaceProject } from '@/server/workspace-projects';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { deleteLegacyDesign } from '@/server/legacy-designs';
+import { cleanDesignName,renameDesign } from '@/server/projects';
 
 export async function PUT(req:Request,{params}:{params:Promise<{id:string}>}){
   return saveProject(req,(await params).id);
@@ -19,6 +20,13 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
   let body:unknown;try{body=await req.json();}catch{return NextResponse.json({error:'Invalid project update.'},{status:400});}
   const favorite=(body as {favorite?:unknown})?.favorite;
   const workspaceProjectId=(body as {workspaceProjectId?:unknown})?.workspaceProjectId;
+  if(body&&typeof body==='object'&&'name' in body){
+    const name=cleanDesignName((body as {name?:unknown}).name);
+    if(!name)return NextResponse.json({error:'Enter a design name (1–120 characters).'},{status:400});
+    const renamed=await renameDesign(user.id,id,name);
+    if(!renamed)return NextResponse.json({error:'Design not found.'},{status:404});
+    return NextResponse.json({project:renamed});
+  }
   if(typeof favorite==='boolean'){
     const rows=await getSql()`UPDATE projects SET is_favorite=${favorite} WHERE id=${id} AND user_id=${user.id} RETURNING id,is_favorite` as {id:string;is_favorite:boolean}[];
     if(!rows.length)return NextResponse.json({error:'Design not found.'},{status:404});

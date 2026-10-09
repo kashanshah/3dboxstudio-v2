@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Download, FoldVertical, Globe, ImagePlus, Palette, Ruler, Share2, Sparkles } from "lucide-react";
 import { Brand } from "./site-shell";
+import { MobileMenu } from "./mobile-menu";
 import { BrandMark } from "./original-brand-mark";
 import { Button } from "./original-button";
 import { FaqSection } from "./faq-section";
@@ -48,6 +49,16 @@ export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
         <div className="marketing-header-actions">
           <LanguageSwitcher current={locale} label={c.nav.languages} />
           <Link className="button marketing-header-cta" href="/studio">{c.nav.openStudio} <ArrowRight size={16}/></Link>
+          <MobileMenu
+            links={[
+              { href: '#features', label: c.nav.features, native: true },
+              { href: '/box-templates', label: c.nav.templates, hrefLang: 'en' },
+              { href: '#faq', label: c.nav.faq, native: true },
+              { href: '/blog', label: c.nav.guides, hrefLang: 'en' },
+            ]}
+            cta={{ href: '/studio', label: c.nav.openStudio }}
+            labels={{ open: c.nav.openMenu, close: c.nav.closeMenu, nav: '3D Box Studio' }}
+          />
         </div>
       </div>
     </header>

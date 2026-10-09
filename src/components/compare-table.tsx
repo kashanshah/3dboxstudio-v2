@@ -7,7 +7,7 @@ export function CompareTable({ competitor, rows, checked }: { competitor: string
     <div className="compare-table-scroll">
       <table>
         <thead><tr><th scope="col"><span className="sr-only">Feature</span></th><th scope="col">3D Box Studio</th><th scope="col">{competitor}</th></tr></thead>
-        <tbody>{rows.map(row => <tr key={row.label}><th scope="row">{row.label}</th><td>{row.ours}</td><td>{row.theirs}</td></tr>)}</tbody>
+        <tbody>{rows.map(row => <tr key={row.label}><th scope="row">{row.label}</th><td data-label="3D Box Studio">{row.ours}</td><td data-label={competitor}>{row.theirs}</td></tr>)}</tbody>
       </table>
     </div>
     <p>{checked}</p>

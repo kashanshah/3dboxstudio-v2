@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRight, Box, CirclePlay, Download, Layers3, MoveUpRight, PackageCheck,
+  ArrowRight, CirclePlay, Download, Layers3, MoveUpRight,
   Sparkles, Ruler, ImagePlus, Share2, Save, Rotate3D, Scissors, MousePointer2,
   PanelsTopLeft, Camera, FoldVertical, CheckCircle2
 } from "lucide-react";
@@ -102,25 +102,16 @@ export function OriginalHome() {
   return <><SiteHeader /><main id="main" className="lovable-original marketing-page">
 
     <section className="home-hero">
-      <div className="hero-copy animate-fade-in">
+      <div className="hero-copy">
         <div className="hero-badge"><Sparkles /> Free 3D box generator &amp; mockup maker</div>
         <h1>Design <br/>the box.<br/><span>See it in 3D.</span></h1>
         <p>3D Box Studio is a free online 3D box maker and simulator. Choose a box style, enter exact dimensions, design on the dieline, fold it in 3D, and export a PNG mockup or a print-ready PDF dieline. All you need is a free account—no software to install.</p>
         <div className="hero-actions"><Button asChild size="lg"><Link href="/studio">Start designing <ArrowRight /></Link></Button><Button variant="outline" size="lg" asChild><a href="#workflow"><CirclePlay /> See how it works</a></Button></div>
         <div className="hero-proof"><span>No install</span><i/><span>2D + 3D in one workflow</span><i/><span>Free account</span></div>
       </div>
-      <div className="hero-stage" role="img" aria-label="3D Box Studio concept showing a packaging workspace with artwork controls and a 3D package preview">
-        <div className="hero-window">
-          <div className="hero-window-bar"><div className="original-window-title"><span className="window-logo"><Box /></span><b>Noma Tea — Spring</b><span className="saved-dot">Saved</span></div><span className="window-share"><Download/> Export</span></div>
-          <div className="hero-window-body">
-            <div className="mini-tools">{[Box,Layers3,Sparkles,PackageCheck].map((Icon,i)=><span key={i} className={i===1?"is-active":""}><Icon/></span>)}</div>
-            <div className="hero-canvas"><div className="viewport-grid"/><PackageBox open /></div>
-            <div className="mini-inspector"><p>ARTWORK</p><h3>Front panel</h3><div className="mini-art"><span>NOMA</span></div><div className="mini-label"><span>Placement</span><b>Fill</b></div><div className="mini-slider"><i/></div><div className="mini-label"><span>Live preview</span><b className="quality">Synced</b></div></div>
-          </div>
-        </div>
-        <div className="floating-note note-top"><span className="note-icon"><Ruler/></span><span><b>120 × 80 × 35 mm</b><small>Finished size</small></span></div>
-        <div className="floating-note note-bottom"><span className="avatar-stack"><i>3D</i></span><span><b>Ready to export</b><small>PNG preview</small></span></div>
-      </div>
+      <figure className="hero-stage hero-shot">
+        <Image src="/images/v2-launch/studio-preview-3d.png" alt="3D Box Studio showing a printed shipping box in the live 3D preview, with the assembly control beside it" width={2048} height={1151} priority sizes="(max-width: 1050px) 100vw, 680px" />
+      </figure>
     </section>
 
     <section className="capability-band">

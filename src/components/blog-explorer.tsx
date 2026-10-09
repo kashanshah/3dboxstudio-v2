@@ -13,9 +13,14 @@ type Article = {
   image: string;
 };
 
+/** Guides shown on phones before "Load more", counting the featured guide. */
+const MOBILE_PAGE_SIZE = 12;
+
 export function BlogExplorer({ articles, categories }: { articles: Article[]; categories: string[] }) {
   const [active, setActive] = useState('All');
   const [query, setQuery] = useState('');
+  // Phones show the first page of guides; the rest stay in the HTML (for search engines) until requested.
+  const [showAll, setShowAll] = useState(false);
 
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = useMemo(() => articles.filter((article) => {
@@ -35,6 +40,7 @@ export function BlogExplorer({ articles, categories }: { articles: Article[]; ca
   const featured = filtered[0];
   const rest = filtered.slice(1);
   const hasFilters = active !== 'All' || query.length > 0;
+  const collapse = !showAll && !hasFilters && rest.length > MOBILE_PAGE_SIZE - 1;
 
   return <div className="blog-explorer-layout">
     <aside className="blog-filter-sidebar" aria-label="Guide filters">
@@ -93,12 +99,13 @@ export function BlogExplorer({ articles, categories }: { articles: Article[]; ca
       {featured && <section className="journal-feed" id="all-guides">
         <div className="feed-heading"><h2>{hasFilters ? 'Matching guides' : 'All guides'}</h2><span>{filtered.length} article{filtered.length === 1 ? '' : 's'}</span></div>
         <div className="content-article-grid">
-          {rest.map((article) => <article className="content-article-card" key={article.slug}><Link href={`/blog/${article.slug}`}>
+          {rest.map((article, index) => <article className={`content-article-card${collapse && index >= MOBILE_PAGE_SIZE - 1 ? ' is-collapsed' : ''}`} key={article.slug}><Link href={`/blog/${article.slug}`}>
             <div className="content-article-card-media"><img loading="lazy" src={article.image} alt="" width="1200" height="800" /></div>
             <div className="content-article-meta"><span>{article.category}</span><span>{article.readMinutes} min read</span></div>
             <h3>{article.title}</h3><p>{article.description}</p>
           </Link></article>)}
         </div>
+        {collapse ? <button type="button" className="blog-load-more" onClick={() => setShowAll(true)}>Load more guides <span>({rest.length - (MOBILE_PAGE_SIZE - 1)} more)</span></button> : null}
       </section>}
     </div>
   </div>;

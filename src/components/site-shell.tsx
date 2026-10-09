@@ -3,10 +3,10 @@
 import { useTranslations } from '@/components/i18n/locale-provider';
 import { CookieSettingsButton } from '@/components/analytics/ConsentBanner';
 import Link from 'next/link';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+import { MobileMenu } from '@/components/mobile-menu';
 import { BrandLogo } from '@/components/brand-logo';
 import { AccountButton } from '@/components/auth/account-button';
-import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const navLinks = [
@@ -25,15 +25,15 @@ export function Brand() {
   return <Link href="/" className="brand brand-vector" aria-label={t("navigation.3d_box_studio_home")}><BrandLogo className="brand-vector-logo" priority /></Link>;
 }
 
-function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavigationLinks() {
   const t = useTranslations();
   const pathname = usePathname();
   return <>
     {navLinks.map((item) => {
       const active = !('homeHash' in item) && (pathname === item.href || pathname.startsWith(item.href + '/'));
       // Native anchors wait for the destination document's sections to exist.
-      if ('homeHash' in item) return <a key={item.href} href={item.href} onClick={onNavigate}>{t(item.label)}</a>;
-      return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} onClick={onNavigate}>{t(item.label)}</Link>;
+      if ('homeHash' in item) return <a key={item.href} href={item.href}>{t(item.label)}</a>;
+      return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href}>{t(item.label)}</Link>;
     })}
   </>;
 }
@@ -41,23 +41,23 @@ function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
 export function SiteHeader() {
   const t = useTranslations();
 
-  const [menuOpen, setMenuOpen] = useState(false);
-
   const headerContents = <div className="marketing-header-inner">
     <Brand />
     <nav className="marketing-nav-links" aria-label={t("navigation.main_navigation")}><NavigationLinks /></nav>
     <div className="marketing-header-actions">
       <AccountButton compact />
       <Link className="button marketing-header-cta" href="/studio">{t("navigation.open_studio") + " "}<ArrowUpRight size={16}/></Link>
-      <button className="marketing-menu-button" type="button" aria-expanded={menuOpen} aria-controls="marketing-mobile-menu" aria-label={menuOpen ? t("navigation.close_menu") : t("navigation.open_menu")} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button>
+      <MobileMenu
+        links={navLinks.map(item => ({ href: item.href, label: t(item.label), native: 'homeHash' in item }))}
+        cta={{ href: '/studio', label: t("navigation.open_studio") }}
+        labels={{ open: t("navigation.open_menu"), close: t("navigation.close_menu"), nav: t("navigation.mobile_navigation") }}
+      />
     </div>
   </div>;
 
   return <>
     <a className="skip-link" href="#main">{t("navigation.skip_to_content")}</a>
-    <header className="marketing-header">{headerContents}
-      {menuOpen ? <nav id="marketing-mobile-menu" className="marketing-mobile-menu" aria-label={t("navigation.mobile_navigation")}><NavigationLinks onNavigate={() => setMenuOpen(false)} /></nav> : null}
-    </header>
+    <header className="marketing-header">{headerContents}</header>
   </>;
 }
 

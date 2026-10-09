@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
 const {JSDOM}=require('jsdom');
 const dom=new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:'https://example.com/studio/editor',pretendToBeVisual:true});
-for(const name of ['window','document','navigator','location','HTMLElement','HTMLCanvasElement','localStorage','requestAnimationFrame','cancelAnimationFrame'])Object.defineProperty(global,name,{value:dom.window[name],configurable:true});
+for(const name of ['window','self','document','navigator','location','HTMLElement','HTMLCanvasElement','localStorage','requestAnimationFrame','cancelAnimationFrame'])Object.defineProperty(global,name,{value:dom.window[name],configurable:true});
 global.ResizeObserver=class{observe(){}unobserve(){}disconnect(){}};
 dom.window.HTMLCanvasElement.prototype.getContext=()=>null;
 const resolve=Module._resolveFilename;

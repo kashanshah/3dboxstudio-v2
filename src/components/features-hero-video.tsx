@@ -118,6 +118,7 @@ export function FeaturesHeroVideo() {
   return (
     <figure ref={figureRef} className="features-hero-video">
       <video ref={videoRef} src="/animations/box-to-dieline-animation.mp4"
+        poster="/animations/box-to-dieline-poster.webp"
         width={1582} height={1674} muted playsInline preload="auto"
         aria-label="A 3D box unfolding into its flat dieline as you scroll"
         aria-describedby="features-video-caption" />

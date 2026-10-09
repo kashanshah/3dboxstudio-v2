@@ -57,6 +57,33 @@ test('project saves/opening/library enforce ownership and prevent stale overwrit
  }finally{await projectDb.close();currentUser='owner';}
 });
 
+const projectRoute=require('../src/app/api/projects/[id]/route.ts');
+test('design rename PATCH validates names, enforces ownership, and never causes a save conflict',async()=>{
+ projectDb=new PGlite();currentUser='owner';
+ try{
+  await projectDb.exec(`CREATE TABLE workspace_projects(id text primary key,user_id text,name text,is_default boolean not null default false,created_at timestamptz default now(),updated_at timestamptz default now());CREATE UNIQUE INDEX workspace_projects_default_idx ON workspace_projects(user_id) WHERE is_default=true;CREATE TABLE projects(id text primary key,user_id text,name text,studio_state jsonb,preview_image_key text,is_favorite boolean not null default false,revision integer not null default 1,workspace_project_id text,created_at timestamptz default now(),updated_at timestamptz default now());CREATE TABLE legacy_records(source text,entity_type text,source_id text,payload jsonb,deleted_at timestamptz);`);
+  const state={version:1,templateId:'reverse-tuck-carton',dimensions:{width:120,height:180,depth:55,thickness:.5},material:'Kraft',opening:100,measurementUnit:'mm',artworkByPanel:{},outsideArtworkLayers:[],insideArtworkLayers:[],mediaAssets:[],outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'#ffffff',insideCustomColor:'#ffffff'};
+  const save=(body,id)=>saveProject(new Request('https://app.example/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,preview:'data:image/png;base64,abc',...body})}),id);
+  const {project}=await (await save({name:'Original'})).json();
+  const patch=(body,id=project.id)=>projectRoute.PATCH(new Request(`https://app.example/api/projects/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),{params:Promise.resolve({id})});
+  const stored=async()=>(await projectDb.query('SELECT name,revision FROM projects WHERE id=$1',[project.id])).rows[0];
+  for(const name of ['','   ','x'.repeat(121),42,null]){const response=await patch({name});assert.equal(response.status,400);assert.match((await response.json()).error,/design name/);}
+  currentUser='stranger';assert.equal((await patch({name:'Hacked'})).status,404);
+  currentUser=null;assert.equal((await patch({name:'Hacked'})).status,401);
+  currentUser='owner';assert.equal((await patch({name:'Missing'},'missing')).status,404);
+  assert.deepEqual(await stored(),{name:'Original',revision:1});
+  const renamed=await patch({name:'  Renamed box  '});assert.equal(renamed.status,200);assert.deepEqual((await renamed.json()).project,{id:project.id,name:'Renamed box',revision:1});
+  assert.deepEqual(await stored(),{name:'Renamed box',revision:1},'rename keeps the revision so open editors can still save');
+  assert.equal((await patch({name:'x'.repeat(120)})).status,200);await patch({name:'Renamed box'});
+  // An editor tab opened before the rename saves with its old revision and old name: no conflict, rename kept.
+  const stale=await save({name:'Original',baseName:'Original',revision:1},project.id);assert.equal(stale.status,200);assert.deepEqual((await stale.json()).project.name,'Renamed box');
+  assert.deepEqual(await stored(),{name:'Renamed box',revision:2});
+  // A name the editor typed itself still wins; older clients without baseName keep last-write-wins.
+  assert.equal((await (await save({name:'Typed in editor',baseName:'Renamed box',revision:2},project.id)).json()).project.name,'Typed in editor');
+  assert.equal((await (await save({name:'No base name',revision:3},project.id)).json()).project.name,'No base name');
+ }finally{await projectDb.close();currentUser='owner';}
+});
+
 const {renderVerificationTemplate,renderPasswordResetTemplate}=require('../src/server/email/templates.ts');
 test('email action delivery uses preview renderers, rate limits, and removes tokens on failure',async()=>{
  projectDb=new PGlite();const previous=process.env.AUTH_APP_URL;process.env.AUTH_APP_URL='https://studio.example';

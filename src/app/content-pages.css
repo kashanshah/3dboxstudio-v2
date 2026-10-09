@@ -372,3 +372,84 @@
 .related-tools strong{color:var(--accent);font-size:15px}
 .related-tools span{font-size:13px;line-height:1.5;color:var(--muted)}
 @media(max-width:700px){.related-tools{width:calc(100% - 32px)}}
+
+/* Article header: room between the back link and the category eyebrow. */
+.content-article-header>.content-text-link{margin-bottom:18px}
+/* Mobile in-article contents: a collapsed "On this page" list. */
+.content-article-toc-mobile{display:none}
+@media(max-width:900px){
+  .content-article-layout>.content-article-toc{display:none}
+  .content-article-toc-mobile{display:block;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+  .content-article-toc-mobile summary{min-height:48px;padding:0 16px;display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;font-size:13px;font-weight:650;text-transform:uppercase;letter-spacing:.08em}
+  .content-article-toc-mobile summary::-webkit-details-marker{display:none}
+  .content-article-toc-mobile summary span{margin-right:auto;color:var(--muted);font-size:12px;font-weight:500;text-transform:none;letter-spacing:0}
+  .content-article-toc-mobile summary::after{content:"+";width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--line);border-radius:999px;color:var(--accent);font-size:16px;transition:transform .2s}
+  .content-article-toc-mobile[open] summary::after{transform:rotate(45deg)}
+  .content-article-toc-mobile nav{display:grid;padding:4px 16px 12px;border-top:1px solid var(--line)}
+  .content-article-toc-mobile a{padding:10px 0;color:var(--muted);font-size:14px;line-height:1.4}
+  .content-article-toc-mobile a+a{border-top:1px solid var(--line)}
+}
+@media(max-width:650px){
+  .content-article-header{padding-top:48px;padding-bottom:40px}
+  .content-article-header h1{margin:14px 0 18px;font-size:clamp(32px,8.5vw,40px);line-height:1.05;letter-spacing:-.045em;text-wrap:balance}
+  .content-article-body h2{font-size:26px;line-height:1.18}
+}
+
+/* Blog index on phones: search, a scrolling category pill row, compact cards and "Load more". */
+.blog-load-more{display:none}
+@media(max-width:650px){
+  .blog-explorer-layout{gap:24px}
+  .blog-filter-sticky{padding:0;border:0;border-radius:0;background:none;box-shadow:none;max-height:none;overflow:visible}
+  .blog-filter-heading{display:none}
+  .blog-search{margin-bottom:12px}
+  .blog-search input{height:46px;font-size:16px}
+  .blog-category-list{display:flex;gap:8px;margin:0 -17px;padding:0 17px 4px;overflow-x:auto;scrollbar-width:none;mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  .blog-category-list::-webkit-scrollbar{display:none}
+  .blog-category-list button{flex:0 0 auto;width:auto;min-height:40px;padding:0 8px 0 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);white-space:nowrap}
+  .blog-category-list button.is-active{border-color:var(--accent)}
+  .blog-results .journal-feature{margin-bottom:36px}
+  .blog-results .journal-feature-media{min-height:200px;max-height:220px}
+  .blog-results .journal-feature-copy{padding:20px}
+  .blog-results .journal-feature h2{margin:14px 0 10px;font-size:24px}
+  .blog-results .journal-feature p{font-size:15px;line-height:1.6}
+  .blog-results .journal-feature .content-text-link{margin-top:16px}
+  .blog-results .feed-heading{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;padding-bottom:12px}
+  .blog-results .feed-heading h2{font-size:26px}
+  .content-article-grid{gap:0}
+  .content-article-card{padding:16px 0;border-bottom:1px solid var(--line)}
+  .content-article-card a{display:grid;grid-template-columns:96px minmax(0,1fr);column-gap:14px;align-items:start}
+  .content-article-card-media{grid-row:1/span 3;aspect-ratio:1;border-radius:8px}
+  .content-article-card .content-article-meta{margin-top:0;gap:4px 10px;font-size:11px}
+  .content-article-card h3{margin:5px 0 4px;font-size:17px;line-height:1.25;letter-spacing:-.015em}
+  .content-article-card p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:13px;line-height:1.5}
+  .content-article-card.is-collapsed{display:none}
+  .blog-load-more{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;min-height:48px;margin-top:20px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:15px;font-weight:650;cursor:pointer}
+  .blog-load-more span{color:var(--muted);font-weight:500}
+}
+
+/* Contact: topic shortcuts are real buttons that preselect the form's topic. */
+button.contact-topic-card{font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s}
+button.contact-topic-card:hover{border-color:var(--accent)}
+button.contact-topic-card[aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+button.contact-topic-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.contact-topic-card>svg:last-child{color:var(--muted)}
+.contact-panel>.content-eyebrow{margin:0 0 12px;color:var(--accent);font-size:12px;line-height:1.35;font-weight:700;letter-spacing:.11em}
+@media(max-width:650px){
+  .contact-topic-card{padding:14px 16px;grid-template-columns:28px minmax(0,1fr) auto;gap:12px}
+  .contact-topic-card small{margin-top:2px}
+  .contact-panel{padding:20px}
+  .contact-panel h2{font-size:24px;line-height:1.2}
+  .contact-panel>p{margin-bottom:22px;font-size:15px}
+}
+
+/* FAQ page: summaries match the home FAQ (no native marker, +/× indicator, 44px+ target). */
+.faq-list summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:44px;line-height:1.4}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary::after{content:"+";flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--accent);font-size:18px;line-height:1;transition:transform .2s ease,background .2s ease}
+.faq-list details[open] summary::after{transform:rotate(45deg);background:var(--accent-soft)}
+.faq-list summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.faq-list details{padding:12px 0}
+.faq-list details p{margin-right:50px}
+@media(max-width:900px){.faq-categories{mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:24px}}
+@media(max-width:650px){.faq-list summary{font-size:16px}.faq-list details p{margin-right:0;font-size:15px}.faq-categories a{min-height:40px;display:flex;align-items:center}}
+@media(prefers-reduced-motion:reduce){.faq-list summary::after,.content-article-toc-mobile summary::after{transition:none}}

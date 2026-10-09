@@ -13,13 +13,13 @@ export type FaqItem = {
   answer: string;
 };
 
-export const FAQ_CATEGORIES: { id: FaqCategoryId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "getting-started", label: "Getting started" },
-  { id: "comparison", label: "vs CAD tools" },
-  { id: "export", label: "Export & files" },
-  { id: "privacy", label: "Privacy & data" },
-  { id: "technical", label: "Technical" },
+export const FAQ_CATEGORIES: { id: FaqCategoryId; label: string; description: string }[] = [
+  { id: "overview", label: "Overview", description: "What 3D Box Studio is, who it is for, and how you can use what you make." },
+  { id: "getting-started", label: "Getting started", description: "Accounts, what you need to install (nothing), and setting up your first box." },
+  { id: "comparison", label: "vs CAD tools", description: "How the Studio compares with packaging CAD, mockup template sites, and Pacdora." },
+  { id: "export", label: "Export & files", description: "Saving, view-only share links, and the file formats you can export." },
+  { id: "privacy", label: "Privacy & data", description: "Where your designs and uploaded artwork are stored." },
+  { id: "technical", label: "Technical", description: "Devices and browsers, colour accuracy, and supported structures and finishes." },
 ];
 
 export const LANDING_FAQ_PREVIEW_COUNT = 12;

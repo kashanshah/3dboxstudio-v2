@@ -90,6 +90,7 @@ export function MarketingProductPage({
       {note ? <section className="mpp-note"><Info/><div><b>Important limitation</b><p>{note}</p></div></section> : null}
 
       <FaqSection
+        className="mpp-faq"
         items={faqs}
         title="Direct answers before you start."
         description="Useful details about this workflow, its current capabilities, and where production validation still matters."

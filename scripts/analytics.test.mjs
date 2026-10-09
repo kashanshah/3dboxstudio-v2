@@ -17,7 +17,7 @@ function signupModule() {
 function storageStub(values={}) {
   return {getItem:key=>values[key]??null,setItem:(key,value)=>{values[key]=String(value);},removeItem:key=>{delete values[key];}};
 }
-function analytics({env={},window={location:{pathname:'/studio/editor'}},console:logger=console,consent='granted'}={}) {
+function analytics({env={},window={location:{pathname:'/studio/editor'}},console:logger=console,consent='granted',posthogStarted=true}={}) {
   if (!window.localStorage) window.localStorage = storageStub(consent ? {'3dbs_analytics_consent':consent} : {});
   window.dispatchEvent = window.dispatchEvent ?? (()=>true);
   const cache = new Map();
@@ -30,22 +30,26 @@ function analytics({env={},window={location:{pathname:'/studio/editor'}},console
       exports, process:{env:{NODE_ENV:'production',NEXT_PUBLIC_GA_MEASUREMENT_ID:'G-TEST',NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN:'ph-test',...env}},
       window,console:logger,
       require: name => {
-        if (name === 'posthog-js') return {
-          capture(eventName, properties) {
-            if (typeof window.posthog?.capture === 'function') {
-              window.posthog.capture(eventName, properties);
-              return;
-            }
-            window.__posthogCaptureQueue = window.__posthogCaptureQueue ?? [];
-            window.__posthogCaptureQueue.push([eventName, properties]);
-          },
-        };
+        if (name === 'posthog-js') throw new Error('posthog-js is loaded only by instrumentation-client, after consent');
         return load(path.resolve(path.dirname(file), name + '.ts'));
       },
     },{filename:file});
     return exports;
   }
-  return {api:load(path.join(root,'lib/analytics/index.ts')),consent:load(path.join(root,'lib/analytics/consent.ts')),window};
+  // Stands in for the SDK instance instrumentation-client hands over once started.
+  const sdk = {
+    capture(eventName, properties) {
+      if (typeof window.posthog?.capture === 'function') {
+        window.posthog.capture(eventName, properties);
+        return;
+      }
+      window.__posthogCaptureQueue = window.__posthogCaptureQueue ?? [];
+      window.__posthogCaptureQueue.push([eventName, properties]);
+    },
+  };
+  const posthog = load(path.join(root,'lib/analytics/posthog.ts'));
+  if (posthogStarted) posthog.setPostHogClient(sdk);
+  return {api:load(path.join(root,'lib/analytics/index.ts')),consent:load(path.join(root,'lib/analytics/consent.ts')),posthog,startPostHog:()=>posthog.setPostHogClient(sdk),window};
 }
 
 test('GA and PostHog receive their native pageview names; queued PostHog views retain the original URL',()=>{
@@ -86,6 +90,26 @@ test('one broken analytics destination cannot break the user action or the other
   const second=analytics({window:{location:{pathname:'/studio/editor'},posthog:{capture:()=>{throw Error('Blocked');}}}});
   assert.doesNotThrow(()=>second.api.trackEvent('project_saved'));
   assert.equal(second.window.dataLayer.at(-1)[1],'project_saved');
+});
+
+test('PostHog calls made while the SDK downloads are sent in order once it starts, and dropped on decline',()=>{
+  const loading=analytics({posthogStarted:false});
+  loading.api.trackEvent('page_view',{page_path:'/studio/editor',page_location:'https://www.3dboxstudio.com/studio/editor'});
+  loading.posthog.withPostHog(sdk=>sdk.capture('identified',{}));
+  loading.api.trackEvent('export_clicked');
+  assert.equal(loading.window.__posthogCaptureQueue,undefined,'nothing is sent before the SDK starts');
+  assert.ok(loading.window.dataLayer.some(args=>args[0]==='event'),'GA does not wait for PostHog');
+  loading.startPostHog();
+  assert.deepEqual(loading.window.__posthogCaptureQueue.map(([name])=>name),['$pageview','identified','export_clicked']);
+  loading.api.trackEvent('project_saved');
+  assert.equal(loading.window.__posthogCaptureQueue.at(-1)[0],'project_saved','later calls go straight to the SDK');
+
+  const declined=analytics({posthogStarted:false});
+  declined.posthog.withPostHog(sdk=>sdk.capture('identified',{}));
+  declined.consent.setConsentState('denied');
+  declined.posthog.withPostHog(sdk=>sdk.capture('after_decline',{}));
+  declined.startPostHog();
+  assert.equal(declined.window.__posthogCaptureQueue,undefined);
 });
 
 // Execute the real Studio callbacks with mocked browser/services, rather than
@@ -208,10 +232,10 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
       dimensions:{width:10,height:20,length:30},material:'Kraft',opening:0,formation:100,openingMode:'closed',splitTopHingeSide:'side_a',measurementUnit:'mm',
       initial:undefined,outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'',insideCustomColor:'',projectName:'Private name',
       projectRevision:creating?undefined:1,workspaceProjectId:'private-workspace',projectId:creating?undefined:'private-project',historySerialized:'{}',saveFingerprint:'{}',
-      lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},Blob,
+      lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},savedNameRef:{current:'Private name'},Blob,
       window:{history:{replaceState:()=>{}}},setNewDesignOpen:open=>closed.push(open),setNewDesignError:error=>errors.push(error),
       fetch:async(url,request)=>{requests.push({url,...request});return {ok:!failed,status:failed?(creating?500:409):200,json:async()=>failed?{error:'Service unavailable'}:{project:{id:'private-project',revision:creating?1:2}}};}};
-    for(const setter of ['setSaving','setSaveFailed','setProjectId','setProjectRevision','setWorkspaceProjectId','setSaveConflictOpen','setHasUnsavedChanges','setMessage'])context[setter]=()=>{};
+    for(const setter of ['setSaving','setSaveFailed','setProjectId','setProjectRevision','setProjectName','setWorkspaceProjectId','setSaveConflictOpen','setHasUnsavedChanges','setMessage'])context[setter]=()=>{};
     const {handler,events}=callback('saveDesign',context);
     const saved=await handler(false,false,undefined,false,mode==='autosave','manual',creating);
     assert.equal(saved,!failed&&mode!=='unconfirmed');
@@ -221,6 +245,7 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
     assert.equal(events.length,saved?1:0);
     if(saved){assert.equal(events[0][0],'project_saved');assert.equal(events[0][1].save_mode,creating?'manual':mode);assert.ok(!JSON.stringify(events).includes('private'));}
     if(mode==='unconfirmed')assert.equal(requests.length,0);
+    if(['manual','autosave'].includes(mode))assert.equal(JSON.parse(requests[0].body).baseName,'Private name');
     if(creating){
       assert.equal(requests[0].method,'POST');assert.equal(requests[0].url,'/api/projects');
       const body=JSON.parse(requests[0].body);
@@ -346,24 +371,51 @@ test('analytics waits for consent: pending events are sent on accept and dropped
   assert.equal(outsideConsentRegion.window.__posthogCaptureQueue[0][0],'export_clicked');
 });
 
-test('PostHog init sends one pageview per route, honours consent, and drops every admin event',()=>{
-  const sendThrough=event=>[].concat(initOptions.before_send).reduce((current,hook)=>current&&hook(current),event);
-  let initOptions;
+function instrumentation() {
+  const state={initOptions:undefined,imports:0,handedOver:null,calls:[]};
   const consentApi={};
   const window={location:{pathname:'/'},localStorage:storageStub({})};
-  const listeners=[];
+  const sdk={init:(token,options)=>{state.initOptions=options;},opt_in_capturing:()=>state.calls.push('in'),opt_out_capturing:()=>state.calls.push('out')};
   vm.runInNewContext(transpile(fs.readFileSync('instrumentation-client.ts','utf8')),{
-    exports:{},window,URL,process:{env:{NODE_ENV:'production',NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN:'ph',NEXT_PUBLIC_POSTHOG_HOST:'https://us.i.posthog.com'}},
+    exports:{},window,URL,Promise,process:{env:{NODE_ENV:'production',NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN:'ph',NEXT_PUBLIC_POSTHOG_HOST:'https://us.i.posthog.com'}},
     require:name=>{
-      if(name==='posthog-js')return {__esModule:true,default:{init:(token,options)=>{initOptions=options;},opt_in_capturing:()=>listeners.push('in'),opt_out_capturing:()=>listeners.push('out')}};
+      // CommonJS output turns the SDK's dynamic import() into a deferred require.
+      if(name==='posthog-js'){state.imports++;return {__esModule:true,default:sdk};}
       if(name==='@/lib/analytics/policy'){const out={};vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:out,process:{env:{}},window});return out;}
       if(name==='@/lib/analytics/consent'){vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/consent.ts'),'utf8')),{exports:consentApi,window});return consentApi;}
+      if(name==='@/lib/analytics/posthog')return {setPostHogClient:client=>{state.handedOver=client;}};
       throw new Error('unexpected import '+name);
     },
   });
-  assert.equal(initOptions,undefined,'PostHog does not start, or contact PostHog, before consent');
+  return {state,consentApi,window,sdk};
+}
+const settle=()=>new Promise(resolve=>setTimeout(resolve,0));
+
+test('PostHog is downloaded only after consent, is not started if consent is withdrawn meanwhile',async()=>{
+  const {state,consentApi}=instrumentation();
+  await settle();
+  assert.equal(state.imports,0,'the SDK is not downloaded before consent');
   consentApi.setConsentState('granted');
-  assert.equal(initOptions.capture_pageview,false);
+  consentApi.setConsentState('denied');
+  await settle();
+  assert.equal(state.initOptions,undefined);
+  assert.equal(state.handedOver,null);
+  consentApi.setConsentState('granted');
+  await settle();
+  assert.equal(state.initOptions.capture_pageview,false,'a later acceptance starts it');
+  assert.deepEqual(state.calls,[]);
+});
+
+test('PostHog init sends one pageview per route, honours consent, and drops every admin event',async()=>{
+  const {state,consentApi,window,sdk}=instrumentation();
+  const sendThrough=event=>[].concat(state.initOptions.before_send).reduce((current,hook)=>current&&hook(current),event);
+  await settle();
+  assert.equal(state.initOptions,undefined,'PostHog does not start, or contact PostHog, before consent');
+  consentApi.setConsentState('granted');
+  await settle();
+  assert.equal(state.imports,1);
+  assert.equal(state.handedOver,sdk,'app code receives the SDK once it has started');
+  assert.equal(state.initOptions.capture_pageview,false);
   const event=url=>({event:'$autocapture',properties:{$current_url:url}});
   assert.equal(sendThrough(event('https://www.3dboxstudio.com/admin/users')),null);
   assert.equal(sendThrough(event('https://www.3dboxstudio.com/admin')),null);
@@ -377,7 +429,9 @@ test('PostHog init sends one pageview per route, honours consent, and drops ever
   assert.equal(sendThrough(event('https://www.3dboxstudio.com/studio')),null,'events sent while on an admin page are dropped');
   window.location={pathname:'/'};
   consentApi.setConsentState('denied');consentApi.setConsentState('granted');
-  assert.deepEqual(listeners,['out','in'],'later changes opt out and back in');
+  await settle();
+  assert.deepEqual(state.calls,['out','in'],'later changes opt out and back in');
+  assert.equal(state.imports,1,'the SDK is downloaded once');
 });
 
 test('GA-only events skip PostHog, which already records sign-ups on the server',()=>{

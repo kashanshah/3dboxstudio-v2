@@ -34,6 +34,8 @@ import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelA
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
 type Mode = '3d' | 'dieline';
+type SheetSize = 'peek' | 'half' | 'full';
+const SHEET_SIZES: SheetSize[] = ['peek','half','full'];
 type MeasurementUnit = 'mm' | 'in';
 type BaseColorMode = 'material' | 'custom';
 type MediaUploadProgress = {
@@ -216,10 +218,10 @@ const tools: { id: Tool; label: MessageKey; icon: typeof Box }[] = [
   { id: 'export', label: "studio.download", icon: Download },
 ];
 
-const studioAreas: { id: StudioArea; label: MessageKey; helper: MessageKey; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
+const studioAreas: { id: StudioArea; label: MessageKey; shortLabel?: MessageKey; helper: MessageKey; icon: typeof Box; defaultTool: Tool; tools: Tool[] }[] = [
   { id: 'box', label: "studio.box", helper: "studio.structure_size_finish", icon: Box, defaultTool: 'structure', tools: ['structure','material'] },
   { id: 'design', label: "studio.design_2", helper: "studio.artwork_print_layout", icon: ImageIcon, defaultTool: 'artwork', tools: ['artwork'] },
-  { id: 'preview', label: "studio.preview_download", helper: "studio.3d_review_output", icon: Boxes, defaultTool: 'opening', tools: ['opening','scene','export'] },
+  { id: 'preview', label: "studio.preview_download", shortLabel: "studio.preview_short", helper: "studio.3d_review_output", icon: Boxes, defaultTool: 'opening', tools: ['opening','scene','export'] },
 ];
 
 const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
@@ -252,6 +254,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [projectId,setProjectId] = useState(initialProject?.legacyImport ? undefined : initialProject?.id);
   const [projectName,setProjectName] = useState(initialProject?.name ?? defaults.name);
   const [projectRevision,setProjectRevision] = useState(initialProject?.revision);
+  // Name as last loaded/saved: lets the server keep a dashboard rename when this tab didn't edit the name.
+  const savedNameRef = useRef(initialProject?.name ?? defaults.name);
   const [workspaceProjectId,setWorkspaceProjectId] = useState(initialProject?(initialWorkspaceProjectId??initialProject.workspaceProjectId??null):defaults.workspaceProjectId);
   const [saving,setSaving] = useState(false);
   const [saveFailed,setSaveFailed] = useState(false);
@@ -358,6 +362,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(!initialProject);
   const [designToolsOpen, setDesignToolsOpen] = useState(true);
+  // Phone-only bottom sheet height for the inspector / design tools; not persisted.
+  const [sheetSize, setSheetSize] = useState<SheetSize>('half');
+  const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
   const [faceAction, setFaceAction] = useState<{ panel: string; x: number; y: number } | null>(null);
   const [message, setMessage] = useState('Ready');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -1431,7 +1438,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       }
       const targetName=saveAsCopy?`${projectName} copy`:projectName;
       const targetWorkspaceProjectId=destinationWorkspaceProjectId??workspaceProjectId;
-      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,force:forceOverwrite,workspaceProjectId:targetWorkspaceProjectId});
+      const body = JSON.stringify({name:targetName,state:await persist(state),preview,revision:saveAsCopy?undefined:projectRevision,baseName:saveAsCopy?undefined:savedNameRef.current,force:forceOverwrite,workspaceProjectId:targetWorkspaceProjectId});
       if (new Blob([body]).size > 3*1024*1024) throw new Error('This design exceeds the current 3 MB save limit. Use smaller artwork images.');
       const targetProjectId=saveAsCopy?undefined:projectId;
       const response=await fetch(targetProjectId?`/api/projects/${targetProjectId}`:'/api/projects',{method:targetProjectId?'PUT':'POST',headers:{'Content-Type':'application/json'},body});
@@ -1451,7 +1458,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       if(createNew)setNewDesignOpen(false);
       setSaveConflictOpen(false);
       if(!saveAsCopy||!keepOriginalOpen){
-        lastSavedFingerprintRef.current=JSON.stringify({name:targetName,state:historySerialized});
+        const savedName=typeof result.project.name==='string'?result.project.name:targetName;
+        savedNameRef.current=savedName;
+        if(savedName!==targetName)setProjectName(savedName);
+        lastSavedFingerprintRef.current=JSON.stringify({name:savedName,state:historySerialized});
         autosaveBlockedFingerprintRef.current=null;
         setHasUnsavedChanges(false);
       }
@@ -1490,7 +1500,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const dialog=newDesignDialogRef.current;
     if(newDesignOpen&&dialog&&!dialog.open){
       dialog.showModal();
-      dialog.querySelector('input')?.select();
+      // Touch devices: keep focus on the dialog so the on-screen keyboard doesn't cover it.
+      if(window.matchMedia('(pointer:coarse)').matches){(document.activeElement as HTMLElement|null)?.blur();dialog.focus();}
+      else dialog.querySelector('input')?.select();
     }
   },[newDesignOpen]);
 
@@ -1681,6 +1693,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
   };
 
+  // Phones lay the open panel out as a bottom sheet; the canvas fits the area above it.
+  const hasSheet = workflowStep==='design' ? mode==='dieline' && designToolsOpen : inspectorOpen && Boolean(tool);
+  const designViewSwitch = (className:string) => <div className={className} role="group" aria-label={t("studio.design_view")}>
+    <button type="button" className={mode==='dieline'?'is-active':''} aria-pressed={mode==='dieline'} onClick={()=>{setMode('dieline');setFaceAction(null);setPanEnabled(false);}}>{t("studio.design_canvas")}</button>
+    <button type="button" className={mode==='3d'?'is-active':''} aria-pressed={mode==='3d'} onClick={()=>{setMode('3d');setFaceAction(null);setPanEnabled(false);}}><Boxes size={16}/>{" " + t("studio.preview_in_3d")}</button>
+  </div>;
+
   return <><PostExportFeedback/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" translate="no" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
@@ -1714,7 +1733,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     </header>
 
     <div className={`pro-workflow-row is-${workflowStep}`}>
-      <nav className="pro-workflow-nav" aria-label={t("studio.box_design_workflow")}>
+      <nav className="pro-workflow-nav" aria-label={t("studio.box_design_workflow")} onClickCapture={unpeekSheet}>
         {studioAreas.map((area,index)=>{
           const Icon=area.icon;
           const ready=area.id==='box'?boxReady:area.id==='design'?designReady:false;
@@ -1728,14 +1747,11 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           >
             <span className="pro-workflow-step-number">{index+1}</span>
             <span className="pro-workflow-step-icon"><Icon size={20}/>{ready&&<i><Check size={10}/></i>}</span>
-            <span className="pro-workflow-step-copy"><b>{t(area.label)}</b><small>{t(area.helper)}</small></span>
+            <span className="pro-workflow-step-copy"><b>{area.shortLabel?<><span className="pro-step-label-full">{t(area.label)}</span><span className="pro-step-label-short">{t(area.shortLabel)}</span></>:t(area.label)}</b><small>{t(area.helper)}</small></span>
           </button>;
         })}
       </nav>
-      {workflowStep==='design' && <div className="pro-workflow-view-switch" role="group" aria-label={t("studio.design_view")}>
-        <button type="button" className={mode==='dieline'?'is-active':''} aria-pressed={mode==='dieline'} onClick={()=>{setMode('dieline');setFaceAction(null);setPanEnabled(false);}}>{t("studio.design_canvas")}</button>
-        <button type="button" className={mode==='3d'?'is-active':''} aria-pressed={mode==='3d'} onClick={()=>{setMode('3d');setFaceAction(null);setPanEnabled(false);}}><Boxes size={16}/>{" " + t("studio.preview_in_3d")}</button>
-      </div>}
+      {workflowStep==='design' && designViewSwitch('pro-workflow-view-switch')}
       {workflowStep!=='design' && mode === '3d' && <div className="pro-camera-menu pro-workflow-camera" ref={cameraMenuRef}>
         <button
           type="button"
@@ -1769,8 +1785,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </div>}
     </div>
 
-    <div className="pro-studio-body">
-      <nav className={`pro-studio-tool-rail is-${workflowStep}`} aria-label={t('studio.area_tools', { area: t(activeAreaConfig?.label ?? 'studio.studio') })}>
+    <div className={`pro-studio-body is-sheet-${sheetSize}${hasSheet?' has-sheet':''}`}>
+      <nav className={`pro-studio-tool-rail is-${workflowStep}`} aria-label={t('studio.area_tools', { area: t(activeAreaConfig?.label ?? 'studio.studio') })} onClickCapture={unpeekSheet}>
         {workflowStep==='box' && <>
           <button type="button" className={tool==='structure'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('structure')}><Box size={22}/><span>{t("studio.box_size")}</span></button>
           <button type="button" className={tool==='material'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('material')}><Layers3 size={22}/><span>{t("studio.material_finish")}</span></button>
@@ -1786,6 +1802,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         </>}
       </nav>
       <section ref={studioCanvasRef} className={`pro-canvas${mode === 'dieline' ? ' is-2d-mode' : ''} is-workflow-${workflowStep}`} aria-label={workflowStep==='design'?t("studio.packaging_design_workspace"):workflowStep==='box'?t("studio.box_setup_workspace"):t("studio.3d_preview_and_download_workspace")}>
+        {workflowStep==='design' && designViewSwitch('pro-workflow-view-switch pro-canvas-view-switch')}
 
         <div className={`pro-3d-stage pro-view-pane${mode === '3d' ? ' is-active' : ''}`} inert={mode !== '3d'} aria-hidden={mode !== '3d'}>
           <div className="pro-grid-floor" />
@@ -1887,6 +1904,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onDropArtworkFiles={handleBoardArtworkDrop}
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
+          sheetSize={sheetSize}
+          onSheetSize={setSheetSize}
           onApplyChanges={() => {
             goToWorkflowStep('preview','opening');
             setFaceAction(null);
@@ -1984,12 +2003,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </div>
 
 
-        <button className="pro-mobile-inspector" onClick={() => { if(workflowStep==='design'){setDesignToolsOpen(true);return;} if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {workflowStep==='box'?t("studio.box_settings"):workflowStep==='preview'?t("studio.preview_settings"):t("studio.design_tools")}</button>
+        <button className="pro-mobile-inspector" onClick={() => { unpeekSheet(); if(workflowStep==='design'){setDesignToolsOpen(true);return;} if (tool) setInspectorOpen(true); }} disabled={!tool}><Sparkles size={14} /> {workflowStep==='box'?t("studio.box_settings"):workflowStep==='preview'?t("studio.preview_settings"):t("studio.design_tools")}</button>
         {message !== 'Ready' && <div className={`pro-studio-toast${saveFailed?' is-error':''}`} role="status" aria-live="polite"><span className="pro-status-dot" /> <span>{message}</span></div>}
         <div className={`pro-status-bar${saveFailed?' is-save-failed':''}`}><span><span className="pro-status-dot" /> {message}</span><span title={t("studio.finished_size_width_height_depth")}>{family}{" " + t("studio.w") + " "}{formatDimension(dimensions.width, measurementUnit)}{" " + t("studio.h") + " "}{formatDimension(dimensions.height, measurementUnit)}{" " + t("studio.d") + " "}{formatDimension(dimensions.depth, measurementUnit)} {measurementUnit}</span></div>
       </section>
 
       <aside className={`pro-inspector is-workflow-${workflowStep} ${inspectorOpen ? 'is-open' : ''}`}>
+        <SheetHandle size={sheetSize} onSize={setSheetSize}/>
         <div className="pro-inspector-title"><div><span>{t(activeAreaConfig?.label ?? 'studio.inspector')}</span><h2>{activeLabel}</h2></div><button
   className="pro-inspector-close"
   aria-label={t("studio.close_tool_panel")}
@@ -2067,7 +2087,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         </div>
       </section>
     </div>}
-    {newDesignOpen&&<dialog ref={newDesignDialogRef} className="pro-new-design-dialog" aria-labelledby="new-design-title" aria-describedby="new-design-copy" onCancel={event=>event.preventDefault()}>
+    {newDesignOpen&&<dialog ref={newDesignDialogRef} className="pro-new-design-dialog" tabIndex={-1} aria-labelledby="new-design-title" aria-describedby="new-design-copy" onCancel={event=>event.preventDefault()}>
       <form onSubmit={event=>{event.preventDefault();if(projectName.trim()&&workspaceProjectId&&!saving)void saveDesign(false,false,undefined,false,false,'manual',true);}}>
         <div className="pro-confirm-copy">
           <h2 id="new-design-title">Create a box design</h2>
@@ -2076,7 +2096,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         <div className="pro-new-design-layout">
           <div className="pro-new-design-fields">
             <label htmlFor="new-design-name">Design name</label>
-            <input id="new-design-name" autoFocus required maxLength={120} value={projectName} disabled={saving} onChange={event=>setProjectName(event.target.value)}/>
+            <input id="new-design-name" required maxLength={120} value={projectName} disabled={saving} onChange={event=>setProjectName(event.target.value)}/>
             <label htmlFor="new-design-project">Project</label>
             <select id="new-design-project" required value={workspaceProjectId??''} disabled={saving} onChange={event=>setWorkspaceProjectId(event.target.value)}>
               {newDesignProjects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}
@@ -2286,19 +2306,6 @@ function Inspector(props: {
                   props.setDimensions({...props.dimensions, width: defaults.width, height: defaults.height, depth: defaults.depth});
                   props.setMessage('Box size reset to template defaults');
                 }}><RotateCcw size={12} aria-hidden="true" />{" " + t("studio.reset_size")}</button>
-                <div className="pro-current-box-thickness">
-                  <span>{t("studio.board_thickness")}</span>
-                  <label>
-                    <DimensionInput
-                      min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
-                      max={props.measurementUnit === 'mm' ? 2 : 0.079}
-                      step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
-                      valueMm={props.dimensions.thickness} unit={props.measurementUnit} minMm={MIN_BOARD_MM} maxMm={MAX_BOARD_MM}
-                      onCommit={mm=>props.setDimensions({...props.dimensions,thickness:mm})}
-                    />
-                    <em>{props.measurementUnit}</em>
-                  </label>
-                </div>
               </div>
             </div>
           </div>
@@ -2635,6 +2642,8 @@ function DielinePrototype({
   onDropArtworkFiles,
   toolsOpen,
   onCloseTools,
+  sheetSize,
+  onSheetSize,
   onApplyChanges,
   pdfExportRequest,
   pdfExportOptions,
@@ -2672,6 +2681,8 @@ function DielinePrototype({
   onDropArtworkFiles:(files:File[],point:{x:number;y:number})=>void;
   toolsOpen:boolean;
   onCloseTools:()=>void;
+  sheetSize:SheetSize;
+  onSheetSize:(size:SheetSize)=>void;
   onApplyChanges:()=>void;
   pdfExportRequest:number;
   pdfExportOptions:DielinePdfOptions;
@@ -2694,6 +2705,26 @@ function DielinePrototype({
   const visualScale = visualMax / Math.max(bounds.width, bounds.height);
   const visualWidth = bounds.width * visualScale;
   const visualHeight = bounds.height * visualScale;
+  // Phones: shrink the board so the default 112% view fits the stage area left
+  // visible above the bottom sheet. Wider screens keep the fixed 760px board.
+  const stageRef=useRef<HTMLDivElement>(null);
+  const [mobileFit,setMobileFit]=useState(1);
+  useEffect(()=>{
+    const stage=stageRef.current;
+    if(!stage) return;
+    const query=window.matchMedia('(max-width:640px)');
+    const update=()=>{
+      if(!query.matches){setMobileFit(1);return;}
+      const style=getComputedStyle(stage);
+      const width=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-24;
+      const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-24;
+      setMobileFit(Math.max(.05,Math.min(1,width/(visualWidth*1.12),height/(visualHeight*1.12))));
+    };
+    const observer=new ResizeObserver(update);
+    observer.observe(stage);
+    query.addEventListener('change',update);
+    return ()=>{observer.disconnect();query.removeEventListener('change',update);};
+  },[visualWidth,visualHeight]);
 
   const lastPdfExportRequest=useRef(0);
   const pdfRunning=useRef(false);
@@ -2958,7 +2989,7 @@ function DielinePrototype({
     setTransformFeedback(null);
   };
 
-  return <div className="pro-dieline-stage pro-2d-design-stage">
+  return <div ref={stageRef} className="pro-dieline-stage pro-2d-design-stage">
     {printError && <p className="pro-dieline-print-error" role="alert">{printError}</p>}
     <div
       className={`pro-dieline-workspace${panEnabled ? ' is-pan-enabled' : ''}`}
@@ -2996,6 +3027,7 @@ function DielinePrototype({
       }}
     >
       {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label={t("studio.design_tools")}>
+        <SheetHandle size={sheetSize} onSize={onSheetSize}/>
         <div className="pro-inspector-title pro-design-inspector-title">
           <div><span>{t("studio.design_2")}</span><h2>{artworkScope==='inside'?t("studio.inside_artwork"):t("studio.outside_artwork")}</h2></div>
           <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label={t("studio.close_design_tools")} title={t("studio.close")} onClick={onCloseTools}><X size={18}/></button>
@@ -3123,7 +3155,7 @@ function DielinePrototype({
           maxWidth:'none',
           maxHeight:'none',
           aspectRatio:'auto',
-          transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100})`,
+          transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100*mobileFit})`,
           transformOrigin:'center',
         }}
         onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
@@ -3242,6 +3274,33 @@ function DielinePrototype({
     </div>
 
   </div>;
+}
+
+// Phone bottom-sheet grip: tap cycles default → expanded → collapsed, drag snaps up/down.
+function SheetHandle({size,onSize}:{size:SheetSize;onSize:(size:SheetSize)=>void}) {
+  const t = useTranslations();
+  const drag=useRef<{id:number;y:number;moved:boolean}|null>(null);
+  const index=SHEET_SIZES.indexOf(size);
+  return <button
+    type="button"
+    className="pro-sheet-handle"
+    aria-label={size==='full'?t("studio.collapse_panel"):size==='peek'?t("studio.show_panel"):t("studio.expand_panel")}
+    onPointerDown={event=>{drag.current={id:event.pointerId,y:event.clientY,moved:false};event.currentTarget.setPointerCapture(event.pointerId);}}
+    onPointerMove={event=>{const gesture=drag.current;if(gesture?.id===event.pointerId&&Math.abs(event.clientY-gesture.y)>12)gesture.moved=true;}}
+    onPointerUp={event=>{
+      const gesture=drag.current;
+      if(!gesture||gesture.id!==event.pointerId||!gesture.moved) return;
+      const dy=event.clientY-gesture.y;
+      const steps=Math.abs(dy)>window.innerHeight*.3?2:1;
+      onSize(SHEET_SIZES[Math.max(0,Math.min(SHEET_SIZES.length-1,index+(dy<0?steps:-steps)))]);
+    }}
+    onPointerCancel={()=>{drag.current=null;}}
+    onClick={()=>{
+      if(drag.current?.moved){drag.current=null;return;}
+      drag.current=null;
+      onSize(size==='half'?'full':size==='full'?'peek':'half');
+    }}
+  ><span aria-hidden="true"/></button>;
 }
 
 function MediaLibraryModal(props: {

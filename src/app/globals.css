@@ -1084,7 +1084,7 @@ body{font-size:var(--type-body)}
   .marketing-header-cta{padding-inline:14px}
 }
 @media(max-width:760px){
-  .marketing-header-inner{width:calc(100% - 28px);min-height:68px}
+  .marketing-header-inner{width:calc(100% - 40px);min-height:68px}
   .marketing-header .marketing-nav-links{display:none}
   .marketing-header-actions{margin-left:auto;gap:6px}
   .marketing-header .marketing-header-cta{display:inline-flex;min-height:40px;padding-inline:10px;font-size:12px;gap:5px}
@@ -1100,33 +1100,36 @@ body{font-size:var(--type-body)}
   .marketing-menu-button{display:grid}
   .marketing-mobile-menu{
     display:flex;
-    position:absolute;
-    left:14px;
-    right:14px;
-    top:calc(100% + 8px);
-    padding:10px;
+    position:fixed;
+    left:0;
+    right:0;
+    z-index:60;
+    max-height:calc(100dvh - 68px);
+    overflow-y:auto;
+    padding:8px 20px calc(20px + env(safe-area-inset-bottom));
     flex-direction:column;
-    gap:2px;
     background:#fff;
-    border:1px solid var(--line);
-    border-radius:12px;
-    box-shadow:var(--shadow-lift);
+    border-bottom:1px solid var(--line);
+    border-radius:0 0 16px 16px;
+    box-shadow:0 18px 40px rgba(16,24,40,.16);
   }
-  .marketing-mobile-menu a{
-    min-height:46px;
-    padding:0 12px;
-    border-radius:8px;
+  .marketing-mobile-menu>a:not(.marketing-mobile-menu-cta){
+    min-height:52px;
     display:flex;
     align-items:center;
-    justify-content:space-between;
-    font-size:14px;
+    border-bottom:1px solid var(--line);
+    font-size:16px;
     font-weight:650;
   }
-  .marketing-mobile-menu a:hover{background:var(--panel)}
-  .marketing-mobile-menu>a:last-child{margin-top:0}
+  .marketing-mobile-menu-cta{margin-top:16px;min-height:50px;font-size:16px;gap:8px}
+  .marketing-menu-scrim{position:fixed;left:0;right:0;bottom:0;z-index:59;background:rgba(16,24,40,.32)}
   .marketing-footer{width:calc(100% - 32px);margin-top:56px}
   .marketing-footer-main{flex-direction:column}
   .marketing-footer-links{width:100%;gap:24px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .marketing-footer-links>div{gap:0}
+  .marketing-footer-links a,.marketing-footer-links button{min-height:44px;display:flex;align-items:center}
+  .lovable-original footer nav{gap:0 18px;font-size:13px}
+  .lovable-original footer nav a,.lovable-original footer nav button{min-height:44px;display:inline-flex;align-items:center}
   .marketing-footer-base{flex-direction:column;gap:6px}
 }
 @media(max-width:380px){
@@ -2394,7 +2397,10 @@ body{font-size:var(--type-body)}
   color:var(--accent);
 }
 .blog-share-actions svg{flex:0 0 auto}
+.blog-share-actions>a[href*="wa.me"] svg{color:#25d366}
 .blog-share-x{
+  flex:0 0 auto;
+  color:#000;
   width:15px;
   height:15px;
   display:grid;
@@ -2442,8 +2448,9 @@ body{font-size:var(--type-body)}
   height:15px;
   display:grid;
   place-items:center;
+  flex:0 0 auto;
   border-radius:3px;
-  background:currentColor;
+  background:#0a66c2;
   color:#fff;
   font-size:9px;
   font-weight:800;
@@ -2451,6 +2458,7 @@ body{font-size:var(--type-body)}
   letter-spacing:-.03em;
 }
 .blog-share-brand.is-facebook{
+  background:#1877f2;
   font-family:Arial,sans-serif;
   font-size:12px;
   font-weight:700;
@@ -2462,6 +2470,9 @@ body{font-size:var(--type-body)}
 .pro-template-visual.is-combined{
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  /* Pin the row to the thumbnail height: a tall dieline (pizza box) must not
+     stretch the row and push the 3D shapes out of the clipped package half. */
+  grid-template-rows:minmax(0,1fr);
   align-items:stretch;
   padding:0;
 }
@@ -2469,6 +2480,7 @@ body{font-size:var(--type-body)}
 .pro-template-package{
   position:relative;
   min-width:0;
+  min-height:0;
   height:100%;
   display:flex;
   align-items:center;
@@ -3239,7 +3251,7 @@ body{font-size:var(--type-body)}
 .pro-share-link-row input{min-width:0;height:42px;padding:0 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink);font:inherit;font-size:12px}
 .pro-share-modal .pro-confirm-actions{grid-column:auto}.is-danger-text{color:#b42318!important}
 @media(max-width:760px){
- .shared-design-header{grid-template-columns:minmax(0,1fr) auto;height:auto;min-height:64px;padding:12px 16px}.shared-design-header .brand{display:none}
+ .shared-design-header{grid-template-columns:minmax(0,1fr) auto;height:auto;min-height:64px;padding:12px 16px}.shared-design-header .brand,.shared-design-header .brand.brand-vector{display:none}
  .shared-design-stage{grid-template-columns:1fr;grid-template-rows:minmax(420px,65dvh) auto}.shared-design-controls{border-left:0;border-top:1px solid var(--line);padding:18px}
  .pro-share-link-row{grid-template-columns:1fr}.pro-share-link-row button{width:100%}
 }
@@ -5372,3 +5384,80 @@ body{font-size:var(--type-body)}
 @media (max-width:560px){.language-switcher summary span{display:none}}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .pro-studio input[aria-invalid="true"]{border-color:#dc2626;box-shadow:0 0 0 1px #dc2626;outline-color:#dc2626}
+
+/* Shared viewer on touch screens: 44px controls and no keyboard-only hint. */
+@media(pointer:coarse){.shared-design-keyboard-hint{display:none}.shared-design-view-controls button{min-width:44px;min-height:44px}}
+/* Phone editor: the open panel is a bottom sheet (default / expanded / peek) and the
+   canvas fits the area above it. --pro-sheet-h is the space taken from the body bottom. */
+.pro-sheet-handle,.pro-workflow-view-switch.pro-canvas-view-switch,.pro-step-label-short{display:none}
+@media(max-width:760px){
+  .pro-workflow-row>.pro-workflow-view-switch{display:none}
+  .pro-workflow-view-switch.pro-canvas-view-switch{display:flex;position:absolute;top:8px;left:8px;right:8px;z-index:20;margin:0}
+  .pro-canvas-view-switch button{flex:1 1 0;min-height:40px;font-size:13px}
+  .pro-canvas.is-workflow-design .pro-stage-badge,
+  .pro-canvas.is-workflow-design .pro-mobile-inspector{top:64px}
+  .pro-step-label-full{display:none}
+  .pro-step-label-short{display:inline}
+}
+@media(max-width:640px){
+  .pro-studio-body{--pro-safe-b:env(safe-area-inset-bottom,0px);--pro-dock-h:calc(80px + var(--pro-safe-b));--pro-sheet-h:var(--pro-dock-h)}
+  .pro-studio-body.has-sheet.is-sheet-half{--pro-sheet-h:calc(var(--pro-dock-h) + 40dvh)}
+  .pro-studio-body.has-sheet.is-sheet-full{--pro-sheet-h:calc(100dvh - 124px)}
+  .pro-studio-body.has-sheet.is-sheet-peek{--pro-sheet-h:calc(var(--pro-dock-h) + 84px)}
+  .pro-studio-tool-rail{bottom:calc(8px + var(--pro-safe-b))}
+  .pro-studio-body .pro-inspector,
+  .pro-studio-body .pro-design-inspector-shell{top:calc(100% - var(--pro-sheet-h))!important;bottom:var(--pro-dock-h)!important;height:auto!important;max-height:none!important;transition:top .2s ease,transform .18s ease,opacity .18s ease,box-shadow .18s ease}
+  .pro-studio-body .pro-inspector-title,
+  .pro-studio-body .pro-design-inspector-title{min-height:84px;height:84px!important;flex-basis:84px;padding-top:22px!important;padding-bottom:10px!important}
+  .pro-sheet-handle{display:grid;place-items:start center;position:absolute;top:0;left:50%;z-index:5;width:96px;height:40px;padding:7px 0 0!important;transform:translateX(-50%);border:0!important;background:transparent!important;box-shadow:none!important;touch-action:none;cursor:grab}
+  .pro-sheet-handle>span{width:40px;height:5px;border-radius:999px;background:#c3ccd7}
+  .pro-sheet-handle:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:12px}
+  .pro-canvas>.pro-3d-stage{bottom:calc(var(--pro-sheet-h) + 56px);transition:opacity 240ms ease-in-out,bottom .2s ease}
+  .pro-studio-body .pro-2d-design-stage{padding-top:60px;padding-bottom:calc(var(--pro-sheet-h) + 64px)}
+  .pro-studio-body .pro-2d-design-stage{grid-template:minmax(0,1fr)/minmax(0,1fr);place-items:stretch}
+  .pro-studio-body .pro-2d-design-stage .pro-dieline-workspace{display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:0}
+  .pro-studio-body .pro-shared-canvas-control-bar{bottom:calc(var(--pro-sheet-h) + 8px)!important}
+  .pro-studio-body .pro-studio-toast{bottom:calc(var(--pro-sheet-h) + 64px)}
+  .pro-studio-body.has-sheet .pro-mobile-inspector,
+  .pro-studio-body.has-sheet .pro-dieline-legend,
+  .pro-studio-body.has-sheet .pro-artwork-live-preview,
+  .pro-studio-body.has-sheet .pro-design-transform-panel:not(.has-selection),
+  .pro-studio-body.has-sheet.is-sheet-full .pro-shared-canvas-control-bar,
+  .pro-studio-body.has-sheet.is-sheet-full .pro-canvas-view-switch{display:none!important}
+  .pro-studio-body.has-sheet .pro-design-context-stack{top:60px;bottom:calc(var(--pro-sheet-h) + 64px)}
+  /* With the panel at its default height the canvas is short, so the box gets
+     the toolbar's space; collapsing the panel (one tap on the grip) brings it back. */
+  .pro-studio-body.has-sheet.is-sheet-half .pro-shared-canvas-control-bar{display:none!important}
+  .pro-studio-body.has-sheet.is-sheet-half .pro-canvas>.pro-3d-stage{bottom:calc(var(--pro-sheet-h) + 8px)}
+  .pro-studio-body.has-sheet.is-sheet-half .pro-2d-design-stage{padding-bottom:calc(var(--pro-sheet-h) + 12px)}
+}
+
+/* Phone editor readability and touch targets (≤760px). */
+@media(max-width:760px){
+  .pro-studio-tool-rail button{font-size:12px!important;font-weight:600!important}
+  .pro-stage-badge,.pro-status-bar{font-size:12px}
+  .pro-shared-canvas-control-bar,.pro-shared-canvas-control-bar.is-2d{max-width:calc(100% - 16px);flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
+  .pro-shared-canvas-control-bar::-webkit-scrollbar{display:none}
+  .pro-shared-canvas-control-bar .pro-canvas-bar-icon,
+  .pro-shared-canvas-control-bar .pro-canvas-bar-play,
+  .pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-icon,
+  .pro-shared-canvas-control-bar:not(.is-2d)>.pro-canvas-bar-play,
+  .pro-shared-canvas-control-bar.is-2d>.pro-canvas-bar-icon{flex:0 0 44px;width:44px;height:44px}
+  .pro-unit-switch button{min-width:44px;height:36px;font-size:13px}
+  .pro-reset-box-size{min-height:40px;padding-inline:8px;font-size:13px}
+  .pro-studio input[type=range]{-webkit-appearance:none;appearance:none;height:32px;background:transparent;accent-color:var(--accent)}
+  .pro-studio input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:var(--line)}
+  .pro-studio input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-8px;border:2px solid #fff;border-radius:50%;background:var(--accent);box-shadow:0 1px 4px rgba(16,23,32,.3)}
+  .pro-studio input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:var(--line)}
+  .pro-studio input[type=range]::-moz-range-thumb{width:22px;height:22px;border:2px solid #fff;border-radius:50%;background:var(--accent)}
+  .pro-header-actions>button.pro-save-design{display:inline-flex;align-items:center;gap:6px;min-height:40px;max-width:none;padding:0 4px!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:12px;font-weight:600}
+  .pro-header-actions>button.pro-save-design.is-save-failed{color:#b91c1c!important}
+  .pro-header-actions>button.pro-header-share{display:inline-grid;place-items:center;width:42px;min-width:42px;height:42px;padding:0!important}
+  .pro-header-share span{display:none}
+}
+.pro-new-design-dialog:focus{outline:none}
+@media(max-width:419px){
+  .pro-new-design-template .pro-template-visual.is-combined{grid-template:minmax(0,1fr)/minmax(0,1fr)}
+  .pro-new-design-template .pro-template-package{display:none}
+  .pro-new-design-template .pro-template-flat{border-right:0}
+}
