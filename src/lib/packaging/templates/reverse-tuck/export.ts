@@ -1,6 +1,15 @@
 import { sanitizeCartonDimensions, type CartonDimensions } from '../../reverse-tuck';
 import { finishExportGeometry, rectangleOutline, type ExportPanel } from '../../export-geometry';
 
+const PANEL_LABELS: Record<string, string> = {
+  'top-tuck': 'TOP TUCK',
+  'bottom-tuck': 'BOTTOM TUCK',
+  'top-left-dust': 'TOP LEFT DUST FLAP',
+  'top-right-dust': 'TOP RIGHT DUST FLAP',
+  'bottom-left-dust': 'BOTTOM LEFT DUST FLAP',
+  'bottom-right-dust': 'BOTTOM RIGHT DUST FLAP',
+};
+
 /** Closure flap sizes shared by the cutting template and the 3D preview. */
 export function reverseTuckClosureSizes(d: CartonDimensions) {
   const clearance = Math.max(0.5, d.thickness);
@@ -18,7 +27,7 @@ export function reverseTuckClosureSizes(d: CartonDimensions) {
 /** Independent cutting geometry. Saved mockup panels retain their original coordinates. */
 export function reverseTuckExportGeometry(input: CartonDimensions) {
   const d = sanitizeCartonDimensions(input);
-  const { clearance, tongue, tongueBevel, dustHeight, dustTaper } = reverseTuckClosureSizes(d);
+  const { clearance } = reverseTuckClosureSizes(d);
   if (Math.min(d.width, d.height, d.depth) <= clearance * 4) {
     throw new Error('These dimensions are too small for the selected board thickness. Increase the box size or reduce thickness.');
   }
@@ -26,12 +35,20 @@ export function reverseTuckExportGeometry(input: CartonDimensions) {
   if (d.width <= glue + 2 * clearance) {
     throw new Error('The box width is too small to accommodate this template\'s glue flap. Increase the width before exporting.');
   }
+  return reverseTuckSheet(d);
+}
+
+/** The cutting template's panels and outlines, without the printability checks. */
+export function reverseTuckSheet(input: CartonDimensions) {
+  const d = sanitizeCartonDimensions(input);
+  const { clearance, tongue, tongueBevel, dustHeight, dustTaper } = reverseTuckClosureSizes(d);
+  const glue = Math.max(12, Math.min(24, d.depth * 0.35));
   const bodyY = d.depth + tongue;
   const frontX = glue + d.depth;
   const backX = frontX + d.width + d.depth;
   const panels: ExportPanel[] = [];
   const rect = (id: string, x: number, y: number, width: number, height: number, kind: ExportPanel['kind'], sourceId?: string) => {
-    const panel = { id, label: id.toUpperCase(), x, y, width, height, kind, sourceId };
+    const panel = { id, label: PANEL_LABELS[id] ?? id.toUpperCase(), x, y, width, height, kind, sourceId };
     const result: ExportPanel = { ...panel, outline: rectangleOutline(panel) };
     panels.push(result);
     return result;

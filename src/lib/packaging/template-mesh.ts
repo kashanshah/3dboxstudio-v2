@@ -22,6 +22,12 @@ export type Mesh = {
    * walls 1, lids and bottoms 2.
    */
   layer?: number;
+  /** Quad edges (a→b = 0 … d→a = 3) that continue into a bent crease rather than a cut. */
+  creases?: number[];
+  /** Part of a bent crease: its outside, inside, or cut end face. */
+  bend?: 'outside' | 'inside' | 'edge';
+  /** Millimetres spanned by the texture coordinates 0–1, when not the quad's own size. */
+  uvSize?: [number, number];
 };
 
 export type TemplateMeshInput = {

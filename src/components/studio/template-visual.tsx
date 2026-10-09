@@ -1,6 +1,6 @@
 import type { PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
+import { getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
 
 export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
   const visualClass = template.id === 'pizza-box'
@@ -25,6 +25,23 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
 
   const size = dimensions ?? template.defaultDimensions;
   const runtime = getTemplateRuntime(template.id);
+  const photo = template.thumbnail;
+  // A render of the finished box in front of the template's real cutting
+  // dieline, so the card shows both the flat sheet and the result.
+  if (photo && runtime && size) {
+    const dieline = getTemplateExportGeometry(template.id, size);
+    const pad = Math.max(dieline.bounds.width, dieline.bounds.height) * 0.02;
+    const line = (segment: { start: { x: number; y: number }; end: { x: number; y: number } }) => `M${segment.start.x} ${segment.start.y}L${segment.end.x} ${segment.end.y}`;
+    return <span className={`pro-template-visual is-photo ${compact ? 'is-compact' : ''}`} aria-hidden="true">
+      <svg className="pro-template-photo-dieline" viewBox={`${-pad} ${-pad} ${dieline.bounds.width + pad * 2} ${dieline.bounds.height + pad * 2}`} preserveAspectRatio="xMidYMid meet">
+        {dieline.panels.map(panel => <polygon key={panel.id} points={panel.outline.map(point => `${point.x},${point.y}`).join(' ')}/>)}
+        <path className="is-cut" d={dieline.cut.map(line).join('')}/>
+        <path className="is-crease" d={dieline.crease.map(line).join('')}/>
+      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element -- a small static render, already sized */}
+      <img className="pro-template-photo" src={photo} alt="" loading="lazy" decoding="async"/>
+    </span>;
+  }
   const geometry = runtime && size ? getTemplateGeometry(template.id,size) : null;
   const bounds = geometry?.bounds;
   const hasRealDieline = !!geometry;

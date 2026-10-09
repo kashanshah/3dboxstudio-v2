@@ -2532,6 +2532,17 @@ body{font-size:var(--type-body)}
 .pro-template-visual.is-combined.is-compact .shape-top{transform:translateX(-50%) skewX(-36deg) scale(.48)}
 
 
+/* Template thumbnail: a render of the finished box in front of its real dieline */
+.pro-template-visual.is-photo{background:radial-gradient(120% 90% at 70% 75%,#fff 0%,#f3f6f9 55%,#e7edf3 100%)}
+.pro-template-photo-dieline{position:absolute;left:4%;top:8%;width:54%;height:84%;overflow:visible}
+.pro-template-photo-dieline polygon{fill:rgba(255,255,255,.78)}
+.pro-template-photo-dieline path{fill:none;stroke-width:1;vector-effect:non-scaling-stroke}
+.pro-template-photo-dieline .is-cut{stroke:#1684b8;opacity:.7}
+.pro-template-photo-dieline .is-crease{stroke:#e0457b;stroke-dasharray:3 2;opacity:.65}
+.pro-template-photo{position:absolute;right:5%;bottom:6%;width:auto;height:auto;max-width:46%;max-height:84%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(16,23,32,.08))}
+.pro-template-visual.is-photo.is-compact .pro-template-photo-dieline{left:3%;top:6%;width:52%;height:88%}
+.pro-template-visual.is-photo.is-compact .pro-template-photo{right:3%;bottom:4%;max-width:50%;max-height:90%}
+
 /* Project-level file menu */
 .pro-file-menu{position:relative;display:flex;align-items:center}
 .pro-file-menu-trigger{
