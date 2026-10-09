@@ -163,11 +163,11 @@ export function SharedDesignViewer({name,state,legacy,promo=true}:{name:string;s
           onViewPanChange={pan=>{panRef.current=pan;setViewPan(pan);}}
         />
         <div className="shared-design-view-controls" aria-label="3D view controls">
-          <button type="button" className={panEnabled||spacePanActive?'is-active':''} onClick={()=>setPanEnabled(value=>!value)} aria-pressed={panEnabled||spacePanActive} title="Pan view · hold Space for temporary pan"><Move size={17}/></button>
-          <button type="button" onClick={()=>applyZoom(scaleStudioZoom(zoomRef.current,1/1.1))} title="Zoom out"><ZoomOut size={17}/></button>
+          <button type="button" className={panEnabled||spacePanActive?'is-active':''} onClick={()=>setPanEnabled(value=>!value)} aria-pressed={panEnabled||spacePanActive} aria-label="Pan view" title="Pan view · hold Space for temporary pan"><Move size={17}/></button>
+          <button type="button" onClick={()=>applyZoom(scaleStudioZoom(zoomRef.current,1/1.1))} aria-label="Zoom out" title="Zoom out"><ZoomOut size={17}/></button>
           <span>{Number(zoom.toFixed(1))}%</span>
-          <button type="button" onClick={()=>applyZoom(scaleStudioZoom(zoomRef.current,1.1))} title="Zoom in"><ZoomIn size={17}/></button>
-          <button type="button" onClick={()=>{zoomRef.current=initialZoom;panRef.current={x:0,y:0};setZoom(initialZoom);setViewPan({x:0,y:0});}} title="Fit view"><Maximize2 size={17}/></button>
+          <button type="button" onClick={()=>applyZoom(scaleStudioZoom(zoomRef.current,1.1))} aria-label="Zoom in" title="Zoom in"><ZoomIn size={17}/></button>
+          <button type="button" onClick={()=>{zoomRef.current=initialZoom;panRef.current={x:0,y:0};setZoom(initialZoom);setViewPan({x:0,y:0});}} aria-label="Fit view" title="Fit view"><Maximize2 size={17}/></button>
         </div>
       </div>
       <aside className="shared-design-controls">
@@ -183,7 +183,7 @@ export function SharedDesignViewer({name,state,legacy,promo=true}:{name:string;s
           {assemblyProgress>=50?'Flatten box':'Assemble & close'}
         </button>
         <strong className="shared-design-stage-label">{stage}</strong>
-        <p>Drag to rotate. Turn on the hand tool—or hold Space—to pan. Scroll or pinch to zoom. This shared link is view-only.</p>
+        <p>Drag to rotate. Turn on the hand tool<span className="shared-design-keyboard-hint">—or hold Space—</span> to pan. Scroll or pinch to zoom. This shared link is view-only.</p>
         {promo && <section className="shared-design-promo" aria-labelledby="shared-design-promo-title">
           <span>Made with 3D Box Studio</span>
           <h2 id="shared-design-promo-title">Design your own box, free</h2>
