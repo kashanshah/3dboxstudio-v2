@@ -1,6 +1,7 @@
 import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { StudioShell } from '@/components/studio/studio-shell';
+import { SignedInHintRepair } from '@/components/auth/signed-in-hint-repair';
 import { redirect,notFound } from 'next/navigation';
 import { getCurrentUser } from '@/server/auth/session';
 import { getStudioProject } from '@/server/projects';
@@ -36,5 +37,5 @@ export default async function Studio({searchParams}:{searchParams:Promise<{proje
   const initialDimensions=initialTemplateId&&requestedTemplate?.defaultDimensions?requestedDimensions(params,requestedTemplate.defaultDimensions):undefined;
   const initialUnit=initialTemplateId&&(params.unit==='in'||params.unit==='mm')?params.unit:undefined;
   const schema={'@context':'https://schema.org','@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD',description:'Free account required'},description,url:new URL('/studio',site.url).toString(),featureList:['Custom box dimensions','Packaging materials','Opening simulation','Per-face artwork upload','Interactive 3D preview','PNG export']};
-  return <><StudioShell key={project?.id??`${initialTemplateId??'new'}:${params.workspace??'default'}:${initialDimensions?`${initialDimensions.width}x${initialDimensions.height}x${initialDimensions.depth}`:''}`} initialProject={project??undefined} initialWorkspaceProjectId={params.workspace??project?.workspaceProjectId??undefined} initialTemplateId={initialTemplateId} initialDimensions={initialDimensions} initialUnit={initialUnit} newDesignProjects={newDesignProjects}/>{!user.emailVerified&&<div className="editor-verification-reminder"><Link href="/verify-email">Verify your email</Link></div>}<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><StudioShell key={project?.id??`${initialTemplateId??'new'}:${params.workspace??'default'}:${initialDimensions?`${initialDimensions.width}x${initialDimensions.height}x${initialDimensions.depth}`:''}`} initialProject={project??undefined} initialWorkspaceProjectId={params.workspace??project?.workspaceProjectId??undefined} initialTemplateId={initialTemplateId} initialDimensions={initialDimensions} initialUnit={initialUnit} newDesignProjects={newDesignProjects}/><SignedInHintRepair/>{!user.emailVerified&&<div className="editor-verification-reminder"><Link href="/verify-email">Verify your email</Link></div>}<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

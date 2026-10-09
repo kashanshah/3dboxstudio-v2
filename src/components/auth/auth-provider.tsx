@@ -3,6 +3,7 @@
 import { useRouter,usePathname } from 'next/navigation';
 import { createContext,useCallback,useContext,useEffect,useMemo,useState,type ReactNode } from 'react';
 import { withPostHog } from '@/lib/analytics/posthog';
+import { markSessionChecked,shouldCheckSession } from '@/lib/auth-hint';
 
 export type AuthUser={
   id:string;
@@ -26,6 +27,15 @@ type AuthContextValue={
 
 const AuthContext=createContext<AuthContextValue|null>(null);
 
+// /api/auth/me also refreshes or clears the signed-in hint cookie.
+async function fetchSessionUser():Promise<AuthUser|null>{
+  const response=await fetch('/api/auth/me',{cache:'no-store'});
+  if(!response.ok) throw new Error('Session check failed');
+  const data=await response.json() as {user?:AuthUser|null};
+  markSessionChecked();
+  return data.user??null;
+}
+
 export function AuthProvider({children}:{children:ReactNode}){
   const [user,setUser]=useState<AuthUser|null>(null);
   const [loading,setLoading]=useState(true);
@@ -44,9 +54,7 @@ export function AuthProvider({children}:{children:ReactNode}){
 
   const refresh=useCallback(async()=>{
     try{
-      const response=await fetch('/api/auth/me',{cache:'no-store'});
-      const data=await response.json() as {user?:AuthUser|null};
-      setAuthenticatedUser(data.user??null);
+      setAuthenticatedUser(await fetchSessionUser());
     }catch{
       setUser(null);
     }finally{
@@ -56,9 +64,9 @@ export function AuthProvider({children}:{children:ReactNode}){
 
   useEffect(()=>{
     let cancelled=false;
-    void fetch('/api/auth/me',{cache:'no-store'})
-      .then(response=>response.json() as Promise<{user?:AuthUser|null}>)
-      .then(data=>{if(!cancelled) setAuthenticatedUser(data.user??null);})
+    // Visitors without the hint are signed out, so most page views skip /me.
+    void (shouldCheckSession()?fetchSessionUser():Promise.resolve(null))
+      .then(nextUser=>{if(!cancelled) setAuthenticatedUser(nextUser);})
       .catch(()=>{if(!cancelled) setUser(null);})
       .finally(()=>{if(!cancelled) setLoading(false);});
     return ()=>{cancelled=true;};

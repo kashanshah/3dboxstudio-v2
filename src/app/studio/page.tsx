@@ -3,6 +3,7 @@ import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { StudioHome } from '@/components/auth/studio-home';
+import { SignedInHintRepair } from '@/components/auth/signed-in-hint-repair';
 import { getCurrentUser } from '@/server/auth/session';
 import { getWorkspaceDesigns } from '@/server/projects';
 import { listWorkspaceProjects } from '@/server/workspace-projects';
@@ -26,5 +27,5 @@ export default async function Studio({searchParams}:{searchParams:Promise<{q?:st
  const projects=await listWorkspaceProjects(user.id);
  const activeProjectId=p.workspace&&projects.some(project=>project.id===p.workspace)?p.workspace:null;
  const result=await getWorkspaceDesigns(user.id,search,sort,page,activeProjectId);
- return <StudioHome user={user} {...result} projects={projects} activeProjectId={activeProjectId} search={search} sort={sort} page={page}/>;
+ return <><StudioHome user={user} {...result} projects={projects} activeProjectId={activeProjectId} search={search} sort={sort} page={page}/><SignedInHintRepair/></>;
 }
