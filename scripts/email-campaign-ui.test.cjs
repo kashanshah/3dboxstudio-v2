@@ -68,6 +68,9 @@ test('real campaign editor enforces save → test → explicit scheduling review
  assert.equal(calls.filter(c=>c.body?.action==='schedule').length,1);
  assert.equal(calls.find(c=>c.body?.action==='schedule').body.confirmed,true);
  assert.equal(screen.getByLabelText('Subject').closest('fieldset').disabled,true);
+ // The review dialog closes asynchronously after scheduling; until it does it
+ // also renders a "Cancel campaign" action, so wait for the page button alone.
+ await waitFor(()=>assert.equal(screen.queryByRole('dialog'),null));
  fireEvent.click(screen.getByRole('button',{name:'Cancel campaign'}));
  const cancelDialog=await screen.findByRole('dialog');fireEvent.click(within(cancelDialog).getByRole('checkbox'));fireEvent.click(within(cancelDialog).getByRole('button',{name:'Cancel campaign'}));
  await waitFor(()=>assert.equal(campaign.status,'canceled'));
