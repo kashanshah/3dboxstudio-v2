@@ -5396,7 +5396,7 @@ body{font-size:var(--type-body)}
 }
 @media(max-width:640px){
   .pro-studio-body{--pro-safe-b:env(safe-area-inset-bottom,0px);--pro-dock-h:calc(80px + var(--pro-safe-b));--pro-sheet-h:var(--pro-dock-h)}
-  .pro-studio-body.has-sheet.is-sheet-half{--pro-sheet-h:calc(var(--pro-dock-h) + 44dvh)}
+  .pro-studio-body.has-sheet.is-sheet-half{--pro-sheet-h:calc(var(--pro-dock-h) + 40dvh)}
   .pro-studio-body.has-sheet.is-sheet-full{--pro-sheet-h:calc(100dvh - 124px)}
   .pro-studio-body.has-sheet.is-sheet-peek{--pro-sheet-h:calc(var(--pro-dock-h) + 84px)}
   .pro-studio-tool-rail{bottom:calc(8px + var(--pro-safe-b))}
@@ -5420,6 +5420,11 @@ body{font-size:var(--type-body)}
   .pro-studio-body.has-sheet.is-sheet-full .pro-shared-canvas-control-bar,
   .pro-studio-body.has-sheet.is-sheet-full .pro-canvas-view-switch{display:none!important}
   .pro-studio-body.has-sheet .pro-design-context-stack{top:60px;bottom:calc(var(--pro-sheet-h) + 64px)}
+  /* With the panel at its default height the canvas is short, so the box gets
+     the toolbar's space; collapsing the panel (one tap on the grip) brings it back. */
+  .pro-studio-body.has-sheet.is-sheet-half .pro-shared-canvas-control-bar{display:none!important}
+  .pro-studio-body.has-sheet.is-sheet-half .pro-canvas>.pro-3d-stage{bottom:calc(var(--pro-sheet-h) + 8px)}
+  .pro-studio-body.has-sheet.is-sheet-half .pro-2d-design-stage{padding-bottom:calc(var(--pro-sheet-h) + 12px)}
 }
 
 /* Phone editor readability and touch targets (≤760px). */
