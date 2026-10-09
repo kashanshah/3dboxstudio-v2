@@ -428,3 +428,65 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 /* English home footer: links to the translated home pages on their own row. */
 .lovable-original.marketing-page footer:has(.footer-languages){flex-wrap:wrap;row-gap:14px}
 .lovable-original.marketing-page footer>.footer-languages{order:4;width:100%;justify-content:center;gap:16px;padding-top:14px;border-top:1px solid #e7edf4}
+
+/* Phones: same sections and copy, denser layout (home and translated homes). */
+@media (max-width:700px){
+  .lovable-original .section-intro h2,.lovable-original .showcase-copy h2{font-size:clamp(32px,9vw,40px)}
+  .lovable-original .section-intro{margin-bottom:28px}
+  .lovable-original .section-lede{font-size:16px;line-height:1.6}
+  .feature-story-copy h2,.studio-proof-copy h2,.save-share-section h2,.dieline-copy h2,.use-cases-section h2{font-size:clamp(30px,8.5vw,36px);margin-bottom:16px}
+  .studio-proof-copy>p,.feature-story-copy>p,.save-share-section>div>p,.dieline-copy>p{font-size:16px;line-height:1.6}
+  .capability-band,.studio-proof-section,.feature-story,.save-share-section,.dieline-section,.use-cases-section,.lovable-original .workflow-section,.lovable-original .localized-steps{padding:56px 20px}
+  .studio-proof-section,.feature-story,.save-share-section,.dieline-section{gap:32px}
+  .lovable-original .showcase-section{padding:56px 0;gap:28px}
+  .lovable-original .closing-section{padding:64px 20px}
+  .lovable-original .closing-section h2{font-size:clamp(40px,12vw,52px);margin:14px 0 22px}
+  .capability-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px}
+  .capability-grid article{min-height:0;padding:14px;border-radius:16px}
+  .capability-icon{width:34px;height:34px;border-radius:10px}
+  .capability-icon svg{width:18px;height:18px}
+  .capability-grid h3{margin:12px 0 4px;font-size:15px;line-height:1.25}
+  .capability-grid p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:13px;line-height:1.45}
+  .lovable-original .workflow-grid article,.lovable-original .workflow-grid article+article{padding:16px 0}
+  .lovable-original .workflow-grid h3{margin:12px 0 6px;font-size:24px}
+  .studio-proof-copy ul{margin:20px 0 24px;gap:10px}
+  .studio-live-frame iframe,.studio-proof-video{height:auto;aspect-ratio:2696/2014;object-fit:contain;background:#f3f6fa}
+  .feature-points{gap:6px;margin:20px 0}
+  .feature-points span{gap:5px;padding:6px 10px;font-size:13px}
+  .feature-points svg{width:14px}
+  .dimension-card{min-height:0;padding:28px 24px;border-radius:22px}
+  .dimension-card strong{margin:12px 0 22px}
+  .artwork-demo-card{min-height:0;padding:16px;border-radius:22px}
+  .dieline-mini{height:210px}
+  .dieline-panel{height:130px}
+  .dieline-panel.p1,.dieline-panel.p4{height:90px}
+  .dieline-panel.p2 span{font-size:22px}
+  .artwork-toolbar{flex-wrap:wrap}
+  .preview-demo-card{min-height:320px;border-radius:22px}
+  .save-share-grid{gap:10px}
+  .save-share-grid article{display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:12px;padding:16px 18px}
+  .save-share-grid svg{grid-row:span 2}
+  .save-share-grid h3{margin:0 0 4px}
+  .lovable-original .showcase-copy ul{margin:22px 0}
+  .lovable-original .showcase-copy li{padding:12px 0}
+  .use-case-grid{gap:0;margin-top:24px}
+  .use-case-grid article{padding:14px 0}
+  .use-case-grid h3{font-size:16px;margin-bottom:4px}
+  .use-case-grid p{font-size:14px;line-height:1.55}
+  .accuracy-note{margin:20px 0}
+  .dieline-visual{gap:12px}
+  .dieline-sheet,.dieline-box{height:200px}
+  .lovable-original .hero-badge{display:block;text-wrap:balance}
+  .lovable-original .hero-badge svg{display:inline-block;margin:0 6px 0 0;vertical-align:-3px}
+  .lovable-original .hero-copy>.localized-app-note{margin-top:12px;font-size:13px;line-height:1.5;color:var(--muted-foreground)}
+}
+@media (max-width:560px){
+  .lovable-original .home-hero,.lovable-original.localized-home .home-hero{padding:28px 0 56px;gap:32px}
+  .lovable-original .hero-copy h1{margin:16px 0 18px}
+  .lovable-original .hero-copy>p{font-size:16px;line-height:1.55}
+  .lovable-original .hero-actions{margin-top:24px}
+  .lovable-original .hero-proof{margin-top:20px}
+  /* Crop the Studio screenshot to the 3D box so it stays legible at phone width. */
+  .lovable-original .hero-shot{aspect-ratio:11/10}
+  .lovable-original .hero-shot img{width:100%;height:100%;object-fit:cover;object-position:78% 45%}
+}
