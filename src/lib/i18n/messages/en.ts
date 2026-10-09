@@ -27,7 +27,7 @@ export const en = {
   "account.account_settings": "Account settings",
   "account.your_designs": "Your designs",
   "account.sign_out": "Sign out",
-  "auth.sign_in_with_google": "Sign in with Google",
+  "auth.continue_with_google": "Continue with Google",
   "auth.new_to_3d_box_studio": "New to 3D Box Studio?",
   "auth.create_an_account": "Create an account",
   "auth.already_have_an_account": "Already have an account?",

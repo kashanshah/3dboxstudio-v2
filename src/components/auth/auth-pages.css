@@ -21,3 +21,5 @@
 .auth-notice{margin-top:16px}.auth-page .auth-submit{color:white}.auth-page .button:disabled{opacity:.55;cursor:wait}
 
 .auth-brand-copy p{color:var(--paper)}
+/* Phones: fit /login in one 844px screen. */
+@media(max-width:560px){.auth-form-wrap{padding:20px 0 6px}.auth-back{margin-bottom:24px}.auth-heading>span{margin-top:12px}.auth-form{margin-top:22px;gap:16px}.auth-form-footer{margin-top:22px;padding-top:18px}}
