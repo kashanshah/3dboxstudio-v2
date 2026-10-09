@@ -22,7 +22,7 @@ const sections = [
   },
   {
     "title": "Mailer-style packaging",
-    "body": "A mailer template is planned, with its own panel layout and folding behavior. Until then, the split top box covers two-flap corrugated shippers."
+    "body": "A mailer template is planned, with its own panel layout and folding behavior. Until then, the split top box covers corrugated shippers: a slotted shipping box with four flaps at each end."
   },
   {
     "title": "Template-specific behavior",
@@ -64,8 +64,8 @@ export default function Page(){
   ]};
   const heroAside=<div className="template-hero-visual" aria-label="Illustration of several packaging structure templates">
     <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>
-    <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Tray with hinged lid</span><i/></Link>
-    <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Two-flap shipper</span><i/></Link>
+    <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Locking tray, hinged lid</span><i/></Link>
+    <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Slotted shipper</span><i/></Link>
     <div className="template-hero-note">Mailer and sleeve boxes are planned</div>
   </div>;
   return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} afterHero={<TemplatePageLinks />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;

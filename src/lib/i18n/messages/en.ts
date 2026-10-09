@@ -523,7 +523,7 @@ export const en = {
   "templates.split-top-box.name": "Split Top Box",
   "templates.split-top-box.shortName": "Split top",
   "templates.split-top-box.category": "Corrugated",
-  "templates.split-top-box.description": "Corrugated shipping box (FEFCO 0201): four slotted flaps at each end, the outer pair meeting in the middle.",
+  "templates.split-top-box.description": "Corrugated shipping box: four slotted flaps at each end, meeting in the middle (FEFCO 0204) or the outer pair only (FEFCO 0201).",
   "templates.reverse-tuck-carton.name": "Reverse Tuck End Carton",
   "templates.reverse-tuck-carton.shortName": "Reverse tuck",
   "templates.reverse-tuck-carton.category": "Cartons",

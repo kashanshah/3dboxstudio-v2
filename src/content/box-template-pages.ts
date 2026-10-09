@@ -43,7 +43,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { label: 'Tea or food carton', note: 'Flat retail carton', width: 120, height: 180, depth: 55, unit: 'mm' },
       { label: 'Soap bar', note: 'Low, wide carton', width: 95, height: 35, depth: 65, unit: 'mm' },
     ],
-    geometryNote: 'Cutting template: tuck tongues, dust flaps and the glue flap are added for you. Faces are drawn at their nominal size, with no allowance for board thickness or crease compensation.',
+    geometryNote: 'Cutting template: tuck tongues with slit locks, shouldered dust flaps, the glue flap and a thumb notch are added for you. Width, depth and height are inside sizes; panels are creased one board thickness wider. Ask your printer to confirm the allowances for their board.',
     sections: [
       {
         title: 'What is a reverse tuck end box?',
@@ -71,14 +71,14 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
       {
         title: 'Before you send it to print',
-        body: 'Retail cartons are usually printed on 300–400 gsm folding boxboard or SBS. The dieline here uses nominal face sizes; your printer will adjust it for the board caliper and their creasing tools. Use the dieline to design and approve the artwork, then ask the printer for their own die or a proof before the production run.',
+        body: 'Retail cartons are usually printed on 300–400 gsm folding boxboard or SBS. The dieline here takes your sizes as inside dimensions and creases each panel one board thickness wider for the caliper you enter. Your printer may still fine-tune it for their board and creasing tools, so use it to design and approve the artwork, then ask for their die line or a proof before the production run.',
       },
     ],
     faqs: [
       { question: 'Is the reverse tuck end template free?', answer: 'Yes. The size picker and dieline on this page are free to use. Designing artwork, saving and exporting the PDF dieline happen in the Studio, which needs a free account.' },
       { question: 'Can I download the dieline as a PDF?', answer: 'Yes, from the Studio. Open this template with your size, then use Preview & Download to export a 1:1 vector PDF with cut and crease lines, adjustable bleed and a calibration ruler.' },
       { question: 'Does the dieline include tuck flaps and dust flaps?', answer: 'Yes. The reverse tuck template draws the tuck tongues with slit locks, four shouldered dust flaps, a tapered glue flap and a thumb notch, with panels creased one board thickness wider than the inside size you enter. Artwork prints on the closure flaps too, exactly as laid out on the design grid; the glue flap stays bare.' },
-      { question: 'Does it adjust for board thickness?', answer: 'No. Panels are drawn at the nominal size you enter, without caliper or crease compensation. Your printer should adapt the final die to their board and tooling.' },
+      { question: 'Does it adjust for board thickness?', answer: 'Yes. The sizes you enter are inside dimensions, and each panel is creased one board thickness wider for the caliper set in the Studio. Printers sometimes use their own allowances for a particular board and tooling, so ask yours to confirm before production.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the unit to inches in the size picker; the Studio keeps the same unit when you open the template.' },
     ],
     guides: ['how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'tuck-end-folding-carton-mockup', 'dieline-in-illustrator-vs-online-generator'],
@@ -130,7 +130,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Is the pizza box template free?', answer: 'Yes. The size picker and layout preview here are free. Designing artwork, saving and exporting happen in the Studio with a free account.' },
       { question: 'What sizes can I make?', answer: 'Any size. Presets cover 10, 12, 14 and 16 inch boxes and a 30 cm metric box, and you can type your own width, depth and wall height in millimetres or inches.' },
       { question: 'Is this a production-ready pizza box die?', answer: 'It is a real cutting template with the locking double front, slots, corner tabs, lid flaps and finger hole, sized from your inside dimensions and board thickness. Ask your box maker to confirm the allowances for the flute they run before production.' },
-      { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a PDF of the flat layout with your artwork.' },
+      { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a 1:1 PDF cutting template with your artwork, cut and crease lines, and adjustable bleed.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'food-beverage-carton-shelf-preview'],
     updated: '2026-10-06',
@@ -151,7 +151,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { label: 'Large shipper', note: 'Bulky items', width: 500, height: 400, depth: 400, unit: 'mm' },
       { label: '12 × 12 × 12 in', note: 'Cube', width: 12, height: 12, depth: 12, unit: 'in' },
     ],
-    geometryNote: 'Cutting template: a regular slotted container (FEFCO 0201) with four flaps at each end, slots between them and a glued joint, scored one board wider than the inside size you enter.',
+    geometryNote: 'Cutting template: a slotted shipping box with four flaps at each end, slots between them and a glued joint, scored one board wider than the inside size you enter. Drawn here with every top flap meeting in the middle (FEFCO 0204); in the Studio you can switch to the regular slotted container (FEFCO 0201).',
     sections: [
       {
         title: 'What the template is for',
