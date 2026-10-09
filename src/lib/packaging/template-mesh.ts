@@ -10,11 +10,6 @@ export type Mesh = {
   fallbackPanel?: string;
   /** For a surface that is not a panel itself (a bend): the panel whose artwork it shows. */
   sourcePanel?: string;
-  /**
-   * With no artwork of its own, the first of these panels that has artwork is
-   * continued over this face; uv maps the face's artwork square into it.
-   */
-  continues?: { panel: string; uv: [number, number, number, number] }[];
   fallbackUv?: [number,number,number,number];
   pickCorners?: number[][];
   faceAspect?: number;

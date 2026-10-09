@@ -27,8 +27,7 @@ import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
-import { inheritedFlaps } from '@/lib/packaging/flap-artwork';
-import { continuationTransform } from '@/lib/packaging/flap-continuation';
+import { artworkImageLoader, flapFillColours, flapFillTextures } from '@/lib/packaging/flap-fill';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
@@ -342,6 +341,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [selectedInsideLayerId, setSelectedInsideLayerId] = useState<string | null>(null);
   const [mappedOutsideArtwork, setMappedOutsideArtwork] = useState<ArtworkByPanel>({});
   const [mappedInsideArtwork, setMappedInsideArtwork] = useState<ArtworkByPanel>({});
+  // Flap id → the solid colour an empty flap prints in, per side.
+  const [flapFills, setFlapFills] = useState<{outside:Record<string,string>;inside:Record<string,string>}>({outside:{},inside:{}});
   const [mappedPanelArtwork, setMappedPanelArtwork] = useState<ArtworkByPanel>({});
   const [previewOpen, setPreviewOpen] = useState(true);
   const [dielineZoom, setDielineZoom] = useState(112);
@@ -717,9 +718,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const activeArea = workflowStep;
   const activeAreaConfig = studioAreas.find(area => area.id === workflowStep) ?? null;
   const boxStyle = useMemo(() => ({ '--studio-zoom': zoom / 100 }) as React.CSSProperties, [zoom]);
+  const flapFillArtwork = useMemo<ArtworkByPanel>(() => {
+    if (!Object.keys(flapFills.outside).length && !Object.keys(flapFills.inside).length) return {};
+    const panels = getTemplateGeometry(selectedTemplateId, dimensions, {openingMode,splitTopHingeSide}).panels;
+    return { ...flapFillTextures(flapFills.outside, panels, ''), ...flapFillTextures(flapFills.inside, panels, 'Interior ') };
+  }, [flapFills, selectedTemplateId, dimensions, openingMode, splitTopHingeSide]);
   const resolvedArtworkByPanel = useMemo<ArtworkByPanel>(() => {
-    return { ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel, ...mappedPanelArtwork };
-  }, [artworkByPanel, mappedOutsideArtwork, mappedInsideArtwork, mappedPanelArtwork]);
+    return { ...flapFillArtwork, ...mappedOutsideArtwork, ...mappedInsideArtwork, ...artworkByPanel, ...mappedPanelArtwork };
+  }, [flapFillArtwork, artworkByPanel, mappedOutsideArtwork, mappedInsideArtwork, mappedPanelArtwork]);
   const artworkKey = (targetPanel = panel, scope = artworkScope) => scope === 'inside' ? `Interior ${targetPanel}` : targetPanel;
   const parseArtworkTarget = (target: string) => target.startsWith('Interior ')
     ? { scope: 'inside' as const, panel: target.replace('Interior ', '') }
@@ -815,6 +821,19 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
     return () => window.clearTimeout(timeout);
   }, [outsideDielineLayers, insideDielineLayers, dimensions, selectedTemplateId, openingMode, splitTopHingeSide]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      const getImage = artworkImageLoader();
+      const base = {templateId:selectedTemplateId,dimensions,geometryOptions:{openingMode,splitTopHingeSide},artworkByPanel};
+      void Promise.all([
+        flapFillColours({...base,layers:outsideDielineLayers,scope:'outside'},getImage),
+        flapFillColours({...base,layers:insideDielineLayers,scope:'inside'},getImage),
+      ]).then(([outside,inside]) => { if (!cancelled) setFlapFills({outside,inside}); });
+    }, 180);
+    return () => { cancelled = true; window.clearTimeout(timeout); };
+  }, [outsideDielineLayers, insideDielineLayers, artworkByPanel, dimensions, selectedTemplateId, openingMode, splitTopHingeSide]);
 
   useEffect(() => () => {
     for (const asset of mediaAssetsRef.current) if(asset.url.startsWith('blob:')) URL.revokeObjectURL(asset.url);
@@ -1971,6 +1990,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           </aside>
           }
           viewSwitch={null}
+          flapFills={artworkScope==='inside'?flapFills.inside:flapFills.outside}
           pdfExportRequest={pdfExportRequest}
           pdfExportOptions={pdfExportOptions}
           pdfBaseColor={artworkScope==='inside' ? (insideColorMode==='custom' ? insideCustomColor : null) : (outsideColorMode==='custom' ? outsideCustomColor : null)}
@@ -2717,6 +2737,7 @@ function DielinePrototype({
   onPdfStatus,
   livePreview,
   viewSwitch,
+  flapFills,
 }:{
   artworkByPanel:ArtworkByPanel;
   layers:FullDielineArtworkLayer[];
@@ -2756,6 +2777,8 @@ function DielinePrototype({
   onPdfStatus:(busy:boolean,message:string)=>void;
   livePreview:React.ReactNode;
   viewSwitch:React.ReactNode;
+  /** Flap id → the solid colour an empty flap prints in on this side. */
+  flapFills:Record<string,string>;
 }) {
   const t = useTranslations();
 
@@ -2764,8 +2787,6 @@ function DielinePrototype({
   const [printing,setPrinting]=useState(false);
   const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels;
   const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
-  const scopePrefix=artworkScope==='inside'?'Interior ':'';
-  const inheritedFlapArt=inheritedFlaps(getTemplateRuntime(selectedTemplateId)?.flapArtworkSources,cartonPanels,bounds,layers,artworkByPanel,scopePrefix);
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
@@ -3264,21 +3285,10 @@ function DielinePrototype({
           // only where it prints.
           return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds)}}>{printed}</div>);
         })}
-        {/* Panels with no artwork of their own carry a neighbour's edge across the crease. */}
-        {inheritedFlapArt.map(({flap,source,crease,stretch})=>{
-          const sourceArtwork=artworkByPanel[`${scopePrefix}${panelDisplayName(cartonPanels,source.id)}`];
-          const {scale,offset}=continuationTransform(crease,stretch);
-          const carry=crease.axis==='y'
-            ? {transformOrigin:'0 0',transform:`translateY(${offset/bounds.height*100}%) scaleY(${-scale})`}
-            : {transformOrigin:'0 0',transform:`translateX(${offset/bounds.width*100}%) scaleX(${-scale})`};
-          return <div key={`inherit:${flap.id}`} className="pro-printed-artwork-clip is-inherited" style={{clipPath:boardPolygon(flap,bounds)}}>
-            <div className="pro-printed-artwork-clip" style={carry}>
-              {sourceArtwork
-                ? <div className="pro-inherited-panel" style={{left:`${source.x/bounds.width*100}%`,top:`${source.y/bounds.height*100}%`,width:`${source.width/bounds.width*100}%`,height:`${source.height/bounds.height*100}%`}}><PanelArtwork panel={source} artwork={sourceArtwork}/></div>
-                : layers.filter(layer=>layer.visible!==false&&layerPrintsOn(layer,source.id)).map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}
-            </div>
-          </div>;
-        })}</div>
+        {/* Panels with no artwork of their own print solid in their neighbour's edge colour. */}
+        {cartonPanels.filter(panel=>flapFills[panel.id]).map(panel=>
+          <div key={`fill:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds),background:flapFills[panel.id]}}/>
+        )}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div

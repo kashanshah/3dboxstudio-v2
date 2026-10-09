@@ -241,13 +241,10 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       uniforms.uRoundRadius.value = roundRadius;
       uniforms.uFlutePitch.value = surface === 'edge' ? flutePitch : 0;
 
-      // A face shows its own artwork (a bend, its panel's); failing that, a
-      // stand-in mapped through a uv rectangle: an older design's artwork, or
-      // a neighbour's artwork continued over a panel that has none.
+      // A face shows its own artwork (a bend, its panel's); failing that, an
+      // older design's artwork mapped through a uv rectangle.
       const own = [mesh.panel, mesh.sourcePanel].find(key => key && scene.artworkByPanel[key]);
-      const standIn = own ? undefined
-        : mesh.fallbackPanel && scene.artworkByPanel[mesh.fallbackPanel] ? { panel: mesh.fallbackPanel, uv: mesh.fallbackUv }
-          : mesh.continues?.find(item => scene.artworkByPanel[item.panel]);
+      const standIn = !own && mesh.fallbackPanel && scene.artworkByPanel[mesh.fallbackPanel] ? { panel: mesh.fallbackPanel, uv: mesh.fallbackUv } : undefined;
       const artworkKey = own ?? standIn?.panel;
       const entry = artworkKey ? artwork.get(artworkKey) : undefined;
       const placement = artworkKey ? scene.artworkByPanel[artworkKey] : undefined;

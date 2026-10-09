@@ -1,8 +1,8 @@
-// How a panel with no artwork of its own continues a neighbour's: the strip of
-// the neighbour's artwork along their shared crease is carried across the
-// panel, the way printers extend artwork over a fold. Nothing is mirrored, so
-// no text or logo ever shows reversed. The 2D grid, the 3D model and the
-// print file all use these same numbers.
+// How a panel with no artwork of its own continues a neighbour's: it is
+// printed solid in the colour that dominates the neighbour's artwork along
+// their shared crease, the way printers run a background over a fold. Text
+// and logos near the crease are never smeared or mirrored onto the flap. The
+// 2D grid, the 3D model and the print file all use these same rules.
 
 export type Box = { x: number; y: number; width: number; height: number };
 /**
@@ -10,12 +10,10 @@ export type Box = { x: number; y: number; width: number; height: number };
  * the continuing panel lies on the greater side of it, else -1.
  */
 export type Crease = { axis: 'x' | 'y'; at: number; side: 1 | -1 };
-export type Continuation<T> = { source: T; crease: Crease; stretch: number };
+export type Continuation<T> = { source: T; crease: Crease };
 
-/** Width of the source's edge strip that is carried across, in millimetres. */
-export const EDGE_STRIP_MM = 0.5;
-/** The strip starts this far inside the source, clear of its very edge. */
-export const EDGE_INSET_MM = 0.5;
+/** How deep into the source the edge colour is read, in millimetres. */
+export const EDGE_BAND_MM = 8;
 
 export function creaseBetween(panel: Box, source: Box): Omit<Crease, 'side'> | null {
   const eps = 1e-6;
@@ -41,30 +39,46 @@ export function continuationChain<T extends Box & { id: string }>(panel: T, sour
     const line = creaseBetween(previous, next);
     if (!line || (result.length && line.axis !== result[0].crease.axis)) break;
     const centre = line.axis === 'y' ? panel.y + panel.height / 2 : panel.x + panel.width / 2;
-    const crease: Crease = { ...line, side: centre > line.at ? 1 : -1 };
-    // The whole panel maps into the edge strip, so its far edge lands
-    // EDGE_STRIP_MM inside the source.
-    const far = crease.axis === 'y'
-      ? Math.max(Math.abs(panel.y - crease.at), Math.abs(panel.y + panel.height - crease.at))
-      : Math.max(Math.abs(panel.x - crease.at), Math.abs(panel.x + panel.width - crease.at));
-    result.push({ source: next, crease, stretch: Math.max(1, far / EDGE_STRIP_MM) });
+    result.push({ source: next, crease: { ...line, side: centre > line.at ? 1 : -1 } });
     seen.add(next.id);
     previous = next;
   }
   return result;
 }
 
-/** The point of the source's artwork that shows at sheet point `point`. */
-export function continuedPoint(point: { x: number; y: number }, crease: Crease, stretch: number) {
-  const carry = (value: number) => crease.at - crease.side * EDGE_INSET_MM - (value - crease.at) / stretch;
-  return crease.axis === 'y' ? { x: point.x, y: carry(point.y) } : { x: carry(point.x), y: point.y };
+/**
+ * The strip of `source` along `crease` whose colour a flap takes, in sheet
+ * millimetres: EDGE_BAND_MM deep, or a third of the source if that is less.
+ */
+export function edgeBand(source: Box, crease: Crease): Box {
+  if (crease.axis === 'y') {
+    const depth = Math.min(EDGE_BAND_MM, source.height / 3);
+    return { x: source.x, y: crease.side > 0 ? crease.at - depth : crease.at, width: source.width, height: depth };
+  }
+  const depth = Math.min(EDGE_BAND_MM, source.width / 3);
+  return { x: crease.side > 0 ? crease.at - depth : crease.at, y: source.y, width: depth, height: source.height };
 }
 
 /**
- * The same mapping the other way, as a transform that draws the source's
- * artwork where it shows: content at sheet coordinate c lands at
- * offset - scale·c along the crease's axis (with scale = stretch).
+ * The colour that covers most of an RGBA pixel run, as "#rrggbb", or null when
+ * mostly transparent pixels win (the flap then stays plain board). Colours are
+ * grouped coarsely so anti-aliasing and photo noise vote together; the result
+ * is the average of the winning group.
  */
-export function continuationTransform(crease: Crease, stretch: number) {
-  return { scale: stretch, offset: (1 + stretch) * crease.at - crease.side * stretch * EDGE_INSET_MM };
+export function dominantColour(data: ArrayLike<number>): string | null {
+  const counts = new Map<number, { n: number; r: number; g: number; b: number }>();
+  let clear = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 128) { clear++; continue; }
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const key = (r >> 4) << 8 | (g >> 4) << 4 | b >> 4;
+    const bin = counts.get(key);
+    if (bin) { bin.n++; bin.r += r; bin.g += g; bin.b += b; }
+    else counts.set(key, { n: 1, r, g, b });
+  }
+  let best: { n: number; r: number; g: number; b: number } | undefined;
+  for (const bin of counts.values()) if (!best || bin.n > best.n) best = bin;
+  if (!best || clear >= best.n) return null;
+  const hex = (value: number) => Math.round(value / best!.n).toString(16).padStart(2, '0');
+  return `#${hex(best.r)}${hex(best.g)}${hex(best.b)}`;
 }
