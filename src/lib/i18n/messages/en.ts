@@ -535,7 +535,7 @@ export const en = {
   "templates.pizza-box.name": "Pizza Box",
   "templates.pizza-box.shortName": "Pizza box",
   "templates.pizza-box.category": "Food",
-  "templates.pizza-box.description": "Shallow pizza tray with a rear-hinged lid, tuck-in lid flaps and folding corner tabs.",
+  "templates.pizza-box.description": "One-piece corrugated pizza box: double front locked into the base, corner tabs, lid with tuck and side flaps.",
   "templates.sleeve-box.name": "Sleeve Box",
   "templates.sleeve-box.shortName": "Sleeve",
   "templates.sleeve-box.category": "Cartons",

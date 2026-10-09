@@ -5,6 +5,8 @@ import { baseBoxSheetV1 } from './templates/base-box/sheet-v1';
 import { baseBoxSheet } from './templates/base-box/geometry';
 import { splitTopSheetV1 } from './templates/split-top/sheet-v1';
 import { splitTopSheet } from './templates/split-top/geometry';
+import { pizzaBoxSheetV2 } from './templates/pizza-box/sheet-v2';
+import { pizzaBoxSheet } from './templates/pizza-box/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
 import type { StudioProjectState } from '../studio-project';
@@ -59,6 +61,11 @@ const STEPS: Record<string, Step[]> = {
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
     // read upright on the box; stored artwork turns to match.
     state => ({ ...state, artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Front', 'Top', 'Lid Front']) }),
+    // 3: the grid is the locking pizza box's cutting template: a double front
+    // with an inner layer and roll strip, corner tabs on the side walls'
+    // ends, a lid sized to rest on the walls; sheet layers move and stretch
+    // to keep the base's and walls' edges.
+    state => moveSheetLayers(state, s => pizzaBoxSheetV2(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
   ],
 };
 

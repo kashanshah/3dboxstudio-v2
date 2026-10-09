@@ -137,7 +137,7 @@ test('migration runs once, and only for templates whose grid changed', () => {
   assert.equal(layoutVersionFor('split-top-box'), 2);
   assert.equal(layoutVersionFor('base-box'), 2);
   assert.equal(layoutVersionFor('reverse-tuck-carton'), 5);
-  assert.equal(layoutVersionFor('pizza-box'), 2);
+  assert.equal(layoutVersionFor('pizza-box'), 3);
   // A design already on version 2 of the reverse tuck takes only the later steps.
   const bottom = { name: 'b', url: '/api/media/b', mode: 'fill', scale: 100, rotation: 0, alignX: 0, alignY: 0, transform: { x: 20, y: 30, width: 50, height: 50, rotation: 0 } };
   const v2 = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(5, 2), { Bottom: bottom }), layoutVersion: 2 };
@@ -273,4 +273,34 @@ test('split top designs keep their artwork on every wall of the slotted box', ()
   assert.deepEqual(Object.keys(sideB.artworkByPanel).sort(), ['Interior Top Back', 'Top Front']);
   const sideA = migrateStudioLayout({ ...state({ width: 400, height: 300, depth: 300, thickness: 0.5 }, [], { 'Top Left': flap }), templateId: 'split-top-box', splitTopHingeSide: 'side_a' });
   assert.deepEqual(Object.keys(sideA.artworkByPanel), ['Top Left']);
+});
+
+test('pizza box designs keep their artwork on the base and walls of the locking box', () => {
+  const { pizzaBoxSheetV2 } = require('../src/lib/packaging/templates/pizza-box/sheet-v2.ts');
+  for (const dimensions of [{ width: 305, height: 45, depth: 305, thickness: 1.5 }, { width: 406, height: 51, depth: 406, thickness: 1.5 }]) {
+    for (const seed of [8, 51, 999]) {
+      const v2 = { ...state(dimensions, randomLayers(seed, 1)), templateId: 'pizza-box', layoutVersion: 2 };
+      const v3 = migrateStudioLayout(v2);
+      assert.equal(v3.layoutVersion, 3);
+      const before = pizzaBoxSheetV2(dimensions), after = getTemplateGeometry('pizza-box', dimensions);
+      for (const panel of after.panels.filter(item => ['bottom', 'left', 'right', 'front', 'back'].includes(item.id))) {
+        const old = before.panels.find(item => item.id === panel.id);
+        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
+          const u = 0.03 + 0.94 * i / 6, v = 0.03 + 0.94 * j / 6;
+          const was = imageAt(v2.outsideArtworkLayers, before.bounds, { x: old.x + u * old.width, y: old.y + v * old.height }, panel.id);
+          const now = imageAt(v3.outsideArtworkLayers, after.bounds, { x: panel.x + u * panel.width, y: panel.y + v * panel.height }, panel.id);
+          const near = 2 * dimensions.thickness + 0.1;
+          if (!was || !now) {
+            const hit = was ?? now, bounds = was ? before.bounds : after.bounds, t = (was ? v2 : v3).outsideArtworkLayers[0].transform;
+            if (!hit) continue;
+            assert.ok(Math.min(hit.u, 1 - hit.u) * t.width / 100 * bounds.width < near || Math.min(hit.v, 1 - hit.v) * t.height / 100 * bounds.height < near, `${panel.id} coverage changed at ${u},${v}`);
+            continue;
+          }
+          const t = v2.outsideArtworkLayers[0].transform;
+          const mm = Math.hypot((now.u - was.u) * t.width / 100 * before.bounds.width, (now.v - was.v) * t.height / 100 * before.bounds.height);
+          assert.ok(mm < near, `${panel.id} artwork moved ${mm.toFixed(3)} mm`);
+        }
+      }
+    }
+  }
 });

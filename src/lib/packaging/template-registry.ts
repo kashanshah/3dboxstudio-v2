@@ -78,7 +78,7 @@ const interiorRegions = ['Front','Back','Left','Right','Top','Bottom'].map(label
   panelId: `Interior ${label}`,
 }));
 
-const pizzaFlapRegions = ['Lid Front', 'Lid Left', 'Lid Right', 'Left Back Tab', 'Left Front Tab', 'Right Back Tab', 'Right Front Tab'].flatMap(label => [
+const pizzaFlapRegions = ['Lid Front', 'Lid Left', 'Lid Right', 'Inner Front', 'Front Roll', 'Left Back Tab', 'Left Front Tab', 'Right Back Tab', 'Right Front Tab'].flatMap(label => [
   { id: `outside-${label.toLowerCase().replaceAll(' ', '-')}`, label, surface: 'outside' as const, panelId: label },
   { id: `inside-${label.toLowerCase().replaceAll(' ', '-')}`, label: `Inside ${label}`, surface: 'inside' as const, panelId: `Interior ${label}` },
 ]);
@@ -198,7 +198,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     shortName: 'Pizza box',
     family: 'corrugated',
     category: 'Food',
-    description: 'Shallow pizza tray with a rear-hinged lid, tuck-in lid flaps and folding corner tabs.',
+    description: 'One-piece corrugated pizza box: double front locked into the base, corner tabs, lid with tuck and side flaps.',
     tags: ['pizza','food','corrugated','takeout'],
     rendererKey: 'pizza-box-v1',
     structureKey: 'pizza-box-v1',
@@ -207,7 +207,8 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
       { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 305 },
       { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 45 },
       { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 305 },
-      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 2, step: 0.1, defaultValue: 1.5 },
+      // E flute is about 1.5 mm, B flute 3 mm.
+      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 7, step: 0.1, defaultValue: 1.5 },
     ],
     artworkRegions: [...exteriorRegions, ...interiorRegions, ...pizzaFlapRegions],
     defaultDimensions: { width: 305, height: 45, depth: 305, thickness: 1.5 },

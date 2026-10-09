@@ -1,51 +1,71 @@
-import { sanitizeCartonDimensions } from '../../reverse-tuck';
 import type { TemplateMeshBuilder } from '../../template-mesh';
-import { foldSheet, restingSetback, type Mat4, type SheetHinge } from '../../fold-sheet';
-import { boardThickness, rectangleSheetPanels, substage } from '../folded-box';
-import { getPizzaBoxPanels } from './geometry';
+import { foldSheet, restingSetback, type Mat4, type SheetHinge, type SheetPanel } from '../../fold-sheet';
+import { boardThickness, panelName, substage } from '../folded-box';
+import { pizzaBoxSheet, pizzaBoxSizes, sanitizePizzaBoxDimensions } from './geometry';
 
-// Folded from the dieline itself, the way a pizza tray is made: side walls up,
-// their corner ears in, the front and back walls up over the ears, then the
-// lid's skirts fold down and the lid closes over the tray.
+// Folded from the cutting template itself, the way a pizza box is made: the
+// side walls up, their corner tabs in, the front and back walls up outside
+// the tabs, then the front's inner layer folds down over the tabs and locks
+// into the base; the lid's flaps fold down and the lid closes over the tray.
 
 const PARENT: Record<string, string> = {
   left: 'bottom', right: 'bottom', front: 'bottom', back: 'bottom',
   leftBackTab: 'left', leftFrontTab: 'left', rightBackTab: 'right', rightFrontTab: 'right',
+  frontRoll: 'front', frontInner: 'frontRoll',
   top: 'back', lidFront: 'top', lidLeft: 'top', lidRight: 'top',
 };
 
 export const buildPizzaBoxTemplateMeshes: TemplateMeshBuilder = ({ dimensions, formation, opening, color, interiorColor }) => {
-  const d = sanitizeCartonDimensions(dimensions);
+  const d = sanitizePizzaBoxDimensions(dimensions);
   const t = boardThickness(d);
-  const flat = getPizzaBoxPanels(d);
-  const base = flat.find(panel => panel.id === 'bottom')!;
+  const sheet = pizzaBoxSheet(d);
+  const sizes = pizzaBoxSizes(d);
+  const base = sheet.panels.find(panel => panel.id === 'bottom')!;
+  const roll = sheet.panels.find(panel => panel.id === 'frontRoll')!;
   const formed = Math.min(1, Math.max(0, formation / 100));
   const quarter = Math.PI / 2;
-  const sides = substage(formed, 0, 0.35) * quarter;
-  const ears = substage(formed, 0.2, 0.55) * quarter;
-  const walls = substage(formed, 0.45, 0.9) * quarter;
-  const skirts = substage(formed, 0.6, 1) * quarter;
-  const lid = Math.min(1, Math.max(0, 1 - opening / 100)) * walls;
+  const sides = substage(formed, 0, 0.3) * quarter;
+  const tabs = substage(formed, 0.2, 0.45) * quarter;
+  const walls = substage(formed, 0.4, 0.6) * quarter;
+  // The front folds double: over the roll strip, then down inside.
+  const rollOver = substage(formed, 0.6, 0.72) * quarter;
+  const inner = substage(formed, 0.7, 0.85) * quarter;
+  const skirts = substage(formed, 0.7, 1) * quarter;
+  const lid = Math.min(1, Math.max(0, 1 - opening / 100)) * substage(formed, 0.6, 1) * quarter;
   const angle: Record<string, number> = {
     left: sides, right: sides, front: walls, back: walls,
-    leftBackTab: ears, leftFrontTab: ears, rightBackTab: ears, rightFrontTab: ears,
+    leftBackTab: tabs, leftFrontTab: tabs, rightBackTab: tabs, rightFrontTab: tabs,
+    frontRoll: rollOver, frontInner: inner,
     top: lid, lidLeft: skirts, lidRight: skirts,
-    lidFront: skirtCurl(skirts, lid, d.depth, d.height * 0.65, t * 1.3),
+    lidFront: skirtCurl(skirts, lid, sizes.lidDepth, sizes.lidTuck, t * 3.5),
   };
-  // The front and back walls close outside the side walls' ends. The ears
-  // tuck just inside them, the lid rests on the back wall's top edge, its side
-  // skirts tuck one board inside the side walls and its front skirt inside the
-  // front wall and its ears.
+  // The front and back walls close outside the side walls' ends and their
+  // corner tabs; the lid rests on the walls, its flaps one board inside them
+  // and its front tuck inside the double front.
   const resting = restingSetback(t);
   const setback: Record<string, number> = {
     front: resting, back: resting,
+    // Corner tabs lie flat against the inside of the front and back walls.
     leftBackTab: t * 0.5, leftFrontTab: t * 0.5, rightBackTab: t * 0.5, rightFrontTab: t * 0.5,
-    lidLeft: t * 1.1, lidRight: t * 1.1, lidFront: t * 1.6,
+    lidLeft: t * 1.1, lidRight: t * 1.1, lidFront: t * 3.5,
     top: resting,
   };
-  const panels = rectangleSheetPanels(flat).map(panel => ({
-    ...panel,
-    // The front and back walls run the full width, over the side walls' ends.
+  // A score bends through three boards, wider than the two-board roll
+  // strip: in 3D the strip is drawn three boards wide and the inner front one
+  // board shorter, so the two layers sit apart by a corner tab's board.
+  const rollWidth = 3 * t;
+  const innerEnd = roll.y + roll.height + sizes.innerHeight;
+  const shape = (panel: (typeof sheet.panels)[number]) => panel.id === 'frontRoll'
+    ? [{ x: roll.x, y: roll.y }, { x: roll.x + roll.width, y: roll.y }, { x: roll.x + roll.width, y: roll.y + rollWidth }, { x: roll.x, y: roll.y + rollWidth }]
+    : panel.id === 'frontInner'
+      ? [{ x: roll.x, y: roll.y + rollWidth }, { x: roll.x + roll.width, y: roll.y + rollWidth }, { x: roll.x + roll.width, y: innerEnd }, { x: roll.x, y: innerEnd }]
+      : panel.fold ?? panel.outline;
+  const panels: SheetPanel[] = sheet.panels.map(panel => ({
+    id: panel.id,
+    name: panelName(panel.label),
+    outline: shape(panel),
+    artworkRotation: panel.artworkRotation,
+    closureFlap: panel.kind === 'flap' && panel.id !== 'frontInner' && panel.id !== 'frontRoll',
     layer: panel.id === 'front' || panel.id === 'back' ? 1.5 : panel.id === 'top' ? 2 : panel.id.endsWith('Tab') || panel.id.startsWith('lid') ? 0 : 1,
   }));
   const hinges: SheetHinge[] = Object.entries(PARENT).map(([child, parent]) => ({ child, parent, angle: angle[child], setback: setback[child] }));

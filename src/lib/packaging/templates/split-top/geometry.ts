@@ -1,4 +1,5 @@
-import { DEFAULT_CARTON_DIMENSIONS, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { sanitizeCorrugatedDimensions } from '../corrugated';
 import { finishExportGeometry, rectangleOutline, type ExportPanel, type PointMm } from '@/lib/packaging/export-geometry';
 
 // The split top is a regular slotted container (FEFCO 0201), the everyday
@@ -12,17 +13,8 @@ import { finishExportGeometry, rectangleOutline, type ExportPanel, type PointMm 
 
 export type SplitTopSide = 'side_a' | 'side_b';
 
-/** Corrugated board runs much thicker than folding board. */
-export const SPLIT_TOP_MAX_BOARD_MM = 7;
-
 export function sanitizeSplitTopDimensions(value: CartonDimensions): CartonDimensions {
-  const size = (entry: number, fallback: number) => (Number.isFinite(entry) ? Math.max(1, entry) : fallback);
-  return {
-    width: size(value.width, DEFAULT_CARTON_DIMENSIONS.width),
-    height: size(value.height, DEFAULT_CARTON_DIMENSIONS.height),
-    depth: size(value.depth, DEFAULT_CARTON_DIMENSIONS.depth),
-    thickness: Number.isFinite(value.thickness) ? Math.min(SPLIT_TOP_MAX_BOARD_MM, Math.max(0.3, value.thickness)) : 3,
-  };
+  return sanitizeCorrugatedDimensions(value, 3);
 }
 
 export function splitTopSizes(d: CartonDimensions) {

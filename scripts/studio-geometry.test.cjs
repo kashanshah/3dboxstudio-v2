@@ -43,9 +43,15 @@ test('pizza box keeps every artwork panel rigid from the flat sheet through lid 
         const name=panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
         const mesh=meshes.find(item=>item.panel===name);
         const c=mesh.pickCorners;
-        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width);
-        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height);
         assert.ok(mesh.vertices.every(Number.isFinite));
+        // The double front's roll strip is drawn a bend wide in 3D and its
+        // inner layer a board shorter, so they keep the print's corners only
+        // along their shared edges.
+        if(panel.id==='frontRoll'||panel.id==='frontInner')continue;
+        // Each panel keeps its shape (tapered corner tabs included).
+        const shape=(panel.fold??panel.outline).map(p=>[p.x,p.y,0]);
+        const spread=points=>{const out=[];for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++)out.push(Math.hypot(...points[i].map((v,k)=>v-points[j][k])));return out.sort((a,b)=>a-b);};
+        spread(c).forEach((value,i)=>near(value,spread(shape)[i]));
         assert.ok(meshes.some(item=>item.panel===`Interior ${name}`));
         if(progress===0){
           // Printed side down with the lid at the back: a proper turn of the
@@ -69,7 +75,9 @@ test('pizza box keeps every artwork panel rigid from the flat sheet through lid 
         top.forEach(p=>within(p[1],dimensions.height/2,t*3,'closed lid'));
         bottom.forEach(p=>near(p[1],-dimensions.height/2));
         within(Math.min(...top.map(p=>p[2])),-dimensions.depth/2,t*3,'lid back');
-        within(Math.max(...top.map(p=>p[2])),dimensions.depth/2,t*3,'lid front');
+        // The lid closes against the inside of the front's three boards (outer
+        // wall, corner tab, inner layer), so its tuck drops inside them.
+        within(Math.max(...top.map(p=>p[2])),dimensions.depth/2,t*4,'lid front');
         const normal=Array.from(meshes.find(mesh=>mesh.panel==='Top').vertices.slice(3,6));
         near(normal[1],1);
       }

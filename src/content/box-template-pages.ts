@@ -92,7 +92,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     description: 'Free pizza box template for 10, 12, 14 and 16 inch boxes. See the flat layout, add your branding, fold the box in 3D and export PNG mockups.',
     eyebrow: 'Box template',
     h1: 'Pizza box template',
-    intro: 'Pick a standard pizza size or enter your own and the flat layout below updates: tray base, walls, rear-hinged lid, tuck-in lid flaps and corner tabs. Open it in the Studio to brand the lid, fold the box in 3D and export mockups for menus, delivery apps and printer approvals.',
+    intro: 'Pick a standard pizza size or enter your own and the cutting template below updates: a one-piece corrugated box with a double front that locks into the base, corner tabs, and a rear-hinged lid with a front tuck and side flaps. Open it in the Studio to brand the lid, fold the box in 3D and export mockups or a 1:1 PDF.',
     fields: { width: 'Width', height: 'Wall height', depth: 'Depth' },
     presets: [
       { label: '10 inch pizza', note: 'Small', width: 10, height: 1.75, depth: 10, unit: 'in' },
@@ -101,20 +101,20 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { label: '16 inch pizza', note: 'Extra large', width: 16, height: 2, depth: 16, unit: 'in' },
       { label: '30 cm pizza', note: 'Metric', width: 305, height: 45, depth: 305, unit: 'mm' },
     ],
-    geometryNote: 'Layout proof: shows the panel layout for artwork. Locking slots, vents and manufacturing allowances are not included, so get the production die from your box supplier.',
+    geometryNote: 'Cutting template: double front wall over a roll strip with locking tabs and base slots, side-wall corner tabs, lid tuck and side flaps, and a finger hole. Ask your box maker to confirm the allowances for the flute you choose.',
     sections: [
       {
         title: 'How a pizza box is built',
-        body: 'Most pizza boxes are a single die-cut sheet of corrugated board. The base forms a shallow tray with folded walls, the lid hinges from the back wall, and flaps on the lid tuck in at the front and sides to hold it closed. Corner tabs fold inside the walls to keep the tray square.',
+        body: 'Most pizza boxes are a single die-cut sheet of corrugated board with no glue. The side walls fold up and their corner tabs turn in; the front wall folds up outside the tabs and then double over a narrow roll strip, its inner layer locking into slots in the base and trapping the tabs. The lid hinges from the back wall, and its front tuck and side flaps slide inside the walls to hold it closed.',
       },
       {
         title: 'What is on the layout',
         body: 'The template draws the panels you design on, sized from your width, depth and wall height.',
         bullets: [
-          'Tray base with front, back and side walls.',
-          'Lid hinged from the back wall, the main branding surface.',
-          'Lid front and side tuck flaps.',
-          'Four corner tabs that fold inside the tray walls.',
+          'Tray base with side walls, a back wall, and a double front wall that locks into slots in the base.',
+          'Four corner tabs on the side walls: the front pair is trapped inside the double front.',
+          'Lid hinged from the back wall, the main branding surface, with a front tuck and side flaps.',
+          'A finger hole across the front to lift the lid.',
         ],
       },
       {
@@ -129,7 +129,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     faqs: [
       { question: 'Is the pizza box template free?', answer: 'Yes. The size picker and layout preview here are free. Designing artwork, saving and exporting happen in the Studio with a free account.' },
       { question: 'What sizes can I make?', answer: 'Any size. Presets cover 10, 12, 14 and 16 inch boxes and a 30 cm metric box, and you can type your own width, depth and wall height in millimetres or inches.' },
-      { question: 'Is this a production-ready pizza box die?', answer: 'No. It is a layout proof for artwork and 3D review. Locking slots, vents and the allowances needed for corrugated board are not included; use your box supplier’s die for production.' },
+      { question: 'Is this a production-ready pizza box die?', answer: 'It is a real cutting template with the locking double front, slots, corner tabs, lid flaps and finger hole, sized from your inside dimensions and board thickness. Ask your box maker to confirm the allowances for the flute they run before production.' },
       { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a PDF of the flat layout with your artwork.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'food-beverage-carton-shelf-preview'],
