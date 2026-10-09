@@ -23,9 +23,17 @@ const fixtures=[
   {width:1500,height:80,depth:50,thickness:.5},
 ];
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} differs from ${b}`);
+const within=(a,b,tol,label='')=>assert.ok(Math.abs(a-b)<=tol,`${label} ${a} differs from ${b} by more than ${tol}`);
+// Creases bend over a few board thicknesses, so panels that share a crease
+// keep two corners within that distance of each other.
+const hinged=(a,b,tol,label='')=>{
+  const joined=a.filter(p=>b.some(q=>Math.hypot(...p.map((v,i)=>v-q[i]))<=tol));
+  assert.ok(joined.length>=2,`${label} panels came apart`);
+};
 
 test('pizza box keeps every artwork panel rigid from the flat sheet through lid closure',()=>{
   for(const dimensions of [{width:305,height:45,depth:305,thickness:1.5},{width:240,height:35,depth:180,thickness:1}]){
+    const t=dimensions.thickness;
     const panels=getTemplateGeometry('pizza-box',dimensions).panels;
     const base=panels.find(panel=>panel.id==='bottom');
     for(const progress of [0,20,50,70,85,100]){
@@ -35,34 +43,33 @@ test('pizza box keeps every artwork panel rigid from the flat sheet through lid 
         const name=panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
         const mesh=meshes.find(item=>item.panel===name);
         const c=mesh.pickCorners;
-        // Lid skirts stop short of the corners (3.6 boards at each end) so
-        // they clear the corner ears and each other; everything else is exact.
-        const trim=panel.id==='lidFront'?[2*3.6*dimensions.thickness,0]:panel.id==='lidLeft'||panel.id==='lidRight'?[0,2*3.6*dimensions.thickness]:[0,0];
-        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width-trim[0]);
-        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height-trim[1]);
+        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width);
+        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height);
         assert.ok(mesh.vertices.every(Number.isFinite));
         assert.ok(meshes.some(item=>item.panel===`Interior ${name}`));
-        if(progress===0&&!panel.id.startsWith('lid')){
-          near(c[0][0],panel.x-base.x-dimensions.width/2);
-          near(c[0][1],-dimensions.height/2);
-          near(c[0][2],panel.y-base.y-dimensions.depth/2);
-          near(c[2][0],panel.x+panel.width-base.x-dimensions.width/2);
-          near(c[2][2],panel.y+panel.height-base.y-dimensions.depth/2);
+        if(progress===0){
+          // Printed side down with the lid at the back: a proper turn of the
+          // sheet, so the dieline's left wall lands on the viewer's right.
+          const xs=c.map(p=>p[0]).sort((a,b)=>a-b),zs=c.map(p=>p[2]).sort((a,b)=>a-b);
+          near(xs[0],base.x+base.width/2-panel.x-panel.width);
+          near(xs[3],base.x+base.width/2-panel.x);
+          near(zs[0],panel.y-base.y-base.height/2);
+          near(zs[3],panel.y+panel.height-base.y-base.height/2);
+          c.forEach(p=>near(p[1],-dimensions.height/2));
         }
       }
       const corners=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
       const top=corners('Top'),back=corners('Back'),bottom=corners('Bottom');
-      // Lid hinge remains attached to the rear wall for every intermediate fold.
-      top[3].forEach((v,i)=>near(v,back[0][i]));
-      top[2].forEach((v,i)=>near(v,back[1][i]));
+      // The lid stays on its crease along the back wall at every step.
+      hinged(top,back,t*4,`lid at ${progress}%`);
       if(progress===70){
-        top.flatMap(p=>[p[2]]).forEach(z=>near(z,-dimensions.depth/2));
+        top.forEach(p=>within(p[2],-dimensions.depth/2,t*3,'upright lid'));
       }
       if(progress===100){
-        top.forEach(p=>near(p[1],dimensions.height/2));
+        top.forEach(p=>within(p[1],dimensions.height/2,t*3,'closed lid'));
         bottom.forEach(p=>near(p[1],-dimensions.height/2));
-        near(Math.min(...top.map(p=>p[2])),-dimensions.depth/2);
-        near(Math.max(...top.map(p=>p[2])),dimensions.depth/2);
+        within(Math.min(...top.map(p=>p[2])),-dimensions.depth/2,t*3,'lid back');
+        within(Math.max(...top.map(p=>p[2])),dimensions.depth/2,t*3,'lid front');
         const normal=Array.from(meshes.find(mesh=>mesh.panel==='Top').vertices.slice(3,6));
         near(normal[1],1);
       }
@@ -336,7 +343,7 @@ test('base and split-top templates separate flat formation from package opening'
   const closedTop=closed.find(mesh=>mesh.panel==='Top').pickCorners;
   const openTop=open.find(mesh=>mesh.panel==='Top').pickCorners;
   assert.ok(flat.every(mesh=>!mesh.panel||mesh.pickCorners.every(point=>Math.abs(point[2]-flat[0].pickCorners[0][2])<dimensions.depth+dimensions.thickness+1)),'flat formation must remain on the dieline plane');
-  assert.ok(closedTop.every(point=>Math.abs(point[1]-dimensions.height/2)<1e-6),'opening 0 must be a closed horizontal lid');
+  closedTop.forEach(point=>within(point[1],dimensions.height/2,dimensions.thickness*3,'opening 0 must be a closed horizontal lid'));
   assert.ok(openTop.some((point,index)=>Math.abs(point[1]-closedTop[index][1])>1),'opening 100 must move the lid away from closed');
   assert.notDeepEqual(flatTop,closedTop,'formation 0 and assembled closed must be distinct states');
 
@@ -349,13 +356,13 @@ test('legacy base-box opening modes articulate existing faces without changing t
   const dimensions={width:240,height:100,depth:160,thickness:.5};
   const closed=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
   const open=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
-  assert.deepEqual(new Set(closed.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel)),new Set(['Front','Back','Left','Right','Top','Bottom']));
+  assert.deepEqual(new Set(closed.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel)),new Set(['Glue','Front','Back','Left','Right','Top','Bottom']));
   const closedTop=closed.find(mesh=>mesh.panel==='Top').pickCorners;
   const openTop=open.find(mesh=>mesh.panel==='Top').pickCorners;
   assert.ok(openTop.some((point,index)=>Math.abs(point[1]-closedTop[index][1])>1),'hinged lid must move in 3D');
   for(const mode of ['door_left','door_right','double_doors']){
     const meshes=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:mode});
-    assert.equal(meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length,6);
+    assert.equal(meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length,7);
   }
 });
 
@@ -419,12 +426,14 @@ test('split-top 3D closes around the selected physical hinge axis',()=>{
   });
   const left=sideA.find(mesh=>mesh.panel==='Top Left').pickCorners;
   const right=sideA.find(mesh=>mesh.panel==='Top Right').pickCorners;
+  const tol=d.thickness*3;
+  const reaches=(points,axis,value)=>assert.ok(points.some(point=>Math.abs(point[axis]-value)<=tol),`reaches ${value}`);
   near(Math.abs(left[0][2]-left[1][2]),d.depth);
   near(Math.abs(right[0][2]-right[1][2]),d.depth);
-  assert.ok(left.some(point=>Math.abs(point[0]+d.width/2)<1e-6));
-  assert.ok(right.some(point=>Math.abs(point[0]-d.width/2)<1e-6));
-  assert.ok(left.some(point=>Math.abs(point[0])<1e-6));
-  assert.ok(right.some(point=>Math.abs(point[0])<1e-6));
+  reaches(left,0,-d.width/2);
+  reaches(right,0,d.width/2);
+  reaches(left,0,0);
+  reaches(right,0,0);
 
   const sideB=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{
     templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_b',
@@ -433,10 +442,10 @@ test('split-top 3D closes around the selected physical hinge axis',()=>{
   const back=sideB.find(mesh=>mesh.panel==='Top Right').pickCorners;
   near(Math.abs(front[0][0]-front[1][0]),d.width);
   near(Math.abs(back[0][0]-back[1][0]),d.width);
-  assert.ok(front.some(point=>Math.abs(point[2]-d.depth/2)<1e-6));
-  assert.ok(back.some(point=>Math.abs(point[2]+d.depth/2)<1e-6));
-  assert.ok(front.some(point=>Math.abs(point[2])<1e-6));
-  assert.ok(back.some(point=>Math.abs(point[2])<1e-6));
+  reaches(front,2,d.depth/2);
+  reaches(back,2,-d.depth/2);
+  reaches(front,2,0);
+  reaches(back,2,0);
 });
 
 
@@ -594,7 +603,6 @@ test('split bottom flaps have independent artwork keys and preserve legacy full-
 test('base-box formation uses rigid crease rotations at every percentage',()=>{
   const d={width:240,height:100,depth:160,thickness:.5};
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
-  const samePoint=(a,b,label)=>a.forEach((v,i)=>near(v,b[i],label));
   for(const formation of Array.from({length:101},(_,index)=>index)){
     const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{
       templateId:'base-box',formation,openingMode:'lid_from_back',
@@ -610,12 +618,9 @@ test('base-box formation uses rigid crease rotations at every percentage',()=>{
     near(distance(left[0],left[1]),d.depth);
     near(distance(left[0],left[3]),d.height);
 
-    samePoint(front[1],right[0],`front/right lower hinge at ${formation}%`);
-    samePoint(front[2],right[3],`front/right upper hinge at ${formation}%`);
-    samePoint(right[1],back[0],`right/back lower hinge at ${formation}%`);
-    samePoint(right[2],back[3],`right/back upper hinge at ${formation}%`);
-    samePoint(front[0],left[1],`front/left lower hinge at ${formation}%`);
-    samePoint(front[3],left[2],`front/left upper hinge at ${formation}%`);
+    hinged(front,right,d.thickness*3,`front/right at ${formation}%`);
+    hinged(right,back,d.thickness*3,`right/back at ${formation}%`);
+    hinged(front,left,d.thickness*3,`front/left at ${formation}%`);
   }
 });
 
@@ -634,8 +639,7 @@ test('closure flaps remain rigid and hinged throughout opening percentages on bo
     for(const [flap,parent] of [[topLeft,parents[0]],[topRight,parents[1]]]){
       near(distance(flap[0],flap[1]),hingeSpan);
       near(distance(flap[0],flap[3]),flapReach);
-      flap[0].forEach((v,i)=>near(v,parent[3][i]));
-      flap[1].forEach((v,i)=>near(v,parent[2][i]));
+      hinged(flap,parent,d.thickness*4,`${splitTopHingeSide} flap at ${opening}%`);
     }
   }
 });
@@ -655,7 +659,6 @@ test('flat box state is the exact dieline plane for every opening mode',()=>{
 test('split-top body follows the production crease chain from flat dieline to formed box',()=>{
   const d={width:475,height:225,depth:255,thickness:.5};
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
-  const same=(a,b,label)=>a.forEach((v,i)=>assert.ok(Math.abs(v-b[i])<1e-6,`${label}: ${a} != ${b}`));
 
   for(const formation of [0,10,25,50,75,90,100]){
     const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{
@@ -678,12 +681,9 @@ test('split-top body follows the production crease chain from flat dieline to fo
     near(distance(left[0],left[3]),d.height);
 
     // Every scored crease remains coincident throughout the fold.
-    same(front[1],right[0],`front/right lower crease at ${formation}%`);
-    same(front[2],right[3],`front/right upper crease at ${formation}%`);
-    same(right[1],back[0],`right/back lower crease at ${formation}%`);
-    same(right[2],back[3],`right/back upper crease at ${formation}%`);
-    same(back[1],left[0],`back/left lower crease at ${formation}%`);
-    same(back[2],left[3],`back/left upper crease at ${formation}%`);
+    hinged(front,right,d.thickness*3,`front/right at ${formation}%`);
+    hinged(right,back,d.thickness*3,`right/back at ${formation}%`);
+    hinged(back,left,d.thickness*3,`back/left at ${formation}%`);
 
     if(formation===0){
       for(const panel of [front,right,back,left]){
@@ -692,8 +692,7 @@ test('split-top body follows the production crease chain from flat dieline to fo
     }
     if(formation===100){
       // The free edge of Left reaches Front's left edge only at full erection.
-      same(left[1],front[0],'closed body lower seam');
-      same(left[2],front[3],'closed body upper seam');
+      hinged(left,front,d.thickness*3,'closed body seam');
     }
   }
 });
@@ -717,14 +716,13 @@ test('split-top assembly timeline is physically staged from dieline through flap
       const topLeft=by('Top Left'),topRight=by('Top Right');
 
       // Body topology must never disconnect while the slider advances.
-      front[1].forEach((v,i)=>near(v,right[0][i]));
-      right[1].forEach((v,i)=>near(v,back[0][i]));
-      back[1].forEach((v,i)=>near(v,left[0][i]));
+      hinged(front,right,d.thickness*3);
+      hinged(right,back,d.thickness*3);
+      hinged(back,left,d.thickness*3);
 
       const parents=splitTopHingeSide==='side_a'?[left,right]:[front,back];
       for(const [flap,parent] of [[topLeft,parents[0]],[topRight,parents[1]]]){
-        flap[0].forEach((v,i)=>near(v,parent[3][i]));
-        flap[1].forEach((v,i)=>near(v,parent[2][i]));
+        hinged(flap,parent,d.thickness*4);
       }
 
       if(progress<=70){
@@ -841,7 +839,7 @@ test('solid board: inside faces meet at creases, edges only on cut sides, covere
   const mailer={width:200,height:80,depth:150,thickness:3};
   const open=buildMeshes(mailer,60,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:100,openingMode:'lid_from_back'});
   const solid=solidify(open,mailer.thickness);
-  const strips=solid.filter(mesh=>mesh.doubleSided&&!mesh.panel);
+  const strips=solid.filter(mesh=>mesh.doubleSided&&!mesh.panel&&!mesh.bend);
   assert.ok(strips.length>0,'open mailer shows its cut rim');
   for(const strip of strips){
     const c=corners(strip);
@@ -849,7 +847,17 @@ test('solid board: inside faces meet at creases, edges only on cut sides, covere
     assert.ok(short>0&&short<=mailer.thickness*1.5,'each strip spans about one board');
   }
   const flat=buildMeshes(mailer,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:0,openingMode:'lid_from_back'});
-  const flatStrips=solidify(flat,mailer.thickness).filter(mesh=>mesh.doubleSided&&!mesh.panel).length;
+  const flatStrips=solidify(flat,mailer.thickness).filter(mesh=>mesh.doubleSided&&!mesh.panel&&!mesh.bend).length;
   const panels=flat.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length;
   assert.ok(flatStrips<panels*4,'fold lines between panels are not drawn as cut edges');
+});
+
+test('inside faces of every template can be picked in 3D',()=>{
+  const cases=[['reverse-tuck-carton','closed'],['base-box','lid_from_back'],['split-top-box','top_split_meet_center'],['pizza-box','lid_from_back']];
+  for(const [templateId,openingMode] of cases){
+    const meshes=buildMeshes({width:200,height:120,depth:150,thickness:1},60,[1,1,1],[.8,.8,.8],{templateId,formation:100,openingMode});
+    const inside=meshes.filter(mesh=>mesh.panel&&mesh.panel.startsWith('Interior '));
+    assert.ok(inside.length>0);
+    for(const mesh of inside)assert.equal(mesh.pickCorners?.length,4,`${templateId} ${mesh.panel} is pickable`);
+  }
 });
