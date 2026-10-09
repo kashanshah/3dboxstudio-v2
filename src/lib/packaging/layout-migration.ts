@@ -1,4 +1,5 @@
 import { reverseTuckBounds, reverseTuckPanels, sanitizeCartonDimensions } from './reverse-tuck';
+import { reverseTuckSheetV2 } from './templates/reverse-tuck/sheet-v2';
 import { reverseTuckSheet } from './templates/reverse-tuck/export';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
@@ -23,6 +24,10 @@ const STEPS: Record<string, Step[]> = {
     // they have a turned bottom copy, the bottom) they cover, as artwork made
     // on the full dieline should. Panels printed before print as before.
     reverseTuckLayersOnFlaps,
+    // 5: the locking die, creased one board wider per panel with a narrower
+    // glue flap; sheet layers move and stretch (well under 1%) to keep the
+    // body and top lid's edges, within about a board thickness everywhere.
+    state => moveSheetLayers(state, reverseTuckSheetV2, reverseTuckSheet, ['left', 'front', 'right', 'back', 'top']),
   ],
   'pizza-box': [
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
@@ -36,11 +41,17 @@ export function layoutVersionFor(templateId: string) {
 }
 
 export function migrateStudioLayout(state: StudioProjectState): StudioProjectState {
+  return migrateStudioLayoutTo(state, layoutVersionFor(state.templateId));
+}
+
+/** Moves a design up to `target` (no further than the current version). */
+export function migrateStudioLayoutTo(state: StudioProjectState, target: number): StudioProjectState {
   const steps = STEPS[state.templateId] ?? [];
   let version = state.layoutVersion ?? 1;
-  if (version > steps.length) return state;
+  const last = Math.min(target, steps.length + 1);
+  if (version >= last) return state;
   let result = state;
-  for (; version <= steps.length; version++) result = steps[version - 1](result);
+  for (; version < last; version++) result = steps[version - 1](result);
   return { ...result, layoutVersion: version };
 }
 
@@ -50,7 +61,7 @@ function reverseTuckToCuttingTemplate(state: StudioProjectState): StudioProjectS
   const d = sanitizeCartonDimensions(state.dimensions);
   const oldBounds = reverseTuckBounds(d);
   const oldPanels = reverseTuckPanels(d);
-  const sheet = reverseTuckSheet(d);
+  const sheet = reverseTuckSheetV2(d);
   const newBounds = sheet.bounds;
   const oldBottom = oldPanels.find(panel => panel.id === 'bottom')!;
   const newBottom = sheet.panels.find(panel => panel.id === 'bottom')!;
@@ -97,7 +108,7 @@ function reverseTuckToCuttingTemplate(state: StudioProjectState): StudioProjectS
 }
 
 function reverseTuckLayersOnFlaps(state: StudioProjectState): StudioProjectState {
-  const notBottom = reverseTuckSheet(sanitizeCartonDimensions(state.dimensions)).panels.map(panel => panel.id).filter(id => id !== 'bottom');
+  const notBottom = reverseTuckSheetV2(sanitizeCartonDimensions(state.dimensions)).panels.map(panel => panel.id).filter(id => id !== 'bottom');
   const isTurnedBottom = (layer: FullDielineArtworkLayer) => layer.panels?.length === 1 && layer.panels[0] === 'bottom';
   const widen = (layers: FullDielineArtworkLayer[]) => {
     // A bottom printed before (through turned copies) prints exactly as
@@ -106,6 +117,57 @@ function reverseTuckLayersOnFlaps(state: StudioProjectState): StudioProjectState
     return layers.map(layer => layer.panels && !isTurnedBottom(layer) ? { ...layer, panels } : layer);
   };
   return { ...state, outsideArtworkLayers: widen(state.outsideArtworkLayers), insideArtworkLayers: widen(state.insideArtworkLayers) };
+}
+
+type Rect = { id: string; x: number; y: number; width: number; height: number };
+type Sheet = (dimensions: StudioProjectState['dimensions']) => { panels: Rect[]; bounds: { width: number; height: number } };
+type Axis = { scale: number; offset: number };
+
+/** Least-squares a·old + b = new over matching values. */
+function fitAxis(pairs: [number, number][]): Axis {
+  const n = pairs.length, mx = pairs.reduce((sum, [a]) => sum + a, 0) / n, my = pairs.reduce((sum, [, b]) => sum + b, 0) / n;
+  const sxx = pairs.reduce((sum, [a]) => sum + (a - mx) ** 2, 0), sxy = pairs.reduce((sum, [a, b]) => sum + (a - mx) * (b - my), 0);
+  const scale = sxx > 1e-9 ? sxy / sxx : 1;
+  return { scale, offset: my - scale * mx };
+}
+
+/**
+ * Moves sheet layers from one cutting template to another of the same carton:
+ * a layer kept to one panel maps exactly onto that panel; any other layer
+ * takes the move and stretch that best keeps the `fit` panels' edges.
+ */
+function moveSheetLayers(state: StudioProjectState, from: Sheet, to: Sheet, fit: string[]): StudioProjectState {
+  const d = sanitizeCartonDimensions(state.dimensions);
+  const before = from(d), after = to(d);
+  const pairs = (ids: string[]) => ids.flatMap(id => {
+    const a = before.panels.find(panel => panel.id === id), b = after.panels.find(panel => panel.id === id);
+    return a && b ? [[a, b] as const] : [];
+  });
+  const axes = (matches: (readonly [Rect, Rect])[]) => ({
+    x: fitAxis(matches.flatMap(([a, b]) => [[a.x, b.x], [a.x + a.width, b.x + b.width]] as [number, number][])),
+    y: fitAxis(matches.flatMap(([a, b]) => [[a.y, b.y], [a.y + a.height, b.y + b.height]] as [number, number][])),
+  });
+  const sheetFit = axes(pairs(fit));
+  const move = (layers: FullDielineArtworkLayer[]) => layers.map(layer => {
+    const single = layer.panels?.length === 1 ? pairs(layer.panels) : [];
+    const { x, y } = single.length ? axes(single) : sheetFit;
+    const t = layer.transform;
+    const centre = { x: t.x / 100 * before.bounds.width, y: t.y / 100 * before.bounds.height };
+    const size = { width: t.width / 100 * before.bounds.width, height: t.height / 100 * before.bounds.height };
+    // Each side of the image stretches along its own direction on the sheet.
+    const angle = t.rotation * Math.PI / 180, cos = Math.cos(angle), sin = Math.sin(angle);
+    return {
+      ...layer,
+      transform: {
+        ...t,
+        x: (x.scale * centre.x + x.offset) / after.bounds.width * 100,
+        y: (y.scale * centre.y + y.offset) / after.bounds.height * 100,
+        width: Math.hypot(x.scale * cos, y.scale * sin) * size.width / after.bounds.width * 100,
+        height: Math.hypot(x.scale * sin, y.scale * cos) * size.height / after.bounds.height * 100,
+      },
+    };
+  });
+  return { ...state, outsideArtworkLayers: move(state.outsideArtworkLayers), insideArtworkLayers: move(state.insideArtworkLayers) };
 }
 
 /** Turns the named panels' own artwork (outside and inside) half a turn. */

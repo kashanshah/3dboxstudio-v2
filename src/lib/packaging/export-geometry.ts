@@ -54,8 +54,26 @@ function unique(lines: LineMm[]) {
   return Array.from(new Map(lines.map(line => [[key(line.start), key(line.end)].sort().join('|'), line])).values());
 }
 
+/**
+ * Points along a circular arc from angle `from` to `to` (radians, y down),
+ * both ends included; die lines approximate curves with short straight cuts.
+ */
+export function arcPoints(cx: number, cy: number, r: number, from: number, to: number, segments = 8): PointMm[] {
+  return Array.from({ length: segments + 1 }, (_, i) => {
+    const a = from + (to - from) * i / segments;
+    return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  });
+}
+
+export type ExportDetails = {
+  /** Cuts along a crease line (tuck slit locks): never creased. */
+  slits?: LineMm[];
+  /** Cuts inside panels (slots, vents). */
+  cuts?: LineMm[];
+};
+
 /** Shared panel edges are folds; only the remaining exterior edges are cuts. */
-export function finishExportGeometry(panels: ExportPanel[], kind: DielineExportGeometry['kind'], notes: string[]): DielineExportGeometry {
+export function finishExportGeometry(panels: ExportPanel[], kind: DielineExportGeometry['kind'], notes: string[], details: ExportDetails = {}): DielineExportGeometry {
   const edges = panels.flatMap((panel, owner) => panel.outline.map((start, i) => ({
     owner, start, end: panel.outline[(i + 1) % panel.outline.length],
   })));
@@ -65,10 +83,11 @@ export function finishExportGeometry(panels: ExportPanel[], kind: DielineExportG
     const overlap = sharedSegment(edges[i], edges[j]);
     if (overlap) shared.push(overlap);
   }
-  const crease = unique(shared);
+  const slits = details.slits ?? [];
+  const crease = unique(shared).flatMap(line => subtract(line, slits));
   return {
     panels, kind, notes, crease,
-    cut: unique(edges.flatMap(edge => subtract(edge, crease))),
+    cut: unique([...edges.flatMap(edge => subtract(edge, crease)), ...(details.cuts ?? [])]),
     bounds: {
       width: Math.max(...panels.flatMap(panel => panel.outline.map(point => point.x))),
       height: Math.max(...panels.flatMap(panel => panel.outline.map(point => point.y))),

@@ -3,7 +3,7 @@ import type { DielinePanel } from './box-structures';
 import type { CartonDimensions } from './reverse-tuck';
 import { layerPrintsOn, sheetTransformToPhysical, type FullDielineArtworkLayer } from './full-dieline-artwork';
 import { getTemplateGeometry, getTemplateRuntime, type TemplateGeometryOptions } from './template-runtime';
-import { inheritedFlaps, panelName } from './flap-artwork';
+import { flapChains, panelName } from './flap-artwork';
 import { dominantColour, edgeBand } from './flap-continuation';
 
 // Drawing a panel's printed artwork onto a canvas, in the panel's own
@@ -102,9 +102,10 @@ export type FlapFillInput = {
 const BAND_PIXELS = 256;
 
 /**
- * Flap id → the solid colour a flap with no artwork of its own prints in: the
- * colour that dominates its source panel's artwork along their crease. Flaps
- * whose source edge is mostly unprinted are left out and stay plain board.
+ * Flap id → the solid colour a flap prints in wherever its own artwork leaves
+ * it bare: the colour that dominates its nearest printed neighbour's artwork
+ * along their crease. Flaps whose neighbours' edges are mostly unprinted are
+ * left out and stay plain board.
  */
 export async function flapFillColours(input: FlapFillInput, getImage: (url: string) => Promise<HTMLImageElement>): Promise<Record<string, string>> {
   const runtime = getTemplateRuntime(input.templateId);
@@ -112,31 +113,37 @@ export async function flapFillColours(input: FlapFillInput, getImage: (url: stri
   const { panels, bounds } = getTemplateGeometry(input.templateId, input.dimensions, input.geometryOptions);
   const visible = input.layers.filter(layer => layer.visible !== false && (layer.opacity ?? 100) > 0);
   const prefix = input.scope === 'inside' ? 'Interior ' : '';
-  const flaps = inheritedFlaps(runtime.flapArtworkSources, panels, bounds, visible, input.artworkByPanel, prefix);
+  const flaps = flapChains(runtime.flapArtworkSources, panels, bounds, visible, input.artworkByPanel, prefix);
   const result: Record<string, string> = {};
   if (!flaps.length) return result;
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return result;
+  const edgeColour = async (source: (typeof flaps)[number]['chain'][number]['source'], crease: (typeof flaps)[number]['chain'][number]['crease']) => {
+    const placement = input.artworkByPanel[`${prefix}${panelName(source.label)}`];
+    const explicit = placement ? { placement, image: await getImage(placement.url) } : null;
+    const layers = explicit ? [] : await Promise.all(visible.map(async layer => ({ layer, image: await getImage(layer.url) })));
+    const band = edgeBand(source, crease);
+    const pixelsPerMm = BAND_PIXELS / Math.max(band.width, band.height);
+    canvas.width = Math.max(1, Math.round(band.width * pixelsPerMm));
+    canvas.height = Math.max(1, Math.round(band.height * pixelsPerMm));
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(canvas.width / band.width, canvas.height / band.height);
+    ctx.translate(source.x - band.x, source.y - band.y);
+    drawPanelPrint(ctx, source, bounds, explicit, layers);
+    return dominantColour(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
+  };
   try {
-    for (const { flap, source, crease } of flaps) {
-      try {
-        const placement = input.artworkByPanel[`${prefix}${panelName(source.label)}`];
-        const explicit = placement ? { placement, image: await getImage(placement.url) } : null;
-        const layers = explicit ? [] : await Promise.all(visible.map(async layer => ({ layer, image: await getImage(layer.url) })));
-        const band = edgeBand(source, crease);
-        const pixelsPerMm = BAND_PIXELS / Math.max(band.width, band.height);
-        canvas.width = Math.max(1, Math.round(band.width * pixelsPerMm));
-        canvas.height = Math.max(1, Math.round(band.height * pixelsPerMm));
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.scale(canvas.width / band.width, canvas.height / band.height);
-        ctx.translate(source.x - band.x, source.y - band.y);
-        drawPanelPrint(ctx, source, bounds, explicit, layers);
-        const colour = dominantColour(ctx.getImageData(0, 0, canvas.width, canvas.height).data);
-        if (colour) result[flap.id] = colour;
-      } catch {
-        // Artwork that cannot be read leaves its flap plain.
+    for (const { flap, chain } of flaps) {
+      // The nearest neighbour whose edge is mostly printed gives the colour.
+      for (const { source, crease } of chain) {
+        try {
+          const colour = await edgeColour(source, crease);
+          if (colour) { result[flap.id] = colour; break; }
+        } catch {
+          // Artwork that cannot be read gives no colour.
+        }
       }
     }
   } finally {

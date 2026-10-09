@@ -37,16 +37,21 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
     let cancelled=false;
     const getImage=artworkImageLoader();
     const fillBase={templateId:state.templateId,dimensions:state.dimensions,geometryOptions:{openingMode,splitTopHingeSide:state.splitTopHingeSide},artworkByPanel:state.artworkByPanel};
+    const geometryOptions={openingMode,splitTopHingeSide:state.splitTopHingeSide};
+    // Flaps print in their neighbour's edge colour wherever their artwork
+    // leaves them bare, so the colours are worked out first.
     void Promise.all([
-      state.outsideArtworkLayers.length?rasterizeFullDielineLayers(state.outsideArtworkLayers,state.dimensions,state.templateId,'',{openingMode,splitTopHingeSide:state.splitTopHingeSide}):Promise.resolve({} as ArtworkByPanel),
-      state.insideArtworkLayers.length?rasterizeFullDielineLayers(state.insideArtworkLayers,state.dimensions,state.templateId,'Interior ',{openingMode,splitTopHingeSide:state.splitTopHingeSide}):Promise.resolve({} as ArtworkByPanel),
-      rasterizePanelArtwork(state.artworkByPanel,state.dimensions,state.templateId,{openingMode,splitTopHingeSide:state.splitTopHingeSide}),
       flapFillColours({...fillBase,layers:state.outsideArtworkLayers,scope:'outside'},getImage),
       flapFillColours({...fillBase,layers:state.insideArtworkLayers,scope:'inside'},getImage),
-    ]).then(([outside,inside,panels,outsideFills,insideFills])=>{
+    ]).then(([outsideFills,insideFills])=>Promise.all([
+      state.outsideArtworkLayers.length?rasterizeFullDielineLayers(state.outsideArtworkLayers,state.dimensions,state.templateId,'',geometryOptions,outsideFills):Promise.resolve({} as ArtworkByPanel),
+      state.insideArtworkLayers.length?rasterizeFullDielineLayers(state.insideArtworkLayers,state.dimensions,state.templateId,'Interior ',geometryOptions,insideFills):Promise.resolve({} as ArtworkByPanel),
+      rasterizePanelArtwork(state.artworkByPanel,state.dimensions,state.templateId,geometryOptions),
+      outsideFills,
+      insideFills,
+    ])).then(([outside,inside,panels,outsideFills,insideFills])=>{
       if(cancelled)return;
-      // Empty flaps print solid in their neighbour's edge colour.
-      const geometry=getTemplateGeometry(state.templateId,state.dimensions,fillBase.geometryOptions).panels;
+      const geometry=getTemplateGeometry(state.templateId,state.dimensions,geometryOptions).panels;
       setSharedLayerArtwork({...flapFillTextures(outsideFills,geometry,''),...flapFillTextures(insideFills,geometry,'Interior '),...outside,...inside});
       setSharedPanelArtwork(panels);
     }).catch(error=>{console.error('shared artwork rasterization failed',error);});

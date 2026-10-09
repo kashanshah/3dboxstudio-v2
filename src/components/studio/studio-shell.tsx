@@ -797,6 +797,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               selectedTemplateId,
               '',
               {openingMode,splitTopHingeSide},
+              flapFills.outside,
             )
           : Promise.resolve({} as ArtworkByPanel),
         insideDielineLayers.length
@@ -806,6 +807,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               selectedTemplateId,
               'Interior ',
               {openingMode,splitTopHingeSide},
+              flapFills.inside,
             )
           : Promise.resolve({} as ArtworkByPanel),
       ]).then(([outsideMapped, insideMapped]) => {
@@ -820,7 +822,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }, 180);
 
     return () => window.clearTimeout(timeout);
-  }, [outsideDielineLayers, insideDielineLayers, dimensions, selectedTemplateId, openingMode, splitTopHingeSide]);
+  }, [outsideDielineLayers, insideDielineLayers, dimensions, selectedTemplateId, openingMode, splitTopHingeSide, flapFills]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3285,17 +3287,19 @@ function DielinePrototype({
           });
         }}
       >
-        <div className="pro-full-artwork-print-surface">{layers.filter(layer=>layer.visible!==false).map(layer=>{
+        <div className="pro-full-artwork-print-surface">
+        {/* Flaps print in their neighbour's edge colour wherever their artwork leaves them bare. */}
+        {cartonPanels.filter(panel=>flapFills[panel.id]).map(panel=>
+          <div key={`fill:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds),background:flapFills[panel.id]}}/>
+        )}
+        {layers.filter(layer=>layer.visible!==false).map(layer=>{
           const printed=<div className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>;
           if(!layer.panels) return <div key={layer.id} className="pro-printed-artwork-clip">{printed}</div>;
           // A layer kept to some panels (a design moved onto a new grid) shows
           // only where it prints.
           return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds)}}>{printed}</div>);
         })}
-        {/* Panels with no artwork of their own print solid in their neighbour's edge colour. */}
-        {cartonPanels.filter(panel=>flapFills[panel.id]).map(panel=>
-          <div key={`fill:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds),background:flapFills[panel.id]}}/>
-        )}</div>
+        </div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div

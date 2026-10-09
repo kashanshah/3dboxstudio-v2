@@ -102,7 +102,8 @@ test('entered physical dimensions survive in both the net and all folded meshes'
         assert.ok(mesh,`${name} is missing from 3D`);
         const xs=panel.outline.map(p=>p.x),ys=panel.outline.map(p=>p.y);
         near(mesh.faceAspect,(Math.max(...xs)-Math.min(...xs))/(Math.max(...ys)-Math.min(...ys)));
-        const expected=pairDistances(panel.outline.map(p=>[p.x,p.y,0]));
+        // The 3D folds each panel's four-corner shape; the print file cuts the full outline.
+        const expected=pairDistances((panel.fold??panel.outline).map(p=>[p.x,p.y,0]));
         pairDistances(mesh.pickCorners).forEach((value,i)=>assert.ok(Math.abs(value-expected[i])<1e-6,`${name} keeps its size`));
       }
     }
@@ -115,7 +116,7 @@ test('the flat 3D sheet is exactly the cutting template',()=>{
     const meshes=buildMeshes(dimensions,0,[1,1,1],[1,1,1]);
     for(const panel of sheet.panels){
       const mesh=meshes.find(item=>item.panel===titleCase(panel.label));
-      const expected=panel.outline.map(p=>[p.x-front.x-front.width/2,front.y+front.height/2-p.y,dimensions.depth/2]);
+      const expected=(panel.fold??panel.outline).map(p=>[p.x-front.x-front.width/2,front.y+front.height/2-p.y,dimensions.depth/2]);
       for(const corner of mesh.pickCorners){
         assert.ok(expected.some(point=>point.every((v,i)=>Math.abs(v-corner[i])<1e-6)),`${panel.label} corner lies on the dieline`);
       }
@@ -511,8 +512,10 @@ test('dimension changes flow through each ready template runtime',()=>{
     assert.notDeepEqual(a.bounds,b.bounds,`${template.id} ignored changed dimensions`);
     const front=b.panels.find(panel=>panel.label==='FRONT');
     assert.ok(front,`${template.id} has no FRONT panel`);
-    near(front.width,changed.width);
-    near(front.height,changed.height);
+    // Entered sizes are inside sizes; a cutting template creases each panel
+    // up to a board thickness wider.
+    within(front.width,changed.width,changed.thickness,`${template.id} front width`);
+    within(front.height,changed.height,changed.thickness,`${template.id} front height`);
   }
 });
 
@@ -883,7 +886,9 @@ test('inside artwork keeps its long-standing orientation: across as outside, tur
 });
 
 test('reverse-tuck panels with no artwork take their neighbour\'s edge colour',()=>{
-  const {inheritedFlaps}=require('../src/lib/packaging/flap-artwork.ts');
+  const {flapChains}=require('../src/lib/packaging/flap-artwork.ts');
+  // Each flap's nearest printed neighbour, and the crease between them.
+  const inheritedFlaps=(...args)=>flapChains(...args).map(({flap,chain})=>({flap,...chain[0]}));
   const {edgeBand,dominantColour,EDGE_BAND_MM}=require('../src/lib/packaging/flap-continuation.ts');
   const {getTemplateRuntime}=require('../src/lib/packaging/template-runtime.ts');
   const d={width:120,height:180,depth:55,thickness:.5};
@@ -903,8 +908,11 @@ test('reverse-tuck panels with no artwork take their neighbour\'s edge colour',(
   const body={x:left0.x,y:top0.y,width:back0.x+back0.width-left0.x,height:left0.y+left0.height-top0.y};
   const layer={id:'L',name:'L',url:'l.png',aspectRatio:body.width/body.height,transform:{x:(body.x+body.width/2)/bounds.width*100,y:(body.y+body.height/2)/bounds.height*100,width:body.width/bounds.width*100,height:body.height/bounds.height*100,rotation:0}};
   const fromLayer=Object.fromEntries(inheritedFlaps(sources,panels,bounds,[layer],{}).map(item=>[item.flap.id,item.source.id]));
-  // (It runs beside the top panel, so the top dust flaps carry it themselves.)
-  assert.deepEqual(fromLayer,{'top-tuck':'top','bottom':'back','bottom-tuck':'back','bottom-left-dust':'left','bottom-right-dust':'right'});
+  // Flaps the layer covers, wholly (the top lid) or in part (the top dust
+  // flaps), still take the edge colour wherever it leaves them bare.
+  assert.deepEqual(fromLayer,{top:'front','top-tuck':'top','top-left-dust':'left','top-right-dust':'right','bottom':'back','bottom-tuck':'back','bottom-left-dust':'left','bottom-right-dust':'right'});
+  // A flap with panel artwork of its own takes no edge colour.
+  assert.equal(sourceOf({Left:art('Left'),'Top Left Dust Flap':art('Top Left Dust Flap')})['top-left-dust'],undefined);
   // Inside artwork is looked up under the inside names.
   assert.equal(sourceOf({'Interior Left':art('Interior Left')},'Interior ')['top-left-dust'].source.id,'left');
   assert.equal(sourceOf({'Left':art('Left')},'Interior ')['top-left-dust'],undefined);

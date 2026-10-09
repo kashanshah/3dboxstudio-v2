@@ -12,7 +12,8 @@ Module._resolveFilename = function(request, ...args) {
 require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
 }).outputText, file);
-const { migrateStudioLayout, layoutVersionFor } = require('../src/lib/packaging/layout-migration.ts');
+const { migrateStudioLayout, migrateStudioLayoutTo, layoutVersionFor } = require('../src/lib/packaging/layout-migration.ts');
+const { reverseTuckSheetV2 } = require('../src/lib/packaging/templates/reverse-tuck/sheet-v2.ts');
 const { reverseTuckPanels, reverseTuckBounds } = require('../src/lib/packaging/reverse-tuck.ts');
 const { getTemplateGeometry } = require('../src/lib/packaging/template-runtime.ts');
 const { registerTemplateRuntime } = require('../src/lib/packaging/template-runtime.ts');
@@ -55,10 +56,11 @@ test('reverse-tuck designs move onto the cutting-template grid and print exactly
   for (const dimensions of [{ width: 120, height: 180, depth: 55, thickness: 0.5 }, { width: 300, height: 90, depth: 200, thickness: 1 }, { width: 50, height: 150, depth: 30, thickness: 0.4 }]) {
     for (const seed of [1, 7, 42, 1234]) {
       const layers = randomLayers(seed, 4);
-      const migrated = migrateStudioLayout(state(dimensions, layers));
-      assert.equal(migrated.layoutVersion, layoutVersionFor('reverse-tuck-carton'));
+      // Layout versions 2–4 share one cutting template (frozen in sheet-v2).
+      const migrated = migrateStudioLayoutTo(state(dimensions, layers), 4);
+      assert.equal(migrated.layoutVersion, 4);
       const oldPanels = reverseTuckPanels(dimensions), oldBounds = reverseTuckBounds(dimensions);
-      const { panels, bounds } = getTemplateGeometry('reverse-tuck-carton', dimensions);
+      const { panels, bounds } = reverseTuckSheetV2(dimensions);
       for (const panel of panels) {
         const old = oldPanels.find(item => item.id === panel.id);
         // Every panel but the bottom moved down by the top tuck's height.
@@ -135,15 +137,16 @@ test('migration runs once, and only for templates whose grid changed', () => {
   const other = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(3, 2)), templateId: 'base-box' };
   assert.deepEqual(migrateStudioLayout(other), other);
   assert.equal(layoutVersionFor('base-box'), 1);
-  assert.equal(layoutVersionFor('reverse-tuck-carton'), 4);
+  assert.equal(layoutVersionFor('reverse-tuck-carton'), 5);
   assert.equal(layoutVersionFor('pizza-box'), 2);
   // A design already on version 2 of the reverse tuck takes only the later steps.
   const bottom = { name: 'b', url: '/api/media/b', mode: 'fill', scale: 100, rotation: 0, alignX: 0, alignY: 0, transform: { x: 20, y: 30, width: 50, height: 50, rotation: 0 } };
   const v2 = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(5, 2), { Bottom: bottom }), layoutVersion: 2 };
-  const v3 = migrateStudioLayout(v2);
+  const v3 = migrateStudioLayoutTo(v2, 4);
   assert.deepEqual(v3.outsideArtworkLayers, v2.outsideArtworkLayers);
   assert.deepEqual(v3.artworkByPanel.Bottom.transform, { x: 80, y: 70, width: 50, height: 50, rotation: 180 });
   assert.equal(v3.layoutVersion, 4);
+  assert.equal(migrateStudioLayout(v2).layoutVersion, 5);
 });
 
 test('reverse-tuck layers moved earlier print on the flaps they cover, and the bottom prints as before', () => {
@@ -151,14 +154,51 @@ test('reverse-tuck layers moved earlier print on the flaps they cover, and the b
   const [body, turned] = randomLayers(11, 2);
   // As saved after the move to the cutting template (version 3).
   const v3 = { ...state(dimensions, [{ ...body, panels: ['glue', 'left', 'front', 'right', 'back', 'top'] }, { ...turned, id: `${body.id}-bottom`, panels: ['bottom'] }]), layoutVersion: 3 };
-  const v4 = migrateStudioLayout(v3);
+  const v4 = migrateStudioLayoutTo(v3, 4);
   assert.equal(v4.layoutVersion, 4);
-  const ids = getTemplateGeometry('reverse-tuck-carton', dimensions).panels.map(panel => panel.id);
+  const ids = reverseTuckSheetV2(dimensions).panels.map(panel => panel.id);
   assert.deepEqual(v4.outsideArtworkLayers[0].panels, ids.filter(id => id !== 'bottom'));
   assert.deepEqual(v4.outsideArtworkLayers[1].panels, ['bottom']);
   assert.deepEqual(v4.outsideArtworkLayers.map(layer => layer.transform), v3.outsideArtworkLayers.map(layer => layer.transform));
   assert.deepEqual(v4.insideArtworkLayers, v4.outsideArtworkLayers);
   // With nothing printed on the old bottom, the layer prints everywhere it covers.
-  const blankBottom = migrateStudioLayout({ ...state(dimensions, [{ ...body, panels: ['glue', 'left', 'front', 'right', 'back', 'top'] }]), layoutVersion: 3 });
+  const blankBottom = migrateStudioLayoutTo({ ...state(dimensions, [{ ...body, panels: ['glue', 'left', 'front', 'right', 'back', 'top'] }]), layoutVersion: 3 }, 4);
   assert.equal(blankBottom.outsideArtworkLayers[0].panels, undefined);
+});
+
+test('reverse-tuck designs keep their artwork on every panel of the locking die', () => {
+  for (const dimensions of [{ width: 120, height: 180, depth: 55, thickness: 0.5 }, { width: 270, height: 430, depth: 28, thickness: 0.5 }, { width: 60, height: 150, depth: 60, thickness: 1 }]) {
+    // One image at a time, so overlapping images' edges don't blur the check.
+    for (const seed of [1, 7, 42, 99, 1234, 2024]) {
+      const v4 = migrateStudioLayoutTo(state(dimensions, randomLayers(seed, 1)), 4);
+      const v5 = migrateStudioLayout(v4);
+      assert.equal(v5.layoutVersion, 5);
+      const before = reverseTuckSheetV2(dimensions), after = getTemplateGeometry('reverse-tuck-carton', dimensions);
+      for (const panel of after.panels.filter(item => ['left', 'front', 'right', 'back', 'top', 'bottom'].includes(item.id))) {
+        const old = before.panels.find(item => item.id === panel.id);
+        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
+          // The same place on the panel, before and after.
+          const u = 0.03 + 0.94 * i / 6, v = 0.03 + 0.94 * j / 6;
+          const was = imageAt(v4.outsideArtworkLayers, before.bounds, { x: old.x + u * old.width, y: old.y + v * old.height }, panel.id);
+          const now = imageAt(v5.outsideArtworkLayers, after.bounds, { x: panel.x + u * panel.width, y: panel.y + v * panel.height }, panel.id);
+          if (!was || !now) {
+            // Only right at an image's edge may coverage change.
+            const hit = was ?? now, layers = was ? v4.outsideArtworkLayers : v5.outsideArtworkLayers, bounds = was ? before.bounds : after.bounds;
+            if (!hit) continue;
+            const t = layers.find(item => item.url === hit.layer).transform;
+            const near = 1.5 * dimensions.thickness + 0.1;
+            const edge = Math.min(hit.u, 1 - hit.u) * t.width / 100 * bounds.width < near || Math.min(hit.v, 1 - hit.v) * t.height / 100 * bounds.height < near;
+            assert.ok(edge, `${panel.id} coverage changed away from an image edge at ${u},${v}`);
+            continue;
+          }
+          assert.equal(now.layer, was.layer);
+          // Within about a board thickness of where it printed: each panel is
+          // now creased up to one board wider and starts up to one board in.
+          const layer = v4.outsideArtworkLayers.find(item => item.url === was.layer);
+          const mm = Math.hypot((now.u - was.u) * layer.transform.width / 100 * before.bounds.width, (now.v - was.v) * layer.transform.height / 100 * before.bounds.height);
+          assert.ok(mm < 1.5 * dimensions.thickness + 0.1, `${panel.id} artwork moved ${mm.toFixed(3)} mm`);
+        }
+      }
+    }
+  }
 });

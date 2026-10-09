@@ -118,6 +118,8 @@ export async function rasterizeFullDielineLayers(
   templateId: string,
   panelPrefix = '',
   geometryOptions?: TemplateGeometryOptions,
+  /** Panel id → colour painted under the layers (a flap's edge colour). */
+  fills: Record<string, string> = {},
 ): Promise<ArtworkByPanel> {
   if (!layers.length) return {};
 
@@ -148,6 +150,7 @@ export async function rasterizeFullDielineLayers(
     const ctx = panelCanvas.getContext('2d');
     if (!ctx) continue;
     ctx.clearRect(0,0,panelCanvas.width,panelCanvas.height);
+    if(fills[panel.id]){ctx.fillStyle=fills[panel.id];ctx.fillRect(0,0,panelCanvas.width,panelCanvas.height);}
 
     const scaleX=panelCanvas.width/panel.width;
     const scaleY=panelCanvas.height/panel.height;

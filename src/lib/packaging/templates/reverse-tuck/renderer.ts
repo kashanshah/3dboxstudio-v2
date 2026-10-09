@@ -65,7 +65,8 @@ export const buildReverseTuckTemplateMeshes: TemplateMeshBuilder = ({ dimensions
   const panels: SheetPanel[] = sheet.panels.map(panel => ({
     id: panel.id,
     name: NAMES[panel.id] ?? panel.label,
-    outline: panel.outline,
+    // The 3D folds each panel's four-corner shape; the print file cuts the full outline.
+    outline: panel.fold ?? panel.outline,
     artworkRotation: panel.artworkRotation,
     closureFlap: !['glue', 'left', 'front', 'right', 'back', 'top', 'bottom'].includes(panel.id),
     layer: panel.id === 'top' || panel.id === 'bottom' ? 2 : PARENT[panel.id] && !['left', 'right', 'back'].includes(panel.id) ? 0 : 1,
