@@ -2304,7 +2304,7 @@ export const BLOG_POSTS: BlogPost[] = [
     faqs: [
       { question: "How much bleed does packaging need?", answer: "3 mm (about 1/8 inch) is the most common request for folding cartons. Some printers ask for more on corrugated board. Your printer's spec sheet always wins." },
       { question: "What is a safe zone?", answer: "The area inside each panel, a few millimetres in from cut and fold lines, where text and logos stay clear of trimming tolerance and folds." },
-      { question: "Can I set bleed in 3D Box Studio?", answer: "Yes. The PDF dieline export has an adjustable bleed from 0 to 10 mm, with 3 mm as the default, and keeps cut and crease lines on separate layers." },
+      { question: "Can I set bleed in 3D Box Studio?", answer: "Yes. The PDF dieline export has an adjustable bleed from 0 to 10 mm, with 3 mm as the default, and keeps cut and crease lines on separate layers. The design sheet shows the same bleed past every cut edge and the artboard size to make full-sheet artwork at." },
     ],
     sections: [
       { type: "p", text: "Cutting a printed sheet is never perfectly exact. Bleed and safe zones are the margins that hide that small variation, so backgrounds run to the edge and nothing important gets trimmed or folded." },
@@ -2326,6 +2326,7 @@ export const BLOG_POSTS: BlogPost[] = [
       ] },
       { type: "h2", text: "Setting bleed in 3D Box Studio" },
       { type: "p", text: "Place your artwork on the flat layout of a [box template](/box-templates), fold it in 3D to check that nothing important sits on a fold, then export the PDF dieline. Bleed is adjustable from 0 to 10 mm (3 mm by default), and cut and crease lines are exported on separate layers for your printer." },
+      { type: "p", text: "The design sheet shows the bleed band past every cut edge and dims artwork that falls outside it, because that part is cut away. It also gives the artboard size: the dieline's bounding box plus the bleed on every side. Make full-sheet artwork at that size and it lands exactly on the artboard when you add it, or use Fill artboard to cover the artboard with any image." },
       { type: "cta", label: "Open a box template", href: "/box-templates/reverse-tuck-end-box" },
       { type: "faq" }
     ],

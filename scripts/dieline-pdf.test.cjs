@@ -72,13 +72,60 @@ test('cut contour forms one closed boundary without cutting through folds', () =
   }
 });
 
-test('other templates remain explicitly labelled proofs and retain their own geometry', () => {
-  for (const id of ['base-box', 'split-top-box']) for (const options of [{ openingMode: 'lid_from_left', splitTopHingeSide: 'side_a' }, { openingMode: 'lid_from_back', splitTopHingeSide: 'side_b' }]) {
-    const source = getTemplateGeometry(id, defaultDimensions, options);
-    const g = getTemplateExportGeometry(id, defaultDimensions, options);
-    assert.equal(g.kind, 'layout-proof');
+test('the base box prints its straight tuck end cutting template, the design grid itself', () => {
+  for (const openingMode of ['closed', 'lid_from_back', 'lid_from_left', 'lid_from_right', 'double_doors']) {
+    const dimensions = { width: 240, height: 100, depth: 160, thickness: 0.5 };
+    const source = getTemplateGeometry('base-box', dimensions, { openingMode });
+    const g = getTemplateExportGeometry('base-box', dimensions, { openingMode });
+    assert.equal(g.kind, 'cutting-template');
     assert.deepEqual(g.bounds, source.bounds);
-    assert.deepEqual(g.panels.map(p => ({id:p.id,label:p.label,x:p.x,y:p.y,width:p.width,height:p.height,kind:p.kind})), source.panels);
+    assert.deepEqual(g.panels, source.panels);
+    // Two slit-locked tucks: each tuck crease stops short of both ends.
+    assert.equal(g.panels.filter(panel => panel.id.endsWith('-tuck')).length, 2);
+    assert.equal(g.panels.filter(panel => panel.id.endsWith('-dust')).length, 4);
+  }
+});
+
+test('the split top prints its slotted cutting template, the design grid itself', () => {
+  for (const splitTopHingeSide of ['side_a', 'side_b']) for (const thickness of [0.5, 3, 7]) {
+    const dimensions = { width: 400, height: 300, depth: 300, thickness };
+    const source = getTemplateGeometry('split-top-box', dimensions, { splitTopHingeSide });
+    const g = getTemplateExportGeometry('split-top-box', dimensions, { splitTopHingeSide });
+    assert.equal(g.kind, 'cutting-template');
+    assert.deepEqual(g.bounds, source.bounds);
+    assert.deepEqual(g.panels, source.panels);
+    // Corrugated board up to double wall is kept, not clamped to folding board.
+    assert.equal(g.panels.find(panel => panel.id === 'front').width, 400 + thickness);
+  }
+  assert.throws(() => getTemplateExportGeometry('split-top-box', { width: 400, height: 300, depth: 30, thickness: 3 }), /depth is too small/);
+});
+
+test('the pizza box prints its locking cutting template, the design grid itself', () => {
+  for (const [width, height, depth, thickness] of [[203, 38, 203, 1.5], [305, 45, 305, 1.5], [457, 51, 457, 3]]) {
+    const dimensions = { width, height, depth, thickness };
+    const source = getTemplateGeometry('pizza-box', dimensions);
+    const g = getTemplateExportGeometry('pizza-box', dimensions);
+    assert.equal(g.kind, 'cutting-template');
+    assert.deepEqual(g.bounds, source.bounds);
+    assert.deepEqual(g.panels, source.panels);
+    const ids = g.panels.map(panel => panel.id);
+    for (const id of ['frontRoll', 'frontInner', 'leftFrontTab', 'rightFrontTab', 'lidFront', 'lidLeft', 'lidRight']) assert.ok(ids.includes(id), `${id} at ${width} mm`);
+    // The double front: two creases a roll strip (two boards) apart.
+    const roll = g.panels.find(panel => panel.id === 'frontRoll');
+    assert.ok(Math.abs(roll.height - 2 * thickness) < 1e-9);
+    // Two locking slots (four cuts each) and the finger hole are cut inside.
+    const base = g.panels.find(panel => panel.id === 'bottom');
+    const within = (line, top, bottom) => [line.start, line.end].every(p => p.y > top && p.y < bottom && p.x > roll.x && p.x < roll.x + roll.width);
+    const slots = g.cut.filter(line => within(line, base.y, base.y + base.height));
+    assert.ok(slots.length >= 8, `locking slots at ${width} mm`);
+    const hole = g.cut.filter(line => within(line, roll.y - 15, roll.y + roll.height + 15) && !slots.includes(line));
+    assert.ok(hole.length >= 24, `finger hole at ${width} mm`);
+  }
+});
+
+test('every ready template exports a cutting template', () => {
+  for (const id of ['reverse-tuck-carton', 'base-box', 'split-top-box', 'pizza-box']) {
+    assert.equal(getTemplateExportGeometry(id, { width: 305, height: 120, depth: 205, thickness: 1.5 }).kind, 'cutting-template', id);
   }
 });
 

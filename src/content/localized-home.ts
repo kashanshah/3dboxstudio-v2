@@ -77,7 +77,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Preguntas frecuentes',
       items: [
         { question: '¿3D Box Studio es gratis?', answer: 'Sí. Es gratuito y funciona en el navegador. Para usar el Studio, guardar y exportar necesitas una cuenta gratuita, que puedes crear con Google o con tu correo.' },
-        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Ahora mismo: estuche de cartón con solapas invertidas, caja con tapa dividida, caja base y caja de pizza. Hay más estructuras en preparación, como la caja de envío (mailer).' },
+        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Ahora mismo: estuche de cartón con solapas invertidas, estuche con cierre recto, caja de envío con tapa dividida y caja de pizza. Hay más estructuras en preparación, como la caja de envío (mailer).' },
         { question: '¿Qué puedo exportar?', answer: 'Mockups en PNG desde la vista 3D y un troquel en PDF vectorial a escala 1:1, de la cara exterior o interior, con sangrado ajustable y líneas de corte y hendido.' },
         { question: '¿El troquel está listo para producción?', answer: 'Sirve para pruebas y revisión del diseño. Antes de fabricar, confirma con tu imprenta el grosor del cartón, las tolerancias, las zonas de pegado y sus requisitos.' },
         { question: '¿Está en español?', answer: 'Esta página sí; el editor está en inglés por ahora, pero es muy visual y se basa en tres pasos: Caja, Diseño y Vista previa.' },
@@ -135,7 +135,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Preguntas frecuentes',
       items: [
         { question: '¿3D Box Studio es gratis?', answer: 'Sí. Es gratis y funciona en el navegador. Para usar el Studio, guardar y exportar necesitas una cuenta gratuita, que puedes crear con Google o con tu correo.' },
-        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Por ahora: caja plegadiza con cierre invertido, caja con tapa dividida, caja base y caja para pizza. Estamos preparando más estructuras, como la caja de envío (mailer).' },
+        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Por ahora: caja plegadiza con cierre invertido, caja plegadiza con cierre recto, caja de envío con tapa dividida y caja para pizza. Estamos preparando más estructuras, como la caja de envío (mailer).' },
         { question: '¿Qué puedo exportar?', answer: 'Mockups en PNG desde la vista 3D y el suaje en PDF vectorial a escala 1:1, del lado exterior o interior, con rebase ajustable y líneas de corte y doblez.' },
         { question: '¿El suaje está listo para producción?', answer: 'Sirve para pruebas y revisión del diseño. Antes de producir, confirma con tu imprenta el calibre del cartón, las tolerancias, las pestañas de pegado y sus requisitos.' },
         { question: '¿Está en español?', answer: 'Esta página sí; el editor está en inglés por ahora, pero es muy visual y funciona en tres pasos: Caja, Diseño y Vista previa.' },
@@ -193,7 +193,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Questions fréquentes',
       items: [
         { question: '3D Box Studio est-il gratuit ?', answer: 'Oui. Il est gratuit et fonctionne dans le navigateur. Un compte gratuit, créé avec Google ou par e-mail, est nécessaire pour utiliser le Studio, enregistrer et exporter.' },
-        { question: 'Quels types de boîtes puis-je créer ?', answer: 'Actuellement : étui à fermeture inversée, boîte à couvercle divisé, boîte de base et boîte à pizza. D’autres structures sont en préparation, comme la boîte d’expédition.' },
+        { question: 'Quels types de boîtes puis-je créer ?', answer: 'Actuellement : étui à fermeture inversée, étui à fermeture droite, caisse américaine à rabats et boîte à pizza. D’autres structures sont en préparation, comme la boîte d’expédition.' },
         { question: 'Que puis-je exporter ?', answer: 'Des mockups PNG depuis la vue 3D et un tracé de découpe PDF vectoriel à l’échelle 1:1, face extérieure ou intérieure, avec fond perdu réglable et traits de coupe et de rainage.' },
         { question: 'Le tracé est-il prêt pour la production ?', answer: 'Il sert aux épreuves et à la validation du design. Avant fabrication, vérifiez avec votre imprimeur l’épaisseur du carton, les tolérances, les zones de collage et ses exigences.' },
         { question: 'Le site est-il en français ?', answer: 'Cette page oui ; l’éditeur est pour l’instant en anglais, mais il est très visuel et suit trois étapes : Boîte, Design et Aperçu.' },
@@ -251,7 +251,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Perguntas frequentes',
       items: [
         { question: 'O 3D Box Studio é grátis?', answer: 'Sim. É gratuito e funciona no navegador. Para usar o Studio, salvar e exportar, você precisa de uma conta gratuita, criada com Google ou e-mail.' },
-        { question: 'Quais tipos de caixa posso criar?', answer: 'No momento: cartucho com abas invertidas, caixa com tampa dividida, caixa base e caixa de pizza. Outras estruturas estão a caminho, como a caixa de envio (mailer).' },
+        { question: 'Quais tipos de caixa posso criar?', answer: 'No momento: cartucho com abas invertidas, cartucho com fechamento reto, caixa de papelão com abas e caixa de pizza. Outras estruturas estão a caminho, como a caixa de envio (mailer).' },
         { question: 'O que posso exportar?', answer: 'Mockups em PNG a partir da visualização 3D e a faca de corte em PDF vetorial na escala 1:1, do lado externo ou interno, com sangria ajustável e linhas de corte e vinco.' },
         { question: 'A faca está pronta para produção?', answer: 'Ela serve para provas e aprovação do design. Antes de produzir, confirme com a gráfica a espessura do papelão, as tolerâncias, as abas de colagem e os requisitos dela.' },
         { question: 'O site está em português?', answer: 'Esta página sim; o editor está em inglês por enquanto, mas é bem visual e segue três passos: Caixa, Arte e Visualização.' },
@@ -309,7 +309,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Häufige Fragen',
       items: [
         { question: 'Ist 3D Box Studio kostenlos?', answer: 'Ja. Es ist kostenlos und läuft im Browser. Zum Gestalten, Speichern und Exportieren brauchst du ein kostenloses Konto, das du mit Google oder per E-Mail erstellst.' },
-        { question: 'Welche Schachteltypen kann ich gestalten?', answer: 'Derzeit: Faltschachtel mit gegenläufigem Steckverschluss, Schachtel mit geteiltem Deckel, Basisbox und Pizzakarton. Weitere Konstruktionen wie der Versandkarton sind in Vorbereitung.' },
+        { question: 'Welche Schachteltypen kann ich gestalten?', answer: 'Derzeit: Faltschachtel mit gegenläufigem Steckverschluss, Faltschachtel mit geradem Steckverschluss, Wellpappe-Versandkarton mit Klappen und Pizzakarton. Weitere Konstruktionen wie der Versandkarton sind in Vorbereitung.' },
         { question: 'Was kann ich exportieren?', answer: 'PNG-Mockups aus der 3D-Ansicht und eine vektorielle PDF-Stanzkontur im Maßstab 1:1, für die Außen- oder Innenseite, mit einstellbarem Beschnitt sowie Schnitt- und Rilllinien.' },
         { question: 'Ist die Stanzkontur produktionsreif?', answer: 'Sie dient für Proofs und die Designfreigabe. Kläre vor der Produktion Kartonstärke, Toleranzen, Klebelaschen und Vorgaben mit deiner Druckerei.' },
         { question: 'Gibt es die Seite auf Deutsch?', answer: 'Diese Seite ja; der Editor ist derzeit auf Englisch, aber sehr visuell und folgt drei Schritten: Box, Design und Vorschau.' },
@@ -367,7 +367,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: '常见问题',
       items: [
         { question: '3D Box Studio 免费吗？', answer: '免费，并且直接在浏览器中使用。使用 Studio、保存和导出需要注册免费账户，可用 Google 或邮箱注册。' },
-        { question: '可以设计哪些盒型？', answer: '目前支持：反向插舌折叠纸盒、分体盖盒、基础盒和披萨盒。邮寄盒等更多盒型正在开发中。' },
+        { question: '可以设计哪些盒型？', answer: '目前支持：反向插舌折叠纸盒、同向插舌折叠纸盒、开槽瓦楞纸箱和披萨盒。邮寄盒等更多盒型正在开发中。' },
         { question: '可以导出哪些文件？', answer: '可从 3D 视图导出 PNG 效果图，也可导出 1:1 矢量 PDF 刀版图（外面或内面），出血可调，并带裁切线和压痕线。' },
         { question: '刀版图可以直接用于生产吗？', answer: '它适用于打样和设计审核。正式生产前，请与印刷厂确认纸板厚度、公差、粘口位置及其工艺要求。' },
         { question: '有中文界面吗？', answer: '本页面为中文；编辑器目前为英文，但操作直观，按“盒型、设计、预览”三步完成。' },

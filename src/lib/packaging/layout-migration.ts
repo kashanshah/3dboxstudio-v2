@@ -1,6 +1,12 @@
 import { reverseTuckBounds, reverseTuckPanels, sanitizeCartonDimensions } from './reverse-tuck';
 import { reverseTuckSheetV2 } from './templates/reverse-tuck/sheet-v2';
 import { reverseTuckSheet } from './templates/reverse-tuck/export';
+import { baseBoxSheetV1 } from './templates/base-box/sheet-v1';
+import { baseBoxSheet } from './templates/base-box/geometry';
+import { splitTopSheetV1 } from './templates/split-top/sheet-v1';
+import { splitTopSheet } from './templates/split-top/geometry';
+import { pizzaBoxSheetV2 } from './templates/pizza-box/sheet-v2';
+import { pizzaBoxSheet } from './templates/pizza-box/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
 import type { StudioProjectState } from '../studio-project';
@@ -27,12 +33,39 @@ const STEPS: Record<string, Step[]> = {
     // 5: the locking die, creased one board wider per panel with a narrower
     // glue flap; sheet layers move and stretch (well under 1%) to keep the
     // body and top lid's edges, within about a board thickness everywhere.
-    state => moveSheetLayers(state, reverseTuckSheetV2, reverseTuckSheet, ['left', 'front', 'right', 'back', 'top']),
+    state => moveSheetLayers(state, s => reverseTuckSheetV2(s.dimensions), s => reverseTuckSheet(s.dimensions), ['left', 'front', 'right', 'back', 'top']),
+  ],
+  'base-box': [
+    // 2: the grid is the straight tuck end's cutting template, with tucks,
+    // dust flaps and a tapered glue flap, panels creased one board wider;
+    // sheet layers move and stretch to keep the walls' and lids' edges.
+    state => moveSheetLayers(
+      state,
+      s => baseBoxSheetV1(s.dimensions, s.openingMode),
+      s => baseBoxSheet(s.dimensions, s.openingMode),
+      ['left', 'front', 'right', 'back', 'top', 'bottom'],
+    ),
+  ],
+  'split-top-box': [
+    // 2: the grid is the slotted box's cutting template, with a flap on every
+    // wall at each end, slots between them and a wider joint; sheet layers
+    // move and stretch to keep the walls' edges. With the outer top flaps on
+    // the front and back, their artwork is named for those walls.
+    state => {
+      const side = state.splitTopHingeSide ?? 'side_a';
+      const moved = moveSheetLayers(state, s => splitTopSheetV1(s.dimensions, side), s => splitTopSheet(s.dimensions, side), ['front', 'right', 'back', 'left']);
+      return side === 'side_b' ? { ...moved, artworkByPanel: renamePanels(moved.artworkByPanel, { 'Top Left': 'Top Front', 'Top Right': 'Top Back' }) } : moved;
+    },
   ],
   'pizza-box': [
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
     // read upright on the box; stored artwork turns to match.
     state => ({ ...state, artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Front', 'Top', 'Lid Front']) }),
+    // 3: the grid is the locking pizza box's cutting template: a double front
+    // with an inner layer and roll strip, corner tabs on the side walls'
+    // ends, a lid sized to rest on the walls; sheet layers move and stretch
+    // to keep the base's and walls' edges.
+    state => moveSheetLayers(state, s => pizzaBoxSheetV2(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
   ],
 };
 
@@ -120,7 +153,7 @@ function reverseTuckLayersOnFlaps(state: StudioProjectState): StudioProjectState
 }
 
 type Rect = { id: string; x: number; y: number; width: number; height: number };
-type Sheet = (dimensions: StudioProjectState['dimensions']) => { panels: Rect[]; bounds: { width: number; height: number } };
+type Sheet = (state: StudioProjectState) => { panels: Rect[]; bounds: { width: number; height: number } };
 type Axis = { scale: number; offset: number };
 
 /** Least-squares a·old + b = new over matching values. */
@@ -137,8 +170,7 @@ function fitAxis(pairs: [number, number][]): Axis {
  * takes the move and stretch that best keeps the `fit` panels' edges.
  */
 function moveSheetLayers(state: StudioProjectState, from: Sheet, to: Sheet, fit: string[]): StudioProjectState {
-  const d = sanitizeCartonDimensions(state.dimensions);
-  const before = from(d), after = to(d);
+  const before = from(state), after = to(state);
   const pairs = (ids: string[]) => ids.flatMap(id => {
     const a = before.panels.find(panel => panel.id === id), b = after.panels.find(panel => panel.id === id);
     return a && b ? [[a, b] as const] : [];
@@ -168,6 +200,20 @@ function moveSheetLayers(state: StudioProjectState, from: Sheet, to: Sheet, fit:
     };
   });
   return { ...state, outsideArtworkLayers: move(state.outsideArtworkLayers), insideArtworkLayers: move(state.insideArtworkLayers) };
+}
+
+/** Moves panel artwork to new panel names, outside and inside. */
+function renamePanels(artwork: ArtworkByPanel, names: Record<string, string>): ArtworkByPanel {
+  const result: ArtworkByPanel = { ...artwork };
+  for (const [from, to] of Object.entries(names)) {
+    for (const prefix of ['', 'Interior ']) {
+      const placement = artwork[prefix + from];
+      if (!placement) continue;
+      delete result[prefix + from];
+      result[prefix + to] = placement;
+    }
+  }
+  return result;
 }
 
 /** Turns the named panels' own artwork (outside and inside) half a turn. */

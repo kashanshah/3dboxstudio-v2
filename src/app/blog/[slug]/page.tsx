@@ -127,7 +127,7 @@ export default async function BlogPostPage({ params }: Props) {
       <ul>
         <li><Link href="/3d-box-mockup-generator"><strong>3D box mockup generator</strong><span>Turn your artwork into a 3D box mockup from real dimensions.</span></Link></li>
         <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Generate a flat dieline with cut, crease and bleed guides.</span></Link></li>
-        <li><Link href="/box-templates"><strong>Box templates</strong><span>Reverse tuck-end cartons, split-top boxes, base boxes and pizza boxes.</span></Link></li>
+        <li><Link href="/box-templates"><strong>Box templates</strong><span>Reverse and straight tuck end cartons, split-top shipping boxes and pizza boxes.</span></Link></li>
         <li><Link href="/pacdora-alternative"><strong>Pacdora alternative</strong><span>A free browser workflow for dieline-to-3D packaging previews.</span></Link></li>
       </ul>
     </nav>
