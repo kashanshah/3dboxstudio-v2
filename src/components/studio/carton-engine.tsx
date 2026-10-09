@@ -68,8 +68,12 @@ type Props = {
 };
 
 
+// A shared default, so a preview without its own pan does not count as a
+// changed scene (and redraw) every time its parent renders.
+const NO_PAN = { x: 0, y: 0 };
+
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = {x:0,y:0}, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true },
+  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
