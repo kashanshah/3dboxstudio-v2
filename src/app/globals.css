@@ -1872,6 +1872,7 @@ body{font-size:var(--type-body)}
 .pro-full-artwork-print-surface{position:absolute;inset:0;z-index:10;pointer-events:none}
 .pro-printed-artwork-clip{position:absolute;inset:0;pointer-events:none}
 .pro-inherited-panel{position:absolute;overflow:hidden}
+.pro-panel-artwork-turned{position:absolute;inset:0;transform:rotate(180deg);pointer-events:none}
 /* Tapered flaps: the outline is drawn as a shape, the box border is hidden. */
 .dl-live.is-shaped{border-color:transparent!important}
 /* Narrow closure flaps: labels wrap inside the flap instead of running past it. */

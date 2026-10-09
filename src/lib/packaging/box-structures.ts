@@ -9,6 +9,11 @@ export type DielinePanel = {
   width: number;
   height: number;
   kind: 'body' | 'flap' | 'glue';
+  /**
+   * Artwork placed on this panel by itself is turned this much on the sheet,
+   * so it reads upright on the folded box (a panel printed upside down).
+   */
+  artworkRotation?: 0 | 180;
   /** The cut outline when the panel is not a plain rectangle. */
   outline?: { x: number; y: number }[];
 };

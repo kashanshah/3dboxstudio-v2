@@ -9,12 +9,15 @@ export function getPizzaBoxPanels(input: CartonDimensions): DielinePanel[] {
   const tab = Math.min(h * 0.7, d * 0.2, w * 0.2);
   return [
     { id: 'bottom', label: 'BOTTOM', x: h, y: baseY, width: w, height: d, kind: 'body' },
-    { id: 'front', label: 'FRONT', x: h, y: baseY + d, width: w, height: h, kind: 'body' },
+    // The front wall, lid and lid front sit upside down on the sheet relative
+    // to the folded box: artwork placed on one of them alone is turned to
+    // read upright on the box.
+    { id: 'front', label: 'FRONT', x: h, y: baseY + d, width: w, height: h, kind: 'body', artworkRotation: 180 },
     { id: 'back', label: 'BACK', x: h, y: lip + d, width: w, height: h, kind: 'body' },
     { id: 'left', label: 'LEFT', x: 0, y: baseY, width: h, height: d, kind: 'body' },
     { id: 'right', label: 'RIGHT', x: h + w, y: baseY, width: h, height: d, kind: 'body' },
-    { id: 'top', label: 'TOP', x: h, y: lip, width: w, height: d, kind: 'body' },
-    { id: 'lidFront', label: 'LID FRONT', x: h, y: 0, width: w, height: lip, kind: 'flap' },
+    { id: 'top', label: 'TOP', x: h, y: lip, width: w, height: d, kind: 'body', artworkRotation: 180 },
+    { id: 'lidFront', label: 'LID FRONT', x: h, y: 0, width: w, height: lip, kind: 'flap', artworkRotation: 180 },
     { id: 'lidLeft', label: 'LID LEFT', x: h - lip, y: lip, width: lip, height: d, kind: 'flap' },
     { id: 'lidRight', label: 'LID RIGHT', x: h + w, y: lip, width: lip, height: d, kind: 'flap' },
     // Gaps next to Front/Back keep corner tabs separate from those walls.

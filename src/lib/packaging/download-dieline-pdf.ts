@@ -248,7 +248,15 @@ export function preparePdfArtwork(input: DownloadInput) {
         }
         // Explicit face artwork replaces the sheet texture in the editor and 3D
         // preview. Transparent or uncovered areas reveal only the base color.
-        if (explicit && explicitImage) drawPanelArtwork(ctx, explicit, explicitImage, original.width, original.height);
+        if (explicit && explicitImage) {
+          // Panel artwork is oriented to the folded box; a panel printed upside
+          // down on the sheet takes it turned half a turn.
+          if (original.artworkRotation === 180) {
+            ctx.translate(original.width, original.height);
+            ctx.rotate(Math.PI);
+          }
+          drawPanelArtwork(ctx, explicit, explicitImage, original.width, original.height);
+        }
         else visible.forEach((layer, i) => {
           if (!layerPrintsOn(layer, original.id)) return;
           const t = sheetTransformToPhysical(layer.transform, source.bounds);

@@ -145,6 +145,9 @@ export async function rasterizeFullDielineLayers(
 
     const scaleX=panelCanvas.width/panel.width;
     const scaleY=panelCanvas.height/panel.height;
+    // The 3D model reads a panel's texture in the panel's artwork orientation;
+    // sheet layers print as laid out, so a turned panel's texture is turned back.
+    if(panel.artworkRotation===180){ctx.translate(panelCanvas.width,panelCanvas.height);ctx.rotate(Math.PI);}
 
     for(const {layer,image} of loaded){
       if(!layerPrintsOn(layer,panel.id)) continue;
