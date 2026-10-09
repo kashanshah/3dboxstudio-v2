@@ -27,8 +27,9 @@ import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
+import { inheritedFlaps } from '@/lib/packaging/flap-artwork';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
-import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
+import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { createFullDielineTransform, layerPrintsOn, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
@@ -2762,6 +2763,8 @@ function DielinePrototype({
   const [printing,setPrinting]=useState(false);
   const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels;
   const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
+  const scopePrefix=artworkScope==='inside'?'Interior ':'';
+  const inheritedFlapArt=inheritedFlaps(getTemplateRuntime(selectedTemplateId)?.flapArtworkSources,cartonPanels,bounds,layers,artworkByPanel,scopePrefix);
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
@@ -3256,7 +3259,21 @@ function DielinePrototype({
           if(!layer.panels) return <div key={layer.id} className="pro-printed-artwork-clip">{printed}</div>;
           // A layer kept to some panels (a design moved onto a new grid) shows
           // only where it prints.
-          return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:`polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`}}>{printed}</div>);
+          return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds)}}>{printed}</div>);
+        })}
+        {/* Closure flaps with no artwork of their own continue their panel's, mirrored over the crease. */}
+        {inheritedFlapArt.map(({flap,source,crease})=>{
+          const sourceArtwork=artworkByPanel[`${scopePrefix}${panelDisplayName(cartonPanels,source.id)}`];
+          const mirror=crease.axis==='y'
+            ? {transformOrigin:`0 ${crease.at/bounds.height*100}%`,transform:'scaleY(-1)'}
+            : {transformOrigin:`${crease.at/bounds.width*100}% 0`,transform:'scaleX(-1)'};
+          return <div key={`inherit:${flap.id}`} className="pro-printed-artwork-clip is-inherited" style={{clipPath:boardPolygon(flap,bounds)}}>
+            <div className="pro-printed-artwork-clip" style={mirror}>
+              {sourceArtwork
+                ? <div className="pro-inherited-panel" style={{left:`${source.x/bounds.width*100}%`,top:`${source.y/bounds.height*100}%`,width:`${source.width/bounds.width*100}%`,height:`${source.height/bounds.height*100}%`}}><PanelArtwork panel={source} artwork={sourceArtwork}/></div>
+                : layers.filter(layer=>layer.visible!==false&&layerPrintsOn(layer,source.id)).map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}
+            </div>
+          </div>;
         })}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
@@ -3305,7 +3322,7 @@ function DielinePrototype({
             style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
           >
-            {explicitArtwork ? explicitArtwork.transform ? <span className="artwork-layer" style={{...artworkCss(explicitArtwork),backgroundImage:'none'}}><BoardArtworkImage url={explicitArtwork.url} aspectRatio={1} width={item.width*explicitArtwork.transform.width} height={item.height*explicitArtwork.transform.height}/></span> : <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
+            {explicitArtwork ? <PanelArtwork panel={item} artwork={explicitArtwork}/> : null}
             <span className="dl-label">{item.label}</span>
           </div>;
         })}
@@ -3354,6 +3371,17 @@ function DielinePrototype({
 function panelDisplayName(panels:{id:string;label:string}[],id:string){
   const label=panels.find(panel=>panel.id===id)?.label ?? id;
   return label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
+}
+
+function boardPolygon(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]},bounds:{width:number;height:number}){
+  return `polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`;
+}
+
+/** A panel's own artwork, filling the panel box it is placed in. */
+function PanelArtwork({panel,artwork}:{panel:{width:number;height:number};artwork:ArtworkPlacement}){
+  return artwork.transform
+    ? <span className="artwork-layer" style={{...artworkCss(artwork),backgroundImage:'none'}}><BoardArtworkImage url={artwork.url} aspectRatio={1} width={panel.width*artwork.transform.width} height={panel.height*artwork.transform.height}/></span>
+    : <span className="artwork-layer" style={artworkCss(artwork)}/>;
 }
 
 function panelOutline(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]}){

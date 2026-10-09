@@ -8,6 +8,8 @@ export type Mesh = {
   model?: Float32Array;
   panel?: string;
   fallbackPanel?: string;
+  /** For a surface that is not a panel itself (a bend): the panel whose artwork it shows. */
+  sourcePanel?: string;
   fallbackUv?: [number,number,number,number];
   pickCorners?: number[][];
   faceAspect?: number;
