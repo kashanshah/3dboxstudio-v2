@@ -11,11 +11,12 @@ const PANEL_LABELS: Record<string, string> = {
 };
 
 /**
- * Tuck and dust flaps with no artwork of their own continue the panel they
- * fold from, mirrored across the crease. The glue flap stays bare for gluing.
+ * Panels with no artwork of their own carry on the edge of the panel they fold
+ * from: tuck and dust flaps, and the top and bottom from the front and back.
+ * The glue flap stays bare for gluing.
  */
 export const REVERSE_TUCK_FLAP_SOURCES: Record<string, string> = {
-  'top-tuck': 'top', 'bottom-tuck': 'bottom',
+  'top-tuck': 'top', 'bottom-tuck': 'bottom', top: 'front', bottom: 'back',
   'top-left-dust': 'left', 'bottom-left-dust': 'left', 'top-right-dust': 'right', 'bottom-right-dust': 'right',
 };
 
