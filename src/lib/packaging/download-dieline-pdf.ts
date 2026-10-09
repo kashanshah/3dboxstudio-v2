@@ -2,6 +2,7 @@ import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import { layerPrintsOn, sheetTransformToPhysical, type FullDielineArtworkLayer } from './full-dieline-artwork';
 import { getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, type TemplateGeometryOptions } from './template-runtime';
 import { inheritedFlaps, panelName } from './flap-artwork';
+import { continuationTransform } from './flap-continuation';
 import type { CartonDimensions } from './reverse-tuck';
 import {
   validatePdfOptions, validatePdfDimensions, getPdfRasterBudget, panelPixelsPerMm, choosePanelImageEncoding,
@@ -208,7 +209,7 @@ export function preparePdfArtwork(input: DownloadInput) {
   const release = () => { for (const c of [canvas, mask]) if (c) c.width = c.height = 0; };
   const visible = input.layers.filter(layer => layer.visible !== false && (layer.opacity ?? 100) > 0);
   const prefix = input.scope === 'inside' ? 'Interior ' : '';
-  // Closure flaps with no artwork of their own print their panel's, mirrored.
+  // Panels with no artwork of their own carry a neighbour's edge across the crease.
   const inherited = new Map(inheritedFlaps(getTemplateRuntime(input.templateId)?.flapArtworkSources, source.panels, source.bounds, visible, input.artworkByPanel, prefix)
     .map(item => [item.flap.id, item] as const));
   const renderPanel = async (index: number): Promise<PdfPanelImage | null> => {
@@ -240,10 +241,12 @@ export function preparePdfArtwork(input: DownloadInput) {
         ctx.rotate((panel.sourceRotation ?? 0) * Math.PI / 180);
         ctx.translate(-panel.width / 2, -panel.height / 2);
         if (inherit && flapPanel) {
-          // Draw the source panel's artwork mirrored across the shared crease.
+          // Draw the source panel's artwork with its edge strip stretched
+          // across the flap: a point d beyond the crease shows the source d/stretch inside it.
+          const { scale, offset } = continuationTransform(inherit.crease, inherit.stretch);
           ctx.translate(-flapPanel.x, -flapPanel.y);
-          if (inherit.crease.axis === 'y') { ctx.translate(0, 2 * inherit.crease.at); ctx.scale(1, -1); }
-          else { ctx.translate(2 * inherit.crease.at, 0); ctx.scale(-1, 1); }
+          if (inherit.crease.axis === 'y') { ctx.translate(0, offset); ctx.scale(1, -scale); }
+          else { ctx.translate(offset, 0); ctx.scale(-scale, 1); }
           ctx.translate(original.x, original.y);
         }
         // Explicit face artwork replaces the sheet texture in the editor and 3D

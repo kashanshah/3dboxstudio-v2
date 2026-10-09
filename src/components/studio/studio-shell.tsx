@@ -28,6 +28,7 @@ import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/compo
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { inheritedFlaps } from '@/lib/packaging/flap-artwork';
+import { continuationTransform } from '@/lib/packaging/flap-continuation';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
@@ -3263,14 +3264,15 @@ function DielinePrototype({
           // only where it prints.
           return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds)}}>{printed}</div>);
         })}
-        {/* Closure flaps with no artwork of their own continue their panel's, mirrored over the crease. */}
-        {inheritedFlapArt.map(({flap,source,crease})=>{
+        {/* Panels with no artwork of their own carry a neighbour's edge across the crease. */}
+        {inheritedFlapArt.map(({flap,source,crease,stretch})=>{
           const sourceArtwork=artworkByPanel[`${scopePrefix}${panelDisplayName(cartonPanels,source.id)}`];
-          const mirror=crease.axis==='y'
-            ? {transformOrigin:`0 ${crease.at/bounds.height*100}%`,transform:'scaleY(-1)'}
-            : {transformOrigin:`${crease.at/bounds.width*100}% 0`,transform:'scaleX(-1)'};
+          const {scale,offset}=continuationTransform(crease,stretch);
+          const carry=crease.axis==='y'
+            ? {transformOrigin:'0 0',transform:`translateY(${offset/bounds.height*100}%) scaleY(${-scale})`}
+            : {transformOrigin:'0 0',transform:`translateX(${offset/bounds.width*100}%) scaleX(${-scale})`};
           return <div key={`inherit:${flap.id}`} className="pro-printed-artwork-clip is-inherited" style={{clipPath:boardPolygon(flap,bounds)}}>
-            <div className="pro-printed-artwork-clip" style={mirror}>
+            <div className="pro-printed-artwork-clip" style={carry}>
               {sourceArtwork
                 ? <div className="pro-inherited-panel" style={{left:`${source.x/bounds.width*100}%`,top:`${source.y/bounds.height*100}%`,width:`${source.width/bounds.width*100}%`,height:`${source.height/bounds.height*100}%`}}><PanelArtwork panel={source} artwork={sourceArtwork}/></div>
                 : layers.filter(layer=>layer.visible!==false&&layerPrintsOn(layer,source.id)).map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}

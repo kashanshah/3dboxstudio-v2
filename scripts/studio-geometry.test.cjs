@@ -882,27 +882,30 @@ test('inside artwork keeps its long-standing orientation: across as outside, tur
   }
 });
 
-test('reverse-tuck tuck and dust flaps continue their panel\'s artwork, mirrored across the crease',()=>{
+test('reverse-tuck panels with no artwork carry their neighbour\'s edge across the crease, never mirrored',()=>{
   const d={width:120,height:180,depth:55,thickness:.5};
   const meshes=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:0});
   const sheet=reverseTuckSheet(d),panel=id=>sheet.panels.find(p=>p.id===id);
   const tuck=meshes.find(mesh=>mesh.panel==='Top Tuck');
-  assert.equal(tuck.fallbackPanel,'Top');
-  const [u0,v0,du,dv]=tuck.fallbackUv;
+  assert.deepEqual(tuck.continues.map(item=>item.panel),['Top','Front']);
+  const [u0,v0,du,dv]=tuck.continues[0].uv;
   const top=panel('top'),tongue=panel('top-tuck');
-  // At the crease the tongue meets the top of the Top artwork, and further up
-  // it reads back down into Top by its own height.
-  near(v0,1);near(dv,-tongue.height/top.height);
+  // At the crease the tongue shows Top's artwork half a millimetre in from its
+  // edge; the whole tongue spans only half a millimetre more, so nothing reads
+  // reversed.
+  near(v0,1-0.5/top.height);near(dv,-0.5/top.height);
   near(u0,(tongue.x-top.x)/top.width);near(du,tongue.width/top.width);
-  for(const [flap,source] of [['Top Left Dust Flap','Left'],['Bottom Right Dust Flap','Right'],['Bottom Tuck','Bottom']]){
-    const mesh=meshes.find(item=>item.panel===flap);
-    assert.equal(mesh.fallbackPanel,source);
-    assert.equal(meshes.find(item=>item.panel===`Interior ${flap}`).fallbackPanel,`Interior ${source}`);
+  // An empty bottom carries the back's edge; its tuck the bottom's, or the back's.
+  assert.deepEqual(meshes.find(mesh=>mesh.panel==='Bottom').continues.map(item=>item.panel),['Back']);
+  assert.deepEqual(meshes.find(mesh=>mesh.panel==='Bottom Tuck').continues.map(item=>item.panel),['Bottom','Back']);
+  for(const [flap,source] of [['Top Left Dust Flap','Left'],['Bottom Right Dust Flap','Right']]){
+    assert.equal(meshes.find(item=>item.panel===flap).continues[0].panel,source);
+    assert.equal(meshes.find(item=>item.panel===`Interior ${flap}`).continues[0].panel,`Interior ${source}`);
   }
   // The glue flap stays unprinted for gluing.
-  assert.equal(meshes.find(item=>item.panel==='Glue').fallbackPanel,undefined);
-  // Bends of a flap borrow the same artwork.
-  assert.ok(meshes.some(mesh=>mesh.bend==='outside'&&mesh.sourcePanel==='Top Left Dust Flap'&&mesh.fallbackPanel==='Left'));
+  assert.equal(meshes.find(item=>item.panel==='Glue').continues,undefined);
+  // Bends of a flap carry the same artwork.
+  assert.ok(meshes.some(mesh=>mesh.bend==='outside'&&mesh.sourcePanel==='Top Left Dust Flap'&&mesh.continues?.[0].panel==='Left'));
 });
 
 test('pizza box panel artwork reads upright on the closed box',()=>{

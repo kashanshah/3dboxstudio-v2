@@ -1,4 +1,5 @@
 import { faceNormal, type Mesh } from './template-mesh';
+import { continuationChain, continuedPoint, type Crease } from './flap-continuation';
 
 // Folds a flat dieline into 3D the way scored card behaves: every panel is a
 // rigid piece of board, and every crease is a short strip of the same sheet
@@ -22,8 +23,8 @@ export type SheetPanel = {
   /** Leave the panel out of the model (it still anchors its children). */
   hidden?: boolean;
   /**
-   * With no artwork of its own, show this panel's artwork mirrored across
-   * their shared crease, so a flap continues the panel it folds from.
+   * With no artwork of its own, continue this panel's artwork across their
+   * shared crease (and, if it has none either, the panel it continues).
    */
   inheritFrom?: string;
 };
@@ -144,22 +145,31 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     limit: overlap(spanAlong(trimmedOutline(bend.parent), bend.q0, bend.along), spanAlong(trimmedOutline(bend.child), bend.q0, bend.along)),
   }));
 
-  // Flaps that continue a neighbour's artwork: where in that panel's artwork
-  // each point of the flap lands once mirrored across their crease.
-  const inheritance = new Map<string, { name: string; uv: [number, number, number, number]; insideUv: [number, number, number, number] }>();
+  // Panels that continue a neighbour's artwork, nearest neighbour first:
+  // where in that panel's artwork each point of this one comes from.
+  type Continues = NonNullable<Mesh['continues']>;
+  const continuation = new Map<string, { outside: Continues; inside: Continues }>();
+  const box = (panel: SheetPanel) => ({ id: panel.id, ...boundsOf(panel.outline) });
   for (const panel of input.panels) {
-    const source = panel.inheritFrom ? byId.get(panel.inheritFrom) : undefined;
-    const uv = source && mirroredArtworkUv(panel, source);
-    if (source && uv) inheritance.set(panel.id, { name: source.name, uv, insideUv: [uv[0], 1 - uv[1] - uv[3], uv[2], uv[3]] });
+    const chain = continuationChain(box(panel), id => {
+      const next = byId.get(id)?.inheritFrom;
+      return next && byId.has(next) ? box(byId.get(next)!) : undefined;
+    });
+    if (!chain.length) continue;
+    const outside = chain.map(({ source, crease, stretch }) => {
+      const from = byId.get(source.id)!;
+      return { panel: from.name, uv: continuedArtworkUv(panel, from, crease, stretch) };
+    });
+    continuation.set(panel.id, {
+      outside,
+      inside: outside.map(({ panel: name, uv }) => ({ panel: `Interior ${name}`, uv: [uv[0], 1 - uv[1] - uv[3], uv[2], uv[3]] as [number, number, number, number] })),
+    });
   }
   for (const mesh of bends) {
     const owner = mesh.sourcePanel?.replace(/^Interior /, '');
     const ownerPanel = input.panels.find(panel => panel.name === owner);
-    const inherited = ownerPanel && inheritance.get(ownerPanel.id);
-    if (!inherited) continue;
-    const inside = mesh.sourcePanel!.startsWith('Interior ');
-    mesh.fallbackPanel = inside ? `Interior ${inherited.name}` : inherited.name;
-    mesh.fallbackUv = inside ? inherited.insideUv : inherited.uv;
+    const continued = ownerPanel && continuation.get(ownerPanel.id);
+    if (continued) mesh.continues = mesh.sourcePanel!.startsWith('Interior ') ? continued.inside : continued.outside;
   }
 
   const meshes: Mesh[] = [];
@@ -192,12 +202,10 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     inside.pickCorners = [...pick].reverse().map(i => place([panel.outline[i].x, -panel.outline[i].y, -t]));
     inside.faceAspect = outside.faceAspect;
     inside.uvSize = outside.uvSize;
-    const inherited = inheritance.get(panel.id);
-    if (inherited) {
-      outside.fallbackPanel = inherited.name;
-      outside.fallbackUv = inherited.uv;
-      inside.fallbackPanel = `Interior ${inherited.name}`;
-      inside.fallbackUv = inherited.insideUv;
+    const continued = continuation.get(panel.id);
+    if (continued) {
+      outside.continues = continued.outside;
+      inside.continues = continued.inside;
     }
     if (panel.closureFlap) inside.closureFlap = true;
     meshes.push(outside, inside);
@@ -345,20 +353,13 @@ function insideUv(uv: number[]) {
 
 /**
  * The rectangle of `source`'s artwork, as [u, v, width, height], that `panel`
- * shows when that artwork is mirrored across their shared crease. Null when
- * the two do not share an axis-aligned crease.
+ * shows when it continues that artwork across `crease`.
  */
-export function mirroredArtworkUv(panel: SheetPanel, source: SheetPanel): [number, number, number, number] | null {
-  const shared = sharedEdge(source.outline, panel.outline) ?? sharedEdge(panel.outline, source.outline);
-  if (!shared) return null;
-  const horizontal = Math.abs(shared.start.y - shared.end.y) < 1e-6;
-  const vertical = Math.abs(shared.start.x - shared.end.x) < 1e-6;
-  if (!horizontal && !vertical) return null;
-  const mirror = (point: Vec2): Vec2 => horizontal ? { x: point.x, y: 2 * shared.start.y - point.y } : { x: 2 * shared.start.x - point.x, y: point.y };
+export function continuedArtworkUv(panel: SheetPanel, source: SheetPanel, crease: Crease, stretch: number): [number, number, number, number] {
   const box = boundsOf(panel.outline);
-  // The flap's artwork corners (0,0) and (1,1), v up, as seen in the source.
-  const a = panelUv(source, mirror({ x: box.x, y: box.y + box.height }));
-  const b = panelUv(source, mirror({ x: box.x + box.width, y: box.y }));
+  // The panel's artwork corners (0,0) and (1,1), v up, as seen in the source.
+  const a = panelUv(source, continuedPoint({ x: box.x, y: box.y + box.height }, crease, stretch));
+  const b = panelUv(source, continuedPoint({ x: box.x + box.width, y: box.y }, crease, stretch));
   return [a[0], a[1], b[0] - a[0], b[1] - a[1]];
 }
 
