@@ -16,6 +16,11 @@ export type DielinePanel = {
   artworkRotation?: 0 | 180;
   /** The cut outline when the panel is not a plain rectangle. */
   outline?: { x: number; y: number }[];
+  /**
+   * Four corners the 3D model folds, when the cut outline has more (rounded
+   * tuck corners, a thumb notch): the same panel, simplified to a quad.
+   */
+  fold?: { x: number; y: number }[];
 };
 
 function glueWidth(d:CartonDimensions){return Math.max(12,Math.min(24,d.depth*0.35));}

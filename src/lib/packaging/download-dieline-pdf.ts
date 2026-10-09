@@ -168,7 +168,7 @@ export function preparePdfArtwork(input: DownloadInput) {
   const release = () => { for (const c of [canvas, mask]) if (c) c.width = c.height = 0; };
   const visible = input.layers.filter(layer => layer.visible !== false && (layer.opacity ?? 100) > 0);
   const prefix = input.scope === 'inside' ? 'Interior ' : '';
-  // Panels with no artwork of their own print solid in their neighbour's edge colour.
+  // Flaps print in their neighbour's edge colour wherever their artwork leaves them bare.
   let fills: Promise<Record<string, string>> | null = null;
   const renderPanel = async (index: number): Promise<PdfPanelImage | null> => {
     const panel = geometry.panels[index];
@@ -180,8 +180,8 @@ export function preparePdfArtwork(input: DownloadInput) {
     const w = panel.width + 2 * bleed, h = panel.height + 2 * bleed;
     const pixelsPerMm = panelPixelsPerMm(w, h, totalAreaMm2, budget);
     // Load artwork before allocating the canvas.
-    const explicitImage = original && explicit && !fill ? await getImage(explicit.url) : null;
-    const layerImages = original && !explicit && !fill ? await Promise.all(visible.map(async layer => ({ layer, image: await getImage(layer.url) }))) : [];
+    const explicitImage = original && explicit ? await getImage(explicit.url) : null;
+    const layerImages = original && !explicit ? await Promise.all(visible.map(async layer => ({ layer, image: await getImage(layer.url) }))) : [];
     canvas ??= document.createElement('canvas');
     mask ??= document.createElement('canvas');
     try {
@@ -192,8 +192,9 @@ export function preparePdfArtwork(input: DownloadInput) {
       ctx.scale(canvas.width / w, canvas.height / h);
       ctx.translate(bleed, bleed);
       if (input.baseColor) { ctx.fillStyle = input.baseColor; ctx.fillRect(-bleed, -bleed, w, h); }
+      // A flap's edge colour shows wherever its artwork leaves it bare.
       if (fill) { ctx.fillStyle = fill; ctx.fillRect(-bleed, -bleed, w, h); }
-      else if (original) {
+      if (original) {
         ctx.save();
         ctx.translate(panel.width / 2, panel.height / 2);
         ctx.rotate((panel.sourceRotation ?? 0) * Math.PI / 180);

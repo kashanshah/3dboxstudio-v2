@@ -54,9 +54,10 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
         body: 'The template draws every panel of a standard RTE carton from your three measurements.',
         bullets: [
           'Four body panels: front, side, back, side, in one strip.',
-          'A tapered glue flap that is glued to the inside of the last side panel.',
-          'Top and bottom closure panels on opposite faces, each with a tuck tongue.',
-          'Four dust flaps that fold in under the closure panels.',
+          'A glue flap with 15° tapered ends, glued to the inside of the back panel.',
+          'Top and bottom closure panels on opposite faces, each with a rounded tuck tongue and slit locks.',
+          'Four shouldered dust flaps that fold in under the closure panels and catch the tucks.',
+          'A thumb notch where the top tuck slides in, so the carton opens easily.',
           'Cut lines and crease lines kept separate, as in the PDF export.',
         ],
       },
@@ -76,7 +77,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     faqs: [
       { question: 'Is the reverse tuck end template free?', answer: 'Yes. The size picker and dieline on this page are free to use. Designing artwork, saving and exporting the PDF dieline happen in the Studio, which needs a free account.' },
       { question: 'Can I download the dieline as a PDF?', answer: 'Yes, from the Studio. Open this template with your size, then use Preview & Download to export a 1:1 vector PDF with cut and crease lines, adjustable bleed and a calibration ruler.' },
-      { question: 'Does the dieline include tuck flaps and dust flaps?', answer: 'Yes. The reverse tuck template adds the tuck tongues, four dust flaps and a tapered glue flap automatically. These closure parts are left unprinted in the export.' },
+      { question: 'Does the dieline include tuck flaps and dust flaps?', answer: 'Yes. The reverse tuck template draws the tuck tongues with slit locks, four shouldered dust flaps, a tapered glue flap and a thumb notch, with panels creased one board thickness wider than the inside size you enter. Artwork prints on the closure flaps too, exactly as laid out on the design grid; the glue flap stays bare.' },
       { question: 'Does it adjust for board thickness?', answer: 'No. Panels are drawn at the nominal size you enter, without caliper or crease compensation. Your printer should adapt the final die to their board and tooling.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the unit to inches in the size picker; the Studio keeps the same unit when you open the template.' },
     ],

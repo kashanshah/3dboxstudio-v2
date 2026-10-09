@@ -3,18 +3,19 @@ import type { ArtworkByPanel } from './artwork';
 import { layerOverlaps, layerPrintsOn, type FullDielineArtworkLayer } from './full-dieline-artwork';
 import { continuationChain, type Crease } from './flap-continuation';
 
-// Panels that carry no artwork of their own (closure flaps, or an empty
-// bottom) continue a neighbour's artwork across the crease in its edge colour,
-// see flap-continuation.ts and flap-fill.ts. The 2D grid, the 3D model and the
-// print file all use this.
+// Closure flaps (and an empty bottom) print in a neighbour's edge colour
+// wherever their own artwork leaves them bare, see flap-continuation.ts and
+// flap-fill.ts. The 2D grid, the 3D model and the print file all use this.
 
 type Bounds = { width: number; height: number };
 
-export type InheritedFlap = {
+export type FlapChain = {
   flap: DielinePanel;
-  /** The neighbour whose artwork is continued over the flap. */
-  source: DielinePanel;
-  crease: Crease;
+  /**
+   * The neighbours whose edge the flap can take, nearest first, each with
+   * the crease the edge is read along; only those that carry artwork.
+   */
+  chain: { source: DielinePanel; crease: Crease }[];
 };
 
 export const panelName = (label: string) => label.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
@@ -25,26 +26,26 @@ export function layersReach(panel: DielinePanel, layers: FullDielineArtworkLayer
 }
 
 /**
- * The panels that continue a neighbour's artwork: those with neither artwork
- * of their own nor any sheet layer reaching them, each with the nearest
- * neighbour that has some. `prefix` is "Interior " for the inside print.
+ * The flaps that print in a neighbour's edge colour wherever their own
+ * artwork leaves them bare: every flap with a source and no panel artwork of
+ * its own (sheet layers may still cover part of it). `prefix` is "Interior "
+ * for the inside print.
  */
-export function inheritedFlaps(
+export function flapChains(
   sources: Record<string, string> | undefined,
   panels: DielinePanel[],
   bounds: Bounds,
   layers: FullDielineArtworkLayer[],
   artworkByPanel: ArtworkByPanel,
   prefix = '',
-): InheritedFlap[] {
+): FlapChain[] {
   if (!sources) return [];
-  const hasArtwork = (panel: DielinePanel) => !!artworkByPanel[`${prefix}${panelName(panel.label)}`] || layersReach(panel, layers, bounds);
+  const own = (panel: DielinePanel) => !!artworkByPanel[`${prefix}${panelName(panel.label)}`];
+  const hasArtwork = (panel: DielinePanel) => own(panel) || layersReach(panel, layers, bounds);
   const byId = new Map(panels.map(panel => [panel.id, panel]));
-  const result: InheritedFlap[] = [];
-  for (const flap of panels) {
-    if (!sources[flap.id] || hasArtwork(flap)) continue;
-    const found = continuationChain(flap, id => byId.get(sources[id])).find(item => hasArtwork(item.source));
-    if (found) result.push({ flap, ...found });
-  }
-  return result;
+  return panels.flatMap(flap => {
+    if (!sources[flap.id] || own(flap)) return [];
+    const chain = continuationChain(flap, id => byId.get(sources[id])).filter(item => hasArtwork(item.source));
+    return chain.length ? [{ flap, chain }] : [];
+  });
 }

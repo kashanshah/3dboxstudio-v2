@@ -1,5 +1,13 @@
 import { sanitizeCartonDimensions, type CartonDimensions } from '../../reverse-tuck';
-import { finishExportGeometry, rectangleOutline, type ExportPanel } from '../../export-geometry';
+import { arcPoints, finishExportGeometry, rectangleOutline, type ExportPanel, type LineMm, type PointMm } from '../../export-geometry';
+
+// The reverse tuck end carton (ECMA A20.20) as die makers draw it today. The
+// entered width, depth and height are the inside of the carton; each panel is
+// creased one board thickness wider so the folded carton keeps that inside.
+// Its closures lock: slits at the tuck creases catch on the dust flaps'
+// shoulders, the dust flaps crease one board below the lids so the lids close
+// flat over them, and the panel each tuck slides into is cut one board short
+// of its lid's crease, with a thumb notch at the top.
 
 const PANEL_LABELS: Record<string, string> = {
   'top-tuck': 'TOP TUCK',
@@ -20,92 +28,132 @@ export const REVERSE_TUCK_FLAP_SOURCES: Record<string, string> = {
   'top-left-dust': 'left', 'bottom-left-dust': 'left', 'top-right-dust': 'right', 'bottom-right-dust': 'right',
 };
 
-/** Closure flap sizes shared by the cutting template and the 3D preview. */
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+/** Every size of the cutting template, in millimetres, for an inside size. */
 export function reverseTuckClosureSizes(d: CartonDimensions) {
-  const clearance = Math.max(0.5, d.thickness);
-  const tongue = Math.min(25, Math.max(2, d.depth * 0.35));
-  const dustHeight = Math.min(d.depth * 0.65, d.width / 2 - clearance);
+  const t = d.thickness;
+  // Crease to crease: inside size plus one board. The back, which the glue
+  // flap is stuck to, takes half a board less.
+  const front = d.width + t, back = d.width + t / 2, side = d.depth + t, height = d.height + t;
+  const glue = clamp(0.3 * Math.min(d.width, d.depth) + 4, 10, 15);
+  const glueSetback = t + 1;
+  const glueTaper = glue * Math.tan(15 * Math.PI / 180);
+  // The tuck tongue slides down inside the opposite panel.
+  const tongue = Math.max(4, Math.min(clamp(0.4 * d.depth, 12, 25), d.height / 3));
+  const tuckInset = t + 0.5;
+  const shoulder = Math.min(3, tongue / 3);
+  const tuckRadius = Math.max(1, Math.min(clamp(0.6 * tongue, 5, 15), tongue - shoulder, (front - 2 * tuckInset) / 2 - 1));
+  const slit = Math.max(tuckInset + 1, Math.min(clamp(0.04 * d.width, 3, 6), front / 4));
+  // Dust flaps clear the panels beside them and leave room between their tips.
+  const dustRelief = t + 0.5;
+  const dustHeight = Math.max(4, Math.min(d.width / 2 - t - 1.5, Math.max(0.6 * d.depth, 12)));
+  const dustShoulder = Math.min(3, dustHeight / 3);
+  const dustTaper = Math.max(0, Math.min((dustHeight - dustShoulder) * Math.tan(20 * Math.PI / 180), (side - 2 * dustRelief) / 2 - 2));
+  const notch = Math.min(10, d.width / 6);
   return {
-    clearance,
-    tongue,
-    tongueBevel: Math.min(tongue * 0.25, (d.width - 2 * clearance) * 0.15),
-    dustHeight,
-    dustTaper: Math.min(d.depth * 0.2, dustHeight * 0.4),
+    t, front, back, side, height, glue, glueSetback, glueTaper,
+    tongue, tuckInset, shoulder, tuckRadius, slit,
+    dustRelief, dustHeight, dustShoulder, dustTaper, notch,
   };
 }
 
 /** The printable cutting template; it is also the design grid. */
 export function reverseTuckExportGeometry(input: CartonDimensions) {
   const d = sanitizeCartonDimensions(input);
-  const { clearance } = reverseTuckClosureSizes(d);
-  if (Math.min(d.width, d.height, d.depth) <= clearance * 4) {
-    throw new Error('These dimensions are too small for the selected board thickness. Increase the box size or reduce thickness.');
-  }
-  const glue = Math.max(12, Math.min(24, d.depth * 0.35));
-  if (d.width <= glue + 2 * clearance) {
-    throw new Error('The box width is too small to accommodate this template\'s glue flap. Increase the width before exporting.');
-  }
+  if (d.width < 20) throw new Error('The width is too small for the glue flap, tucks and thumb notch. Use a width of at least 20 mm.');
+  if (d.depth < 10) throw new Error('The depth is too small for a reverse tuck carton\'s glue flap and tuck. Use a depth of at least 10 mm.');
+  // The tuck tongue is at most a third of the height and needs about 8 mm to lock.
+  if (d.height < 24) throw new Error('The height is too small for the tuck tongues to lock. Use a height of at least 24 mm.');
   return reverseTuckSheet(d);
 }
 
 /** The cutting template's panels and outlines, without the printability checks. */
 export function reverseTuckSheet(input: CartonDimensions) {
   const d = sanitizeCartonDimensions(input);
-  const { clearance, tongue, tongueBevel, dustHeight, dustTaper } = reverseTuckClosureSizes(d);
-  const glue = Math.max(12, Math.min(24, d.depth * 0.35));
-  const bodyY = d.depth + tongue;
-  const frontX = glue + d.depth;
-  const backX = frontX + d.width + d.depth;
+  const s = reverseTuckClosureSizes(d);
+  const { t } = s;
+  const top = s.tongue + s.side;
+  const left = s.glue, frontX = left + s.side, right = frontX + s.front, backX = right + s.side;
   const panels: ExportPanel[] = [];
-  const rect = (id: string, x: number, y: number, width: number, height: number, kind: ExportPanel['kind']) => {
-    const panel = { id, label: PANEL_LABELS[id] ?? id.toUpperCase(), x, y, width, height, kind, sourceId: id };
-    const result: ExportPanel = { ...panel, outline: rectangleOutline(panel) };
-    panels.push(result);
-    return result;
+  const slits: LineMm[] = [];
+  const add = (id: string, kind: ExportPanel['kind'], outline: PointMm[], fold?: PointMm[]) => {
+    const xs = outline.map(point => point.x), ys = outline.map(point => point.y);
+    const x = Math.min(...xs), y = Math.min(...ys);
+    const panel: ExportPanel = {
+      id, label: PANEL_LABELS[id] ?? id.toUpperCase(), kind, sourceId: id,
+      x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y, outline,
+    };
+    if (fold) panel.fold = fold;
+    panels.push(panel);
+    return panel;
   };
-  const gluePanel = rect('glue', 0, bodyY, glue, d.height, 'glue');
-  gluePanel.outline = [
-    { x: glue, y: bodyY }, { x: glue, y: bodyY + d.height },
-    { x: 0, y: bodyY + d.height - clearance * 2 }, { x: 0, y: bodyY + clearance * 2 },
-  ];
-  rect('left', glue, bodyY, d.depth, d.height, 'body');
-  rect('front', frontX, bodyY, d.width, d.height, 'body');
-  rect('right', frontX + d.width, bodyY, d.depth, d.height, 'body');
-  rect('back', backX, bodyY, d.width, d.height, 'body');
-  rect('top', frontX, tongue, d.width, d.depth, 'flap');
+  const rect = (x: number, y: number, width: number, height: number) => rectangleOutline({ x, y, width, height } as ExportPanel);
+
+  // Body: the top lid creases on the front at `top`; the bottom lid on the
+  // back at `top + height`. Each tuck slides into the opposite panel, cut one
+  // board short of the lid's crease; the side panels are cut one board short
+  // at both ends, where the dust flaps crease.
+  const bottomCrease = top + s.height;
+  add('glue', 'glue', [
+    { x: left, y: top + t + s.glueSetback }, { x: left, y: bottomCrease - t - s.glueSetback },
+    { x: 0, y: bottomCrease - t - s.glueSetback - s.glueTaper }, { x: 0, y: top + t + s.glueSetback + s.glueTaper },
+  ]);
+  add('left', 'body', rect(left, top + t, s.side, s.height - 2 * t));
+  add('front', 'body', rect(frontX, top, s.front, s.height - t));
+  add('right', 'body', rect(right, top + t, s.side, s.height - 2 * t));
+  // The top tuck slides into the back; a thumb notch at its top edge lets
+  // the carton be opened.
+  const notchCentre = backX + s.back / 2;
+  add('back', 'body', [
+    { x: backX, y: top + t },
+    ...arcPoints(notchCentre, top + t, s.notch, Math.PI, 0, 12),
+    { x: backX + s.back, y: top + t }, { x: backX + s.back, y: bottomCrease }, { x: backX, y: bottomCrease },
+  ], rect(backX, top + t, s.back, s.height - t));
+  add('top', 'flap', rect(frontX, s.tongue, s.front, s.side));
   // Opposite hinge from the top is what makes this a reverse-tuck closure.
   // Hinged on the back, the bottom sits upside down on the sheet: artwork
   // placed on it alone is turned half a turn to read upright on the box.
-  rect('bottom', backX, bodyY + d.height, d.width, d.depth, 'flap').artworkRotation = 180;
+  add('bottom', 'flap', rect(backX, bottomCrease, s.back, s.side)).artworkRotation = 180;
 
-  for (const [id, x, hingeY, direction] of [
-    ['top-tuck', frontX, tongue, -1],
-    ['bottom-tuck', backX, bodyY + d.height + d.depth, 1],
+  for (const [id, x, width, hingeY, direction] of [
+    ['top-tuck', frontX, s.front, s.tongue, -1],
+    ['bottom-tuck', backX, s.back, bottomCrease + s.side, 1],
   ] as const) {
-    const y = direction === -1 ? hingeY - tongue : hingeY;
-    const panel = rect(id, x + clearance, y, d.width - 2 * clearance, tongue, 'flap');
-    const bevel = tongueBevel;
-    panel.outline = [
-      { x: x + clearance, y: hingeY }, { x: x + d.width - clearance, y: hingeY },
-      { x: x + d.width - clearance - bevel, y: hingeY + direction * tongue },
-      { x: x + clearance + bevel, y: hingeY + direction * tongue },
+    const { tongue, tuckInset: inset, shoulder, tuckRadius: radius } = s;
+    const l = x + inset, r = x + width - inset, tip = hingeY + direction * tongue;
+    const up = direction === -1;
+    // Straight shoulders below the crease, then rounded corners to the tip.
+    const outline: PointMm[] = [
+      { x: l, y: hingeY }, { x: r, y: hingeY },
+      { x: r, y: hingeY + direction * shoulder },
+      ...arcPoints(r - radius, tip - direction * radius, radius, 0, up ? -Math.PI / 2 : Math.PI / 2),
+      ...arcPoints(l + radius, tip - direction * radius, radius, up ? -Math.PI / 2 : Math.PI / 2, up ? -Math.PI : Math.PI),
+      { x: l, y: hingeY + direction * shoulder },
     ];
+    const bevel = radius * (1 - Math.SQRT1_2);
+    add(id, 'flap', outline, [{ x: l, y: hingeY }, { x: r, y: hingeY }, { x: r - bevel, y: tip }, { x: l + bevel, y: tip }]);
+    // Slit locks: the crease stops short of the tuck's ends.
+    slits.push(
+      { start: { x: l, y: hingeY }, end: { x: x + s.slit, y: hingeY } },
+      { start: { x: x + width - s.slit, y: hingeY }, end: { x: r, y: hingeY } },
+    );
   }
-  for (const [side, x] of [['left', glue], ['right', frontX + d.width]] as const) {
-    for (const [end, hingeY, direction] of [['top', bodyY, -1], ['bottom', bodyY + d.height, 1]] as const) {
-      const y = direction === -1 ? hingeY - dustHeight : hingeY;
-      const panel = rect(`${end}-${side}-dust`, x, y, d.depth, dustHeight, 'flap');
-      const taper = dustTaper;
-      panel.outline = [
-        { x, y: hingeY }, { x: x + d.depth, y: hingeY },
-        { x: x + d.depth - taper, y: hingeY + direction * dustHeight },
-        { x: x + taper, y: hingeY + direction * dustHeight },
-      ];
+  for (const [side, x] of [['left', left], ['right', right]] as const) {
+    for (const [end, hingeY, direction] of [['top', top + t, -1], ['bottom', bottomCrease - t, 1]] as const) {
+      const { dustRelief: relief, dustHeight: height, dustShoulder: shoulder, dustTaper: taper } = s;
+      const l = x + relief, r = x + s.side - relief, tip = hingeY + direction * height;
+      // A straight shoulder that the tuck's slit catches on, then a taper.
+      add(`${end}-${side}-dust`, 'flap', [
+        { x: l, y: hingeY }, { x: r, y: hingeY },
+        { x: r, y: hingeY + direction * shoulder }, { x: r - taper, y: tip },
+        { x: l + taper, y: tip }, { x: l, y: hingeY + direction * shoulder },
+      ], [{ x: l, y: hingeY }, { x: r, y: hingeY }, { x: r - taper, y: tip }, { x: l + taper, y: tip }]);
     }
   }
   return finishExportGeometry(panels, 'cutting-template', [
-    'Reverse-tuck cutting template with tuck tongues, dust flaps and tapered glue flap.',
-    'Nominal face sizes; no material or crease compensation. Obtain printer approval before production.',
+    'Reverse tuck end (ECMA A20.20): slit-locked tucks, shouldered dust flaps, 15° glue flap and a thumb notch.',
+    `Width, depth and height are inside sizes; panels are creased one board (${t} mm) wider. Ask your printer to confirm the allowances for the board you choose.`,
     'Artwork prints exactly as laid out on the design grid, including the closure flaps.',
-  ]);
+  ], { slits });
 }
