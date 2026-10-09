@@ -78,6 +78,60 @@ export function createFullDielineTransform(
   };
 }
 
+/**
+ * The artboard: the dieline's bounding box with the bleed added on every
+ * side. Artwork made at this size covers every cut edge's bleed.
+ */
+export function artboardSize(bounds: { width: number; height: number }, bleedMm: number) {
+  const bleed = Math.max(0, bleedMm);
+  return { width: bounds.width + 2 * bleed, height: bounds.height + 2 * bleed, bleed };
+}
+
+/** Fills the artboard (or the dieline alone with no bleed), cropping the image's overflow. */
+export function artboardTransform(
+  imageAspect: number,
+  bounds: { width: number; height: number },
+  bleedMm: number,
+  rotation = 0,
+): FullDielineTransform {
+  const board = artboardSize(bounds, bleedMm);
+  const aspect = Math.max(0.0001, imageAspect);
+  // Quarter turns swap the image's sides on the sheet.
+  const turned = Math.abs(Math.round(rotation / 90)) % 2 === 1;
+  const boardWidth = turned ? board.height : board.width, boardHeight = turned ? board.width : board.height;
+  let width = boardWidth, height = boardWidth / aspect;
+  if (height < boardHeight) { height = boardHeight; width = boardHeight * aspect; }
+  return { x: 50, y: 50, width: width / bounds.width * 100, height: height / bounds.height * 100, rotation };
+}
+
+/** How close an image's proportions must be to count as made for the artboard. */
+const ARTBOARD_ASPECT_TOLERANCE = 0.01;
+
+/**
+ * Where a newly added full-sheet image goes: artwork made for the artboard
+ * (dieline plus bleed) or for the dieline alone lands exactly on it; anything
+ * else is placed in the middle at the given scale.
+ */
+export function placeFullDielineArtwork(
+  imageAspect: number,
+  bounds: { width: number; height: number },
+  bleedMm: number,
+  scalePercent = 100,
+  rotation = 0,
+): FullDielineTransform {
+  if (scalePercent === 100 && rotation === 0) {
+    const matches = (width: number, height: number) => Math.abs(imageAspect / (width / height) - 1) <= ARTBOARD_ASPECT_TOLERANCE;
+    const board = artboardSize(bounds, bleedMm);
+    const fitsBoard = matches(board.width, board.height), fitsSheet = matches(bounds.width, bounds.height);
+    if (fitsBoard || fitsSheet) {
+      // Nearest of the two when both are within tolerance.
+      const board0 = Math.abs(imageAspect - board.width / board.height), sheet0 = Math.abs(imageAspect - bounds.width / bounds.height);
+      return artboardTransform(imageAspect, bounds, fitsBoard && (!fitsSheet || board0 <= sheet0) ? bleedMm : 0);
+    }
+  }
+  return createFullDielineTransform(imageAspect, bounds.width / bounds.height, scalePercent, rotation);
+}
+
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();

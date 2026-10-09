@@ -15,10 +15,10 @@ import { CameraAngleIcon } from './camera-angle-icon';
 import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
-  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X, Eye, EyeOff, Contrast, Film
 } from 'lucide-react';
@@ -32,7 +32,7 @@ import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometr
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
-import { createFullDielineTransform, layerPrintsOn, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
@@ -939,12 +939,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         name: asset.name,
         url: asset.url,
         aspectRatio: imageAspect,
-        transform: createFullDielineTransform(
-          imageAspect,
-          bounds.width / bounds.height,
-          scale,
-          options?.rotation ?? 0,
-        ),
+        // Artwork made at the artboard's (or the dieline's) proportions lands exactly on it.
+        transform: placeFullDielineArtwork(imageAspect, bounds, pdfExportOptions.bleedMm, scale, options?.rotation ?? 0),
       };
 
       if (artworkScope === 'inside') {
@@ -2685,7 +2681,7 @@ function Inspector(props: {
         <label className="pro-pdf-bleed"><span>Bleed</span><input aria-label="PDF bleed in millimetres" type="number" min="0" max="10" step="0.5" value={props.pdfOptions.bleedMm} onChange={event=>props.setPdfOptions(current=>({...current,bleedMm:Number(event.target.value)}))}/><span>mm</span></label>
         <label><input type="checkbox" checked={props.pdfOptions.includeCutCrease} onChange={event=>props.setPdfOptions(current=>({...current,includeCutCrease:event.target.checked}))}/><span>Cut and crease lines</span></label>
         <label><input type="checkbox" checked={props.pdfOptions.includeCalibration} onChange={event=>props.setPdfOptions(current=>({...current,includeCalibration:event.target.checked}))}/><span>100 mm calibration ruler</span></label>
-        <p>Artwork must extend past the cut to fill the bleed. Print at Actual size / 100%.</p>
+        <p>Artwork must extend past the cut to fill the bleed: make full-sheet art at the artboard size shown under the design sheet (the dieline plus the bleed on every side). Print at Actual size / 100%.</p>
         {exportRuntime?.exportArtworkNote && <p>{exportRuntime.exportArtworkNote}</p>}
       </div>
       <button className="pro-primary pro-export-button pro-export-pdf-button" disabled={props.pdfBusy} onClick={props.onExportPdf}><Download size={16}/> {props.pdfBusy?'Preparing PDF…':'Download 1:1 PDF'}</button>
@@ -2795,6 +2791,11 @@ function DielinePrototype({
   // The cutting template's own cut and crease lines, drawn over the artwork.
   // Sizes the cutting template cannot be made at (a width half typed, say)
   // simply show no lines.
+  // The PDF's bleed, shown on the sheet: artwork made at the artboard's size
+  // (the dieline's box plus the bleed all round) covers every cut edge.
+  const bleedMm = pdfExportOptions.bleedMm;
+  const artboard = artboardSize(bounds, bleedMm);
+  const maskId = useId().replace(/:/g,'');
   const sheetLines = useMemo(()=>{
     try { return getTemplateExportGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}); }
     catch { return null; }
@@ -3216,10 +3217,16 @@ function DielinePrototype({
           {activeTransformLayer ? <>
             <div className="pro-design-transform-panel-head">
               <div><span>{t("studio.transform")}</span><strong>{t("studio.exact_placement")}</strong></div>
+              <div className="pro-transform-head-actions">
               <button type="button" className="pro-secondary-button" onClick={() => onUpdateLayer(
                 activeTransformLayer.id,
                 createFullDielineTransform(activeTransformLayer.aspectRatio, activeTransformWidth / activeTransformHeight),
               )}><Maximize2 size={15}/>{" " + t("studio.reset")}</button>
+              {selectedLayer?.id===activeTransformLayer.id && <button type="button" className="pro-secondary-button" title={`Cover the dieline and its ${pdfExportOptions.bleedMm} mm bleed`} onClick={()=>onUpdateLayer(
+                selectedLayer.id,
+                artboardTransform(selectedLayer.aspectRatio, bounds, pdfExportOptions.bleedMm, normalizeAngle(selectedLayer.transform.rotation)),
+              )}><Square size={15}/> Fill artboard</button>}
+              </div>
             </div>
 
             {selectedLayer && <section className="pro-layer-opacity-control" aria-label="Layer opacity">
@@ -3303,6 +3310,24 @@ function DielinePrototype({
           return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:boardPolygon(panel,bounds)}}>{printed}</div>);
         })}
         </div>
+        {/* What prints: the dieline with the bleed past every cut edge, on an
+            artboard of the dieline plus bleed. Artwork beyond it is offcut. */}
+        {sheetLines && <svg className="pro-dieline-bleed" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <mask id={`${maskId}-offcut`} maskUnits="userSpaceOnUse" x={-bounds.width} y={-bounds.height} width={3*bounds.width} height={3*bounds.height}>
+              <rect x={-bounds.width} y={-bounds.height} width={3*bounds.width} height={3*bounds.height} fill="#fff"/>
+              <PrintedArea geometry={sheetLines} bleed={bleedMm} colour="#000"/>
+            </mask>
+            {bleedMm>0 && <mask id={`${maskId}-band`} maskUnits="userSpaceOnUse" x={-bleedMm} y={-bleedMm} width={artboard.width} height={artboard.height}>
+              {sheetLines.cut.map((line,index)=><line key={index} x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} stroke="#fff" strokeWidth={2*bleedMm} strokeLinecap="round"/>)}
+              {sheetLines.panels.map(panel=><polygon key={panel.id} points={panel.outline.map(point=>`${point.x},${point.y}`).join(' ')} fill="#000"/>)}
+            </mask>}
+          </defs>
+          <rect className="dl-offcut" x={-bounds.width} y={-bounds.height} width={3*bounds.width} height={3*bounds.height} mask={`url(#${maskId}-offcut)`}/>
+          {bleedMm>0 && <rect className="dl-bleed-band" x={-bleedMm} y={-bleedMm} width={artboard.width} height={artboard.height} mask={`url(#${maskId}-band)`}/>}
+          <rect className="dl-artboard" x={-bleedMm} y={-bleedMm} width={artboard.width} height={artboard.height}/>
+        </svg>}
+
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
@@ -3397,7 +3422,8 @@ function DielinePrototype({
     <div className="pro-dieline-legend">
       <span><i className="cut"/>{t("studio.cut")}</span>
       <span><i className="crease"/>{t("studio.crease")}</span>
-      <span><i className="bleed"/>{t("studio.bleed")}</span>
+      <span><i className="bleed"/>{t("studio.bleed")} {bleedMm} mm</span>
+      <span title="Make full-sheet artwork at this size: the dieline's box plus the bleed on every side."><i className="artboard"/>Artboard {formatArtboardMm(artboard.width)} × {formatArtboardMm(artboard.height)} mm</span>
       <strong>{layers.length ? t("studio.drag_freely_hold_shift_while_resizing_to_change_proportions_hold_shift_whil") : `Add artwork to the ${artworkScope} side of the sheet`}</strong>
     </div>
 
@@ -3418,6 +3444,16 @@ function pointerIn(container:HTMLElement,event:{clientX:number;clientY:number}){
   const rect=container.getBoundingClientRect();
   return {x:rect.left+rect.right-event.clientX,y:rect.top+rect.bottom-event.clientY};
 }
+
+/** The dieline's panels with the bleed past their cut edges, filled in one colour (an SVG mask's contents). */
+function PrintedArea({geometry,bleed,colour}:{geometry:{panels:{id:string;outline:{x:number;y:number}[]}[];cut:{start:{x:number;y:number};end:{x:number;y:number}}[]};bleed:number;colour:string}){
+  return <>
+    {geometry.panels.map(panel=><polygon key={panel.id} points={panel.outline.map(point=>`${point.x},${point.y}`).join(' ')} fill={colour}/>)}
+    {bleed>0 && geometry.cut.map((line,index)=><line key={index} x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} stroke={colour} strokeWidth={2*bleed} strokeLinecap="round"/>)}
+  </>;
+}
+
+const formatArtboardMm=(value:number)=>Number(value.toFixed(1)).toString();
 
 function boardPolygon(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]},bounds:{width:number;height:number}){
   return `polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`;

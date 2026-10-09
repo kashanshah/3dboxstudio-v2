@@ -16,7 +16,7 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
 };
 const {buildMeshes}=require('../src/components/studio/carton-engine.tsx');
 const {reverseTuckPanels,reverseTuckBounds,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
-const {dielineRasterSize,panelRasterSize,sheetTransformToPhysical}=require('../src/lib/packaging/full-dieline-artwork.ts');
+const {artboardSize,artboardTransform,dielineRasterSize,panelRasterSize,placeFullDielineArtwork,sheetTransformToPhysical}=require('../src/lib/packaging/full-dieline-artwork.ts');
 const fixtures=[
   {width:47.5*25.4,height:22.5*25.4,depth:25.5*25.4,thickness:.5},
   {width:20,height:40,depth:10,thickness:.5},
@@ -930,4 +930,31 @@ test('pizza box panel artwork reads upright on the closed box',()=>{
   assert.ok(up('Back')[1]>0.99,'back wall artwork points up');
   assert.ok(up('Lid Front')[1]>0.99,'lid front artwork points up');
   assert.ok(up('Top')[2]<-0.99,'lid artwork points to the hinge, reading from the front');
+});
+
+test('full-sheet artwork made at the artboard or dieline size lands exactly on it',()=>{
+  const bounds={width:400,height:250},bleed=3;
+  const board=artboardSize(bounds,bleed);
+  near(board.width,406);near(board.height,256);
+  const covers=(t,x0,y0,x1,y1)=>{
+    const p=sheetTransformToPhysical(t,bounds);
+    near(p.centerX-p.width/2,x0);near(p.centerY-p.height/2,y0);near(p.centerX+p.width/2,x1);near(p.centerY+p.height/2,y1);
+  };
+  // Made for the artboard: covers the dieline and its bleed exactly.
+  covers(placeFullDielineArtwork(406/256,bounds,bleed),-3,-3,403,253);
+  // Made for the dieline alone: covers the dieline exactly.
+  covers(placeFullDielineArtwork(400/250,bounds,bleed),0,0,400,250);
+  // Anything else is placed in the middle, smaller, as before.
+  const other=sheetTransformToPhysical(placeFullDielineArtwork(1,bounds,bleed),bounds);
+  assert.ok(other.width<bounds.width&&other.height<bounds.height);
+  // Fill artboard covers it whatever the proportions, cropping the overflow.
+  for(const aspect of [0.5,1,3]){
+    const p=sheetTransformToPhysical(artboardTransform(aspect,bounds,bleed),bounds);
+    assert.ok(p.width>=406-1e-9&&p.height>=256-1e-9,`aspect ${aspect}`);
+    assert.ok(Math.abs(p.width-406)<1e-9||Math.abs(p.height-256)<1e-9);
+    near(p.width/p.height,aspect);
+  }
+  // A quarter-turned layer covers it along the sheet's axes.
+  const turned=sheetTransformToPhysical(artboardTransform(256/406,bounds,bleed,90),bounds);
+  near(turned.width,256);near(turned.height,406);
 });
