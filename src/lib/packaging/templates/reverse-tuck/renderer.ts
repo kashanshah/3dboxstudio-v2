@@ -1,5 +1,6 @@
 import { reverseTuckFoldState, reverseTuckPanels, sanitizeCartonDimensions, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { faceNormal, quadFromCorners, type Mesh, type TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
+import { reverseTuckClosureSizes } from './export';
 
 export const buildReverseTuckTemplateMeshes:TemplateMeshBuilder=({dimensions,formation,color,interiorColor})=>
   buildReverseTuckMeshes(dimensions,formation,color,interiorColor);
@@ -17,8 +18,10 @@ function buildReverseTuckMeshes(
   const fold = reverseTuckFoldState(opening);
   const wallAngle = fold.walls * Math.PI / 2;
   const backAngle = fold.back * Math.PI / 2;
-  const topAngle = fold.top * Math.PI / 2;
-  const bottomAngle = fold.bottom * Math.PI / 2;
+  // Each closure folds like a real carton: dust flaps first, then the lid,
+  // and the tuck tongue bends in as the lid comes down.
+  const topAngle = substage(fold.top, 0.25, 1) * Math.PI / 2;
+  const bottomAngle = substage(fold.bottom, 0.25, 1) * Math.PI / 2;
 
   const x0 = -w / 2;
   const x1 = w / 2;
@@ -198,11 +201,79 @@ function buildReverseTuckMeshes(
     }
   }
 
+  // Unprinted closure flaps from the cutting template, so the 3D carton opens
+  // and closes with the same tuck tongues and dust flaps as the printed one.
+  const sizes = reverseTuckClosureSizes(dimensions);
+  const flaps: Array<{ parent: number[][]; hinge: [number, number]; length: number; angle: number; inset: [number, number]; taper: [number, number] }> = [];
+  const tongueInset: [number, number] = [sizes.clearance, sizes.clearance];
+  const tongueTaper: [number, number] = [sizes.clearance + sizes.tongueBevel, sizes.clearance + sizes.tongueBevel];
+  flaps.push({ parent: topCorners, hinge: [3, 2], length: sizes.tongue, angle: substage(fold.top, 0.55, 1) * Math.PI / 2, inset: tongueInset, taper: tongueTaper });
+  flaps.push({ parent: bottomCorners, hinge: [0, 1], length: sizes.tongue, angle: substage(fold.bottom, 0.55, 1) * Math.PI / 2, inset: tongueInset, taper: tongueTaper });
+  const dustTaper: [number, number] = [sizes.dustTaper, sizes.dustTaper];
+  for (const wall of [leftCorners, rightCorners]) {
+    flaps.push({ parent: wall, hinge: [3, 2], length: sizes.dustHeight, angle: substage(fold.top, 0, 0.4) * Math.PI / 2, inset: [0, 0], taper: dustTaper });
+    flaps.push({ parent: wall, hinge: [0, 1], length: sizes.dustHeight, angle: substage(fold.bottom, 0, 0.4) * Math.PI / 2, inset: [0, 0], taper: dustTaper });
+  }
+  for (const flap of flaps) {
+    if (flap.length <= 0) continue;
+    const corners = closureFlapCorners(flap.parent, flap.hinge, flap.length, flap.angle, flap.inset, flap.taper, t);
+    const exterior = quadFromCorners(corners, color);
+    exterior.closureFlap = true;
+    exteriorMeshes.push(exterior);
+    const normal = faceNormal(corners);
+    const insideCorners = corners.map(point => point.map((value, axis) => value - normal[axis] * t));
+    const inside = quadFromCorners([insideCorners[3], insideCorners[2], insideCorners[1], insideCorners[0]], interior);
+    inside.closureFlap = true;
+    interiorMeshes.push(inside);
+    if (!showExposedBoardEdges) continue;
+    const edgeColor = color.map(value => Math.max(0, Math.min(1, value * 0.72))) as [number, number, number];
+    for (let index = 1; index < 4; index += 1) {
+      const nextIndex = (index + 1) % 4;
+      const edgeMesh = quadFromCorners([corners[index], corners[nextIndex], insideCorners[nextIndex], insideCorners[index]], edgeColor, false);
+      edgeMesh.doubleSided = true;
+      edgeMeshes.push(edgeMesh);
+    }
+  }
+
   // Free edges can also end flush against another panel's printed face (the
   // back's end against the left wall, closed flaps against the back). Those
   // strips are hidden in a real carton and flicker when drawn, so drop them.
   const visibleEdges = edgeMeshes.filter(edge => !exteriorMeshes.some(face => overlapsCoplanar(edge, face)));
   return [...exteriorMeshes, ...interiorMeshes, ...visibleEdges];
+}
+
+/**
+ * Corners of a flap hinged on the parent's edge hinge[0]→hinge[1], folded
+ * `angle` toward the inside of the carton. Inset and taper narrow the hinge
+ * and the free end. Folded flaps sit a little more than one board inside the
+ * panel they tuck behind, so the two never share a plane.
+ */
+function closureFlapCorners(parent: number[][], hinge: [number, number], length: number, angle: number, inset: [number, number], taper: [number, number], t: number) {
+  const a = parent[hinge[0]], b = parent[hinge[1]];
+  const along = normalize(sub(b, a));
+  const span = Math.hypot(...sub(b, a));
+  const centre = [0, 1, 2].map(axis => parent.reduce((sum, point) => sum + point[axis], 0) / parent.length);
+  // In-plane direction from the parent across the hinge.
+  const toHinge = sub(a, centre);
+  const outward = normalize(sub(toHinge, along.map(value => value * dot(toHinge, along))));
+  const parentNormal = faceNormal(parent);
+  const direction = outward.map((value, axis) => value * Math.cos(angle) - parentNormal[axis] * Math.sin(angle));
+  const flapNormal = outward.map((value, axis) => value * Math.sin(angle) + parentNormal[axis] * Math.cos(angle));
+  const clearance = flapNormal.map(value => -value * t * 1.5 * Math.sin(angle));
+  const at = (u: number, v: number) => [0, 1, 2].map(axis => a[axis] + along[axis] * u + direction[axis] * v + clearance[axis]);
+  const corners = [at(inset[0], 0), at(span - inset[1], 0), at(span - taper[1], length), at(taper[0], length)];
+  const facing = dot(faceNormal(corners), flapNormal) >= 0;
+  return facing ? corners : [corners[1], corners[0], corners[3], corners[2]];
+}
+
+function normalize(v: number[]) {
+  const length = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / length, v[1] / length, v[2] / length];
+}
+
+function substage(value: number, start: number, end: number) {
+  const x = clamp((value - start) / (end - start), 0, 1);
+  return x * x * (3 - 2 * x);
 }
 
 const corners = (mesh: Mesh) => [0, 1, 2, 5].map(index => Array.from(mesh.vertices.slice(index * 8, index * 8 + 3)));

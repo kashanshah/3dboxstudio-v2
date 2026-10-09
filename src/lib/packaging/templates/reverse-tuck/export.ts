@@ -1,10 +1,24 @@
 import { sanitizeCartonDimensions, type CartonDimensions } from '../../reverse-tuck';
 import { finishExportGeometry, rectangleOutline, type ExportPanel } from '../../export-geometry';
 
+/** Closure flap sizes shared by the cutting template and the 3D preview. */
+export function reverseTuckClosureSizes(d: CartonDimensions) {
+  const clearance = Math.max(0.5, d.thickness);
+  const tongue = Math.min(25, Math.max(2, d.depth * 0.35));
+  const dustHeight = Math.min(d.depth * 0.65, d.width / 2 - clearance);
+  return {
+    clearance,
+    tongue,
+    tongueBevel: Math.min(tongue * 0.25, (d.width - 2 * clearance) * 0.15),
+    dustHeight,
+    dustTaper: Math.min(d.depth * 0.2, dustHeight * 0.4),
+  };
+}
+
 /** Independent cutting geometry. Saved mockup panels retain their original coordinates. */
 export function reverseTuckExportGeometry(input: CartonDimensions) {
   const d = sanitizeCartonDimensions(input);
-  const clearance = Math.max(0.5, d.thickness);
+  const { clearance, tongue, tongueBevel, dustHeight, dustTaper } = reverseTuckClosureSizes(d);
   if (Math.min(d.width, d.height, d.depth) <= clearance * 4) {
     throw new Error('These dimensions are too small for the selected board thickness. Increase the box size or reduce thickness.');
   }
@@ -12,7 +26,6 @@ export function reverseTuckExportGeometry(input: CartonDimensions) {
   if (d.width <= glue + 2 * clearance) {
     throw new Error('The box width is too small to accommodate this template\'s glue flap. Increase the width before exporting.');
   }
-  const tongue = Math.min(25, Math.max(2, d.depth * 0.35));
   const bodyY = d.depth + tongue;
   const frontX = glue + d.depth;
   const backX = frontX + d.width + d.depth;
@@ -42,19 +55,18 @@ export function reverseTuckExportGeometry(input: CartonDimensions) {
   ] as const) {
     const y = direction === -1 ? hingeY - tongue : hingeY;
     const panel = rect(id, x + clearance, y, d.width - 2 * clearance, tongue, 'flap');
-    const bevel = Math.min(tongue * 0.25, (d.width - 2 * clearance) * 0.15);
+    const bevel = tongueBevel;
     panel.outline = [
       { x: x + clearance, y: hingeY }, { x: x + d.width - clearance, y: hingeY },
       { x: x + d.width - clearance - bevel, y: hingeY + direction * tongue },
       { x: x + clearance + bevel, y: hingeY + direction * tongue },
     ];
   }
-  const dustHeight = Math.min(d.depth * 0.65, d.width / 2 - clearance);
   for (const [side, x] of [['left', glue], ['right', frontX + d.width]] as const) {
     for (const [end, hingeY, direction] of [['top', bodyY, -1], ['bottom', bodyY + d.height, 1]] as const) {
       const y = direction === -1 ? hingeY - dustHeight : hingeY;
       const panel = rect(`${end}-${side}-dust`, x, y, d.depth, dustHeight, 'flap');
-      const taper = Math.min(d.depth * 0.2, dustHeight * 0.4);
+      const taper = dustTaper;
       panel.outline = [
         { x, y: hingeY }, { x: x + d.depth, y: hingeY },
         { x: x + d.depth - taper, y: hingeY + direction * dustHeight },

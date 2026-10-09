@@ -12,6 +12,8 @@ export type Mesh = {
   pickCorners?: number[][];
   faceAspect?: number;
   doubleSided?: boolean;
+  /** Unprinted closure flap (tuck tongue, dust flap): drawn but never picked or printed. */
+  closureFlap?: boolean;
 };
 
 export type TemplateMeshInput = {

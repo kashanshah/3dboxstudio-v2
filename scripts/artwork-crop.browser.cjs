@@ -35,15 +35,18 @@ const runtime = `const modules={${Object.entries(modules).map(([id, code]) => `$
     const page = await browser.newPage({ viewport: { width: 1200, height: 1200 }, deviceScaleFactor: 1 });
     await page.setContent('<html><body></body></html>');
     await page.addScriptTag({ content: runtime });
-    // Exercise the actual WebGL shader against V1's Three.js UV matrix.
-    const shader=fs.readFileSync(path.resolve(__dirname,'../src/components/studio/carton-engine.tsx'),'utf8').match(/const FRAGMENT_SHADER = `([\s\S]*?)`;/)[1];
+    // Exercise the renderer's actual artwork placement GLSL against V1's Three.js UV matrix.
+    const rendererSource=fs.readFileSync(path.resolve(__dirname,'../src/components/studio/carton-renderer.ts'),'utf8');
+    const glsl=name=>rendererSource.match(new RegExp(`const ${name} = /\\* glsl \\*/\`([\\s\\S]*?)\`;`))[1];
+    const shader=`#extension GL_OES_standard_derivatives : enable\nprecision highp float;\n${glsl('FRAGMENT_PARS')}\nvoid main(){vec4 diffuseColor=vec4(0.,0.,0.,1.);${glsl('ARTWORK_FRAGMENT')}gl_FragColor=vec4(diffuseColor.rgb,1.);}`;
     const uvResult=await page.evaluate(fragment=>{
       const canvas=document.createElement('canvas');canvas.width=canvas.height=64;
       const gl=canvas.getContext('webgl',{preserveDrawingBuffer:true,antialias:false});
       if(!gl)throw new Error('WebGL unavailable');
+      gl.getExtension('OES_standard_derivatives');
       const compile=(type,source)=>{const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh));return sh;};
       const program=gl.createProgram();
-      gl.attachShader(program,compile(gl.VERTEX_SHADER,'attribute vec2 aPosition;varying vec2 vUv;varying vec3 vNormal;void main(){gl_Position=vec4(aPosition,0.,1.);vUv=aPosition*.5+.5;vNormal=vec3(0.,0.,1.);}'));
+      gl.attachShader(program,compile(gl.VERTEX_SHADER,'attribute vec2 aPosition;varying vec2 vArtUv;void main(){gl_Position=vec4(aPosition,0.,1.);vArtUv=aPosition*.5+.5;}'));
       gl.attachShader(program,compile(gl.FRAGMENT_SHADER,fragment));gl.linkProgram(program);gl.useProgram(program);
       const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
       const location=gl.getAttribLocation(program,'aPosition');gl.enableVertexAttribArray(location);gl.vertexAttribPointer(location,2,gl.FLOAT,false,0,0);
@@ -53,7 +56,7 @@ const runtime = `const modules={${Object.entries(modules).map(([id, code]) => `$
       const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,source);
       gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
       const uniform=name=>gl.getUniformLocation(program,name);
-      gl.uniform1i(uniform('uUseTexture'),1);gl.uniform2f(uniform('uUvScale'),1,1);gl.uniform2f(uniform('uUvOffset'),0,0);gl.uniform3f(uniform('uLightDirection'),0,0,1);gl.uniform1f(uniform('uLightIntensity'),0);
+      gl.uniform1i(uniform('uUseArt'),1);gl.uniform2f(uniform('uUvScale'),1,1);gl.uniform2f(uniform('uUvOffset'),0,0);gl.uniform1f(uniform('uFiber'),0);
       let comparisons=0;
       for(const crop of [{x:0,y:0,width:1,height:1},{x:.2,y:.1,width:.5,height:.8}])for(const deg of [0,27,90,180,270])for(const range of [[0,0,1,1],[0,0,1,.5],[0,.5,1,.5]]){
         gl.uniform4f(uniform('uUvCrop'),crop.x,1-crop.y-crop.height,crop.width,crop.height);gl.uniform1f(uniform('uUvRotation'),deg*Math.PI/180);gl.uniform4f(uniform('uFaceUv'),...range);gl.drawArrays(gl.TRIANGLES,0,6);

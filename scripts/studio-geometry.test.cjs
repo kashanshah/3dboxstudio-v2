@@ -237,12 +237,13 @@ test('board thickness edges are single two-sided surfaces with no coplanar dupli
   for(const dimensions of fixtures){
     for(const closure of [0,50,100]){
       const meshes=buildMeshes(dimensions,closure,[1,1,1],[.8,.8,.8]);
-      const edges=meshes.filter(mesh=>!mesh.panel);
+      const edges=meshes.filter(mesh=>!mesh.panel&&!mesh.closureFlap);
       if(closure===100){
         assert.equal(edges.length,0,'fully closed cartons should not draw hidden thickness walls over panel joins');
         continue;
       }
-      assert.ok(edges.length>0 && edges.length<=7*4,'coincident hinge edges should be deduplicated');
+      // Seven panels plus six closure flaps with three cut edges each.
+      assert.ok(edges.length>0 && edges.length<=7*4+6*3,'coincident hinge edges should be deduplicated');
       assert.ok(edges.every(mesh=>mesh.doubleSided===true),'physical edge meshes must be rendered two-sided');
 
       const signatures=new Set();
@@ -544,7 +545,8 @@ test('generic Studio paths contain no template-id geometry shortcuts',()=>{
 });
 
 test('shared carton engine delegates geometry instead of registering template renderers',()=>{
-  const source=fs.readFileSync(path.resolve(__dirname,'../src/components/studio/carton-engine.tsx'),'utf8');
+  const source=['carton-engine.tsx','carton-scene.ts','carton-renderer.ts']
+    .map(file=>fs.readFileSync(path.resolve(__dirname,'../src/components/studio',file),'utf8')).join('\n');
   for(const rendererKey of ['reverse-tuck-v1','base-box-v1','split-top-box-v1']){
     assert.equal(source.includes(rendererKey),false,`shared renderer hard-codes ${rendererKey}`);
   }
