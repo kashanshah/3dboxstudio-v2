@@ -66,9 +66,6 @@ export const buildReverseTuckTemplateMeshes: TemplateMeshBuilder = ({ dimensions
     id: panel.id,
     name: NAMES[panel.id] ?? panel.label,
     outline: panel.outline,
-    // Until the design grid shows the real cutting template, bottom artwork is
-    // stored in the old orientation, which the print file turns 180°.
-    artworkRotation: panel.sourceRotation === 180 ? 180 : 0,
     closureFlap: !['glue', 'left', 'front', 'right', 'back', 'top', 'bottom'].includes(panel.id),
     layer: panel.id === 'top' || panel.id === 'bottom' ? 2 : PARENT[panel.id] && !['left', 'right', 'back'].includes(panel.id) ? 0 : 1,
   }));

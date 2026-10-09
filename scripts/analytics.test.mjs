@@ -232,7 +232,7 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
       dimensions:{width:10,height:20,length:30},material:'Kraft',opening:0,formation:100,openingMode:'closed',splitTopHingeSide:'side_a',measurementUnit:'mm',
       initial:undefined,outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'',insideCustomColor:'',projectName:'Private name',
       projectRevision:creating?undefined:1,workspaceProjectId:'private-workspace',projectId:creating?undefined:'private-project',historySerialized:'{}',saveFingerprint:'{}',
-      lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},savedNameRef:{current:'Private name'},Blob,
+      lastSavedFingerprintRef:{current:''},autosaveBlockedFingerprintRef:{current:null},savedNameRef:{current:'Private name'},Blob,layoutVersionFor:()=>1,
       window:{history:{replaceState:()=>{}}},setNewDesignOpen:open=>closed.push(open),setNewDesignError:error=>errors.push(error),
       fetch:async(url,request)=>{requests.push({url,...request});return {ok:!failed,status:failed?(creating?500:409):200,json:async()=>failed?{error:'Service unavailable'}:{project:{id:'private-project',revision:creating?1:2}}};}};
     for(const setter of ['setSaving','setSaveFailed','setProjectId','setProjectRevision','setProjectName','setWorkspaceProjectId','setSaveConflictOpen','setHasUnsavedChanges','setMessage'])context[setter]=()=>{};

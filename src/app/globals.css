@@ -1870,6 +1870,14 @@ body{font-size:var(--type-body)}
 }
 
 .pro-full-artwork-print-surface{position:absolute;inset:0;z-index:10;pointer-events:none}
+.pro-printed-artwork-clip{position:absolute;inset:0;pointer-events:none}
+/* Tapered flaps: the outline is drawn as a shape, the box border is hidden. */
+.dl-live.is-shaped{border-color:transparent!important}
+/* Narrow closure flaps: labels wrap inside the flap instead of running past it. */
+.dl-live.is-shaped.dl-flap .dl-label{max-width:62%;text-align:center;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+.pro-dieline-shapes{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
+.pro-dieline-shapes .dl-shape{fill:none;stroke:var(--accent);stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.pro-dieline-shapes .dl-shape-glue{stroke-dasharray:5 3}
 .pro-printed-artwork-layer{position:absolute;transform-origin:center}
 .pro-printed-artwork-layer img{display:block;width:100%;height:100%;object-fit:fill}
 .pro-artwork-transform-hit-area{position:absolute;inset:0}

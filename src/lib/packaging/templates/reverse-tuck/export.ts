@@ -24,7 +24,7 @@ export function reverseTuckClosureSizes(d: CartonDimensions) {
   };
 }
 
-/** Independent cutting geometry. Saved mockup panels retain their original coordinates. */
+/** The printable cutting template; it is also the design grid. */
 export function reverseTuckExportGeometry(input: CartonDimensions) {
   const d = sanitizeCartonDimensions(input);
   const { clearance } = reverseTuckClosureSizes(d);
@@ -47,24 +47,24 @@ export function reverseTuckSheet(input: CartonDimensions) {
   const frontX = glue + d.depth;
   const backX = frontX + d.width + d.depth;
   const panels: ExportPanel[] = [];
-  const rect = (id: string, x: number, y: number, width: number, height: number, kind: ExportPanel['kind'], sourceId?: string) => {
-    const panel = { id, label: PANEL_LABELS[id] ?? id.toUpperCase(), x, y, width, height, kind, sourceId };
+  const rect = (id: string, x: number, y: number, width: number, height: number, kind: ExportPanel['kind']) => {
+    const panel = { id, label: PANEL_LABELS[id] ?? id.toUpperCase(), x, y, width, height, kind, sourceId: id };
     const result: ExportPanel = { ...panel, outline: rectangleOutline(panel) };
     panels.push(result);
     return result;
   };
-  const gluePanel = rect('glue', 0, bodyY, glue, d.height, 'glue', 'glue');
+  const gluePanel = rect('glue', 0, bodyY, glue, d.height, 'glue');
   gluePanel.outline = [
     { x: glue, y: bodyY }, { x: glue, y: bodyY + d.height },
     { x: 0, y: bodyY + d.height - clearance * 2 }, { x: 0, y: bodyY + clearance * 2 },
   ];
-  rect('left', glue, bodyY, d.depth, d.height, 'body', 'left');
-  rect('front', frontX, bodyY, d.width, d.height, 'body', 'front');
-  rect('right', frontX + d.width, bodyY, d.depth, d.height, 'body', 'right');
-  rect('back', backX, bodyY, d.width, d.height, 'body', 'back');
-  rect('top', frontX, tongue, d.width, d.depth, 'flap', 'top');
+  rect('left', glue, bodyY, d.depth, d.height, 'body');
+  rect('front', frontX, bodyY, d.width, d.height, 'body');
+  rect('right', frontX + d.width, bodyY, d.depth, d.height, 'body');
+  rect('back', backX, bodyY, d.width, d.height, 'body');
+  rect('top', frontX, tongue, d.width, d.depth, 'flap');
   // Opposite hinge from the top is what makes this a reverse-tuck closure.
-  rect('bottom', backX, bodyY + d.height, d.width, d.depth, 'flap', 'bottom').sourceRotation = 180;
+  rect('bottom', backX, bodyY + d.height, d.width, d.depth, 'flap');
 
   for (const [id, x, hingeY, direction] of [
     ['top-tuck', frontX, tongue, -1],
@@ -94,6 +94,6 @@ export function reverseTuckSheet(input: CartonDimensions) {
   return finishExportGeometry(panels, 'cutting-template', [
     'Reverse-tuck cutting template with tuck tongues, dust flaps and tapered glue flap.',
     'Nominal face sizes; no material or crease compensation. Obtain printer approval before production.',
-    'Added closure flaps are unprinted. Bottom artwork rotates 180 degrees onto the opposite hinge.',
+    'Artwork prints exactly as laid out on the design grid, including the closure flaps.',
   ]);
 }

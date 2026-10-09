@@ -1,5 +1,5 @@
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
-import { sheetTransformToPhysical, type FullDielineArtworkLayer } from './full-dieline-artwork';
+import { layerPrintsOn, sheetTransformToPhysical, type FullDielineArtworkLayer } from './full-dieline-artwork';
 import { getTemplateExportGeometry, getTemplateGeometry, type TemplateGeometryOptions } from './template-runtime';
 import type { CartonDimensions } from './reverse-tuck';
 import {
@@ -211,7 +211,7 @@ export function preparePdfArtwork(input: DownloadInput) {
     const original = source.panels.find(p => p.id === panel.sourceId);
     const panelName = original?.label.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
     const explicit = panelName ? input.artworkByPanel[input.scope === 'inside' ? `Interior ${panelName}` : panelName] : undefined;
-    if (!input.baseColor && (!original || (!visible.length && !explicit))) return null;
+    if (!input.baseColor && (!original || (!visible.some(layer => layerPrintsOn(layer, original.id)) && !explicit))) return null;
     const w = panel.width + 2 * bleed, h = panel.height + 2 * bleed;
     const pixelsPerMm = panelPixelsPerMm(w, h, totalAreaMm2, budget);
     // Load artwork before allocating the canvas.
@@ -236,6 +236,7 @@ export function preparePdfArtwork(input: DownloadInput) {
         // preview. Transparent or uncovered areas reveal only the base color.
         if (explicit && explicitImage) drawPanelArtwork(ctx, explicit, explicitImage, original.width, original.height);
         else visible.forEach((layer, i) => {
+          if (!layerPrintsOn(layer, original.id)) return;
           const t = sheetTransformToPhysical(layer.transform, source.bounds);
           ctx.save();
           ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 100) / 100));

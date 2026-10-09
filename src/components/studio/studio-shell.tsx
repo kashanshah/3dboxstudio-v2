@@ -26,11 +26,12 @@ import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
-import { createFullDielineTransform, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { createFullDielineTransform, layerPrintsOn, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
@@ -247,7 +248,9 @@ function useChangedState<T>(initial:T, same:(a:T, b:T)=>boolean = Object.is) {
 export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialDimensions:requestedDimensions,initialUnit,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;newDesignProjects?:NewDesignProject[]} = {}) {
   const t = useTranslations();
 
-  const initial = initialProject?.state;
+  // Designs saved on an older version of a template's design grid move onto
+  // the current one, looking and printing exactly as before.
+  const initial = useMemo(() => initialProject?.state ? migrateStudioLayout(initialProject.state) : undefined, [initialProject]);
   const defaults=newDesignDefaults(newDesignProjects,initialWorkspaceProjectId);
   const [newDesignOpen,setNewDesignOpen]=useState(!initialProject);
   const [newDesignError,setNewDesignError]=useState('');
@@ -1420,7 +1423,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
       for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
       const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,dimensions,material,opening,formation,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,layoutVersion:layoutVersionFor(selectedTemplateId),dimensions,material,opening,formation,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -3145,7 +3148,7 @@ function DielinePrototype({
                 >
                   <span className="pro-layer-visibility" role="button" tabIndex={0} title={layer.visible===false?'Show layer':'Hide layer'} aria-label={layer.visible===false?'Show layer':'Hide layer'} onClick={event=>{event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}}}>{layer.visible===false?<EyeOff size={15}/>:<Eye size={15}/>}</span>
                   <img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>
-                  <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°</small></span>
+                  <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°{layer.panels ? ` · ${layer.panels.length===1 ? `${panelDisplayName(cartonPanels,layer.panels[0])} only` : 'not on new flaps'}` : ''}</small></span>
                   <i>{realIndex===layers.length-1?t("studio.top"):realIndex+1}</i>
                 </button>;
               })}
@@ -3248,7 +3251,13 @@ function DielinePrototype({
           });
         }}
       >
-        <div className="pro-full-artwork-print-surface">{layers.filter(layer=>layer.visible!==false).map(layer=><div key={layer.id} className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>)}</div>
+        <div className="pro-full-artwork-print-surface">{layers.filter(layer=>layer.visible!==false).map(layer=>{
+          const printed=<div className="pro-printed-artwork-layer" style={{opacity:(layer.opacity ?? 100)/100,left:`${layer.transform.x}%`,top:`${layer.transform.y}%`,width:`${layer.transform.width}%`,height:`${layer.transform.height}%`,transform:`translate(-50%,-50%) rotate(${layer.transform.rotation}deg)`}}><BoardArtworkImage url={layer.url} aspectRatio={layer.aspectRatio} width={bounds.width*layer.transform.width} height={bounds.height*layer.transform.height}/></div>;
+          if(!layer.panels) return <div key={layer.id} className="pro-printed-artwork-clip">{printed}</div>;
+          // A layer kept to some panels (a design moved onto a new grid) shows
+          // only where it prints.
+          return cartonPanels.filter(panel=>layerPrintsOn(layer,panel.id)).map(panel=><div key={`${layer.id}:${panel.id}`} className="pro-printed-artwork-clip" style={{clipPath:`polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`}}>{printed}</div>);
+        })}</div>
         {layers.map((layer,index)=>{
           const selected=layer.id===selectedLayerId;
           return <div
@@ -3289,16 +3298,21 @@ function DielinePrototype({
           const panelName=item.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
+          const shape=item.outline ? `polygon(${item.outline.map(point=>`${(point.x-item.x)/item.width*100}% ${(point.y-item.y)/item.height*100}%`).join(',')})` : undefined;
           return <div
             key={item.id}
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} pro-dieline-panel-guide`}
-            style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden'}}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''} pro-dieline-panel-guide`}
+            style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
           >
             {explicitArtwork ? explicitArtwork.transform ? <span className="artwork-layer" style={{...artworkCss(explicitArtwork),backgroundImage:'none'}}><BoardArtworkImage url={explicitArtwork.url} aspectRatio={1} width={item.width*explicitArtwork.transform.width} height={item.height*explicitArtwork.transform.height}/></span> : <span className="artwork-layer" style={artworkCss(explicitArtwork)}/> : null}
             <span className="dl-label">{item.label}</span>
           </div>;
         })}
+
+        {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
+          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={item.outline!.map(point=>`${point.x},${point.y}`).join(' ')}/>)}
+        </svg>}
 
         {cartonPanels.filter(item=>!selectedLayerId && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
           const key=artworkScope==='inside'?`Interior ${selectedPanel}`:selectedPanel;
@@ -3335,6 +3349,15 @@ function DielinePrototype({
     </div>
 
   </div>;
+}
+
+function panelDisplayName(panels:{id:string;label:string}[],id:string){
+  const label=panels.find(panel=>panel.id===id)?.label ?? id;
+  return label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
+}
+
+function panelOutline(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]}){
+  return panel.outline ?? [{x:panel.x,y:panel.y},{x:panel.x+panel.width,y:panel.y},{x:panel.x+panel.width,y:panel.y+panel.height},{x:panel.x,y:panel.y+panel.height}];
 }
 
 // Phone bottom-sheet grip: tap cycles default → expanded → collapsed, drag snaps up/down.

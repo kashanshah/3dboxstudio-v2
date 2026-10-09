@@ -5,6 +5,7 @@ import { ArrowRight, CirclePlay, Grid3X3, Maximize2, Move, ZoomIn, ZoomOut } fro
 import { trackEvent } from '@/lib/analytics';
 import { CartonEngine } from '@/components/studio/carton-engine';
 import type { StudioProjectState } from '@/lib/studio-project';
+import { migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { Brand } from '@/components/site-shell';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
@@ -13,7 +14,8 @@ import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 
 const PROMO_HREF='/studio?ref=shared-design';
 
-export function SharedDesignViewer({name,state,legacy,promo=true}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean}){
+export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean}){
+  const state=useMemo(()=>migrateStudioLayout(savedState),[savedState]);
   const runtime=getTemplateRuntime(state.templateId);
   if(!runtime)throw new Error(`No runtime is registered for template: ${state.templateId}`);
   const openingMode=state.openingMode ?? runtime.assembly.defaultOpeningMode;

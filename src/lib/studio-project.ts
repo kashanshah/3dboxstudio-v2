@@ -24,6 +24,8 @@ export type StudioProjectState={
  openingMode?:LegacyOpeningMode;
  splitTopHingeSide?:'side_a'|'side_b';
  legacySourceId?:string;
+ /** Which version of the template's design grid the artwork was placed on. */
+ layoutVersion?:number;
  measurementUnit:'mm'|'in';
  artworkByPanel:ArtworkByPanel;
  outsideArtworkLayers:FullDielineArtworkLayer[];

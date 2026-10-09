@@ -9,6 +9,8 @@ export type DielinePanel = {
   width: number;
   height: number;
   kind: 'body' | 'flap' | 'glue';
+  /** The cut outline when the panel is not a plain rectangle. */
+  outline?: { x: number; y: number }[];
 };
 
 function glueWidth(d:CartonDimensions){return Math.max(12,Math.min(24,d.depth*0.35));}
