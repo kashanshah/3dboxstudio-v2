@@ -799,3 +799,49 @@ test('thick board edges never lie in the same plane as a printed face (no z-figh
     }
   }
 });
+
+const {analyseSurfaces,withCutEdges}=require('../src/components/studio/carton-surfaces.ts');
+test('closed carton: outside folds are rounded, inside corners are shaded',()=>{
+  const dimensions={width:120,height:180,depth:55,thickness:.5};
+  const meshes=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8]);
+  const shading=analyseSurfaces(meshes,dimensions.thickness);
+  const front=shading[meshes.findIndex(mesh=>mesh.panel==='Front')];
+  assert.deepEqual(front.rounded,[1,1,1,1],'every edge of the closed front is an outside fold');
+  assert.ok(front.occlusion.every(value=>value===0));
+  const inside=shading[meshes.findIndex(mesh=>mesh.panel==='Interior Front')];
+  assert.ok(inside.occlusion.every(value=>value>0.4),'inside corners of a closed carton are shaded');
+  assert.ok(inside.rounded.every(value=>value===0));
+  // A face never pairs with its own inside/outside twin.
+  for(const normals of front.neighbourNormals){
+    const n=Array.from(meshes.find(mesh=>mesh.panel==='Front').vertices.slice(3,6));
+    assert.ok(Math.abs(normals[0]*n[0]+normals[1]*n[1]+normals[2]*n[2])<0.5);
+  }
+});
+test('flat dielines get no fold shading',()=>{
+  const dimensions={width:120,height:180,depth:55,thickness:.5};
+  const meshes=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8]);
+  for(const item of analyseSurfaces(meshes,dimensions.thickness).filter(Boolean)){
+    assert.ok(item.occlusion.every(value=>value===0)&&item.rounded.every(value=>value===0));
+  }
+});
+test('mailer boxes gain cut board edges only where the board is cut',()=>{
+  const dimensions={width:200,height:80,depth:150,thickness:3};
+  const open=buildMeshes(dimensions,60,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:100,openingMode:'lid_from_back'});
+  const withEdges=withCutEdges(open,dimensions.thickness);
+  const added=withEdges.slice(open.length);
+  assert.ok(added.length>0,'open mailer shows its cut rim');
+  assert.ok(added.every(mesh=>mesh.doubleSided&&!mesh.panel));
+  for(const mesh of added){
+    const corners=[0,1,2,5].map(i=>Array.from(mesh.vertices.slice(i*8,i*8+3)));
+    const short=Math.min(Math.hypot(...corners[1].map((v,i)=>v-corners[0][i])),Math.hypot(...corners[3].map((v,i)=>v-corners[0][i])));
+    // The mailer template draws its inside faces at most 2 mm in.
+    assert.ok(Math.abs(short-Math.min(2,dimensions.thickness))<1e-4,'each strip spans the board');
+  }
+  const flat=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:0,openingMode:'lid_from_back'});
+  const flatEdges=withCutEdges(flat,dimensions.thickness).length-flat.length;
+  const panels=flat.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length;
+  assert.ok(flatEdges<panels*4,'fold lines between panels are not drawn as cut edges');
+  // Templates that draw their own edges are left alone.
+  const tuck=buildMeshes({width:120,height:180,depth:55,thickness:.5},50,[1,1,1],[.8,.8,.8]);
+  assert.equal(withCutEdges(tuck,.5),tuck);
+});
