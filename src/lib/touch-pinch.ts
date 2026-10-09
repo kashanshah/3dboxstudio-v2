@@ -86,10 +86,18 @@ export function attachTouchPinch(
   element.addEventListener('pointermove', move, listen);
   element.addEventListener('pointerup', up, listen);
   element.addEventListener('pointercancel', up, listen);
-  return () => {
-    element.removeEventListener('pointerdown', down, listen);
-    element.removeEventListener('pointermove', move, listen);
-    element.removeEventListener('pointerup', up, listen);
-    element.removeEventListener('pointercancel', up, listen);
+  return {
+    /**
+     * Whether fingers are on the view. iOS Safari also reports a touch pinch
+     * as gesture events; callers that handle those for trackpads skip them
+     * while this is true so a pinch does not zoom twice.
+     */
+    touching: () => touches.size > 0,
+    detach: () => {
+      element.removeEventListener('pointerdown', down, listen);
+      element.removeEventListener('pointermove', move, listen);
+      element.removeEventListener('pointerup', up, listen);
+      element.removeEventListener('pointercancel', up, listen);
+    },
   };
 }

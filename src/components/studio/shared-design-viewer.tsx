@@ -153,7 +153,7 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
         const nextPan={x:panRef.current.x+dx,y:panRef.current.y+dy};
         panRef.current=nextPan;setViewPan(nextPan);
       },
-    });
+    }).detach;
   // applyZoom reads refs only, so the first render's copy stays correct.
   },[]);
 
