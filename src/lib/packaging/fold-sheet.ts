@@ -165,7 +165,7 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     if (panel.closureFlap) outside.closureFlap = true;
     if (panel.layer !== undefined) outside.layer = panel.layer;
     const insideOrder = [order[3], order[2], order[1], order[0]];
-    const inside = quad(insideOrder.map(i => inner[i]), insideOrder.map(i => uv[i]), input.interiorColor, `Interior ${panel.name}`);
+    const inside = quad(insideOrder.map(i => inner[i]), insideOrder.map(i => insideUv(uv[i])), input.interiorColor, `Interior ${panel.name}`);
     inside.pickCorners = [...pick].reverse().map(i => place([panel.outline[i].x, -panel.outline[i].y, -t]));
     inside.faceAspect = outside.faceAspect;
     inside.uvSize = outside.uvSize;
@@ -248,7 +248,7 @@ function bendMeshes(args: {
     meshes.push(smoothQuad(
       [place(pointAt(s1, from, t)), place(pointAt(s1, to, t)), place(pointAt(s0, to, t)), place(pointAt(s0, from, t))],
       [scale(normal1, -1), scale(normal1, -1), scale(normal0, -1), scale(normal0, -1)],
-      [dieline(s1, from), dieline(s1, to), dieline(s0, to), dieline(s0, from)],
+      [dieline(s1, from), dieline(s1, to), dieline(s0, to), dieline(s0, from)].map(insideUv),
       input.interiorColor, `Interior ${owner.name}`, true, ownerSize,
     ));
     // Cut faces at both ends of the bend.
@@ -274,7 +274,7 @@ function bendMeshes(args: {
     meshes.push(smoothQuad(outer.map(placeChild), [normal, normal, normal, normal], uvs, input.color, parent.name, false, size));
     const inner = [flatAt(shift, from, t), flatAt(shift, to, t), flatAt(b, to, t), flatAt(b, from, t)];
     const back = scale(normal, -1);
-    meshes.push(smoothQuad(inner.map(placeChild), [back, back, back, back], [uvs[3], uvs[2], uvs[1], uvs[0]], input.interiorColor, `Interior ${parent.name}`, true, size));
+    meshes.push(smoothQuad(inner.map(placeChild), [back, back, back, back], [uvs[3], uvs[2], uvs[1], uvs[0]].map(insideUv), input.interiorColor, `Interior ${parent.name}`, true, size));
   }
   return meshes;
 }
@@ -301,6 +301,15 @@ function quad(corners: Vec3[], uvs: number[][], color: Vec3, panel: string): Mes
   const vertices: number[] = [];
   for (const i of order) vertices.push(...corners[i], ...normal, uvs[i][0], uvs[i][1]);
   return { vertices: new Float32Array(vertices), useTexture: true, color, panel };
+}
+
+/**
+ * Inside artwork runs the same way across the panel as the outside and is
+ * turned over top to bottom, as every template has always mapped it, so
+ * inside designs keep printing and showing exactly as they were made.
+ */
+function insideUv(uv: number[]) {
+  return [uv[0], 1 - uv[1]];
 }
 
 /** Outline corner indices nearest the artwork's (0,0), (1,0), (1,1) and (0,1). */

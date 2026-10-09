@@ -861,3 +861,23 @@ test('inside faces of every template can be picked in 3D',()=>{
     for(const mesh of inside)assert.equal(mesh.pickCorners?.length,4,`${templateId} ${mesh.panel} is pickable`);
   }
 });
+
+test('inside artwork keeps its long-standing orientation: across as outside, turned top to bottom',()=>{
+  const uvDirections=mesh=>{
+    const v=mesh.vertices,P=i=>[v[i*8],v[i*8+1],v[i*8+2]],U=i=>[v[i*8+6],v[i*8+7]];
+    const e1=P(1).map((x,k)=>x-P(0)[k]),e2=P(2).map((x,k)=>x-P(0)[k]);
+    const d1=[U(1)[0]-U(0)[0],U(1)[1]-U(0)[1]],d2=[U(2)[0]-U(0)[0],U(2)[1]-U(0)[1]];
+    const det=d1[0]*d2[1]-d2[0]*d1[1];
+    return {u:e1.map((x,k)=>(x*d2[1]-e2[k]*d1[1])/det),v:e2.map((x,k)=>(x*d1[0]-e1[k]*d2[0])/det)};
+  };
+  const dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0)/Math.hypot(...a)/Math.hypot(...b);
+  for(const templateId of ['reverse-tuck-carton','base-box','split-top-box','pizza-box']){
+    const meshes=buildMeshes({width:200,height:120,depth:150,thickness:1},100,[1,1,1],[.8,.8,.8],{templateId,formation:0,openingMode:templateId==='pizza-box'?'lid_from_back':'closed'});
+    for(const outside of meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior '))){
+      const inside=meshes.find(mesh=>mesh.panel===`Interior ${outside.panel}`);
+      const a=uvDirections(outside),b=uvDirections(inside);
+      assert.ok(dot(a.u,b.u)>0.999,`${templateId} ${outside.panel} inside runs the same way across`);
+      assert.ok(dot(a.v,b.v)<-0.999,`${templateId} ${outside.panel} inside is turned top to bottom`);
+    }
+  }
+});
