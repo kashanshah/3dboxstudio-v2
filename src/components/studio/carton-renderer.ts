@@ -231,7 +231,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       material.polygonOffsetFactor = 1;
       material.polygonOffsetUnits = 2;
       uniforms.uFlat.value = flat ? 1 : 0;
-      const size = faceSize(mesh);
+      const size = mesh.uvSize ?? faceSize(mesh);
       uniforms.uFaceSize.value.set(...size);
       const edges = shading[index];
       uniforms.uEdgeOcclusion.value.set(...(edges?.occlusion ?? [0, 0, 0, 0]));
@@ -474,7 +474,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
 }
 
 function surfaceOf(mesh: Mesh): Surface {
-  if (mesh.panel?.startsWith('Interior')) return 'inside';
+  if (mesh.panel?.startsWith('Interior') || mesh.bend === 'inside') return 'inside';
   if (mesh.doubleSided && !mesh.panel) return 'edge';
   return 'outside';
 }

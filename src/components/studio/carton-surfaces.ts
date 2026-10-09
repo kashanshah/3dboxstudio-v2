@@ -36,7 +36,7 @@ const isBoardEdge = (mesh: Mesh) => !!mesh.doubleSided && !mesh.panel;
 function faces(meshes: Mesh[]) {
   const result: (Quad | null)[] = [];
   for (const mesh of meshes) {
-    const corners = isBoardEdge(mesh) ? null : quadCorners(mesh);
+    const corners = isBoardEdge(mesh) || mesh.bend ? null : quadCorners(mesh);
     result.push(corners ? { mesh, corners, normal: faceNormal(corners), centre: average(corners) } : null);
   }
   return result;
@@ -53,6 +53,7 @@ export function analyseSurfaces(meshes: Mesh[], thickness: number): (EdgeShading
     if (!quad) return null;
     const shading: EdgeShading = { occlusion: [0, 0, 0, 0], rounded: [0, 0, 0, 0], neighbourNormals: [[0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1]] };
     for (let edge = 0; edge < 4; edge++) {
+      if (quad.mesh.creases?.includes(edge)) continue;
       const a = quad.corners[edge], b = quad.corners[(edge + 1) % 4];
       const neighbour = closestNeighbour(quad, a, b, quads, tolerance);
       if (!neighbour) continue;
@@ -105,6 +106,9 @@ function closestNeighbour(quad: Quad, a: Vec3, b: Vec3, quads: (Quad | null)[], 
 
 type Board = { id: string; outside: Quad; inside: Quad; inner: Vec3[] };
 
+/** Marks a quad edge that continues into a bent crease. */
+const BENT = {} as Board;
+
 /**
  * Turn each panel's printed and inside faces into a solid piece of board:
  * at every crease the inside faces of the two panels are trimmed (or, on an
@@ -122,6 +126,8 @@ export function solidify(meshes: Mesh[], thickness: number): Mesh[] {
   const creases = new Map<Board, (Board | null)[]>();
   for (const board of boards) {
     creases.set(board, [0, 1, 2, 3].map(edge => {
+      // Edges that run into a bent crease are already joined by the bend.
+      if (board.outside.mesh.creases?.includes(edge)) return BENT;
       const a = board.outside.corners[edge], b = board.outside.corners[(edge + 1) % 4];
       return boards.find(other => other !== board && sharesEdge(other.outside, a, b, tolerance)) ?? null;
     }));
@@ -130,7 +136,7 @@ export function solidify(meshes: Mesh[], thickness: number): Mesh[] {
   for (const board of boards) {
     const inner = board.inner.map(point => [...point]);
     creases.get(board)!.forEach((neighbour, edge) => {
-      if (!neighbour) return;
+      if (!neighbour || neighbour === BENT) return;
       const normal = neighbour.inside.normal;
       if (Math.abs(dot(normal, board.inside.normal)) > 0.999) return;
       // Slide each end of this edge along its side of the quad until it
@@ -193,7 +199,7 @@ export function solidify(meshes: Mesh[], thickness: number): Mesh[] {
       edges.push(mesh);
     });
   }
-  return [...meshes.filter(mesh => !isBoardEdge(mesh)).map(mesh => replaced.get(mesh) ?? mesh), ...edges];
+  return [...meshes.filter(mesh => !isBoardEdge(mesh) || mesh.bend).map(mesh => replaced.get(mesh) ?? mesh), ...edges];
 }
 
 function layerOf(board: Board) {

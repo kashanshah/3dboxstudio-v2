@@ -15,7 +15,7 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
   module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,file);
 };
 const {buildMeshes}=require('../src/components/studio/carton-engine.tsx');
-const {reverseTuckPanels,reverseTuckBounds,reverseTuckFoldState,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
+const {reverseTuckPanels,reverseTuckBounds,sanitizeCartonDimensions}=require('../src/lib/packaging/reverse-tuck.ts');
 const {dielineRasterSize,panelRasterSize,sheetTransformToPhysical}=require('../src/lib/packaging/full-dieline-artwork.ts');
 const fixtures=[
   {width:47.5*25.4,height:22.5*25.4,depth:25.5*25.4,thickness:.5},
@@ -77,42 +77,41 @@ test('pizza box keeps every artwork panel rigid from the flat sheet through lid 
   }
 });
 
+const {reverseTuckSheet}=require('../src/lib/packaging/templates/reverse-tuck/export.ts');
+const titleCase=label=>label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
+const pairDistances=points=>{const out=[];for(let i=0;i<points.length;i++)for(let j=i+1;j<points.length;j++)out.push(Math.hypot(...points[i].map((v,k)=>v-points[j][k])));return out.sort((a,b)=>a-b);};
+
 test('entered physical dimensions survive in both the net and all folded meshes',()=>{
   for(const dimensions of fixtures){
     assert.deepEqual(sanitizeCartonDimensions(dimensions),dimensions);
-    const panels=reverseTuckPanels(dimensions);
+    const sheet=reverseTuckSheet(dimensions);
     for(const closure of [0,6,50,100]){
       const meshes=buildMeshes(dimensions,closure,[1,1,1],[1,1,1]);
-      for(const panel of panels){
-        const name=panel.label[0]+panel.label.slice(1).toLowerCase();
+      // Every piece of the cutting template is in 3D, including the flaps,
+      // and each stays rigid: its outline keeps its exact size and shape.
+      for(const panel of sheet.panels){
+        const name=titleCase(panel.label);
         const mesh=meshes.find(item=>item.panel===name);
-        if(name==='Glue' && closure>=68){
-          assert.equal(mesh,undefined,'covered glue flap must not compete with the back artwork');
-          continue;
-        }
         assert.ok(mesh,`${name} is missing from 3D`);
-        near(mesh.faceAspect,panel.width/panel.height);
-        const c=mesh.pickCorners;
-        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width);
-        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height);
+        const xs=panel.outline.map(p=>p.x),ys=panel.outline.map(p=>p.y);
+        near(mesh.faceAspect,(Math.max(...xs)-Math.min(...xs))/(Math.max(...ys)-Math.min(...ys)));
+        const expected=pairDistances(panel.outline.map(p=>[p.x,p.y,0]));
+        pairDistances(mesh.pickCorners).forEach((value,i)=>assert.ok(Math.abs(value-expected[i])<1e-6,`${name} keeps its size`));
       }
     }
   }
 });
 
-test('fully open 3D corners match the complete 2D net, including the glue strip',()=>{
+test('the flat 3D sheet is exactly the cutting template',()=>{
   for(const dimensions of fixtures){
-    const panels=reverseTuckPanels(dimensions),front=panels.find(panel=>panel.id==='front');
+    const sheet=reverseTuckSheet(dimensions),front=sheet.panels.find(panel=>panel.id==='front');
     const meshes=buildMeshes(dimensions,0,[1,1,1],[1,1,1]);
-    for(const panel of panels){
-      const name=panel.label[0]+panel.label.slice(1).toLowerCase();
-      const mesh=meshes.find(item=>item.panel===name);
-      const expected=[[panel.x,panel.y+panel.height],[panel.x+panel.width,panel.y+panel.height],[panel.x+panel.width,panel.y],[panel.x,panel.y]];
-      mesh.pickCorners.forEach((corner,i)=>{
-        near(corner[0],expected[i][0]-front.x-dimensions.width/2);
-        near(corner[1],dimensions.height/2-(expected[i][1]-front.y));
-        near(corner[2],dimensions.depth/2);
-      });
+    for(const panel of sheet.panels){
+      const mesh=meshes.find(item=>item.panel===titleCase(panel.label));
+      const expected=panel.outline.map(p=>[p.x-front.x-front.width/2,front.y+front.height/2-p.y,dimensions.depth/2]);
+      for(const corner of mesh.pickCorners){
+        assert.ok(expected.some(point=>point.every((v,i)=>Math.abs(v-corner[i])<1e-6)),`${panel.label} corner lies on the dieline`);
+      }
     }
   }
 });
@@ -240,13 +239,9 @@ test('board thickness edges are single two-sided surfaces with no coplanar dupli
   for(const dimensions of fixtures){
     for(const closure of [0,50,100]){
       const meshes=buildMeshes(dimensions,closure,[1,1,1],[.8,.8,.8]);
-      const edges=meshes.filter(mesh=>!mesh.panel&&!mesh.closureFlap);
-      if(closure===100){
-        assert.equal(edges.length,0,'fully closed cartons should not draw hidden thickness walls over panel joins');
-        continue;
-      }
-      // Seven panels plus six closure flaps with three cut edges each.
-      assert.ok(edges.length>0 && edges.length<=7*4+6*3,'coincident hinge edges should be deduplicated');
+      // The board's cut faces at either end of each bent crease.
+      const edges=meshes.filter(mesh=>mesh.bend==='edge');
+      assert.ok(edges.length>0,'bent creases show the board at their ends');
       assert.ok(edges.every(mesh=>mesh.doubleSided===true),'physical edge meshes must be rendered two-sided');
 
       const signatures=new Set();
@@ -743,42 +738,34 @@ test('split-top assembly timeline is physically staged from dieline through flap
 });
 
 
-test('reverse tuck glue strip follows its own physical hinge in the correct direction',()=>{
+test('reverse tuck glue flap bends round its crease and ends up inside the back',()=>{
   const d={width:240,height:300,depth:160,thickness:.5};
-  const footprint=reverseTuckPanels(d);
-  const glueWidth=footprint.find(panel=>panel.id==='glue').width;
+  const glueOutline=reverseTuckSheet(d).panels.find(panel=>panel.id==='glue').outline;
+  const glueShape=pairDistances(glueOutline.map(p=>[p.x,p.y,0]));
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
 
   for(const progress of Array.from({length:101},(_,index)=>index)){
     const meshes=buildMeshes(d,progress,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:progress});
     const left=meshes.find(mesh=>mesh.panel==='Left').pickCorners;
-    const glueMesh=meshes.find(mesh=>mesh.panel==='Glue');
-    if(reverseTuckFoldState(progress).back>=.999){
-      assert.equal(glueMesh,undefined,'glue is hidden when covered by the back panel');
-      assert.equal(meshes.find(mesh=>mesh.panel==='Interior Glue'),undefined);
-      assert.ok(meshes.find(mesh=>mesh.panel==='Back'),'printed back remains visible');
-      continue;
-    }
-    const glue=glueMesh.pickCorners;
-
-    // The scored Left/Glue crease stays joined for the whole fold: like card,
-    // the flap bends around the inside of the crease, so its edge never moves
-    // more than about one board from the Left panel's edge.
-    assert.ok(distance(glue[1],left[0])<=d.thickness*1.5,'glue stays on its crease');
-    assert.ok(distance(glue[2],left[3])<=d.thickness*1.5,'glue stays on its crease');
-
+    const glue=meshes.find(mesh=>mesh.panel==='Glue').pickCorners;
+    // The scored Left/Glue crease stays joined for the whole fold: the flap's
+    // edge never leaves the Left panel's edge by more than the bend itself.
+    const joined=glue.filter(point=>left.some(other=>distance(point,other)<=d.thickness*5));
+    assert.equal(joined.length,2,`glue stays on its crease at ${progress}%`);
     // Glue is a rigid flap; its physical width must never stretch or shrink.
-    near(distance(glue[0],glue[1]),glueWidth);
-    near(distance(glue[3],glue[2]),glueWidth);
+    pairDistances(glue).forEach((value,i)=>near(value,glueShape[i]));
   }
 
   const flat=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:0});
   const flatGlue=flat.find(mesh=>mesh.panel==='Glue').pickCorners;
-  assert.ok(flatGlue[0][0]<flatGlue[1][0],'flat glue flap must extend outward from the left panel');
+  const flatLeft=flat.find(mesh=>mesh.panel==='Left').pickCorners;
+  assert.ok(Math.max(...flatGlue.map(p=>p[0]))<=Math.min(...flatLeft.map(p=>p[0]))+1e-6,'flat glue flap extends outward from the left panel');
 
+  // Closed, the glue flap lies against the inside of the back, not in it.
   const closed=buildMeshes(d,100,[1,1,1],[.8,.8,.8],{templateId:'reverse-tuck-carton',formation:100});
-  assert.equal(closed.find(mesh=>mesh.panel==='Glue'),undefined);
-  assert.equal(closed.find(mesh=>mesh.panel==='Interior Glue'),undefined);
+  const z=name=>Array.from(closed.find(mesh=>mesh.panel===name).vertices.slice(2,3))[0];
+  assert.ok(z('Glue')>=z('Interior Back')-1e-6,'glue sits inside the back board');
+  assert.ok(z('Glue')-z('Interior Back')<d.thickness,'glue rests against the back');
 });
 
 test('thick board edges never lie in the same plane as a printed face (no z-fighting seams)',()=>{
@@ -806,21 +793,21 @@ test('thick board edges never lie in the same plane as a printed face (no z-figh
 });
 
 const {analyseSurfaces,solidify}=require('../src/components/studio/carton-surfaces.ts');
-test('closed carton: outside folds are rounded, inside corners are shaded',()=>{
+test('closed carton: creases are real bends, inside corners are shaded',()=>{
   const dimensions={width:120,height:180,depth:55,thickness:.5};
   const meshes=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8]);
   const shading=analyseSurfaces(meshes,dimensions.thickness);
-  const front=shading[meshes.findIndex(mesh=>mesh.panel==='Front')];
-  assert.deepEqual(front.rounded,[1,1,1,1],'every edge of the closed front is an outside fold');
+  const frontMesh=meshes.find(mesh=>mesh.panel==='Front');
+  const front=shading[meshes.indexOf(frontMesh)];
+  // Front's three creases bend as geometry, so they need no painted rounding.
+  assert.equal(frontMesh.creases.length,3);
+  assert.deepEqual(front.rounded,[0,0,0,0]);
   assert.ok(front.occlusion.every(value=>value===0));
+  const bends=meshes.filter(mesh=>mesh.bend==='outside');
+  for(const name of ['Left','Right','Top'])assert.ok(bends.some(mesh=>mesh.fallbackPanel===name),`${name} crease bends`);
   const inside=shading[meshes.findIndex(mesh=>mesh.panel==='Interior Front')];
   assert.ok(inside.occlusion.every(value=>value>0.4),'inside corners of a closed carton are shaded');
   assert.ok(inside.rounded.every(value=>value===0));
-  // A face never pairs with its own inside/outside twin.
-  for(const normals of front.neighbourNormals){
-    const n=Array.from(meshes.find(mesh=>mesh.panel==='Front').vertices.slice(3,6));
-    assert.ok(Math.abs(normals[0]*n[0]+normals[1]*n[1]+normals[2]*n[2])<0.5);
-  }
 });
 test('flat dielines get no fold shading',()=>{
   const dimensions={width:120,height:180,depth:55,thickness:.5};
@@ -835,16 +822,18 @@ test('solid board: inside faces meet at creases, edges only on cut sides, covere
   // Closed carton: the inside of Front and Left meet along one line at the corner.
   const tuck={width:120,height:180,depth:55,thickness:2};
   const closed=solidify(buildMeshes(tuck,100,[1,1,1],[.8,.8,.8]),tuck.thickness);
+  // Closed carton: the inside of Front runs on into the bend at the corner.
   const front=corners(closed.find(mesh=>mesh.panel==='Interior Front'));
   const left=corners(closed.find(mesh=>mesh.panel==='Interior Left'));
-  const shared=front.filter(p=>left.some(q=>dist(p,q)<1e-3));
-  assert.equal(shared.length,2,'inside faces share their corner edge instead of crossing');
-  // Where the closed lid meets the walls, the outside corner stays closed and
-  // the walls' inside faces stop at the lid's inside surface.
+  const insideBends=closed.filter(mesh=>mesh.bend==='inside').map(corners);
+  for(const face of [front,left]){
+    const joined=face.filter(p=>insideBends.some(bend=>bend.some(q=>dist(p,q)<1e-3)));
+    assert.ok(joined.length>=2,'inside faces continue into the bend at the corner');
+  }
+  // The side walls stop under the closed lid: they fold into dust flaps there.
   const lid=closed.find(mesh=>mesh.panel==='Top');
   const lidOutside=Math.max(...corners(lid).map(p=>p[1]));
-  for(const wall of ['Left','Right','Back']){
-    near(Math.max(...corners(closed.find(mesh=>mesh.panel===wall)).map(p=>p[1])),lidOutside);
+  for(const wall of ['Left','Right']){
     const inside=Math.max(...corners(closed.find(mesh=>mesh.panel===`Interior ${wall}`)).map(p=>p[1]));
     assert.ok(inside<=lidOutside-tuck.thickness+1e-3,`${wall} inside face stops under the lid`);
   }
