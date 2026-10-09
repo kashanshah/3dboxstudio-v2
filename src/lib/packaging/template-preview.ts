@@ -2,7 +2,7 @@ import type { CartonDimensions } from './reverse-tuck';
 import { layoutProofGeometry, type DielineExportGeometry } from './export-geometry';
 import { reverseTuckExportGeometry } from './templates/reverse-tuck/export';
 import { getPizzaBoxPanels } from './templates/pizza-box/geometry';
-import { splitTopBoxPanels } from './box-structures';
+import { splitTopExportGeometry } from './templates/split-top/geometry';
 
 /**
  * Flat dieline for the public template pages. Uses the same geometry as the
@@ -16,6 +16,6 @@ export function templatePreviewGeometry(templateId: PreviewTemplateId, dimension
   switch (templateId) {
     case 'reverse-tuck-carton': return reverseTuckExportGeometry(dimensions);
     case 'pizza-box': return layoutProofGeometry(getPizzaBoxPanels(dimensions));
-    case 'split-top-box': return layoutProofGeometry(splitTopBoxPanels(dimensions));
+    case 'split-top-box': return splitTopExportGeometry(dimensions);
   }
 }

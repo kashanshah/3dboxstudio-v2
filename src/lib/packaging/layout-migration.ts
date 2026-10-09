@@ -3,6 +3,8 @@ import { reverseTuckSheetV2 } from './templates/reverse-tuck/sheet-v2';
 import { reverseTuckSheet } from './templates/reverse-tuck/export';
 import { baseBoxSheetV1 } from './templates/base-box/sheet-v1';
 import { baseBoxSheet } from './templates/base-box/geometry';
+import { splitTopSheetV1 } from './templates/split-top/sheet-v1';
+import { splitTopSheet } from './templates/split-top/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
 import type { StudioProjectState } from '../studio-project';
@@ -41,6 +43,17 @@ const STEPS: Record<string, Step[]> = {
       s => baseBoxSheet(s.dimensions, s.openingMode),
       ['left', 'front', 'right', 'back', 'top', 'bottom'],
     ),
+  ],
+  'split-top-box': [
+    // 2: the grid is the slotted box's cutting template, with a flap on every
+    // wall at each end, slots between them and a wider joint; sheet layers
+    // move and stretch to keep the walls' edges. With the outer top flaps on
+    // the front and back, their artwork is named for those walls.
+    state => {
+      const side = state.splitTopHingeSide ?? 'side_a';
+      const moved = moveSheetLayers(state, s => splitTopSheetV1(s.dimensions, side), s => splitTopSheet(s.dimensions, side), ['front', 'right', 'back', 'left']);
+      return side === 'side_b' ? { ...moved, artworkByPanel: renamePanels(moved.artworkByPanel, { 'Top Left': 'Top Front', 'Top Right': 'Top Back' }) } : moved;
+    },
   ],
   'pizza-box': [
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
@@ -180,6 +193,20 @@ function moveSheetLayers(state: StudioProjectState, from: Sheet, to: Sheet, fit:
     };
   });
   return { ...state, outsideArtworkLayers: move(state.outsideArtworkLayers), insideArtworkLayers: move(state.insideArtworkLayers) };
+}
+
+/** Moves panel artwork to new panel names, outside and inside. */
+function renamePanels(artwork: ArtworkByPanel, names: Record<string, string>): ArtworkByPanel {
+  const result: ArtworkByPanel = { ...artwork };
+  for (const [from, to] of Object.entries(names)) {
+    for (const prefix of ['', 'Interior ']) {
+      const placement = artwork[prefix + from];
+      if (!placement) continue;
+      delete result[prefix + from];
+      result[prefix + to] = placement;
+    }
+  }
+  return result;
 }
 
 /** Turns the named panels' own artwork (outside and inside) half a turn. */

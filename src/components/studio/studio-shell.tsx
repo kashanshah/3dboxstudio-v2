@@ -2327,6 +2327,9 @@ function Inspector(props: {
       return categoryMatch && searchMatch;
     });
     const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
+    // Each template takes the boards it is made from: folding board, or corrugated.
+    const board = selectedTemplate.parameters.find(parameter => parameter.key === 'thickness');
+    const boardMin = board?.min ?? MIN_BOARD_MM, boardMax = board?.max ?? MAX_BOARD_MM;
 
     return <div className="pro-inspector-content pro-structure-content">
       <div className="pro-structure-tabs" role="tablist" aria-label={t("studio.box_settings")}>
@@ -2435,10 +2438,10 @@ function Inspector(props: {
           </div>
           <label>
             <DimensionInput
-              min={props.measurementUnit === 'mm' ? 0.1 : 0.004}
-              max={props.measurementUnit === 'mm' ? 2 : 0.079}
+              min={props.measurementUnit === 'mm' ? boardMin : Number((boardMin / 25.4).toFixed(3))}
+              max={props.measurementUnit === 'mm' ? boardMax : Number((boardMax / 25.4).toFixed(3))}
               step={props.measurementUnit === 'mm' ? 0.1 : 0.001}
-              valueMm={props.dimensions.thickness} unit={props.measurementUnit} minMm={MIN_BOARD_MM} maxMm={MAX_BOARD_MM}
+              valueMm={props.dimensions.thickness} unit={props.measurementUnit} minMm={boardMin} maxMm={boardMax}
               onCommit={mm=>props.setDimensions({...props.dimensions,thickness:mm})}
             />
             <em>{props.measurementUnit}</em>
@@ -2447,8 +2450,8 @@ function Inspector(props: {
         <input
           className="pro-range"
           type="range"
-          min="3"
-          max="20"
+          min={Math.round(boardMin*10)}
+          max={Math.round(boardMax*10)}
           step="1"
           value={Math.round(props.dimensions.thickness*10)}
           onChange={e=>props.setDimensions({...props.dimensions,thickness:Number(e.target.value)/10})}
@@ -2600,8 +2603,8 @@ function Inspector(props: {
           label={t("studio.split_direction")}
           value={props.splitTopHingeSide}
           options={[
-            {value:'side_a',label:'Left + right top panels'},
-            {value:'side_b',label:'Front + back top panels'},
+            {value:'side_a',label:'Outer flaps on the ends (FEFCO 0204)'},
+            {value:'side_b',label:'Outer flaps on front + back (FEFCO 0201)'},
           ]}
           onChange={value=>props.setSplitTopHingeSide(value as 'side_a'|'side_b')}
         /> : <StudioDropdown

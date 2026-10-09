@@ -140,10 +140,10 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     templateId: 'split-top-box',
     name: 'Split top box',
     title: 'Split Top Box Template & 3D Shipping Box Mockup | 3D Box Studio',
-    description: 'Free split top box template. Enter your size to see the flat layout with two-flap top and bottom, design the outside and inside, and preview it in 3D.',
+    description: 'Free split top shipping box template (FEFCO 0201). Enter your size to draw the slotted cutting template with four flaps at each end, design the outside and inside, and preview it in 3D.',
     eyebrow: 'Box template',
     h1: 'Split top box template',
-    intro: 'A six-sided box whose top is split into two hinged flaps that meet in the middle, like a shipping carton. Enter your size and the flat layout below redraws; open it in the Studio to brand the outside and inside, open the flaps in 3D and export mockups.',
+    intro: 'The everyday corrugated shipping box: a regular slotted container whose outer top flaps meet in the middle and split the lid in two. Enter your inside size and the cutting template below redraws; open it in the Studio to brand the outside and inside, open the flaps in 3D and export mockups or a 1:1 PDF.',
     fields: { width: 'Width (front)', height: 'Height', depth: 'Depth (side)' },
     presets: [
       { label: 'Small shipper', note: 'Books, small goods', width: 300, height: 200, depth: 200, unit: 'mm' },
@@ -151,25 +151,25 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { label: 'Large shipper', note: 'Bulky items', width: 500, height: 400, depth: 400, unit: 'mm' },
       { label: '12 × 12 × 12 in', note: 'Cube', width: 12, height: 12, depth: 12, unit: 'in' },
     ],
-    geometryNote: 'Layout proof: shows the panel layout for artwork. It has two top flaps and two bottom flaps and does not include the minor flaps or allowances of a regular slotted container.',
+    geometryNote: 'Cutting template: a regular slotted container (FEFCO 0201) with four flaps at each end, slots between them and a glued joint, scored one board wider than the inside size you enter.',
     sections: [
       {
         title: 'What the template is for',
-        body: 'Use the split top box to present shipping and subscription packaging: branded outer walls, a printed inside, and two lid flaps that open from the centre. It is a visual template for design and review rather than a corrugated production die.',
+        body: 'Use the split top box for shipping and subscription packaging: branded outer walls, a printed inside, and two outer lid flaps that open from the centre. The PDF is a slotted cutting template your box maker can quote from.',
       },
       {
         title: 'What is on the layout',
         body: 'The template draws the panels you can design on from your width, height and depth.',
         bullets: [
-          'Four walls in one strip with a glue flap.',
-          'Two top flaps that meet in the middle of the lid.',
-          'Two bottom flaps that close the base.',
+          'Four walls in one strip with a tapered manufacturer\'s joint (35 mm on corrugated).',
+          'Four flaps at each end, slotted so they fold past each other.',
+          'Outer flaps that meet in the middle of the lid, on the front and back (FEFCO 0201) or on the ends (FEFCO 0204).',
           'Separate outside and inside artwork in the Studio.',
         ],
       },
       {
         title: 'Split top box vs regular slotted container',
-        body: 'A regular slotted container (RSC), the standard corrugated shipping box, has four flaps at each end: two major flaps that meet in the middle and two minor flaps underneath. This template shows the two meeting flaps, which is what customers see when they open the box. Your box supplier will add the minor flaps and corrugated allowances.',
+        body: 'A regular slotted container (RSC), the standard corrugated shipping box, has four flaps at each end: two major flaps that meet in the middle and two minor flaps underneath. This template draws all of them, with slots between the flaps, a glued joint and score allowances for the board thickness you choose (up to 7 mm for double-wall).',
       },
       {
         title: 'Designing the unboxing',
@@ -179,7 +179,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     faqs: [
       { question: 'Is the split top box template free?', answer: 'Yes. The size picker and layout here are free; designing, saving and exporting happen in the Studio with a free account.' },
       { question: 'Can I print inside the box?', answer: 'Yes. The Studio has separate outside and inside artwork for this template, and the 3D view opens the flaps so you can review both.' },
-      { question: 'Is it the same as a standard shipping box?', answer: 'It is close in appearance, but the template only has the two flaps that meet in the middle at each end. Use your supplier’s RSC die for production.' },
+      { question: 'Is it the same as a standard shipping box?', answer: 'Yes. It is a regular slotted container (FEFCO 0201), or a centre special slotted container (FEFCO 0204) if you put the outer flaps on the ends. Ask your box maker to confirm the score allowances for the flute you choose.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the size picker to inches; the Studio opens with the same unit.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'corrugated-shipping-box-branding', 'subscription-box-unboxing-preview'],

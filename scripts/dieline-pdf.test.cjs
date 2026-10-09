@@ -86,13 +86,27 @@ test('the base box prints its straight tuck end cutting template, the design gri
   }
 });
 
+test('the split top prints its slotted cutting template, the design grid itself', () => {
+  for (const splitTopHingeSide of ['side_a', 'side_b']) for (const thickness of [0.5, 3, 7]) {
+    const dimensions = { width: 400, height: 300, depth: 300, thickness };
+    const source = getTemplateGeometry('split-top-box', dimensions, { splitTopHingeSide });
+    const g = getTemplateExportGeometry('split-top-box', dimensions, { splitTopHingeSide });
+    assert.equal(g.kind, 'cutting-template');
+    assert.deepEqual(g.bounds, source.bounds);
+    assert.deepEqual(g.panels, source.panels);
+    // Corrugated board up to double wall is kept, not clamped to folding board.
+    assert.equal(g.panels.find(panel => panel.id === 'front').width, 400 + thickness);
+  }
+  assert.throws(() => getTemplateExportGeometry('split-top-box', { width: 400, height: 300, depth: 30, thickness: 3 }), /depth is too small/);
+});
+
 test('other templates remain explicitly labelled proofs and retain their own geometry', () => {
-  for (const id of ['split-top-box']) for (const options of [{ openingMode: 'lid_from_left', splitTopHingeSide: 'side_a' }, { openingMode: 'lid_from_back', splitTopHingeSide: 'side_b' }]) {
+  for (const id of ['pizza-box']) for (const options of [{ openingMode: 'lid_from_back' }]) {
     const source = getTemplateGeometry(id, defaultDimensions, options);
     const g = getTemplateExportGeometry(id, defaultDimensions, options);
     assert.equal(g.kind, 'layout-proof');
     assert.deepEqual(g.bounds, source.bounds);
-    assert.deepEqual(g.panels.map(p => ({id:p.id,label:p.label,x:p.x,y:p.y,width:p.width,height:p.height,kind:p.kind})), source.panels);
+    assert.deepEqual(g.panels.map(p => ({id:p.id,label:p.label,x:p.x,y:p.y,width:p.width,height:p.height,kind:p.kind,...(p.artworkRotation?{artworkRotation:p.artworkRotation}:{})})), source.panels);
   }
 });
 

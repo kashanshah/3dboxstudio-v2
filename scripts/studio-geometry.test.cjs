@@ -307,35 +307,29 @@ test('3D screen-space projection offset translates NDC without changing depth',(
 });
 
 
-const {splitTopBoxPanels,splitTopBoxBounds}=require('../src/lib/packaging/box-structures.ts');
+const {splitTopSheet,splitTopSizes}=require('../src/lib/packaging/templates/split-top/geometry.ts');
+const splitTopBoxPanels=(d,side)=>splitTopSheet(d,side).panels;
+const splitFlat=(d,side)=>Object.fromEntries(splitTopBoxPanels(d,side).map(panel=>[panel.id,panel]));
+// The outer top flaps, which meet in the middle, and the walls they hinge on.
+const outerTop=side=>side==='side_a'?[['Top Left','Left'],['Top Right','Right']]:[['Top Front','Front'],['Top Back','Back']];
 const {baseBoxSheet}=require('../src/lib/packaging/templates/base-box/geometry.ts');
 const baseBoxPanels=(d,mode)=>baseBoxSheet(d,mode).panels;
 
 test('base box and split-top nets preserve finished face dimensions',()=>{
   const dimensions={width:240,height:100,depth:160,thickness:.5};
   const base=baseBoxPanels(dimensions);
-  const splitA=splitTopBoxPanels(dimensions,'side_a');
-  const splitB=splitTopBoxPanels(dimensions,'side_b');
   // The base box is a straight tuck end: inside sizes, creased one board wider.
   assert.equal(base.find(panel=>panel.id==='front').width,240.5);
   assert.equal(base.find(panel=>panel.id==='left').width,160.5);
   assert.equal(base.find(panel=>panel.id==='top').height,160.5);
-  assert.equal(splitA.filter(panel=>panel.id.startsWith('top')).length,2);
-  assert.equal(splitA.find(panel=>panel.id==='topLeft').width,160);
-  assert.equal(splitA.find(panel=>panel.id==='topLeft').height,120);
-  assert.equal(splitA.find(panel=>panel.id==='topRight').width,160);
-  assert.equal(splitA.find(panel=>panel.id==='topRight').height,120);
-  assert.equal(splitB.find(panel=>panel.id==='topLeft').width,240);
-  assert.equal(splitB.find(panel=>panel.id==='topLeft').height,80);
-  assert.equal(splitB.find(panel=>panel.id==='topRight').width,240);
-  assert.equal(splitB.find(panel=>panel.id==='topRight').height,80);
-  for(const split of [splitA,splitB]){
-    assert.equal(split.filter(panel=>panel.id.startsWith('bottom')).length,2);
-    assert.equal(split.find(panel=>panel.id==='bottomFront').width,240);
-    assert.equal(split.find(panel=>panel.id==='bottomBack').width,240);
+  // The split top is a slotted box: a flap on every wall at each end.
+  for(const side of ['side_a','side_b']){
+    const split=splitTopBoxPanels(dimensions,side);
+    assert.equal(split.filter(panel=>panel.id.startsWith('top')).length,4);
+    assert.equal(split.filter(panel=>panel.id.startsWith('bottom')).length,4);
   }
   assert.ok(baseBoxSheet(dimensions).bounds.width>dimensions.width);
-  assert.ok(splitTopBoxBounds(dimensions,'side_a').height>dimensions.height);
+  assert.ok(splitTopSheet(dimensions,'side_a').bounds.height>dimensions.height);
 });
 
 test('base and split-top templates separate flat formation from package opening',()=>{
@@ -395,62 +389,51 @@ test('base-box lid variants attach the top face to the matching body panel',()=>
 });
 
 
-test('split-top front/back axis matches the production major/minor panel sequence',()=>{
-  const d={width:475,height:225,depth:255,thickness:.5};
-  const panels=splitTopBoxPanels(d,'side_b');
-  const glue=panels.find(panel=>panel.id==='glue');
-  const front=panels.find(panel=>panel.id==='front');
-  const right=panels.find(panel=>panel.id==='right');
-  const back=panels.find(panel=>panel.id==='back');
-  const left=panels.find(panel=>panel.id==='left');
-  assert.equal(front.x,glue.x+glue.width);
-  assert.equal(right.x,front.x+front.width);
-  assert.equal(back.x,right.x+right.width);
-  assert.equal(left.x,back.x+back.width);
-  assert.deepEqual([front.width,right.width,back.width,left.width],[475,255,475,255]);
-
-  const topFront=panels.find(panel=>panel.id==='topLeft');
-  const topBack=panels.find(panel=>panel.id==='topRight');
-  const bottomFront=panels.find(panel=>panel.id==='bottomFront');
-  const bottomBack=panels.find(panel=>panel.id==='bottomBack');
-  for(const [flap,parent] of [[topFront,front],[topBack,back],[bottomFront,front],[bottomBack,back]]){
-    assert.equal(flap.x,parent.x);
-    assert.equal(flap.width,parent.width);
+test('split-top is a regular slotted container with slots between its flaps',()=>{
+  for(const d of [{width:475,height:225,depth:255,thickness:3},{width:300,height:200,depth:200,thickness:.5}]){
+    const {slot,joint}=splitTopSizes(d);
+    for(const side of ['side_a','side_b']){
+      const p=splitFlat(d,side);
+      // Joint, front, right, back, left in one strip, scored one board wider.
+      assert.equal(p.glue.width,joint);
+      assert.equal(p.front.x,joint);
+      for(const [a,b] of [['front','right'],['right','back'],['back','left']])near(p[b].x,p[a].x+p[a].width);
+      assert.deepEqual([p.front.width,p.right.width,p.back.width,p.left.width],[d.width+d.thickness,d.depth+d.thickness,d.width+d.thickness,d.depth+d.thickness/2]);
+      for(const wall of ['front','right','back','left'])near(p[wall].height,d.height+2*d.thickness);
+      for(const end of ['top','bottom']){
+        const flaps=['Front','Right','Back','Left'].map(wall=>p[end+wall]);
+        // A slot between neighbouring flaps, cut down to the score.
+        for(let i=0;i<3;i++)near(flaps[i+1].x-(flaps[i].x+flaps[i].width),slot);
+        for(const [flap,wall] of flaps.map((flap,i)=>[flap,p[['front','right','back','left'][i]]])){
+          near(end==='top'?flap.y+flap.height:flap.y,end==='top'?wall.y:wall.y+wall.height);
+        }
+      }
+      // The long walls' flaps meet in the middle of the box (FEFCO 0201),
+      // and with the outer flaps on the ends, those meet too (0204).
+      near(p.topFront.height*2,d.depth+d.thickness);
+      near(p.bottomRight.height*2,d.depth+d.thickness);
+      near(p.topRight.height*2,side==='side_a'?d.width+d.thickness:d.depth+d.thickness);
+    }
   }
-  assert.equal(topFront.y+topFront.height,front.y);
-  assert.equal(topBack.y+topBack.height,back.y);
-  assert.equal(bottomFront.y,front.y+front.height);
-  assert.equal(bottomBack.y,back.y+back.height);
 });
 
 test('split-top 3D closes around the selected physical hinge axis',()=>{
   const d={width:475,height:225,depth:255,thickness:.5};
-
-  const sideA=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{
-    templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a',
-  });
-  const left=sideA.find(mesh=>mesh.panel==='Top Left').pickCorners;
-  const right=sideA.find(mesh=>mesh.panel==='Top Right').pickCorners;
-  const tol=d.thickness*3;
+  const {slot}=splitTopSizes(d);
+  const tol=slot+d.thickness*4;
   const reaches=(points,axis,value)=>assert.ok(points.some(point=>Math.abs(point[axis]-value)<=tol),`reaches ${value}`);
-  near(Math.abs(left[0][2]-left[1][2]),d.depth);
-  near(Math.abs(right[0][2]-right[1][2]),d.depth);
-  reaches(left,0,-d.width/2);
-  reaches(right,0,d.width/2);
-  reaches(left,0,0);
-  reaches(right,0,0);
+  const sideA=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a'});
+  const left=sideA.find(mesh=>mesh.panel==='Top Left').pickCorners,right=sideA.find(mesh=>mesh.panel==='Top Right').pickCorners;
+  // The end flaps span the depth and meet in the middle of the width.
+  within(Math.abs(left[0][2]-left[1][2]),d.depth,tol,'left flap span');
+  within(Math.abs(right[0][2]-right[1][2]),d.depth,tol,'right flap span');
+  reaches(left,0,-d.width/2);reaches(right,0,d.width/2);reaches(left,0,0);reaches(right,0,0);
 
-  const sideB=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{
-    templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_b',
-  });
-  const front=sideB.find(mesh=>mesh.panel==='Top Left').pickCorners;
-  const back=sideB.find(mesh=>mesh.panel==='Top Right').pickCorners;
-  near(Math.abs(front[0][0]-front[1][0]),d.width);
-  near(Math.abs(back[0][0]-back[1][0]),d.width);
-  reaches(front,2,d.depth/2);
-  reaches(back,2,-d.depth/2);
-  reaches(front,2,0);
-  reaches(back,2,0);
+  const sideB=buildMeshes(d,0,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_b'});
+  const front=sideB.find(mesh=>mesh.panel==='Top Front').pickCorners,back=sideB.find(mesh=>mesh.panel==='Top Back').pickCorners;
+  within(Math.abs(front[0][0]-front[1][0]),d.width,tol,'front flap span');
+  within(Math.abs(back[0][0]-back[1][0]),d.width,tol,'back flap span');
+  reaches(front,2,d.depth/2);reaches(back,2,-d.depth/2);reaches(front,2,0);reaches(back,2,0);
 });
 
 
@@ -516,10 +499,10 @@ test('dimension changes flow through each ready template runtime',()=>{
     assert.notDeepEqual(a.bounds,b.bounds,`${template.id} ignored changed dimensions`);
     const front=b.panels.find(panel=>panel.label==='FRONT');
     assert.ok(front,`${template.id} has no FRONT panel`);
-    // Entered sizes are inside sizes; a cutting template creases each panel
-    // up to a board thickness wider.
+    // Entered sizes are inside sizes; a cutting template scores each panel up
+    // to a board thickness wider, and a slotted box two boards taller.
     within(front.width,changed.width,changed.thickness,`${template.id} front width`);
-    within(front.height,changed.height,changed.thickness,`${template.id} front height`);
+    within(front.height,changed.height,2*changed.thickness,`${template.id} front height`);
   }
 });
 
@@ -602,7 +585,8 @@ test('split bottom flaps have independent artwork keys and preserve legacy full-
   assert.ok(mesh);
   assert.equal(mesh.fallbackPanel,'Bottom');
   assert.deepEqual(mesh.fallbackUv,[0,y,1,.5]);
-  near(mesh.faceAspect,dimensions.width/(dimensions.depth/2));
+  const flap=splitFlat(dimensions,'side_a')[name==='Bottom Front'?'bottomFront':'bottomBack'];
+  near(mesh.faceAspect,flap.width/flap.height);
  }
 });
 
@@ -633,18 +617,14 @@ test('closure flaps remain rigid and hinged throughout opening percentages on bo
   const d={width:400,height:300,depth:300,thickness:.5};
   const distance=(a,b)=>Math.hypot(...b.map((v,i)=>v-a[i]));
   for(const splitTopHingeSide of ['side_a','side_b'])for(const opening of [0,10,25,50,75,90,100]){
-    const meshes=buildMeshes(d,opening,[1,1,1],[.8,.8,.8],{
-      templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide,
-    });
+    const meshes=buildMeshes(d,opening,[1,1,1],[.8,.8,.8],{templateId:'split-top-box',formation:100,openingMode:'top_split_meet_center',splitTopHingeSide});
     const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
-    const topLeft=by('Top Left'),topRight=by('Top Right');
-    const parents=splitTopHingeSide==='side_a'?[by('Left'),by('Right')]:[by('Front'),by('Back')];
-    const hingeSpan=splitTopHingeSide==='side_a'?d.depth:d.width;
-    const flapReach=splitTopHingeSide==='side_a'?d.width/2:d.depth/2;
-    for(const [flap,parent] of [[topLeft,parents[0]],[topRight,parents[1]]]){
-      near(distance(flap[0],flap[1]),hingeSpan);
-      near(distance(flap[0],flap[3]),flapReach);
-      hinged(flap,parent,d.thickness*4,`${splitTopHingeSide} flap at ${opening}%`);
+    const flat=splitFlat(d,splitTopHingeSide);
+    for(const end of ['Top','Bottom'])for(const wall of ['Front','Right','Back','Left']){
+      const flap=by(`${end} ${wall}`),panel=flat[end.toLowerCase()+wall];
+      near(distance(flap[0],flap[1]),panel.width);
+      near(distance(flap[0],flap[3]),panel.height);
+      hinged(flap,by(wall),d.thickness*4,`${splitTopHingeSide} ${end} ${wall} at ${opening}%`);
     }
   }
 });
@@ -675,15 +655,12 @@ test('split-top body follows the production crease chain from flat dieline to fo
     const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
     const front=by('Front'),right=by('Right'),back=by('Back'),left=by('Left');
 
-    // Every body panel remains rigid.
-    near(distance(front[0],front[1]),d.width);
-    near(distance(front[0],front[3]),d.height);
-    near(distance(right[0],right[1]),d.depth);
-    near(distance(right[0],right[3]),d.height);
-    near(distance(back[0],back[1]),d.width);
-    near(distance(back[0],back[3]),d.height);
-    near(distance(left[0],left[1]),d.depth);
-    near(distance(left[0],left[3]),d.height);
+    // Every body panel remains rigid at its size on the cutting template.
+    const flat=splitFlat(d,'side_b');
+    for(const [corners,id] of [[front,'front'],[right,'right'],[back,'back'],[left,'left']]){
+      near(distance(corners[0],corners[1]),flat[id].width);
+      near(distance(corners[0],corners[3]),flat[id].height);
+    }
 
     // Every scored crease remains coincident throughout the fold.
     hinged(front,right,d.thickness*3,`front/right at ${formation}%`);
@@ -718,17 +695,12 @@ test('split-top assembly timeline is physically staged from dieline through flap
       });
       const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
       const front=by('Front'),right=by('Right'),back=by('Back'),left=by('Left');
-      const topLeft=by('Top Left'),topRight=by('Top Right');
-
       // Body topology must never disconnect while the slider advances.
       hinged(front,right,d.thickness*3);
       hinged(right,back,d.thickness*3);
       hinged(back,left,d.thickness*3);
 
-      const parents=splitTopHingeSide==='side_a'?[left,right]:[front,back];
-      for(const [flap,parent] of [[topLeft,parents[0]],[topRight,parents[1]]]){
-        hinged(flap,parent,d.thickness*4);
-      }
+      for(const [flap,wall] of outerTop(splitTopHingeSide))hinged(by(flap),by(wall),d.thickness*4);
 
       if(progress<=70){
         // Closure remains fully open while the body erects.
@@ -891,7 +863,7 @@ test('reverse-tuck panels with no artwork take their neighbour\'s edge colour',(
   const {flapChains}=require('../src/lib/packaging/flap-artwork.ts');
   // Each flap's nearest printed neighbour, and the crease between them.
   const inheritedFlaps=(...args)=>flapChains(...args).map(({flap,chain})=>({flap,...chain[0]}));
-  const {edgeBand,dominantColour,EDGE_BAND_MM}=require('../src/lib/packaging/flap-continuation.ts');
+  const {edgeBand,EDGE_BAND_MM}=require('../src/lib/packaging/flap-continuation.ts');
   const {getTemplateRuntime}=require('../src/lib/packaging/template-runtime.ts');
   const d={width:120,height:180,depth:55,thickness:.5};
   const {panels,bounds}=getTemplateGeometry('reverse-tuck-carton',d);
