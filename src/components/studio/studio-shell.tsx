@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
 import { NewDesignPreview } from './new-design-preview';
+import { CameraAngleIcon } from './camera-angle-icon';
 import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
@@ -1812,7 +1813,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             }}
             className={camera === item ? 'is-active' : ''}
           >
-            <span className={`pro-camera-view-icon is-${item.toLowerCase().replace(/\s+/g,'-')}`} aria-hidden="true"><i/><i/><i/></span>
+            <CameraAngleIcon preset={item}/>
             <b>{item}</b>
           </button>)}
         </div>}
