@@ -849,6 +849,10 @@ body{font-size:var(--type-body)}
 .pro-camera-view-icon.is-right{transform:scaleX(-1) rotateY(18deg)}
 .pro-camera-view-icon.is-top{transform:rotateX(58deg)}
 .pro-camera-view-icon.is-perspective{transform:rotate(-4deg)}
+.pro-camera-view-icon.is-hero{transform:rotate(-4deg) scaleY(.82) translateY(5px)}
+.pro-camera-view-icon.is-back-angle{transform:scaleX(-1) rotate(-4deg)}
+.pro-camera-view-icon.is-overhead{transform:rotateX(38deg) rotate(-4deg)}
+.pro-video-progress{width:100%;height:6px;margin-top:10px;accent-color:#0076bc}
 
 .pro-canvas-tools{bottom:42px;padding:5px 6px}
 .pro-canvas-tools button{width:42px;height:42px;border-radius:8px}
@@ -5286,7 +5290,7 @@ body{font-size:var(--type-body)}
 /* Download panel tabs */
 .pro-export-tabs{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(3,1fr);
   gap:6px;
   padding:4px;
   margin:2px 0 16px;

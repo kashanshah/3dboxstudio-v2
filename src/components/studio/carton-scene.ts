@@ -207,6 +207,9 @@ export function cameraForPreset(preset: string) {
     case 'Left': return { yaw: -Math.PI / 2, pitch: 0 };
     case 'Right': return { yaw: Math.PI / 2, pitch: 0 };
     case 'Top': return { yaw: -0.15, pitch: 1.12 };
+    case 'Hero': return { yaw: -0.62, pitch: 0.07 };
+    case 'Back angle': return { yaw: 2.55, pitch: 0.3 };
+    case 'Overhead': return { yaw: -0.5, pitch: 0.82 };
     case 'LegacyPerspective': return { yaw: 0.7568345056, pitch: 0.4180918584 };
     default: return { yaw: -0.55, pitch: 0.28 };
   }
