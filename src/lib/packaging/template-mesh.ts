@@ -14,6 +14,14 @@ export type Mesh = {
   doubleSided?: boolean;
   /** Unprinted closure flap (tuck tongue, dust flap): drawn but never picked or printed. */
   closureFlap?: boolean;
+  /** Pairs the outside and inside faces of one board panel that has no panel name. */
+  board?: { id: string; side: 'outside' | 'inside' };
+  /**
+   * Which panel covers which where two meet without a crease: a lower layer
+   * stops at the inside surface of a higher one. Defaults: tucked flaps 0,
+   * walls 1, lids and bottoms 2.
+   */
+  layer?: number;
 };
 
 export type TemplateMeshInput = {

@@ -35,11 +35,14 @@ test('pizza box keeps every artwork panel rigid from the flat sheet through lid 
         const name=panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
         const mesh=meshes.find(item=>item.panel===name);
         const c=mesh.pickCorners;
-        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width);
-        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height);
+        // Lid skirts stop short of the corners (3.6 boards at each end) so
+        // they clear the corner ears and each other; everything else is exact.
+        const trim=panel.id==='lidFront'?[2*3.6*dimensions.thickness,0]:panel.id==='lidLeft'||panel.id==='lidRight'?[0,2*3.6*dimensions.thickness]:[0,0];
+        near(Math.hypot(...c[1].map((v,i)=>v-c[0][i])),panel.width-trim[0]);
+        near(Math.hypot(...c[3].map((v,i)=>v-c[0][i])),panel.height-trim[1]);
         assert.ok(mesh.vertices.every(Number.isFinite));
         assert.ok(meshes.some(item=>item.panel===`Interior ${name}`));
-        if(progress===0){
+        if(progress===0&&!panel.id.startsWith('lid')){
           near(c[0][0],panel.x-base.x-dimensions.width/2);
           near(c[0][1],-dimensions.height/2);
           near(c[0][2],panel.y-base.y-dimensions.depth/2);
@@ -758,9 +761,11 @@ test('reverse tuck glue strip follows its own physical hinge in the correct dire
     }
     const glue=glueMesh.pickCorners;
 
-    // The scored Left/Glue crease must remain connected for the whole fold.
-    glue[1].forEach((value,i)=>near(value,left[0][i]));
-    glue[2].forEach((value,i)=>near(value,left[3][i]));
+    // The scored Left/Glue crease stays joined for the whole fold: like card,
+    // the flap bends around the inside of the crease, so its edge never moves
+    // more than about one board from the Left panel's edge.
+    assert.ok(distance(glue[1],left[0])<=d.thickness*1.5,'glue stays on its crease');
+    assert.ok(distance(glue[2],left[3])<=d.thickness*1.5,'glue stays on its crease');
 
     // Glue is a rigid flap; its physical width must never stretch or shrink.
     near(distance(glue[0],glue[1]),glueWidth);
@@ -800,7 +805,7 @@ test('thick board edges never lie in the same plane as a printed face (no z-figh
   }
 });
 
-const {analyseSurfaces,withCutEdges}=require('../src/components/studio/carton-surfaces.ts');
+const {analyseSurfaces,solidify}=require('../src/components/studio/carton-surfaces.ts');
 test('closed carton: outside folds are rounded, inside corners are shaded',()=>{
   const dimensions={width:120,height:180,depth:55,thickness:.5};
   const meshes=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8]);
@@ -824,24 +829,38 @@ test('flat dielines get no fold shading',()=>{
     assert.ok(item.occlusion.every(value=>value===0)&&item.rounded.every(value=>value===0));
   }
 });
-test('mailer boxes gain cut board edges only where the board is cut',()=>{
-  const dimensions={width:200,height:80,depth:150,thickness:3};
-  const open=buildMeshes(dimensions,60,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:100,openingMode:'lid_from_back'});
-  const withEdges=withCutEdges(open,dimensions.thickness);
-  const added=withEdges.slice(open.length);
-  assert.ok(added.length>0,'open mailer shows its cut rim');
-  assert.ok(added.every(mesh=>mesh.doubleSided&&!mesh.panel));
-  for(const mesh of added){
-    const corners=[0,1,2,5].map(i=>Array.from(mesh.vertices.slice(i*8,i*8+3)));
-    const short=Math.min(Math.hypot(...corners[1].map((v,i)=>v-corners[0][i])),Math.hypot(...corners[3].map((v,i)=>v-corners[0][i])));
-    // The mailer template draws its inside faces at most 2 mm in.
-    assert.ok(Math.abs(short-Math.min(2,dimensions.thickness))<1e-4,'each strip spans the board');
+test('solid board: inside faces meet at creases, edges only on cut sides, covered panels stop at the cover',()=>{
+  const corners=mesh=>[0,1,2,5].map(i=>Array.from(mesh.vertices.slice(i*8,i*8+3)));
+  const dist=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]));
+  // Closed carton: the inside of Front and Left meet along one line at the corner.
+  const tuck={width:120,height:180,depth:55,thickness:2};
+  const closed=solidify(buildMeshes(tuck,100,[1,1,1],[.8,.8,.8]),tuck.thickness);
+  const front=corners(closed.find(mesh=>mesh.panel==='Interior Front'));
+  const left=corners(closed.find(mesh=>mesh.panel==='Interior Left'));
+  const shared=front.filter(p=>left.some(q=>dist(p,q)<1e-3));
+  assert.equal(shared.length,2,'inside faces share their corner edge instead of crossing');
+  // Where the closed lid meets the walls, the outside corner stays closed and
+  // the walls' inside faces stop at the lid's inside surface.
+  const lid=closed.find(mesh=>mesh.panel==='Top');
+  const lidOutside=Math.max(...corners(lid).map(p=>p[1]));
+  for(const wall of ['Left','Right','Back']){
+    near(Math.max(...corners(closed.find(mesh=>mesh.panel===wall)).map(p=>p[1])),lidOutside);
+    const inside=Math.max(...corners(closed.find(mesh=>mesh.panel===`Interior ${wall}`)).map(p=>p[1]));
+    assert.ok(inside<=lidOutside-tuck.thickness+1e-3,`${wall} inside face stops under the lid`);
   }
-  const flat=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:0,openingMode:'lid_from_back'});
-  const flatEdges=withCutEdges(flat,dimensions.thickness).length-flat.length;
+  // Template edge strips are rebuilt, and none is drawn along a crease.
+  const mailer={width:200,height:80,depth:150,thickness:3};
+  const open=buildMeshes(mailer,60,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:100,openingMode:'lid_from_back'});
+  const solid=solidify(open,mailer.thickness);
+  const strips=solid.filter(mesh=>mesh.doubleSided&&!mesh.panel);
+  assert.ok(strips.length>0,'open mailer shows its cut rim');
+  for(const strip of strips){
+    const c=corners(strip);
+    const short=Math.min(dist(c[0],c[1]),dist(c[0],c[3]));
+    assert.ok(short>0&&short<=mailer.thickness*1.5,'each strip spans about one board');
+  }
+  const flat=buildMeshes(mailer,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',formation:0,openingMode:'lid_from_back'});
+  const flatStrips=solidify(flat,mailer.thickness).filter(mesh=>mesh.doubleSided&&!mesh.panel).length;
   const panels=flat.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length;
-  assert.ok(flatEdges<panels*4,'fold lines between panels are not drawn as cut edges');
-  // Templates that draw their own edges are left alone.
-  const tuck=buildMeshes({width:120,height:180,depth:55,thickness:.5},50,[1,1,1],[.8,.8,.8]);
-  assert.equal(withCutEdges(tuck,.5),tuck);
+  assert.ok(flatStrips<panels*4,'fold lines between panels are not drawn as cut edges');
 });

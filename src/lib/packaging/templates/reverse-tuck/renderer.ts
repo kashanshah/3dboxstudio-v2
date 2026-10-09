@@ -18,8 +18,9 @@ function buildReverseTuckMeshes(
   const fold = reverseTuckFoldState(opening);
   const wallAngle = fold.walls * Math.PI / 2;
   const backAngle = fold.back * Math.PI / 2;
-  // Each closure folds like a real carton: dust flaps first, then the lid,
-  // and the tuck tongue bends in as the lid comes down.
+  // Each closure folds like a real carton: dust flaps in, the tuck tongue
+  // pre-folded, then the lid swings down and the tongue slides in behind
+  // the opposite panel.
   const topAngle = substage(fold.top, 0.25, 1) * Math.PI / 2;
   const bottomAngle = substage(fold.bottom, 0.25, 1) * Math.PI / 2;
 
@@ -105,11 +106,17 @@ function buildReverseTuckMeshes(
   const glueFarFlat=[x0-d-glueWidth,0,zFront];
   const glueHingeAfterWall=rotateYPoint(glueHingeFlat,frontLeftHinge,-wallAngle);
   const glueFarAfterWall=rotateYPoint(glueFarFlat,frontLeftHinge,-wallAngle);
-  const glueFarAfterGlueFold=rotateYPoint(glueFarAfterWall,glueHingeAfterWall,-backAngle);
+  // Scored card bends around the inside of the crease: the flap pivots on a
+  // line one board in from the crease, so it closes against the inside of
+  // the back panel instead of sharing its plane.
+  const leftDirection=normalizeXZ([glueHingeAfterWall[0]-frontLeftHinge[0],0,glueHingeAfterWall[2]-frontLeftHinge[2]]);
+  const gluePivot=glueHingeAfterWall.map((value,axis)=>value-leftDirection[axis]*t*TUCK_CLEARANCE);
+  const glueHingeAfterGlueFold=rotateYPoint(glueHingeAfterWall,gluePivot,-backAngle);
+  const glueFarAfterGlueFold=rotateYPoint(glueFarAfterWall,gluePivot,-backAngle);
   const glueCorners=[
     [glueFarAfterGlueFold[0],y0,glueFarAfterGlueFold[2]],
-    [glueHingeAfterWall[0],y0,glueHingeAfterWall[2]],
-    [glueHingeAfterWall[0],y1,glueHingeAfterWall[2]],
+    [glueHingeAfterGlueFold[0],y0,glueHingeAfterGlueFold[2]],
+    [glueHingeAfterGlueFold[0],y1,glueHingeAfterGlueFold[2]],
     [glueFarAfterGlueFold[0],y1,glueFarAfterGlueFold[2]],
   ];
 
@@ -207,23 +214,30 @@ function buildReverseTuckMeshes(
   const flaps: Array<{ parent: number[][]; hinge: [number, number]; length: number; angle: number; inset: [number, number]; taper: [number, number] }> = [];
   const tongueInset: [number, number] = [sizes.clearance, sizes.clearance];
   const tongueTaper: [number, number] = [sizes.clearance + sizes.tongueBevel, sizes.clearance + sizes.tongueBevel];
-  flaps.push({ parent: topCorners, hinge: [3, 2], length: sizes.tongue, angle: substage(fold.top, 0.55, 1) * Math.PI / 2, inset: tongueInset, taper: tongueTaper });
-  flaps.push({ parent: bottomCorners, hinge: [0, 1], length: sizes.tongue, angle: substage(fold.bottom, 0.55, 1) * Math.PI / 2, inset: tongueInset, taper: tongueTaper });
+  flaps.push({ parent: topCorners, hinge: [3, 2], length: sizes.tongue, angle: tongueAngle(substage(fold.top, 0.1, 0.5) * Math.PI / 2, topAngle, d, sizes.tongue), inset: tongueInset, taper: tongueTaper });
+  flaps.push({ parent: bottomCorners, hinge: [0, 1], length: sizes.tongue, angle: tongueAngle(substage(fold.bottom, 0.1, 0.5) * Math.PI / 2, bottomAngle, d, sizes.tongue), inset: tongueInset, taper: tongueTaper });
   const dustTaper: [number, number] = [sizes.dustTaper, sizes.dustTaper];
+  // The tuck tongues slide down inside the back panel, two boards deep; the
+  // dust flaps stop short of them at the back so the two never meet.
+  const tongueRoom = t * (2 * TUCK_CLEARANCE + 0.5) + 0.3;
   for (const wall of [leftCorners, rightCorners]) {
-    flaps.push({ parent: wall, hinge: [3, 2], length: sizes.dustHeight, angle: substage(fold.top, 0, 0.4) * Math.PI / 2, inset: [0, 0], taper: dustTaper });
-    flaps.push({ parent: wall, hinge: [0, 1], length: sizes.dustHeight, angle: substage(fold.bottom, 0, 0.4) * Math.PI / 2, inset: [0, 0], taper: dustTaper });
+    // Left wall corners run back→front along each hinge, right wall front→back.
+    const backEnd: [number, number] = wall === leftCorners ? [tongueRoom, 0] : [0, tongueRoom];
+    flaps.push({ parent: wall, hinge: [3, 2], length: sizes.dustHeight, angle: substage(fold.top, 0, 0.4) * Math.PI / 2, inset: backEnd, taper: [Math.max(dustTaper[0], backEnd[0]), Math.max(dustTaper[1], backEnd[1])] });
+    flaps.push({ parent: wall, hinge: [0, 1], length: sizes.dustHeight, angle: substage(fold.bottom, 0, 0.4) * Math.PI / 2, inset: backEnd, taper: [Math.max(dustTaper[0], backEnd[0]), Math.max(dustTaper[1], backEnd[1])] });
   }
-  for (const flap of flaps) {
+  for (const [flapIndex, flap] of flaps.entries()) {
     if (flap.length <= 0) continue;
     const corners = closureFlapCorners(flap.parent, flap.hinge, flap.length, flap.angle, flap.inset, flap.taper, t);
     const exterior = quadFromCorners(corners, color);
     exterior.closureFlap = true;
+    exterior.board = { id: `closure-${flapIndex}`, side: 'outside' };
     exteriorMeshes.push(exterior);
     const normal = faceNormal(corners);
     const insideCorners = corners.map(point => point.map((value, axis) => value - normal[axis] * t));
     const inside = quadFromCorners([insideCorners[3], insideCorners[2], insideCorners[1], insideCorners[0]], interior);
     inside.closureFlap = true;
+    inside.board = { id: `closure-${flapIndex}`, side: 'inside' };
     interiorMeshes.push(inside);
     if (!showExposedBoardEdges) continue;
     const edgeColor = color.map(value => Math.max(0, Math.min(1, value * 0.72))) as [number, number, number];
@@ -244,9 +258,10 @@ function buildReverseTuckMeshes(
 
 /**
  * Corners of a flap hinged on the parent's edge hinge[0]→hinge[1], folded
- * `angle` toward the inside of the carton. Inset and taper narrow the hinge
- * and the free end. Folded flaps sit a little more than one board inside the
- * panel they tuck behind, so the two never share a plane.
+ * `angle` toward the inside of the carton. Like scored card, it bends around
+ * a line just inside the crease, so a closed flap rests one board inside the
+ * panel it tucks behind and stays joined along the inner surface. Inset and
+ * taper narrow the hinge and the free end.
  */
 function closureFlapCorners(parent: number[][], hinge: [number, number], length: number, angle: number, inset: [number, number], taper: [number, number], t: number) {
   const a = parent[hinge[0]], b = parent[hinge[1]];
@@ -259,11 +274,34 @@ function closureFlapCorners(parent: number[][], hinge: [number, number], length:
   const parentNormal = faceNormal(parent);
   const direction = outward.map((value, axis) => value * Math.cos(angle) - parentNormal[axis] * Math.sin(angle));
   const flapNormal = outward.map((value, axis) => value * Math.sin(angle) + parentNormal[axis] * Math.cos(angle));
-  const clearance = flapNormal.map(value => -value * t * 1.5 * Math.sin(angle));
-  const at = (u: number, v: number) => [0, 1, 2].map(axis => a[axis] + along[axis] * u + direction[axis] * v + clearance[axis]);
+  const setback = t * TUCK_CLEARANCE;
+  const at = (u: number, v: number) => [0, 1, 2].map(axis => a[axis] - outward[axis] * setback + along[axis] * u + direction[axis] * (v + setback));
   const corners = [at(inset[0], 0), at(span - inset[1], 0), at(span - taper[1], length), at(taper[0], length)];
   const facing = dot(faceNormal(corners), flapNormal) >= 0;
   return facing ? corners : [corners[1], corners[0], corners[3], corners[2]];
+}
+
+/**
+ * How far the tuck tongue is curled, given how far it has been pre-folded and
+ * how far the lid (depth `depth`) has swung from upright (0) to closed (π/2).
+ * While the lid comes down, the tongue is curled past square just enough for
+ * its tip to clear the opposite panel, then springs back to square inside it.
+ */
+function tongueAngle(prefold: number, lid: number, depth: number, tongue: number) {
+  if (tongue <= 0) return prefold;
+  // Tip distance beyond the lid's free edge, toward the opposite panel, is
+  // tongue·sin(lid + curl); it must stay within the room left, depth·(1 − sin lid).
+  const room = Math.max(-1, Math.min(1, depth * (1 - Math.sin(lid)) / tongue));
+  const needed = Math.PI - lid - Math.asin(room);
+  return Math.min(Math.PI * 0.85, Math.max(prefold, prefold > 0 ? needed : 0));
+}
+
+/** Boards between a tucked flap and the panel it rests against, plus a hair of air. */
+const TUCK_CLEARANCE = 1.05;
+
+function normalizeXZ(v: number[]) {
+  const length = Math.hypot(v[0], v[2]) || 1;
+  return [v[0] / length, 0, v[2] / length];
 }
 
 function normalize(v: number[]) {

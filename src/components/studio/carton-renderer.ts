@@ -44,7 +44,7 @@ import {
   textureTransform,
   type Scene,
 } from './carton-scene';
-import { analyseSurfaces, withCutEdges } from './carton-surfaces';
+import { analyseSurfaces, solidify } from './carton-surfaces';
 
 /**
  * How each stock reacts to light. Colours still come from the material or the
@@ -192,7 +192,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
 
   const syncMeshes = () => {
     const thickness = scene.dimensions.thickness;
-    meshes = withCutEdges(sceneMeshes(scene), thickness);
+    meshes = solidify(sceneMeshes(scene), thickness);
     const shading = analyseSurfaces(meshes, thickness);
     const flat = scene.renderStyle === 'flat';
     // Folds bend over roughly their own board thickness; keep at least a

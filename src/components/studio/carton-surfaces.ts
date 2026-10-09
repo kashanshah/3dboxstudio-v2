@@ -103,48 +103,161 @@ function closestNeighbour(quad: Quad, a: Vec3, b: Vec3, quads: (Quad | null)[], 
   return best;
 }
 
+type Board = { id: string; outside: Quad; inside: Quad; inner: Vec3[] };
+
 /**
- * Cut board edges for templates that only describe the printed and inside
- * faces: one strip along every outside edge that is not a fold onto another
- * panel. Templates that draw their own edges are returned unchanged.
+ * Turn each panel's printed and inside faces into a solid piece of board:
+ * at every crease the inside faces of the two panels are trimmed (or, on an
+ * outward fold, extended) to meet exactly, the way the inside of bent card
+ * closes up, and a cut board edge is drawn along every edge that is not a
+ * crease. Template-drawn edge strips are replaced so every template behaves
+ * the same; strips that end flush against another face are left out.
  */
-export function withCutEdges(meshes: Mesh[], thickness: number): Mesh[] {
-  if (meshes.some(isBoardEdge)) return meshes;
+export function solidify(meshes: Mesh[], thickness: number): Mesh[] {
   const quads = faces(meshes);
-  const outside = quads.filter((quad): quad is Quad => !!quad && !!quad.mesh.panel && !quad.mesh.panel.startsWith('Interior '));
-  const inside = new Map(quads.filter((quad): quad is Quad => !!quad?.mesh.panel?.startsWith('Interior ')).map(quad => [quad.mesh.panel!.slice('Interior '.length), quad]));
+  const boards = pairBoards(quads);
   const size = sceneSize(quads);
   const tolerance = Math.max(size * 1e-5, 1e-4);
+  const reach = thickness * 3;
+  const creases = new Map<Board, (Board | null)[]>();
+  for (const board of boards) {
+    creases.set(board, [0, 1, 2, 3].map(edge => {
+      const a = board.outside.corners[edge], b = board.outside.corners[(edge + 1) % 4];
+      return boards.find(other => other !== board && sharesEdge(other.outside, a, b, tolerance)) ?? null;
+    }));
+  }
+  const replaced = new Map<Mesh, Mesh>();
+  for (const board of boards) {
+    const inner = board.inner.map(point => [...point]);
+    creases.get(board)!.forEach((neighbour, edge) => {
+      if (!neighbour) return;
+      const normal = neighbour.inside.normal;
+      if (Math.abs(dot(normal, board.inside.normal)) > 0.999) return;
+      // Slide each end of this edge along its side of the quad until it
+      // reaches the neighbour's inside surface.
+      for (const [corner, along] of [[edge, (edge + 3) % 4], [(edge + 1) % 4, (edge + 2) % 4]]) {
+        // Corners on two creases take both moves, one after the other.
+        const from = inner[corner], direction = sub(inner[corner], inner[along]);
+        const denominator = dot(direction, normal);
+        if (Math.abs(denominator) < 1e-9) continue;
+        const s = dot(sub(neighbour.inside.corners[0], from), normal) / denominator;
+        const move = scale(direction, s);
+        if (Math.hypot(...move) > reach) continue;
+        inner[corner] = add(from, move);
+      }
+    });
+    board.inner = inner;
+  }
+  // Butt joints: where a panel's cut edge runs into another panel that
+  // covers it, it stops at that panel's inside surface instead of passing
+  // through it.
+  for (const board of boards) {
+    const outer = board.outside.corners.map(point => [...point]);
+    creases.get(board)!.forEach((neighbour, edge) => {
+      if (neighbour) return;
+      for (const cover of boards) {
+        if (cover === board || layerOf(cover) <= layerOf(board) || creases.get(board)!.includes(cover)) continue;
+        for (const [corner, along] of [[edge, (edge + 3) % 4], [(edge + 1) % 4, (edge + 2) % 4]]) {
+          for (const surface of [outer, board.inner]) {
+            if (!withinBoard(surface[corner], cover, thickness)) continue;
+            const normal = cover.outside.normal;
+            const direction = sub(surface[corner], surface[along]);
+            const denominator = dot(direction, normal);
+            if (Math.abs(denominator) < 1e-9) continue;
+            const s = dot(sub(sub(cover.outside.corners[0], scale(normal, thickness)), surface[corner]), normal) / denominator;
+            const move = scale(direction, s);
+            if (s > 0 || Math.hypot(...move) > thickness * 2.5) continue;
+            surface[corner] = add(surface[corner], move);
+          }
+        }
+      }
+    });
+    if (outer.some((point, index) => Math.hypot(...sub(point, board.outside.corners[index])) > 1e-9)) {
+      board.outside = { ...board.outside, corners: outer };
+      replaced.set(board.outside.mesh, withCorners(board.outside.mesh, outer));
+    }
+    replaced.set(board.inside.mesh, withCorners(board.inside.mesh, [board.inner[3], board.inner[2], board.inner[1], board.inner[0]]));
+  }
+  const allFaces = boards.flatMap(board => [board.outside, { ...board.inside, corners: [board.inner[3], board.inner[2], board.inner[1], board.inner[0]] }]);
   const edges: Mesh[] = [];
-  for (const face of outside) {
-    const twin = inside.get(face.mesh.panel!);
-    if (!twin) continue;
-    // Inside quads list the outside corners in reverse order.
-    const inner = [twin.corners[3], twin.corners[2], twin.corners[1], twin.corners[0]];
-    for (let edge = 0; edge < 4; edge++) {
+  for (const board of boards) {
+    creases.get(board)!.forEach((neighbour, edge) => {
+      if (neighbour) return;
       const next = (edge + 1) % 4;
-      const a = face.corners[edge], b = face.corners[next];
-      if (sharesEdge(face, a, b, outside, tolerance)) continue;
-      const strip = [a, b, inner[next], inner[edge]];
-      // Hidden where it ends flush against another printed face (a closed lid).
-      if (outside.some(other => other !== face && liesOn(average(strip), other, thickness * 0.6))) continue;
-      const mesh = quadFromCorners(strip, face.mesh.color.map(value => value * 0.86) as [number, number, number]);
+      const strip = [board.outside.corners[edge], board.outside.corners[next], board.inner[next], board.inner[edge]];
+      if (Math.hypot(...sub(strip[0], strip[3])) < 1e-6 && Math.hypot(...sub(strip[1], strip[2])) < 1e-6) return;
+      const middle = average(strip);
+      if (allFaces.some(face => face !== board.outside && liesOn(middle, face, thickness * 0.6))) return;
+      const mesh = quadFromCorners(strip, board.outside.mesh.color.map(value => value * 0.86) as [number, number, number]);
       mesh.doubleSided = true;
       edges.push(mesh);
-    }
+    });
   }
-  return [...meshes, ...edges];
+  return [...meshes.filter(mesh => !isBoardEdge(mesh)).map(mesh => replaced.get(mesh) ?? mesh), ...edges];
 }
 
-function sharesEdge(face: Quad, a: Vec3, b: Vec3, others: Quad[], tolerance: number) {
+function layerOf(board: Board) {
+  const mesh = board.outside.mesh;
+  if (mesh.layer !== undefined) return mesh.layer;
+  if (mesh.board || mesh.closureFlap) return 0;
+  const name = mesh.panel ?? '';
+  if (/^(Glue|Lid |.* Tab$)/.test(name)) return 0;
+  if (/^(Top|Bottom)\b/.test(name)) return 2;
+  return 1;
+}
+
+/** True when a point sits inside the thickness of another board's panel. */
+function withinBoard(point: Vec3, board: Board, thickness: number) {
+  const face = board.outside;
+  const depth = dot(sub(point, face.corners[0]), face.normal);
+  if (depth > thickness * 0.02 || depth < -thickness * 1.02) return false;
+  const margin = thickness * 0.5;
+  return face.corners.every((corner, index) => {
+    const edge = sub(face.corners[(index + 1) % 4], corner);
+    const inward = normalizeVec(cross(face.normal, edge));
+    return dot(sub(point, corner), inward) > -margin;
+  });
+}
+
+function normalizeVec(v: Vec3) {
+  const length = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / length, v[1] / length, v[2] / length];
+}
+
+function pairBoards(quads: (Quad | null)[]): Board[] {
+  const outside = new Map<string, Quad>(), inside = new Map<string, Quad>();
+  for (const quad of quads) {
+    if (!quad) continue;
+    const { panel, board } = quad.mesh;
+    if (board) (board.side === 'outside' ? outside : inside).set(board.id, quad);
+    else if (panel?.startsWith('Interior ')) inside.set(panel.slice('Interior '.length), quad);
+    else if (panel) outside.set(panel, quad);
+  }
+  const boards: Board[] = [];
+  for (const [id, face] of outside) {
+    const twin = inside.get(id);
+    // Inside quads list the outside corners in reverse order.
+    if (twin) boards.push({ id, outside: face, inside: twin, inner: [twin.corners[3], twin.corners[2], twin.corners[1], twin.corners[0]] });
+  }
+  return boards;
+}
+
+function withCorners(mesh: Mesh, corners: Vec3[]): Mesh {
+  const vertices = new Float32Array(mesh.vertices);
+  // Quad vertex order is a, b, c, a, c, d.
+  [0, 1, 2, 0, 2, 3].forEach((corner, vertex) => vertices.set(corners[corner], vertex * 8));
+  return { ...mesh, vertices };
+}
+
+function sharesEdge(other: Quad, a: Vec3, b: Vec3, tolerance: number) {
   const length = Math.hypot(...sub(b, a));
   const along = scale(sub(b, a), 1 / Math.max(length, 1e-9));
-  return others.some(other => other !== face && other.corners.some((p, index) => {
+  return other.corners.some((p, index) => {
     const q = other.corners[(index + 1) % 4];
     if (lineDistance(p, a, along) > tolerance || lineDistance(q, a, along) > tolerance) return false;
     const t0 = dot(sub(p, a), along), t1 = dot(sub(q, a), along);
     return Math.min(length, Math.max(t0, t1)) - Math.max(0, Math.min(t0, t1)) > length * 0.5;
-  }));
+  });
 }
 
 function liesOn(point: Vec3, face: Quad, tolerance: number) {
