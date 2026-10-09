@@ -1,6 +1,6 @@
 import type { TemplateRuntime } from '@/lib/packaging/template-runtime';
 import { sanitizeCartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { getBaseBoxBounds, getBaseBoxPanels } from './geometry';
+import { BASE_BOX_FLAP_SOURCES, baseBoxExportGeometry, baseBoxSheet } from './geometry';
 import { buildBaseBoxTemplateMeshes } from './renderer';
 
 export const baseBoxRuntime:TemplateRuntime={
@@ -8,12 +8,17 @@ export const baseBoxRuntime:TemplateRuntime={
   structureKey:'base-box-v1',
   rendererKey:'base-box-v1',
   sanitizeParameters:sanitizeCartonDimensions,
-  getDielinePanels:(dimensions,options)=>getBaseBoxPanels(dimensions,options?.openingMode??'closed'),
-  getDielineBounds:(dimensions,options)=>getBaseBoxBounds(dimensions,options?.openingMode??'closed'),
+  // The design grid is the cutting template itself, flaps included.
+  getDielinePanels:(dimensions,options)=>baseBoxSheet(dimensions,options?.openingMode??'closed').panels,
+  getDielineBounds:(dimensions,options)=>baseBoxSheet(dimensions,options?.openingMode??'closed').bounds,
   buildMeshes:buildBaseBoxTemplateMeshes,
+  getExportGeometry:(dimensions,options)=>baseBoxExportGeometry(dimensions,options?.openingMode??'closed'),
+  exportSummary:'Straight tuck end cutting template with closure flaps. Your printer must approve the stock and crease allowances.',
+  exportArtworkNote:'Artwork prints exactly as laid out on the design grid, including the tuck and dust flaps.',
   assembly:{
     control:'opening-mechanism',
     defaultOpeningMode:'closed',
     hasOpeningStage:openingMode=>openingMode!=='closed',
   },
+  flapArtworkSources:BASE_BOX_FLAP_SOURCES,
 };

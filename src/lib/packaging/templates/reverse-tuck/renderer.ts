@@ -2,6 +2,7 @@ import { reverseTuckFoldState, sanitizeCartonDimensions } from '@/lib/packaging/
 import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import { reverseTuckClosureSizes, reverseTuckSheet } from './export';
+import { tongueAngle } from '../tuck-end';
 
 // The 3D carton is folded from the cutting template itself, so every flap in
 // the print file moves in 3D and each crease bends like scored card.
@@ -76,22 +77,6 @@ export const buildReverseTuckTemplateMeshes: TemplateMeshBuilder = ({ dimensions
   const placement = translation([-(front.x + front.width / 2), front.y + front.height / 2, d.depth / 2]);
   return foldSheet({ panels, hinges, root: 'front', thickness: t, color, interiorColor, placement });
 };
-
-/**
- * How far the tuck tongue is curled, given how far it has been pre-folded and
- * how far the lid (depth `depth`) has swung from upright (0) to closed (π/2),
- * keeping the tip `clearance` inside the opposite wall.
- * While the lid comes down, the tongue is curled past square just enough for
- * its tip to clear the opposite panel, then springs back to square inside it.
- */
-function tongueAngle(prefold: number, lid: number, depth: number, tongue: number, clearance: number) {
-  if (tongue <= 0) return prefold;
-  // Tip distance beyond the lid's free edge, toward the opposite panel, is
-  // tongue·sin(lid + curl); it must stay within the room left, depth·(1 − sin lid).
-  const room = Math.max(-1, Math.min(1, (depth * (1 - Math.sin(lid)) - clearance) / tongue));
-  const needed = Math.PI - lid - Math.asin(room);
-  return Math.min(Math.PI * 0.85, Math.max(prefold, prefold > 0 ? needed : 0));
-}
 
 function substage(value: number, start: number, end: number) {
   const x = Math.min(1, Math.max(0, (value - start) / (end - start)));

@@ -1,6 +1,8 @@
 import { reverseTuckBounds, reverseTuckPanels, sanitizeCartonDimensions } from './reverse-tuck';
 import { reverseTuckSheetV2 } from './templates/reverse-tuck/sheet-v2';
 import { reverseTuckSheet } from './templates/reverse-tuck/export';
+import { baseBoxSheetV1 } from './templates/base-box/sheet-v1';
+import { baseBoxSheet } from './templates/base-box/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
 import type { StudioProjectState } from '../studio-project';
@@ -27,7 +29,18 @@ const STEPS: Record<string, Step[]> = {
     // 5: the locking die, creased one board wider per panel with a narrower
     // glue flap; sheet layers move and stretch (well under 1%) to keep the
     // body and top lid's edges, within about a board thickness everywhere.
-    state => moveSheetLayers(state, reverseTuckSheetV2, reverseTuckSheet, ['left', 'front', 'right', 'back', 'top']),
+    state => moveSheetLayers(state, s => reverseTuckSheetV2(s.dimensions), s => reverseTuckSheet(s.dimensions), ['left', 'front', 'right', 'back', 'top']),
+  ],
+  'base-box': [
+    // 2: the grid is the straight tuck end's cutting template, with tucks,
+    // dust flaps and a tapered glue flap, panels creased one board wider;
+    // sheet layers move and stretch to keep the walls' and lids' edges.
+    state => moveSheetLayers(
+      state,
+      s => baseBoxSheetV1(s.dimensions, s.openingMode),
+      s => baseBoxSheet(s.dimensions, s.openingMode),
+      ['left', 'front', 'right', 'back', 'top', 'bottom'],
+    ),
   ],
   'pizza-box': [
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
@@ -120,7 +133,7 @@ function reverseTuckLayersOnFlaps(state: StudioProjectState): StudioProjectState
 }
 
 type Rect = { id: string; x: number; y: number; width: number; height: number };
-type Sheet = (dimensions: StudioProjectState['dimensions']) => { panels: Rect[]; bounds: { width: number; height: number } };
+type Sheet = (state: StudioProjectState) => { panels: Rect[]; bounds: { width: number; height: number } };
 type Axis = { scale: number; offset: number };
 
 /** Least-squares a·old + b = new over matching values. */
@@ -137,8 +150,7 @@ function fitAxis(pairs: [number, number][]): Axis {
  * takes the move and stretch that best keeps the `fit` panels' edges.
  */
 function moveSheetLayers(state: StudioProjectState, from: Sheet, to: Sheet, fit: string[]): StudioProjectState {
-  const d = sanitizeCartonDimensions(state.dimensions);
-  const before = from(d), after = to(d);
+  const before = from(state), after = to(state);
   const pairs = (ids: string[]) => ids.flatMap(id => {
     const a = before.panels.find(panel => panel.id === id), b = after.panels.find(panel => panel.id === id);
     return a && b ? [[a, b] as const] : [];

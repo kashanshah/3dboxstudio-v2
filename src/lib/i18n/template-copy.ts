@@ -21,12 +21,6 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
     "category": "templates.reverse-tuck-carton.category",
     "description": "templates.reverse-tuck-carton.description"
   },
-  "straight-tuck-carton": {
-    "name": "templates.straight-tuck-carton.name",
-    "shortName": "templates.straight-tuck-carton.shortName",
-    "category": "templates.straight-tuck-carton.category",
-    "description": "templates.straight-tuck-carton.description"
-  },
   "mailer-box": {
     "name": "templates.mailer-box.name",
     "shortName": "templates.mailer-box.shortName",

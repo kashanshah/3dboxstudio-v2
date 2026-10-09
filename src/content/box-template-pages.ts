@@ -63,7 +63,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
       {
         title: 'Reverse tuck vs straight tuck',
-        body: 'In a straight tuck end (STE) box both closures hinge from the same face, usually the back, which gives an uninterrupted front panel at the top and bottom. A reverse tuck end box puts the closures on opposite faces. That layout nests better on the press sheet, so it usually costs less to print, and it is the default choice unless the design needs a clean front edge. 3D Box Studio supports reverse tuck today; straight tuck is planned.',
+        body: 'In a straight tuck end (STE) box both closures hinge from the same face, usually the back, which gives an uninterrupted front panel at the top and bottom. A reverse tuck end box puts the closures on opposite faces. That layout nests better on the press sheet, so it usually costs less to print, and it is the default choice unless the design needs a clean front edge. 3D Box Studio supports both: choose the straight tuck end box for closures on the same face.',
       },
       {
         title: 'How to measure for a tuck end box',

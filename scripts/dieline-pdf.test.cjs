@@ -72,8 +72,22 @@ test('cut contour forms one closed boundary without cutting through folds', () =
   }
 });
 
+test('the base box prints its straight tuck end cutting template, the design grid itself', () => {
+  for (const openingMode of ['closed', 'lid_from_back', 'lid_from_left', 'lid_from_right', 'double_doors']) {
+    const dimensions = { width: 240, height: 100, depth: 160, thickness: 0.5 };
+    const source = getTemplateGeometry('base-box', dimensions, { openingMode });
+    const g = getTemplateExportGeometry('base-box', dimensions, { openingMode });
+    assert.equal(g.kind, 'cutting-template');
+    assert.deepEqual(g.bounds, source.bounds);
+    assert.deepEqual(g.panels, source.panels);
+    // Two slit-locked tucks: each tuck crease stops short of both ends.
+    assert.equal(g.panels.filter(panel => panel.id.endsWith('-tuck')).length, 2);
+    assert.equal(g.panels.filter(panel => panel.id.endsWith('-dust')).length, 4);
+  }
+});
+
 test('other templates remain explicitly labelled proofs and retain their own geometry', () => {
-  for (const id of ['base-box', 'split-top-box']) for (const options of [{ openingMode: 'lid_from_left', splitTopHingeSide: 'side_a' }, { openingMode: 'lid_from_back', splitTopHingeSide: 'side_b' }]) {
+  for (const id of ['split-top-box']) for (const options of [{ openingMode: 'lid_from_left', splitTopHingeSide: 'side_a' }, { openingMode: 'lid_from_back', splitTopHingeSide: 'side_b' }]) {
     const source = getTemplateGeometry(id, defaultDimensions, options);
     const g = getTemplateExportGeometry(id, defaultDimensions, options);
     assert.equal(g.kind, 'layout-proof');

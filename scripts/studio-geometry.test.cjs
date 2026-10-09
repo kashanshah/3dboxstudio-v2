@@ -307,16 +307,19 @@ test('3D screen-space projection offset translates NDC without changing depth',(
 });
 
 
-const {baseBoxPanels,splitTopBoxPanels,baseBoxBounds,splitTopBoxBounds}=require('../src/lib/packaging/box-structures.ts');
+const {splitTopBoxPanels,splitTopBoxBounds}=require('../src/lib/packaging/box-structures.ts');
+const {baseBoxSheet}=require('../src/lib/packaging/templates/base-box/geometry.ts');
+const baseBoxPanels=(d,mode)=>baseBoxSheet(d,mode).panels;
 
 test('base box and split-top nets preserve finished face dimensions',()=>{
   const dimensions={width:240,height:100,depth:160,thickness:.5};
   const base=baseBoxPanels(dimensions);
   const splitA=splitTopBoxPanels(dimensions,'side_a');
   const splitB=splitTopBoxPanels(dimensions,'side_b');
-  assert.equal(base.find(panel=>panel.id==='front').width,240);
-  assert.equal(base.find(panel=>panel.id==='left').width,160);
-  assert.equal(base.find(panel=>panel.id==='top').height,160);
+  // The base box is a straight tuck end: inside sizes, creased one board wider.
+  assert.equal(base.find(panel=>panel.id==='front').width,240.5);
+  assert.equal(base.find(panel=>panel.id==='left').width,160.5);
+  assert.equal(base.find(panel=>panel.id==='top').height,160.5);
   assert.equal(splitA.filter(panel=>panel.id.startsWith('top')).length,2);
   assert.equal(splitA.find(panel=>panel.id==='topLeft').width,160);
   assert.equal(splitA.find(panel=>panel.id==='topLeft').height,120);
@@ -331,7 +334,7 @@ test('base box and split-top nets preserve finished face dimensions',()=>{
     assert.equal(split.find(panel=>panel.id==='bottomFront').width,240);
     assert.equal(split.find(panel=>panel.id==='bottomBack').width,240);
   }
-  assert.ok(baseBoxBounds(dimensions).width>dimensions.width);
+  assert.ok(baseBoxSheet(dimensions).bounds.width>dimensions.width);
   assert.ok(splitTopBoxBounds(dimensions,'side_a').height>dimensions.height);
 });
 
@@ -357,13 +360,14 @@ test('legacy base-box opening modes articulate existing faces without changing t
   const dimensions={width:240,height:100,depth:160,thickness:.5};
   const closed=buildMeshes(dimensions,0,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
   const open=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:'lid_from_back'});
-  assert.deepEqual(new Set(closed.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel)),new Set(['Glue','Front','Back','Left','Right','Top','Bottom']));
+  // Every piece of the straight tuck end's cutting template folds in 3D.
+  assert.deepEqual(new Set(closed.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).map(mesh=>mesh.panel)),new Set(['Glue','Front','Back','Left','Right','Top','Bottom','Top Tuck','Bottom Tuck','Top Left Dust Flap','Top Right Dust Flap','Bottom Left Dust Flap','Bottom Right Dust Flap']));
   const closedTop=closed.find(mesh=>mesh.panel==='Top').pickCorners;
   const openTop=open.find(mesh=>mesh.panel==='Top').pickCorners;
   assert.ok(openTop.some((point,index)=>Math.abs(point[1]-closedTop[index][1])>1),'hinged lid must move in 3D');
   for(const mode of ['door_left','door_right','double_doors']){
     const meshes=buildMeshes(dimensions,100,[1,1,1],[.8,.8,.8],{templateId:'base-box',openingMode:mode});
-    assert.equal(meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length,7);
+    assert.equal(meshes.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length,13);
   }
 });
 
@@ -612,14 +616,12 @@ test('base-box formation uses rigid crease rotations at every percentage',()=>{
     });
     const by=name=>meshes.find(mesh=>mesh.panel===name).pickCorners;
     const front=by('Front'),right=by('Right'),back=by('Back'),left=by('Left');
-    near(distance(front[0],front[1]),d.width);
-    near(distance(front[0],front[3]),d.height);
-    near(distance(right[0],right[1]),d.depth);
-    near(distance(right[0],right[3]),d.height);
-    near(distance(back[0],back[1]),d.width);
-    near(distance(back[0],back[3]),d.height);
-    near(distance(left[0],left[1]),d.depth);
-    near(distance(left[0],left[3]),d.height);
+    // Each wall keeps its size on the cutting template.
+    const flat=Object.fromEntries(baseBoxSheet(d,'lid_from_back').panels.map(panel=>[panel.id,panel]));
+    for(const [corners,id] of [[front,'front'],[right,'right'],[back,'back'],[left,'left']]){
+      near(distance(corners[0],corners[1]),flat[id].width);
+      near(distance(corners[0],corners[3]),flat[id].height);
+    }
 
     hinged(front,right,d.thickness*3,`front/right at ${formation}%`);
     hinged(right,back,d.thickness*3,`right/back at ${formation}%`);
