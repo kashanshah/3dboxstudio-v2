@@ -18,6 +18,7 @@ export function rectangleSheetPanels(panels: DielinePanel[]): SheetPanel[] {
   return panels.map(panel => ({
     id: panel.id,
     name: panelName(panel.label),
+    artworkRotation: panel.artworkRotation,
     outline: [
       { x: panel.x, y: panel.y },
       { x: panel.x + panel.width, y: panel.y },

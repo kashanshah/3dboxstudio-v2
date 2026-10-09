@@ -7,22 +7,37 @@ import type { StudioProjectState } from '../studio-project';
 // When a template's design grid changes, saved designs are moved onto the new
 // grid so they look and print exactly as they did before.
 
-const CURRENT_LAYOUT: Record<string, number> = {
-  // 2: the grid is the cutting template, with tuck and dust flaps, and the
-  // bottom panel sits under the back, turned 180°.
-  'reverse-tuck-carton': 2,
+type Step = (state: StudioProjectState) => StudioProjectState;
+
+// Each template's grid versions, in order: STEPS[template][n] moves a design
+// from version n + 1 to n + 2.
+const STEPS: Record<string, Step[]> = {
+  'reverse-tuck-carton': [
+    // 2: the grid is the cutting template, with tuck and dust flaps, and the
+    // bottom panel sits under the back, turned 180°.
+    reverseTuckToCuttingTemplate,
+    // 3: artwork placed on the bottom panel alone is turned to read upright
+    // on the box; stored bottom artwork turns back to match.
+    state => ({ ...state, artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Bottom']) }),
+  ],
+  'pizza-box': [
+    // 2: artwork placed on the front wall, lid or lid front alone is turned to
+    // read upright on the box; stored artwork turns to match.
+    state => ({ ...state, artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Front', 'Top', 'Lid Front']) }),
+  ],
 };
 
 export function layoutVersionFor(templateId: string) {
-  return CURRENT_LAYOUT[templateId] ?? 1;
+  return (STEPS[templateId]?.length ?? 0) + 1;
 }
 
 export function migrateStudioLayout(state: StudioProjectState): StudioProjectState {
-  const target = layoutVersionFor(state.templateId);
-  const from = state.layoutVersion ?? 1;
-  if (from >= target) return state;
-  if (state.templateId === 'reverse-tuck-carton') return { ...reverseTuckToCuttingTemplate(state), layoutVersion: 2 };
-  return { ...state, layoutVersion: target };
+  const steps = STEPS[state.templateId] ?? [];
+  let version = state.layoutVersion ?? 1;
+  if (version > steps.length) return state;
+  let result = state;
+  for (; version <= steps.length; version++) result = steps[version - 1](result);
+  return { ...result, layoutVersion: version };
 }
 
 type Point = { x: number; y: number };
@@ -73,14 +88,14 @@ function reverseTuckToCuttingTemplate(state: StudioProjectState): StudioProjectS
     ...state,
     outsideArtworkLayers: moveLayers(state.outsideArtworkLayers),
     insideArtworkLayers: moveLayers(state.insideArtworkLayers),
-    artworkByPanel: turnBottomArtwork(state.artworkByPanel),
+    artworkByPanel: turnPanelArtwork(state.artworkByPanel, ['Bottom']),
   };
 }
 
-/** Bottom artwork turns with the panel, so it keeps facing the same way on the box. */
-function turnBottomArtwork(artwork: ArtworkByPanel): ArtworkByPanel {
+/** Turns the named panels' own artwork (outside and inside) half a turn. */
+function turnPanelArtwork(artwork: ArtworkByPanel, panels: string[]): ArtworkByPanel {
   const result: ArtworkByPanel = { ...artwork };
-  for (const key of ['Bottom', 'Interior Bottom']) {
+  for (const key of panels.flatMap(panel => [panel, `Interior ${panel}`])) {
     const placement = artwork[key];
     if (placement) result[key] = turnHalf(placement);
   }

@@ -904,3 +904,17 @@ test('reverse-tuck tuck and dust flaps continue their panel\'s artwork, mirrored
   // Bends of a flap borrow the same artwork.
   assert.ok(meshes.some(mesh=>mesh.bend==='outside'&&mesh.sourcePanel==='Top Left Dust Flap'&&mesh.fallbackPanel==='Left'));
 });
+
+test('pizza box panel artwork reads upright on the closed box',()=>{
+  const meshes=buildMeshes({width:305,height:45,depth:305,thickness:1.5},0,[1,1,1],[1,1,1],{templateId:'pizza-box',formation:100,openingMode:'lid_from_back'});
+  const up=name=>{
+    const m=meshes.find(mesh=>mesh.panel===name),v=m.vertices,P=i=>[v[i*8],v[i*8+1],v[i*8+2]],U=i=>[v[i*8+6],v[i*8+7]];
+    const e1=P(1).map((x,k)=>x-P(0)[k]),e2=P(2).map((x,k)=>x-P(0)[k]);
+    const d1=[U(1)[0]-U(0)[0],U(1)[1]-U(0)[1]],d2=[U(2)[0]-U(0)[0],U(2)[1]-U(0)[1]],det=d1[0]*d2[1]-d2[0]*d1[1];
+    const b=e2.map((x,k)=>(x*d1[0]-e1[k]*d2[0])/det),l=Math.hypot(...b);return b.map(x=>x/l);
+  };
+  assert.ok(up('Front')[1]>0.99,'front wall artwork points up');
+  assert.ok(up('Back')[1]>0.99,'back wall artwork points up');
+  assert.ok(up('Lid Front')[1]>0.99,'lid front artwork points up');
+  assert.ok(up('Top')[2]<-0.99,'lid artwork points to the hinge, reading from the front');
+});

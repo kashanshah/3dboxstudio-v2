@@ -2911,17 +2911,18 @@ function DielinePrototype({
     const container = element?.parentElement;
     if (!element || !container) return;
     const rect = container.getBoundingClientRect();
+    const {x:pointerX,y:pointerY}=pointerIn(container,event);
     const centerX = rect.left + rect.width * layer.transform.x / 100;
     const centerY = rect.top + rect.height * layer.transform.y / 100;
-    const dx = event.clientX - centerX;
-    const dy = event.clientY - centerY;
+    const dx = pointerX - centerX;
+    const dy = pointerY - centerY;
     gestureRef.current = {
       layerId:layer.id,
       type,
       handle,
       pointerId:event.pointerId,
-      startX:event.clientX,
-      startY:event.clientY,
+      startX:pointerX,
+      startY:pointerY,
       start:{...layer.transform},
       centerX,
       centerY,
@@ -2938,10 +2939,11 @@ function DielinePrototype({
     const container = event.currentTarget.parentElement;
     if (!container) return;
     const rect = container.getBoundingClientRect();
+    const {x:pointerX,y:pointerY}=pointerIn(container,event);
 
     if (gesture.type === 'move') {
-      const dx = (event.clientX - gesture.startX) / Math.max(1,rect.width) * 100;
-      const dy = (event.clientY - gesture.startY) / Math.max(1,rect.height) * 100;
+      const dx = (pointerX - gesture.startX) / Math.max(1,rect.width) * 100;
+      const dy = (pointerY - gesture.startY) / Math.max(1,rect.height) * 100;
       const nextX=Math.max(-100,Math.min(200,gesture.start.x+dx));
       const nextY=Math.max(-100,Math.min(200,gesture.start.y+dy));
       setTransformFeedback(null);
@@ -2953,8 +2955,8 @@ function DielinePrototype({
       const rotation = gesture.start.rotation * Math.PI / 180;
       const cos = Math.cos(rotation);
       const sin = Math.sin(rotation);
-      const dx = event.clientX - gesture.centerX;
-      const dy = event.clientY - gesture.centerY;
+      const dx = pointerX - gesture.centerX;
+      const dy = pointerY - gesture.centerY;
       const localX = dx * cos + dy * sin;
       const localY = -dx * sin + dy * cos;
       const startWidth = gesture.startWidthPx;
@@ -3038,7 +3040,7 @@ function DielinePrototype({
       return;
     }
 
-    const angle=Math.atan2(event.clientY-gesture.centerY,event.clientX-gesture.centerX);
+    const angle=Math.atan2(pointerY-gesture.centerY,pointerX-gesture.centerX);
     const delta=(angle-gesture.startAngle)*180/Math.PI;
     let rotation=gesture.start.rotation+delta;
     const snapTarget=Math.round(rotation/15)*15;
@@ -3344,7 +3346,7 @@ function DielinePrototype({
           width*=artwork.scale/100;height*=artwork.scale/100;
           const transform=artwork.transform ?? {x:50+(100-width)/2*artwork.alignX,y:50+(100-height)/2*artwork.alignY,width,height,rotation:artwork.rotation};
           const layer:FullDielineArtworkLayer={id:`panel:${key}`,name:artwork.name,url:artwork.url,aspectRatio:imageAspect,transform};
-          return <div key={item.id} className="pro-side-artwork-transform-surface" style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`}}>
+          return <div key={item.id} className="pro-side-artwork-transform-surface" data-turned={item.artworkRotation===180?'180':undefined} style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,transform:item.artworkRotation===180?'rotate(180deg)':undefined}}>
             <div className="pro-full-artwork-transform pro-side-artwork-transform is-selected" style={{left:`${transform.x}%`,top:`${transform.y}%`,width:`${transform.width}%`,height:`${transform.height}%`,transform:`translate(-50%,-50%) rotate(${transform.rotation}deg)`}}
               aria-label={`Move ${selectedPanel} artwork`}
               onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture}>
@@ -3373,15 +3375,27 @@ function panelDisplayName(panels:{id:string;label:string}[],id:string){
   return label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
 }
 
+/**
+ * The pointer in a transform surface's own frame: a panel whose artwork is
+ * turned half a turn on the sheet has its surface turned too.
+ */
+function pointerIn(container:HTMLElement,event:{clientX:number;clientY:number}){
+  if(container.dataset.turned!=='180') return {x:event.clientX,y:event.clientY};
+  const rect=container.getBoundingClientRect();
+  return {x:rect.left+rect.right-event.clientX,y:rect.top+rect.bottom-event.clientY};
+}
+
 function boardPolygon(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]},bounds:{width:number;height:number}){
   return `polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`;
 }
 
 /** A panel's own artwork, filling the panel box it is placed in. */
-function PanelArtwork({panel,artwork}:{panel:{width:number;height:number};artwork:ArtworkPlacement}){
-  return artwork.transform
+function PanelArtwork({panel,artwork}:{panel:{width:number;height:number;artworkRotation?:0|180};artwork:ArtworkPlacement}){
+  const art=artwork.transform
     ? <span className="artwork-layer" style={{...artworkCss(artwork),backgroundImage:'none'}}><BoardArtworkImage url={artwork.url} aspectRatio={1} width={panel.width*artwork.transform.width} height={panel.height*artwork.transform.height}/></span>
     : <span className="artwork-layer" style={artworkCss(artwork)}/>;
+  // Panels printed upside down on the sheet show their artwork turned, as it prints.
+  return panel.artworkRotation===180 ? <span className="pro-panel-artwork-turned">{art}</span> : art;
 }
 
 function panelOutline(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]}){

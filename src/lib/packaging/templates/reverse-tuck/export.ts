@@ -73,7 +73,9 @@ export function reverseTuckSheet(input: CartonDimensions) {
   rect('back', backX, bodyY, d.width, d.height, 'body');
   rect('top', frontX, tongue, d.width, d.depth, 'flap');
   // Opposite hinge from the top is what makes this a reverse-tuck closure.
-  rect('bottom', backX, bodyY + d.height, d.width, d.depth, 'flap');
+  // Hinged on the back, the bottom sits upside down on the sheet: artwork
+  // placed on it alone is turned half a turn to read upright on the box.
+  rect('bottom', backX, bodyY + d.height, d.width, d.depth, 'flap').artworkRotation = 180;
 
   for (const [id, x, hingeY, direction] of [
     ['top-tuck', frontX, tongue, -1],

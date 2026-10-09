@@ -66,6 +66,7 @@ export const buildReverseTuckTemplateMeshes: TemplateMeshBuilder = ({ dimensions
     id: panel.id,
     name: NAMES[panel.id] ?? panel.label,
     outline: panel.outline,
+    artworkRotation: panel.artworkRotation,
     closureFlap: !['glue', 'left', 'front', 'right', 'back', 'top', 'bottom'].includes(panel.id),
     // Tuck and dust flaps with no artwork of their own continue their panel's.
     inheritFrom: REVERSE_TUCK_FLAP_SOURCES[panel.id],
