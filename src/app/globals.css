@@ -2397,7 +2397,10 @@ body{font-size:var(--type-body)}
   color:var(--accent);
 }
 .blog-share-actions svg{flex:0 0 auto}
+.blog-share-actions>a[href*="wa.me"] svg{color:#25d366}
 .blog-share-x{
+  flex:0 0 auto;
+  color:#000;
   width:15px;
   height:15px;
   display:grid;
@@ -2445,8 +2448,9 @@ body{font-size:var(--type-body)}
   height:15px;
   display:grid;
   place-items:center;
+  flex:0 0 auto;
   border-radius:3px;
-  background:currentColor;
+  background:#0a66c2;
   color:#fff;
   font-size:9px;
   font-weight:800;
@@ -2454,6 +2458,7 @@ body{font-size:var(--type-body)}
   letter-spacing:-.03em;
 }
 .blog-share-brand.is-facebook{
+  background:#1877f2;
   font-family:Arial,sans-serif;
   font-size:12px;
   font-weight:700;

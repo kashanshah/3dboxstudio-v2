@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { FaqCategoryId, FaqItem } from '@/content/faq';
 
-type Category = { id: FaqCategoryId; label: string };
+type Category = { id: FaqCategoryId; label: string; description?: string };
 
 export function FaqExplorer({ items, categories }: { items: FaqItem[]; categories: Category[] }) {
   const [query, setQuery] = useState('');
@@ -22,7 +22,7 @@ export function FaqExplorer({ items, categories }: { items: FaqItem[]; categorie
         {categories.map((category) => {
           const group = filtered.filter((item) => item.category === category.id);
           if (!group.length) return null;
-          return <section className="faq-group" id={`faq-${category.id}`} key={category.id}><h2>{category.label}</h2><p>Answers about {category.label.toLowerCase()} in 3D Box Studio.</p><div className="faq-list">{group.map((item) => <details key={item.id}><summary>{item.question}</summary><p dangerouslySetInnerHTML={{ __html: item.answer }} /></details>)}</div></section>;
+          return <section className="faq-group" id={`faq-${category.id}`} key={category.id}><h2>{category.label}</h2>{category.description ? <p>{category.description}</p> : null}<div className="faq-list">{group.map((item) => <details key={item.id}><summary>{item.question}</summary><p dangerouslySetInnerHTML={{ __html: item.answer }} /></details>)}</div></section>;
         })}
         {filtered.length === 0 ? <p className="faq-empty">No matching answers. Try a broader search.</p> : null}
       </div>

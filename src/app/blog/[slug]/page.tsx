@@ -102,6 +102,8 @@ export default async function BlogPostPage({ params }: Props) {
 
       <div className="content-article-layout">
         <nav className="content-article-toc" aria-label="On this page"><p>On this page</p>{toc.map((item) => <a href={`#${item.id}`} key={item.id}>{item.text}</a>)}</nav>
+        {/* Stacked layouts get a collapsed list instead of a sideways-scrolling pill row. */}
+        {toc.length ? <details className="content-article-toc-mobile"><summary>On this page <span>{toc.length} sections</span></summary><nav aria-label="On this page (mobile)">{toc.map((item) => <a href={`#${item.id}`} key={item.id}>{item.text}</a>)}</nav></details> : null}
         <div className="content-article-body">
           {post.sections.map((section, index) => {
             if (section.type === 'p') return <p key={index}>{inlineText(section.text)}</p>;

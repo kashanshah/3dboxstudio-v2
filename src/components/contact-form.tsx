@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { CONTACT_TOPICS } from '@/content/contact';
+import { ChevronRight, Bug, BriefcaseBusiness, Lightbulb, MessageSquareText } from 'lucide-react';
+import { CONTACT_TOPICS, type ContactTopic } from '@/content/contact';
 
 type TurnstileApi = {
   render: (el: HTMLElement, options: Record<string, unknown>) => string;
@@ -87,11 +88,31 @@ export function ContactForm() {
       <label><span>Email</span><input name="email" type="email" autoComplete="email" maxLength={254} required placeholder="you@example.com"/></label>
     </div>
     <div className="v2-contact-grid">
-      <label><span>Topic</span><select name="topic" defaultValue={CONTACT_TOPICS[0]?.value}>{CONTACT_TOPICS.map(topic=><option key={topic.value} value={topic.value}>{topic.label}</option>)}</select></label>
-      <label><span>Subject</span><input name="subject" maxLength={200} required placeholder="Brief summary"/></label>
+      <label><span>Topic</span><select id="contact-topic" name="topic" defaultValue={CONTACT_TOPICS[0]?.value}>{CONTACT_TOPICS.map(topic=><option key={topic.value} value={topic.value}>{topic.label}</option>)}</select></label>
+      <label><span>Subject</span><input id="contact-subject" name="subject" maxLength={200} required placeholder="Brief summary"/></label>
     </div>
     <label><span>Message</span><textarea name="message" rows={7} maxLength={5000} required placeholder="Tell us how we can help…"/></label>
     <Turnstile onToken={setToken}/>
     <div className="v2-contact-actions"><button className="button" type="submit" disabled={loading}>{loading?'Sending…':'Send message'}</button><p>For quick answers, check the <Link href="/faq">FAQ</Link>.</p></div>
   </form>;
+}
+
+const TOPIC_ICONS = { general: MessageSquareText, bug: Bug, feature: Lightbulb, business: BriefcaseBusiness, other: MessageSquareText } as const;
+
+/** Topic shortcuts: preselect the form's topic and move to the form. */
+export function ContactTopicButtons() {
+  const [selected,setSelected]=useState<ContactTopic|null>(null);
+  const choose=(topic:ContactTopic)=>{
+    setSelected(topic);
+    const select=document.getElementById('contact-topic');
+    if(select instanceof HTMLSelectElement) select.value=topic;
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById('contact-form')?.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+    document.getElementById('contact-subject')?.focus({preventScroll:true});
+  };
+  return <div className="contact-topic-list" role="group" aria-label="Contact topics">
+    {CONTACT_TOPICS.map(topic=>{const Icon=TOPIC_ICONS[topic.value];return <button type="button" className="contact-topic-card" key={topic.value} aria-pressed={selected===topic.value} aria-controls="contact-topic" onClick={()=>choose(topic.value)}>
+      <Icon size={21} aria-hidden="true"/><span><b>{topic.label}</b><small>{topic.hint}</small></span><ChevronRight size={17} aria-hidden="true"/>
+    </button>;})}
+  </div>;
 }
