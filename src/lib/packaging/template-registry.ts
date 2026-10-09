@@ -58,6 +58,8 @@ export type PackagingTemplateDefinition = {
   defaultDimensions?: CartonDimensions;
   fixedOpeningMode?: string;
   isDefault?: boolean;
+  /** Render of the finished box for template cards (scripts/render-template-thumbnails.mjs). */
+  thumbnail?: string;
 
   status: 'ready' | 'planned';
 };
@@ -84,6 +86,7 @@ const pizzaFlapRegions = ['Lid Front', 'Lid Left', 'Lid Right', 'Left Back Tab',
 export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   {
     id: 'base-box',
+    thumbnail: '/images/templates/base-box.webp',
     version: 1,
     name: 'Base Box',
     shortName: 'Base box',
@@ -106,6 +109,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   },
   {
     id: 'split-top-box',
+    thumbnail: '/images/templates/split-top-box.webp',
     version: 1,
     name: 'Split Top Box',
     shortName: 'Split top',
@@ -140,6 +144,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   },
   {
     id: 'reverse-tuck-carton',
+    thumbnail: '/images/templates/reverse-tuck-carton.webp',
     version: 1,
     isDefault: true,
     name: 'Reverse Tuck End Carton',
@@ -198,6 +203,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   },
   {
     id: 'pizza-box',
+    thumbnail: '/images/templates/pizza-box.webp',
     version: 1,
     name: 'Pizza Box',
     shortName: 'Pizza box',
