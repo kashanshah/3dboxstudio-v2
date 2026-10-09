@@ -549,3 +549,46 @@ a.template-hero-card{text-decoration:none;color:inherit}a.template-hero-card:hov
 .comparison-links a{color:#0f67e8;font-weight:650;text-decoration:none}
 .comparison-links a:hover{text-decoration:underline}
 @media (max-width:900px){.comparison-links{width:100%;padding:0 20px}}
+
+/* Hero intro sits inside .mpp-hero-primary-copy, so `.mpp-hero > p` never matched it. */
+.mpp-hero-primary-copy>p{margin:24px 0 28px}
+/* FAQ on product pages uses the same heavy heading as the sections above it. */
+.marketing-product-page section.mpp-faq h2{font-weight:700;line-height:1.04;letter-spacing:-.045em}
+
+/* Phones: one 20px gutter for every section, smaller hero type, tighter rhythm. */
+@media (max-width:700px){
+  .mpp-hero,.mpp-studio-proof,.mpp-sections,.mpp-note,.mpp-bottom{width:100%}
+  .mpp-hero{padding-top:44px;padding-bottom:52px}
+  .marketing-product-page .mpp-hero h1,.marketing-product-page .mpp-hero.has-aside .mpp-hero-copy h1{font-size:clamp(34px,9.5vw,44px);line-height:1.04;letter-spacing:-.045em;text-wrap:balance}
+  .mpp-hero-primary-copy>p{margin:18px 0 24px;font-size:16px;line-height:1.6}
+  .mpp-actions .mpp-primary,.mpp-actions .mpp-secondary{flex:1 1 auto}
+  .mpp-studio-proof{padding-top:52px;padding-bottom:52px;gap:28px}
+  .mpp-studio-proof h2,.mpp-bottom h2,.marketing-product-page section.mpp-faq h2{font-size:clamp(28px,8vw,34px)}
+  .mpp-studio-proof p,.mpp-sections p{font-size:16px}
+  .mpp-sections{padding-top:36px;padding-bottom:36px}
+  .mpp-sections>article{padding:28px 0}
+  .mpp-sections h2{font-size:26px;margin-bottom:10px}
+  .mpp-sections ul{margin-top:16px;gap:8px}
+  .mpp-bottom{padding-top:60px;padding-bottom:68px}
+  .mpp-hero.has-aside{gap:28px}
+  /* Template collage becomes a tidy row of three cards instead of overlapping, clipped tiles. */
+  .template-hero-visual{min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px;border-radius:18px}
+  .template-hero-card,.template-hero-card:nth-child(1),.template-hero-card:nth-child(2),.template-hero-card:nth-child(3){position:static;width:auto;min-width:0;min-height:0;padding:12px 10px;border-radius:12px;transform:none}
+  .template-hero-card strong{font-size:14px;line-height:1.2}
+  .template-hero-card span{display:block;font-size:11px;line-height:1.35}
+  .template-hero-card i{height:34px;margin-top:10px}
+  .template-hero-note{position:static;grid-column:1/-1;justify-content:center;margin-top:2px;padding:8px 10px;font-size:11px;text-align:center}
+}
+/* Comparison table: each row becomes a labelled card so the competitor column is never offscreen. */
+@media (max-width:640px){
+  .compare-table-scroll{overflow:visible;border:0;border-radius:0}
+  .compare-table table{min-width:0}
+  .compare-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .compare-table tbody{display:grid;gap:12px}
+  .compare-table tbody tr{display:block;border:1px solid #e4e7ec;border-radius:14px;overflow:hidden}
+  .compare-table tbody th,.compare-table td{display:block;width:auto;padding:10px 16px}
+  .compare-table tbody th,.compare-table tbody tr:last-child th{background:#f8fafc;border-bottom:1px solid #eef1f5}
+  .compare-table tbody td:last-child{border-bottom:0}
+  .compare-table td::before{content:attr(data-label);display:block;margin-bottom:2px;font-size:11px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:#667085}
+  .compare-table td:nth-of-type(1)::before{color:#0f67e8}
+}
