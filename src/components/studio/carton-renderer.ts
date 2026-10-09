@@ -25,6 +25,7 @@ import {
   SRGBColorSpace,
   Texture,
   Vector2,
+  Vector3,
   Vector4,
   VSMShadowMap,
   WebGLRenderer,
@@ -43,6 +44,7 @@ import {
   textureTransform,
   type Scene,
 } from './carton-scene';
+import { analyseSurfaces, withCutEdges } from './carton-surfaces';
 
 /**
  * How each stock reacts to light. Colours still come from the material or the
@@ -87,6 +89,12 @@ type CartonUniforms = {
   uUvCrop: IUniform<Vector4>;
   uFaceUv: IUniform<Vector4>;
   uFaceSize: IUniform<Vector2>;
+  uEdgeOcclusion: IUniform<Vector4>;
+  uEdgeRounded: IUniform<Vector4>;
+  uEdgeNormals: IUniform<Vector3[]>;
+  uOcclusionWidth: IUniform<number>;
+  uRoundRadius: IUniform<number>;
+  uFlutePitch: IUniform<number>;
   uGrain: IUniform<number>;
   uFiber: IUniform<number>;
   uFlat: IUniform<number>;
@@ -177,8 +185,15 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   };
 
   const syncMeshes = () => {
-    meshes = sceneMeshes(scene);
+    const thickness = scene.dimensions.thickness;
+    meshes = withCutEdges(sceneMeshes(scene), thickness);
+    const shading = analyseSurfaces(meshes, thickness);
     const flat = scene.renderStyle === 'flat';
+    // Folds bend over roughly their own board thickness; keep at least a
+    // millimetre so the soft highlight is visible at normal zoom.
+    const roundRadius = Math.max(thickness * 1.5, 0.9);
+    // Corrugated board (about 1 mm and up) shows its flutes on cut edges.
+    const flutePitch = thickness >= 1 ? thickness * 2.15 : 0;
     const finish = FINISHES[scene.material] ?? DEFAULT_FINISH;
     meshes.forEach((mesh, index) => {
       let object = objects[index];
@@ -210,7 +225,15 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       material.polygonOffsetFactor = 1;
       material.polygonOffsetUnits = 2;
       uniforms.uFlat.value = flat ? 1 : 0;
-      uniforms.uFaceSize.value.set(...faceSize(mesh));
+      const size = faceSize(mesh);
+      uniforms.uFaceSize.value.set(...size);
+      const edges = shading[index];
+      uniforms.uEdgeOcclusion.value.set(...(edges?.occlusion ?? [0, 0, 0, 0]));
+      uniforms.uEdgeRounded.value.set(...(edges?.rounded ?? [0, 0, 0, 0]));
+      edges?.neighbourNormals.forEach((normal, edge) => uniforms.uEdgeNormals.value[edge].set(normal[0], normal[1], normal[2]));
+      uniforms.uOcclusionWidth.value = Math.min(40, Math.max(2, Math.min(size[0], size[1]) * 0.18));
+      uniforms.uRoundRadius.value = roundRadius;
+      uniforms.uFlutePitch.value = surface === 'edge' ? flutePitch : 0;
 
       const artworkKey = mesh.panel && scene.artworkByPanel[mesh.panel] ? mesh.panel : mesh.fallbackPanel;
       const entry = artworkKey ? artwork.get(artworkKey) : undefined;
@@ -450,6 +473,12 @@ function createCartonMaterial() {
     uUvCrop: { value: new Vector4(0, 0, 1, 1) },
     uFaceUv: { value: new Vector4(0, 0, 1, 1) },
     uFaceSize: { value: new Vector2(1, 1) },
+    uEdgeOcclusion: { value: new Vector4() },
+    uEdgeRounded: { value: new Vector4() },
+    uEdgeNormals: { value: [new Vector3(), new Vector3(), new Vector3(), new Vector3()] },
+    uOcclusionWidth: { value: 1 },
+    uRoundRadius: { value: 1 },
+    uFlutePitch: { value: 0 },
     uGrain: { value: 0 },
     uFiber: { value: 0 },
     uFlat: { value: 0 },
@@ -459,7 +488,7 @@ function createCartonMaterial() {
   };
   const material = new MeshPhysicalMaterial({ sheenRoughness: 0.6, sheenColor: 0xffffff });
   material.userData.uniforms = uniforms;
-  material.customProgramCacheKey = () => 'carton-surface-v1';
+  material.customProgramCacheKey = () => 'carton-surface-v2';
   material.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
@@ -471,6 +500,7 @@ function createCartonMaterial() {
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n  roughnessFactor = clamp(roughnessFactor + uFiber * 0.08 * (cartonFibre - 0.5), 0.04, 1.0);\n  roughnessFactor = mix(roughnessFactor, max(roughnessFactor, 0.55), artAlpha * step(0.5, metalness));')
       .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n  metalnessFactor *= 1.0 - artAlpha;')
       .replace('#include <normal_fragment_maps>', GRAIN_FRAGMENT)
+      .replace('#include <aomap_fragment>', OCCLUSION_FRAGMENT)
       .replace('#include <opaque_fragment>', `${OVERLAY_FRAGMENT}\n#include <opaque_fragment>`);
   };
   return material;
@@ -503,6 +533,12 @@ uniform bool uClip;
 uniform vec4 uUvCrop;
 uniform vec4 uFaceUv;
 uniform vec2 uFaceSize;
+uniform vec4 uEdgeOcclusion;
+uniform vec4 uEdgeRounded;
+uniform vec3 uEdgeNormals[4];
+uniform float uOcclusionWidth;
+uniform float uRoundRadius;
+uniform float uFlutePitch;
 uniform float uGrain;
 uniform float uFiber;
 uniform float uFlat;
@@ -560,15 +596,63 @@ const ARTWORK_FRAGMENT = /* glsl */`
   float cartonFibre = mix(0.5, cartonNoise(cartonMm * vec2(0.45, 3.2)) * 0.55 + cartonNoise(cartonMm * 1.9 + 17.0) * 0.45, cartonDetail);
   float cartonMottle = cartonNoise(cartonMm * 0.16 + 3.0) * 0.6 + cartonNoise(cartonMm * 0.05 + 9.0) * 0.4;
   diffuseColor.rgb *= 1.0 + (1.0 - uFlat) * uFiber * (0.16 * (cartonFibre - 0.5) + 0.12 * (cartonMottle - 0.5));
+  // Millimetres to each edge, in the order a→b, b→c, c→d, d→a.
+  vec4 cartonEdgeMm = vec4(vArtUv.y * uFaceSize.y, (1.0 - vArtUv.x) * uFaceSize.x, (1.0 - vArtUv.y) * uFaceSize.y, vArtUv.x * uFaceSize.x);
+  if (uFlutePitch > 0.0) {
+    // Corrugated cut edge: two flat liners with the fluted medium waving
+    // between them, and dark hollows on either side of the wave.
+    bool acrossU = uFaceSize.x < uFaceSize.y;
+    float across = acrossU ? vArtUv.x : vArtUv.y;
+    float acrossMm = min(uFaceSize.x, uFaceSize.y);
+    float alongMm = (acrossU ? vArtUv.y : vArtUv.x) * max(uFaceSize.x, uFaceSize.y);
+    float liner = 0.12;
+    float wave = 0.5 + (0.5 - liner * 1.15) * sin(6.2831853 * alongMm / uFlutePitch);
+    float toWave = abs(across - wave) * acrossMm;
+    float aa = max(fwidth(toWave), 1e-4);
+    float medium = 1.0 - smoothstep(acrossMm * 0.07, acrossMm * 0.07 + aa * 1.5, toWave);
+    float aaAcross = max(fwidth(across), 1e-4);
+    float linerMask = 1.0 - smoothstep(liner, liner + aaAcross, across) + smoothstep(1.0 - liner - aaAcross, 1.0 - liner, across);
+    float flute = mix(0.42, 1.0, clamp(max(medium, linerMask), 0.0, 1.0));
+    // Fade to the average once the flutes are smaller than a few pixels.
+    float resolved = 1.0 - smoothstep(0.15, 0.5, fwidth(alongMm) / uFlutePitch);
+    diffuseColor.rgb *= mix(0.8, flute, resolved);
+  }
 `;
 
 const GRAIN_FRAGMENT = /* glsl */`
 #include <normal_fragment_maps>
+  if (uFlat < 0.5) {
+    // Rounded folds: near an outside crease the surface turns toward the
+    // neighbouring face, so the fold catches light like bent board.
+    for (int i = 0; i < 4; i++) {
+      if (uEdgeRounded[i] < 0.5) continue;
+      float bend = 1.0 - smoothstep(0.0, uRoundRadius, cartonEdgeMm[i]);
+      if (bend <= 0.0) continue;
+      vec3 neighbour = normalize((viewMatrix * vec4(uEdgeNormals[i], 0.0)).xyz) * faceDirection;
+      normal = normalize(mix(normal, normalize(normal + neighbour), bend));
+    }
+  }
   if (uGrain > 0.0 && uFlat < 0.5) {
     float relief = mix(0.5, cartonNoise(cartonMm * 2.6), cartonDetail) * 0.6 + cartonFibre * 0.4;
     float fade = cartonDetail;
     vec2 dHdxy = vec2(dFdx(relief), dFdy(relief)) * uGrain * 0.35 * fade;
     normal = cartonPerturbNormal(-vViewPosition, normal, dHdxy, faceDirection);
+  }
+`;
+
+// Soft shadow into inside corners and along folds that close over a face,
+// which a single shadow-casting light cannot produce.
+const OCCLUSION_FRAGMENT = /* glsl */`
+#include <aomap_fragment>
+  if (uFlat < 0.5) {
+    float cartonOcclusion = 1.0;
+    for (int i = 0; i < 4; i++) {
+      float reach = 1.0 - smoothstep(0.0, uOcclusionWidth, cartonEdgeMm[i]);
+      cartonOcclusion *= 1.0 - uEdgeOcclusion[i] * reach * reach;
+    }
+    reflectedLight.indirectDiffuse *= cartonOcclusion;
+    reflectedLight.indirectSpecular *= mix(1.0, cartonOcclusion, 0.7);
+    reflectedLight.directDiffuse *= mix(1.0, cartonOcclusion, 0.35);
   }
 `;
 
