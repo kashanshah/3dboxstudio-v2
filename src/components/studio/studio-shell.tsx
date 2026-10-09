@@ -14,11 +14,12 @@ import { NewDesignPreview } from './new-design-preview';
 import { CameraAngleIcon } from './camera-angle-icon';
 import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
+import { attachTouchPinch } from '@/lib/touch-pinch';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
-  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Move, Square,
+  Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X, Eye, EyeOff, Contrast, Film
 } from 'lucide-react';
@@ -235,6 +236,34 @@ const sameHistoryStatus = (a:HistoryStatus, b:HistoryStatus) => a.canUndo === b.
 
 // Effects set these after every edit. A same-value setState still queues a render, and a fast
 // stream of edits (a color picker drag) then piles up nested updates until React throws #185.
+/**
+ * Whether a floating Studio panel is open, remembered on this device. Phones
+ * start with it minimized so the design stays in view.
+ */
+const panelOpenListeners=new Set<()=>void>();
+// Kept here too, so the choice holds for the session when storage is blocked.
+const panelOpenMemory=new Map<string,boolean>();
+function usePanelOpen(key:string){
+  const read=useCallback(()=>{
+    const remembered=panelOpenMemory.get(key);
+    if(remembered!==undefined)return remembered;
+    try{const stored=window.localStorage.getItem(key);if(stored!==null)return stored==='1';}catch{}
+    return !window.matchMedia?.('(max-width:760px)').matches;
+  },[key]);
+  const open=useSyncExternalStore(
+    useCallback((listener:()=>void)=>{panelOpenListeners.add(listener);return ()=>{panelOpenListeners.delete(listener);};},[]),
+    read,
+    ()=>true,
+  );
+  const toggle=useCallback((next?:boolean)=>{
+    const value=next??!read();
+    panelOpenMemory.set(key,value);
+    try{window.localStorage.setItem(key,value?'1':'0');}catch{}
+    panelOpenListeners.forEach(listener=>listener());
+  },[key,read]);
+  return [open,toggle] as const;
+}
+
 function useChangedState<T>(initial:T, same:(a:T, b:T)=>boolean = Object.is) {
   const [value,setValue] = useState(initial);
   const lastRef = useRef(initial);
@@ -344,7 +373,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   // Flap id → the solid colour an empty flap prints in, per side.
   const [flapFills, setFlapFills] = useState<{outside:Record<string,string>;inside:Record<string,string>}>({outside:{},inside:{}});
   const [mappedPanelArtwork, setMappedPanelArtwork] = useState<ArtworkByPanel>({});
-  const [previewOpen, setPreviewOpen] = useState(true);
+  const [previewOpen, togglePreviewOpen] = usePanelOpen('3dbs.studio.livePreviewOpen');
   const [dielineZoom, setDielineZoom] = useState(112);
   const [panEnabled, setPanEnabled] = useState(false);
   const [spacePanActive, setSpacePanActive] = useState(false);
@@ -678,6 +707,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const handleGestureChange=(event:Event)=>{
       if(lastGestureScale===null)return;
       event.preventDefault();
+      // iOS reports a finger pinch here too; the touch pinch already zooms.
+      if(pinch.touching())return;
       const gesture=event as Event & {scale?:number;clientX?:number;clientY?:number};
       const scale=gesture.scale;
       if(typeof scale!=='number' || !Number.isFinite(scale) || scale<=0)return;
@@ -698,11 +729,30 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       lastGestureScale=null;
     };
 
+    // Touch screens: pinch to zoom around the fingers, two fingers to pan.
+    const pinch=attachTouchPinch(canvas,{
+      accepts:isBoardTarget,
+      onPinch:({scale,x,y,dx,dy})=>{
+        const current=mode==='3d'?zoomRef.current:dielineZoomRef.current;
+        applyAnchoredZoom(scaleStudioZoom(current,scale),x,y);
+        if(mode==='3d'){
+          const nextPan={x:viewPan3dRef.current.x+dx,y:viewPan3dRef.current.y+dy};
+          viewPan3dRef.current=nextPan;
+          setViewPan3d(nextPan);
+        }else{
+          const nextPan={x:canvasPanRef.current.x+dx,y:canvasPanRef.current.y+dy};
+          canvasPanRef.current=nextPan;
+          setCanvasPan(nextPan);
+        }
+      },
+    });
+
     canvas.addEventListener('wheel',handleWheel,{passive:false,capture:true});
     canvas.addEventListener('gesturestart',handleGestureStart,{passive:false,capture:true});
     canvas.addEventListener('gesturechange',handleGestureChange,{passive:false,capture:true});
     canvas.addEventListener('gestureend',handleGestureEnd,{passive:false,capture:true});
     return ()=>{
+      pinch.detach();
       canvas.removeEventListener('wheel',handleWheel,{capture:true});
       canvas.removeEventListener('gesturestart',handleGestureStart,{capture:true});
       canvas.removeEventListener('gesturechange',handleGestureChange,{capture:true});
@@ -1973,7 +2023,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           }}
           livePreview={
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label={t("studio.live_3d_artwork_preview")}>
-            <button type="button" onClick={()=>setPreviewOpen(open=>!open)} aria-expanded={previewOpen}><Boxes size={15}/>{" " + t("studio.live_3d") + " "}<ChevronDown size={14}/></button>
+            <button type="button" className="pro-panel-toggle" onClick={()=>togglePreviewOpen()} aria-expanded={previewOpen} title={previewOpen?'Minimize the live 3D preview':'Show the live 3D preview'}><Boxes size={15}/>{" " + t("studio.live_3d") + " "}<ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
               <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
@@ -2864,7 +2914,14 @@ function DielinePrototype({
   const sideArtwork=Object.entries(artworkByPanel).filter(([key])=>artworkScope==='inside'?key.startsWith('Interior '):!key.startsWith('Interior '));
   const selectedLayer = layers.find(layer => layer.id === selectedLayerId) ?? null;
   const selectedPanelKey=artworkScope==='inside'? `Interior ${selectedPanel}`:selectedPanel;
-  const selectedPanelArtwork=!selectedLayer ? artworkByPanel[selectedPanelKey] : null;
+  // A panel's own artwork is selected while its panel is (choosing a panel
+  // selects it again); clicking away deselects it, as for a layer.
+  const [panelArtworkDeselected,setPanelArtworkDeselected]=useState<string|null>(null);
+  const panelArtworkActive=panelArtworkDeselected!==`${artworkScope}:${selectedPanel}`;
+  const setPanelArtworkActive=(active:boolean)=>setPanelArtworkDeselected(active?null:`${artworkScope}:${selectedPanel}`);
+  const [transformOpen,toggleTransformOpen]=usePanelOpen('3dbs.studio.transformOpen');
+  const selectPanelArtwork=(name:string)=>{setPanelArtworkActive(true);onPanelSelect(name);};
+  const selectedPanelArtwork=!selectedLayer && panelArtworkActive ? artworkByPanel[selectedPanelKey] : null;
   const selectedPanelGeometry=!selectedLayer ? cartonPanels.find(item=>item.label.toLowerCase()===selectedPanel.toLowerCase()) ?? null : null;
   const selectedPanelAsset=selectedPanelArtwork ? mediaAssets.find(asset=>asset.id===selectedPanelArtwork.assetId) : null;
   const selectedPanelLayer: FullDielineArtworkLayer | null = (()=>{
@@ -2893,6 +2950,13 @@ function DielinePrototype({
   const activeTransformLayer=selectedLayer ?? selectedPanelLayer;
   const activeTransformWidth=selectedLayer ? bounds.width : (selectedPanelGeometry?.width ?? bounds.width);
   const activeTransformHeight=selectedLayer ? bounds.height : (selectedPanelGeometry?.height ?? bounds.height);
+  const deselectArtwork=()=>{onSelectLayer(null);setPanelArtworkActive(false);};
+  // A click or tap on the sheet away from the artwork deselects it; a drag,
+  // a pan or a pinch does not.
+  const tapRef=useRef<{pointerId:number;x:number;y:number}|null>(null);
+  const isArtworkOrControl=(target:EventTarget|null)=>target instanceof Element&&Boolean(target.closest(
+    '.pro-full-artwork-transform,.pro-side-artwork-transform,.pro-2d-left-panel,.pro-design-context-stack>*,.pro-dieline-legend,.pro-canvas-control-bar,button,input,select,textarea,label,a',
+  ));
   const draggingLayerId = useRef<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [boardFileDragActive,setBoardFileDragActive]=useState(false);
@@ -2928,9 +2992,39 @@ function DielinePrototype({
     else onUpdateLayer(id,transform);
   };
   const selectArtworkLayer=(id:string)=>{
-    if(id.startsWith('panel:')) onPanelSelect(id.slice(6).replace('Interior ',''));
+    if(id.startsWith('panel:')) selectPanelArtwork(id.slice(6).replace('Interior ',''));
     else onSelectLayer(id);
   };
+  // Arrow keys nudge the selected artwork 1 mm (10 mm with Shift); Escape
+  // deselects it. Only while this sheet is the view in use.
+  const nudgeArtwork=(dxMm:number,dyMm:number)=>{
+    if(!activeTransformLayer)return;
+    // A panel printed upside down on the sheet has its artwork turned too.
+    const turn=!selectedLayer && selectedPanelGeometry?.artworkRotation===180 ? -1 : 1;
+    const transform=activeTransformLayer.transform;
+    updateArtworkLayer(activeTransformLayer.id,{
+      ...transform,
+      x:transform.x+turn*dxMm/activeTransformWidth*100,
+      y:transform.y+turn*dyMm/activeTransformHeight*100,
+    });
+  };
+  useEffect(()=>{
+    const onKeyDown=(event:KeyboardEvent)=>{
+      if(event.altKey||event.ctrlKey||event.metaKey)return;
+      const stage=stageRef.current;
+      if(!stage||stage.closest('[inert]')||document.querySelector('[aria-modal="true"],dialog[open]'))return;
+      const target=event.target;
+      if(target instanceof Element&&target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="dialog"]'))return;
+      if(event.key==='Escape'){deselectArtwork();return;}
+      const step=event.shiftKey?10:1;
+      const move=({ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]} as Record<string,[number,number]>)[event.key];
+      if(!move)return;
+      event.preventDefault();
+      nudgeArtwork(move[0],move[1]);
+    };
+    window.addEventListener('keydown',onKeyDown);
+    return ()=>window.removeEventListener('keydown',onKeyDown);
+  });
 
   const beginLayerGesture = (
     event: React.PointerEvent<HTMLDivElement | HTMLButtonElement>,
@@ -3111,7 +3205,12 @@ function DielinePrototype({
         };
         event.currentTarget.setPointerCapture(event.pointerId);
       }}
+      onPointerDown={(event)=>{
+        tapRef.current=event.isPrimary&&event.button===0&&!isArtworkOrControl(event.target)?{pointerId:event.pointerId,x:event.clientX,y:event.clientY}:null;
+      }}
       onPointerMove={(event)=>{
+        const tap=tapRef.current;
+        if (tap?.pointerId===event.pointerId && Math.hypot(event.clientX-tap.x,event.clientY-tap.y)>6) tapRef.current=null;
         const gesture=panGestureRef.current;
         if (!gesture || gesture.pointerId!==event.pointerId) return;
         setCanvasPan({
@@ -3120,11 +3219,19 @@ function DielinePrototype({
         });
       }}
       onPointerUp={(event)=>{
+        if (tapRef.current?.pointerId===event.pointerId) {
+          tapRef.current=null;
+          // Tapping a panel that has its own artwork selects that artwork.
+          const guide=event.target instanceof Element ? event.target.closest<HTMLElement>('.dl-live.has-explicit-artwork[data-panel]') : null;
+          if (guide?.dataset.panel) { onSelectLayer(null); selectPanelArtwork(guide.dataset.panel); }
+          else deselectArtwork();
+        }
         if (panGestureRef.current?.pointerId!==event.pointerId) return;
         panGestureRef.current=null;
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
       }}
       onPointerCancel={(event)=>{
+        if (tapRef.current?.pointerId===event.pointerId) tapRef.current=null;
         if (panGestureRef.current?.pointerId!==event.pointerId) return;
         panGestureRef.current=null;
         if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -3194,7 +3301,7 @@ function DielinePrototype({
               })}
             </div> : sideArtwork.length ? null : <div className="pro-dieline-layers-empty"><ImageIcon size={22}/><span>{t("studio.add_artwork_to_start_composing")}</span></div>}
 
-            {sideArtwork.length>0 && <div className="pro-dieline-layer-list">{sideArtwork.map(([key,artwork])=><button key={key} type="button" className={selectedPanel===key.replace('Interior ','') && !selectedLayerId?'is-selected':''} onClick={()=>onPanelSelect(key.replace('Interior ',''))}><img src={artwork.url} alt=""/><span><strong>{artwork.name}</strong><small>{key}</small></span></button>)}</div>}
+            {sideArtwork.length>0 && <div className="pro-dieline-layer-list">{sideArtwork.map(([key,artwork])=><button key={key} type="button" className={selectedPanel===key.replace('Interior ','') && !selectedLayerId && panelArtworkActive?'is-selected':''} onClick={()=>selectPanelArtwork(key.replace('Interior ',''))}><img src={artwork.url} alt=""/><span><strong>{artwork.name}</strong><small>{key}</small></span></button>)}</div>}
 
             {selectedLayer && <div className="pro-dieline-layer-actions">
               <button type="button" title={t("studio.bring_forward")} aria-label={t("studio.bring_selected_layer_forward")} disabled={layers[layers.length-1]?.id===selectedLayer.id} onClick={()=>onMoveLayer(selectedLayer.id,1)}><ArrowUp size={16}/></button>
@@ -3213,8 +3320,10 @@ function DielinePrototype({
 
       <div className="pro-2d-right-preview pro-design-context-stack">
         {livePreview}
-        <aside className={`pro-design-transform-panel${activeTransformLayer?' has-selection':''}`} aria-label={t("studio.artwork_properties")}>
-          {activeTransformLayer ? <>
+        <aside className={`pro-design-transform-panel${activeTransformLayer?' has-selection':''}${transformOpen?'':' is-minimized'}`} aria-label={t("studio.artwork_properties")}>
+          {!transformOpen ? <button type="button" className="pro-panel-toggle pro-transform-panel-bar" onClick={()=>toggleTransformOpen(true)} aria-expanded={false} title="Show the transform controls">
+            <Move size={15}/><span>{t("studio.transform")}</span>{activeTransformLayer && <strong>{activeTransformLayer.name}</strong>}<ChevronDown size={14}/>
+          </button> : activeTransformLayer ? <>
             <div className="pro-design-transform-panel-head">
               <div><span>{t("studio.transform")}</span><strong>{t("studio.exact_placement")}</strong></div>
               <div className="pro-transform-head-actions">
@@ -3226,6 +3335,7 @@ function DielinePrototype({
                 selectedLayer.id,
                 artboardTransform(selectedLayer.aspectRatio, bounds, pdfExportOptions.bleedMm, normalizeAngle(selectedLayer.transform.rotation)),
               )}><Square size={15}/> Fill artboard</button>}
+              <button type="button" className="pro-panel-minimize" onClick={()=>toggleTransformOpen(false)} aria-expanded={true} aria-label="Minimize the transform controls" title="Minimize"><Minus size={16}/></button>
               </div>
             </div>
 
@@ -3249,6 +3359,7 @@ function DielinePrototype({
               <p>{t("studio.drag_freely_hold") + " "}<kbd>{t("studio.shift")}</kbd>{" " + t("studio.while_rotating_for_15_steps")}</p>
             </section>
           </> : <div className="pro-design-transform-empty">
+            <button type="button" className="pro-panel-minimize" onClick={()=>toggleTransformOpen(false)} aria-expanded={true} aria-label="Minimize the transform controls" title="Minimize"><Minus size={16}/></button>
             <Move size={22}/>
             <strong>{t("studio.select_an_artwork_layer")}</strong>
             <span>{t("studio.choose_a_layer_on_the_left_or_directly_on_the_dieline_to_edit_its_position_")}</span>
@@ -3268,7 +3379,6 @@ function DielinePrototype({
           transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100*mobileFit})`,
           transformOrigin:'center',
         }}
-        onPointerDown={(event)=>{if(event.target===event.currentTarget) onSelectLayer(null);}}
         onDragEnter={(event)=>{
           if(!event.dataTransfer.types.includes('Files')) return;
           event.preventDefault();
@@ -3374,6 +3484,7 @@ function DielinePrototype({
             className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''} pro-dieline-panel-guide`}
             style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
+            data-panel={panelName}
           >
             {explicitArtwork ? <PanelArtwork panel={item} artwork={explicitArtwork}/> : null}
             <span className="dl-label">{item.label}</span>
@@ -3392,7 +3503,7 @@ function DielinePrototype({
           </g>)}
         </svg>}
 
-        {cartonPanels.filter(item=>!selectedLayerId && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
+        {cartonPanels.filter(item=>!selectedLayerId && panelArtworkActive && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
           const key=artworkScope==='inside'?`Interior ${selectedPanel}`:selectedPanel;
           const artwork=artworkByPanel[key];
           if(!artwork) return null;
