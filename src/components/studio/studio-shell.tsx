@@ -28,7 +28,7 @@ import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/compo
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { artworkImageLoader, flapFillColours, flapFillTextures } from '@/lib/packaging/flap-fill';
-import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
@@ -2787,6 +2787,8 @@ function DielinePrototype({
   const [printing,setPrinting]=useState(false);
   const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels;
   const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
+  // The cutting template's own cut and crease lines, drawn over the artwork.
+  const sheetLines = useMemo(()=>getTemplateExportGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}),[selectedTemplateId,dimensions,openingMode,splitTopHingeSide]);
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
@@ -3344,6 +3346,14 @@ function DielinePrototype({
         {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
           {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={item.outline!.map(point=>`${point.x},${point.y}`).join(' ')}/>)}
         </svg>}
+
+        {/* Cut and crease lines stay visible over any artwork, as on a printer's proof. */}
+        <svg className="pro-dieline-lines" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
+          {(['cut','crease'] as const).map(kind=><g key={kind} className={`dl-lines dl-lines-${kind}`}>
+            {sheetLines[kind].map((line,index)=><line key={`halo:${index}`} className="dl-line-halo" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}/>)}
+            {sheetLines[kind].map((line,index)=><line key={index} className="dl-line" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}/>)}
+          </g>)}
+        </svg>
 
         {cartonPanels.filter(item=>!selectedLayerId && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
           const key=artworkScope==='inside'?`Interior ${selectedPanel}`:selectedPanel;
