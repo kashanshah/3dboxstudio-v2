@@ -14,8 +14,8 @@ import { chromium } from 'playwright-core';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = [
   { id: 'reverse-tuck-carton', mode: 'closed', progress: 86, yaw: 2.3, pitch: 0.7, material: 'White board' },
-  { id: 'base-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.35, material: 'Kraft' },
-  { id: 'split-top-box', mode: 'top_split_meet_center', progress: 85, yaw: -0.6, pitch: 0.35, material: 'Kraft' },
+  { id: 'base-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.35, material: 'Kraft', zoom: 70 },
+  { id: 'split-top-box', mode: 'top_split_meet_center', progress: 85, yaw: -0.6, pitch: 0.35, material: 'Kraft', zoom: 75 },
   { id: 'pizza-box', mode: 'lid_from_back', progress: 85, yaw: -0.6, pitch: 0.35, material: 'Kraft' },
 ];
 
@@ -26,7 +26,7 @@ import { templateAssemblyValuesForProgress } from '@/lib/packaging/template-runt
 const renderer = createCartonRenderer(document.getElementById('c'));
 window.show = shot => {
   const values = templateAssemblyValuesForProgress(shot.id, shot.progress, shot.mode);
-  renderer.setScene({ dimensions: getPackagingTemplate(shot.id).defaultDimensions, templateId: shot.id, opening: values.opening, formation: values.formation, openingMode: shot.mode, splitTopHingeSide: 'side_a', material: shot.material, outsideColor: null, insideColor: null, artworkByPanel: {}, yaw: shot.yaw, pitch: shot.pitch, zoom: 90, viewPan: { x: 0, y: 0 }, lightIntensity: 0, hoverPanel: null, renderStyle: 'realistic', floorShadow: true });
+  renderer.setScene({ dimensions: getPackagingTemplate(shot.id).defaultDimensions, templateId: shot.id, opening: values.opening, formation: values.formation, openingMode: shot.mode, splitTopHingeSide: 'side_a', material: shot.material, outsideColor: null, insideColor: null, artworkByPanel: {}, yaw: shot.yaw, pitch: shot.pitch, zoom: shot.zoom ?? 90, viewPan: { x: 0, y: 0 }, lightIntensity: 0, hoverPanel: null, renderStyle: 'realistic', floorShadow: true });
 };`;
 
 const work = await mkdtemp(path.join(tmpdir(), 'thumbs-'));
