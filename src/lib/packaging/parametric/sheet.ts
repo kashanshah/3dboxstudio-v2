@@ -71,6 +71,9 @@ export function compileParametricSheet(definition: ParametricTemplate) {
         ...(panel.artworkRotation ? { artworkRotation: panel.artworkRotation } : {}),
       };
     });
+    if (new Set(panels.map(panel => panel.id)).size !== panels.length) {
+      definitionError(definition, `more than one variant of a panel applies (${panels.map(panel => panel.id).join(', ')})`);
+    }
     const notes = definition.notes.filter(note => included(note.when, scope)).map(note => interpolate(note.text, scope));
     return finishExportGeometry(panels, definition.export.kind, notes, {
       slits: lines(definition.slits, scope),
@@ -100,32 +103,30 @@ function checkStructure(definition: ParametricTemplate) {
   const fail = (message: string) => definitionError(definition, message);
   if (definition.format !== PARAMETRIC_TEMPLATE_FORMAT) fail(`unsupported format "${definition.format}"`);
   for (const key of DIMENSIONS) if (!definition.parameters?.[key]) fail(`missing parameter "${key}"`);
-  const ids = new Set<string>();
+  const copies = new Map<string, number>();
   for (const panel of definition.panels) {
-    if (ids.has(panel.id)) fail(`panel "${panel.id}" is defined twice`);
-    ids.add(panel.id);
+    copies.set(panel.id, (copies.get(panel.id) ?? 0) + 1);
     if ('outline' in panel && panel.outline.length < 3) fail(`panel "${panel.id}" needs at least three corners`);
     // The 3D model folds four-corner panels; a cut outline with curves or
     // more corners gives the four it folds separately.
     const plainQuad = 'rect' in panel || (panel.outline.length === 4 && panel.outline.every(Array.isArray));
     if (panel.fold ? panel.fold.length !== 4 : !plainQuad) fail(`panel "${panel.id}" needs a four-corner fold shape`);
   }
+  for (const panel of definition.panels) {
+    if (copies.get(panel.id)! > 1 && panel.when === undefined) fail(`panel "${panel.id}" is defined twice; give every copy a "when"`);
+  }
+  const ids = new Set(copies.keys());
   if (!ids.has(definition.fold.root)) fail(`fold root "${definition.fold.root}" is not a panel`);
-  const parents = new Map<string, string>();
+  const hinged = new Map<string, number>();
   for (const hinge of definition.fold.hinges) {
     for (const end of [hinge.child, hinge.parent]) if (!ids.has(end)) fail(`hinge refers to unknown panel "${end}"`);
     if (hinge.child === definition.fold.root) fail(`the fold root "${hinge.child}" cannot hinge on another panel`);
-    if (parents.has(hinge.child)) fail(`panel "${hinge.child}" hinges on more than one panel`);
-    parents.set(hinge.child, hinge.parent);
+    hinged.set(hinge.child, (hinged.get(hinge.child) ?? 0) + 1);
+  }
+  for (const hinge of definition.fold.hinges) {
+    if (hinged.get(hinge.child)! > 1 && hinge.when === undefined) fail(`panel "${hinge.child}" hinges on more than one panel; give every hinge for it a "when"`);
   }
   for (const id of ids) {
-    if (id !== definition.fold.root && !parents.has(id)) fail(`panel "${id}" is not attached to anything by a hinge`);
-  }
-  for (const id of ids) {
-    const seen = new Set<string>();
-    for (let at = id; at !== definition.fold.root; at = parents.get(at)!) {
-      if (seen.has(at)) fail(`hinges loop back on themselves at "${at}"`);
-      seen.add(at);
-    }
+    if (id !== definition.fold.root && !hinged.has(id)) fail(`panel "${id}" is not attached to anything by a hinge`);
   }
 }

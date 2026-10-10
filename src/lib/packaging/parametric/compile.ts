@@ -30,14 +30,20 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
     scope.foldT = evaluate(definition.fold.thickness, scope);
     const progress = {
       formation: Math.min(1, Math.max(0, input.formation / 100)),
-      closing: 1 - Math.min(1, Math.max(0, input.opening / 100)),
+      opening: Math.min(1, Math.max(0, input.opening / 100)),
     };
+    Object.assign(scope, progress);
+    for (const [name, value] of definition.fold.motions ?? []) scope[name] = evaluate(value, scope);
     const present = new Set(geometry.panels.map(panel => panel.id));
-    const hinges: SheetHinge[] = definition.fold.hinges.filter(hinge => present.has(hinge.child)).map(hinge => ({
+    const active = definition.fold.hinges.filter(hinge => present.has(hinge.child) && (hinge.when === undefined || evaluate(hinge.when, scope) !== 0));
+    checkHingeTree(definition, present, active);
+    const hinges: SheetHinge[] = active.map(hinge => ({
       child: hinge.child,
       parent: hinge.parent,
-      angle: substage(progress[hinge.drive], evaluate(hinge.from, scope), evaluate(hinge.to, scope))
-        * (evaluate(hinge.degrees ?? 90, scope) / 90) * (Math.PI / 2),
+      angle: 'angle' in hinge
+        ? evaluate(hinge.angle, scope)
+        : substage(hinge.drive === 'formation' ? progress.formation : 1 - progress.opening, evaluate(hinge.from, scope), evaluate(hinge.to, scope))
+          * (evaluate(hinge.degrees ?? 90, scope) / 90) * (Math.PI / 2),
       ...(hinge.setback === undefined ? {} : { setback: evaluate(hinge.setback, scope) }),
     }));
     const panels: SheetPanel[] = geometry.panels.map(panel => {
@@ -97,7 +103,8 @@ export function compileParametricTemplate(definition: ParametricTemplate): Templ
       control: definition.assembly.control,
       defaultOpeningMode: definition.assembly.defaultOpeningMode as LegacyOpeningMode,
       legacyOpeningAsFormation: definition.assembly.legacyOpeningAsFormation,
-      hasOpeningStage: mode => openingStage === 'always' || (Array.isArray(openingStage) && openingStage.includes(mode)),
+      hasOpeningStage: mode => openingStage === 'always'
+        || (Array.isArray(openingStage) ? openingStage.includes(mode) : typeof openingStage === 'object' && !openingStage.except.includes(mode)),
     },
   };
 
@@ -121,6 +128,25 @@ export function compileParametricTemplate(definition: ParametricTemplate): Templ
     }
   }
   return runtime;
+}
+
+/** Every panel but the root hangs on exactly one present panel, and the hinges reach the root. */
+function checkHingeTree(definition: ParametricTemplate, present: Set<string>, hinges: ParametricTemplate['fold']['hinges']) {
+  const parents = new Map<string, string>();
+  for (const hinge of hinges) {
+    if (parents.has(hinge.child)) definitionError(definition, `panel "${hinge.child}" hinges on more than one panel here`);
+    if (!present.has(hinge.parent)) definitionError(definition, `panel "${hinge.child}" hinges on "${hinge.parent}", which is left out here`);
+    parents.set(hinge.child, hinge.parent);
+  }
+  for (const id of present) {
+    if (id === definition.fold.root) continue;
+    if (!parents.has(id)) definitionError(definition, `panel "${id}" has no hinge here`);
+    const seen = new Set<string>();
+    for (let at = id; at !== definition.fold.root; at = parents.get(at)!) {
+      if (seen.has(at)) definitionError(definition, `hinges loop back on themselves at "${at}"`);
+      seen.add(at);
+    }
+  }
 }
 
 function variants(definition: ParametricTemplate): OptionValues[] {

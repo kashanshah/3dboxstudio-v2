@@ -1,25 +1,11 @@
 import type { TemplateRuntime } from '@/lib/packaging/template-runtime';
-import { reverseTuckFoldState, sanitizeCartonDimensions } from './geometry';
-import { buildReverseTuckTemplateMeshes } from './renderer';
-import { reverseTuckExportGeometry, reverseTuckSheet } from './export';
+import { compileParametricTemplate } from '@/lib/packaging/parametric/compile';
+import { reverseTuckDefinition } from '@/lib/packaging/parametric/definitions/reverse-tuck';
+import { reverseTuckFoldState } from './geometry';
 
-export const reverseTuckRuntime:TemplateRuntime={
-  templateId:'reverse-tuck-carton',
-  structureKey:'reverse-tuck-v1',
-  rendererKey:'reverse-tuck-v1',
-  sanitizeParameters:sanitizeCartonDimensions,
-  // The design grid is the cutting template itself, flaps included.
-  getDielinePanels:dimensions=>reverseTuckSheet(dimensions).panels,
-  getDielineBounds:dimensions=>reverseTuckSheet(dimensions).bounds,
-  buildMeshes:buildReverseTuckTemplateMeshes,
-  getExportGeometry: reverseTuckExportGeometry,
-  exportSummary: 'Cutting template with closure flaps. Your printer must approve the stock and crease allowances.',
-  exportArtworkNote: 'Artwork prints exactly as laid out on the design grid, including the tuck and dust flaps.',
-  assembly:{
-    control:'none',
-    defaultOpeningMode:'closed',
-    legacyOpeningAsFormation:true,
-    hasOpeningStage:()=>false,
-  },
-  getFoldState:reverseTuckFoldState,
+// Built from its parametric definition: the die, the 3D fold and the size
+// checks all come from parametric/definitions/reverse-tuck.ts.
+export const reverseTuckRuntime: TemplateRuntime = {
+  ...compileParametricTemplate(reverseTuckDefinition),
+  getFoldState: reverseTuckFoldState,
 };

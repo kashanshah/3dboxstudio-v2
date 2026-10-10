@@ -3,7 +3,8 @@
 // "the panel is one board wider than the inside width": `width + t`.
 //
 // Numbers, named values (`depth`, `front.x`), + - * / %, comparisons, && || !,
-// `a ? b : c` and a fixed set of functions. Comparisons and logic give 1 or 0.
+// `a ? b : c` and a fixed set of functions, including `stage(value, start,
+// end)`, the eased 0 → 1 the fold timings use. Comparisons and logic give 1 or 0.
 // Nothing else is reachable: no property access, no globals, no eval.
 
 export type Expr = number | string;
@@ -28,11 +29,19 @@ const FUNCTIONS: Record<string, (...args: number[]) => number> = {
   sin: Math.sin,
   cos: Math.cos,
   tan: Math.tan,
+  asin: Math.asin,
+  acos: Math.acos,
   atan2: Math.atan2,
+  pow: Math.pow,
   clamp: (value, low, high) => Math.min(high, Math.max(low, value)),
+  /** Eases 0 → 1 as `value` runs from `start` to `end`, for fold timing. */
+  stage: (value, start, end) => {
+    const x = Math.min(1, Math.max(0, (value - start) / (end - start)));
+    return x * x * (3 - 2 * x);
+  },
 };
 
-const CONSTANTS: Record<string, number> = { pi: Math.PI };
+const CONSTANTS: Record<string, number> = { pi: Math.PI, sqrt1_2: Math.SQRT1_2 };
 
 const BINARY_PRECEDENCE: Record<string, number> = {
   '||': 1, '&&': 2,

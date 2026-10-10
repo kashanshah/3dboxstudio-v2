@@ -46,7 +46,11 @@ export type PanelSpec = {
   kind: 'body' | 'flap' | 'glue';
   /** Artwork and picking name, when not the label in title case. */
   name?: string;
-  /** Leave the panel out of this variant. */
+  /**
+   * Leave the panel out of this variant. A panel may be listed more than once
+   * with the same id (a wall with and without a thumb notch) when every copy
+   * has a `when` and at most one applies.
+   */
   when?: Expr;
   /** Draw order where panels overlap without a crease; higher covers lower. */
   layer?: Expr;
@@ -76,18 +80,32 @@ export type HingeSpec = {
   child: string;
   parent: string;
   /**
-   * What moves the fold: forming the box from the flat sheet, or closing it
-   * (the reverse of the studio's opening slider).
+   * Use this hinge only in this variant (a lid hinged on whichever wall the
+   * opening mode picks). Each panel but the root needs exactly one hinge.
    */
-  drive: 'formation' | 'closing';
-  /** The fold runs over this part of its drive, 0 to 1, eased at both ends. */
-  from: Expr;
-  to: Expr;
-  /** Fold angle at the end, in degrees. Defaults to 90. */
-  degrees?: Expr;
+  when?: Expr;
   /** Millimetres the crease sits inside the parent (see SheetHinge.setback). */
   setback?: Expr;
-};
+} & (
+  | {
+    /**
+     * What moves the fold: forming the box from the flat sheet, or closing it
+     * (the reverse of the studio's opening slider).
+     */
+    drive: 'formation' | 'closing';
+    /** The fold runs over this part of its drive, 0 to 1, eased at both ends. */
+    from: Expr;
+    to: Expr;
+    /** Fold angle at the end, in degrees. Defaults to 90. */
+    degrees?: Expr;
+  }
+  /**
+   * The fold angle in radians, for folds that depend on others (a tuck tongue
+   * curling to clear the opposite wall as its lid comes down) or on the
+   * opening slider (doors). Usually a name from `fold.motions`.
+   */
+  | { angle: Expr }
+);
 
 export type ParametricTemplate = {
   format: typeof PARAMETRIC_TEMPLATE_FORMAT;
@@ -121,13 +139,22 @@ export type ParametricTemplate = {
      * Panel boxes are available as `front.x`, `front.width` and so on.
      */
     offset: [Expr, Expr, Expr];
+    /**
+     * Named values computed in order before the hinges, usually fold angles
+     * in radians. Besides everything above they can use `formation` and
+     * `opening`, the studio's two sliders, each 0 to 1.
+     */
+    motions?: [name: string, value: Expr][];
     hinges: HingeSpec[];
   };
   assembly: {
     control: 'none' | 'opening-mechanism' | 'split-direction';
     defaultOpeningMode: string;
-    /** Whether the box has an open stage after forming: always, never, or in these opening modes. */
-    openingStage: 'always' | 'never' | string[];
+    /**
+     * Whether the box has an open stage after forming: always, never, in
+     * these opening modes, or in every mode except these.
+     */
+    openingStage: 'always' | 'never' | string[] | { except: string[] };
     legacyOpeningAsFormation?: boolean;
   };
   export: {

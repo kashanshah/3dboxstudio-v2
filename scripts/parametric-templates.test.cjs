@@ -20,8 +20,8 @@ const {splitTopDefinition}=require('../src/lib/packaging/parametric/definitions/
 const {splitTopReferenceRuntime:splitTopRuntime}=require('./reference/split-top-handwritten.ts');
 const {getTemplateRuntime}=require('../src/lib/packaging/template-runtime.ts');
 const {splitTopSheet,splitTopExportGeometry}=require('../src/lib/packaging/templates/split-top/geometry.ts');
-const {baseBoxSheet}=require('../src/lib/packaging/templates/base-box/geometry.ts');
-const {tuckEndBodySizes,tuckEndLidSizes}=require('../src/lib/packaging/templates/tuck-end.ts');
+const {baseBoxSheet}=require('./reference/tuck-end/base-box-geometry.ts');
+const {tuckEndBodySizes,tuckEndLidSizes}=require('./reference/tuck-end/tuck-end.ts');
 
 // Same shape and values, numbers within a hair (expressions and hand-written
 // code may round differently in the last bit).
@@ -200,5 +200,104 @@ test('authoring mistakes are refused when the definition is compiled',()=>{
   for(const [change,error] of cases){
     assert.throws(broken(change),error);
     assert.throws(broken(change),TemplateDefinitionError);
+  }
+});
+
+// The tuck end cartons, against their hand-written versions.
+const {baseBoxDefinition}=require('../src/lib/packaging/parametric/definitions/base-box.ts');
+const {reverseTuckDefinition}=require('../src/lib/packaging/parametric/definitions/reverse-tuck.ts');
+// The hand-written versions these definitions replaced, frozen for comparison.
+const tuckReference={
+  base:require('./reference/tuck-end/base-box-runtime.ts').baseBoxRuntime,
+  reverse:require('./reference/tuck-end/reverse-tuck-runtime.ts').reverseTuckRuntime,
+};
+const tuckFixtures=[
+  {width:65,height:160,depth:65,thickness:0.5},
+  {width:120,height:180,depth:55,thickness:0.5},
+  {width:240,height:100,depth:160,thickness:0.4},
+  {width:20,height:24,depth:10,thickness:0.3},
+  {width:300,height:40,depth:30,thickness:2},
+  {width:15,height:20,depth:8,thickness:5},
+];
+const OPENING_MODES=['closed','lid_from_back','lid_from_front','lid_from_left','lid_from_right','top_split_meet_center','door_left','door_right','double_doors'];
+const STAGES=[[0,0],[30,0],[50,0],[60,0],[64,0],[70,0],[80,0],[85,0],[89,0],[92,0],[94.5,0],[96,0],[98,0],[100,0],[95,60],[100,40],[100,100]];
+
+function assertSameTemplate(parametric,reference,modes){
+  for(const input of [...tuckFixtures,{width:NaN,height:-5,depth:Infinity,thickness:99}]){
+    assert.deepEqual(parametric.sanitizeParameters(input),reference.sanitizeParameters(input));
+  }
+  for(const dimensions of tuckFixtures)for(const openingMode of modes){
+    const options={openingMode};
+    const label=`${JSON.stringify(dimensions)} ${openingMode}`;
+    assertClose(parametric.getDielinePanels(dimensions,options),reference.getDielinePanels(dimensions,options),`${label} panels`);
+    assertClose(parametric.getDielineBounds(dimensions,options),reference.getDielineBounds(dimensions,options),`${label} bounds`);
+    let expected,expectedError;
+    try{expected=reference.getExportGeometry(dimensions,options);}catch(error){expectedError=error.message;}
+    if(expectedError)assert.throws(()=>parametric.getExportGeometry(dimensions,options),{message:expectedError});
+    else assertClose(parametric.getExportGeometry(dimensions,options),expected,`${label} export`);
+    for(const [formation,opening] of STAGES){
+      const input={dimensions,formation,opening,openingMode,splitTopHingeSide:'side_a',color:[0.8,0.7,0.6],interiorColor:[0.9,0.9,0.9]};
+      assertClose(parametric.buildMeshes(input),reference.buildMeshes(input),`${label} ${formation}/${opening}`);
+    }
+  }
+  const {hasOpeningStage,...assembly}=parametric.assembly;
+  const {hasOpeningStage:expectedStage,...expected}=reference.assembly;
+  assert.deepEqual(JSON.parse(JSON.stringify(assembly)),JSON.parse(JSON.stringify(expected)));
+  for(const mode of OPENING_MODES)assert.equal(hasOpeningStage(mode),expectedStage(mode),mode);
+  for(const key of ['templateId','structureKey','rendererKey','exportSummary','exportArtworkNote'])assert.equal(parametric[key],reference[key]);
+}
+
+test('the parametric straight tuck end (base box) matches the hand-written one in every opening mode',()=>{
+  assertSameTemplate(compileParametricTemplate(baseBoxDefinition),tuckReference.base,OPENING_MODES);
+});
+
+test('the parametric reverse tuck end matches the hand-written one',()=>{
+  assertSameTemplate(compileParametricTemplate(reverseTuckDefinition),tuckReference.reverse,['closed']);
+});
+
+test('the studio, layout migrations and template pages build the tuck end cartons from their definitions',()=>{
+  const {baseBoxSheet:liveBaseSheet}=require('../src/lib/packaging/templates/base-box/geometry.ts');
+  const {reverseTuckSheet,reverseTuckExportGeometry}=require('../src/lib/packaging/templates/reverse-tuck/export.ts');
+  const {templatePreviewGeometry}=require('../src/lib/packaging/template-preview.ts');
+  const dimensions=tuckFixtures[2];
+  for(const [id,reference] of [['base-box',tuckReference.base],['reverse-tuck-carton',tuckReference.reverse]]){
+    const live=getTemplateRuntime(id);
+    assertClose(live.getExportGeometry(dimensions,{openingMode:'lid_from_left'}),reference.getExportGeometry(dimensions,{openingMode:'lid_from_left'}),id);
+    const input={dimensions,formation:95,opening:30,openingMode:'door_left',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]};
+    assertClose(live.buildMeshes(input),reference.buildMeshes(input),id);
+  }
+  assert.equal(getTemplateRuntime('reverse-tuck-carton').getFoldState,tuckReference.reverse.getFoldState);
+  assertClose(liveBaseSheet(dimensions,'lid_from_right'),tuckReference.base.getExportGeometry(dimensions,{openingMode:'lid_from_right'}));
+  assertClose(reverseTuckSheet(dimensions),tuckReference.reverse.getExportGeometry(dimensions));
+  assertClose(reverseTuckExportGeometry(dimensions),tuckReference.reverse.getExportGeometry(dimensions));
+  assertClose(templatePreviewGeometry('reverse-tuck-carton',dimensions),tuckReference.reverse.getExportGeometry(dimensions));
+});
+
+test('variant mistakes are refused when the definition is compiled',()=>{
+  const broken=change=>{const copy=structuredClone(baseBoxDefinition);change(copy);return ()=>compileParametricTemplate(copy);};
+  const cases=[
+    // Both the plain and the notched back apply when the lid is on the front.
+    [copy=>{copy.panels.find(p=>p.id==='back'&&p.when.startsWith('!')).when='1';},/more than one variant of a panel applies/],
+    [copy=>{copy.panels.push({...copy.panels.find(p=>p.id==='glue')});},/"glue" is defined twice; give every copy a "when"/],
+    // No hinge holds the lid when it is on the right.
+    [copy=>{copy.fold.hinges=copy.fold.hinges.filter(h=>h.when!=='topOnRight');},/"top" has no hinge here.*lid_from_right/],
+    [copy=>{copy.fold.hinges.find(h=>h.when==='topOnLeft').when='topOnLeft || topOnFront';},/"top" hinges on more than one panel here/],
+    [copy=>{copy.fold.hinges.push({child:'bottom-tuck',parent:'top-left-dust',when:'topOnLeft',angle:0});copy.fold.hinges.find(h=>h.child==='bottom-tuck'&&!h.when).when='!topOnLeft';},/hinges on "top-left-dust", which is left out here/],
+    [copy=>{copy.fold.hinges.push({child:'top',parent:'glue',angle:0});},/"top" hinges on more than one panel; give every hinge/],
+    [copy=>{copy.fold.motions.push(['oops','turnTp * 2']);},/Unknown value "turnTp"/],
+  ];
+  for(const [change,error] of cases){
+    assert.throws(broken(change),error);
+    assert.throws(broken(change),TemplateDefinitionError);
+  }
+});
+
+test('the tuck end definitions survive a JSON round trip unchanged',()=>{
+  for(const definition of [baseBoxDefinition,reverseTuckDefinition]){
+    const fromJson=compileParametricTemplate(JSON.parse(JSON.stringify(definition)));
+    const original=compileParametricTemplate(definition);
+    const input={dimensions:tuckFixtures[0],formation:97,opening:50,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]};
+    assertClose(fromJson.getExportGeometry(tuckFixtures[0],{openingMode:'lid_from_back'}),original.getExportGeometry(tuckFixtures[0],{openingMode:'lid_from_back'}));
+    assertClose(fromJson.buildMeshes(input),original.buildMeshes(input));
   }
 });

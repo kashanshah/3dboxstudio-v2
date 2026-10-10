@@ -1,9 +1,16 @@
+// FROZEN REFERENCE. The tuck end cartons exactly as they were hand-written
+// before they moved to the parametric definitions in
+// src/lib/packaging/parametric/definitions. Nothing in the app imports this
+// file: scripts/parametric-templates.test.cjs compares the definitions
+// against it, so any change to a die or fold shows up as a test failure.
+// Never edit it to make that test pass.
+
 import { sanitizeCartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import { boardThickness, panelName, substage } from '@/lib/packaging/templates/folded-box';
-import { tuckEndLidSizes, tongueAngle } from '../tuck-end';
-import { baseBoxLids, baseBoxSheet } from './geometry';
+import { tuckEndLidSizes, tongueAngle } from './tuck-end';
+import { baseBoxLids, baseBoxSheet } from './base-box-geometry';
 
 // Folded from the cutting template itself: the body strip wraps round with the
 // glue flap stuck inside the back, then each end closes like a real carton:
