@@ -4,6 +4,7 @@ import { baseBoxDefinition } from '@/lib/packaging/parametric/definitions/base-b
 import { splitTopDefinition } from '@/lib/packaging/parametric/definitions/split-top';
 import { reverseTuckDefinition } from '@/lib/packaging/parametric/definitions/reverse-tuck';
 import { pizzaBoxDefinition } from '@/lib/packaging/parametric/definitions/pizza-box';
+import { sleeveBoxDefinition } from '@/lib/packaging/parametric/definitions/sleeve-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -103,22 +104,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     status: 'planned',
   },
   fromDefinition(pizzaBoxDefinition),
-  {
-    id: 'sleeve-box',
-    version: 1,
-    name: 'Sleeve Box',
-    shortName: 'Sleeve',
-    family: 'folding-carton',
-    category: 'Cartons',
-    description: 'Open-ended sleeve for trays and product wraps.',
-    tags: ['sleeve','carton','wrap'],
-    rendererKey: 'sleeve-v1',
-    structureKey: 'sleeve-v1',
-    capabilities: [],
-    parameters: [],
-    artworkRegions: [],
-    status: 'planned',
-  },
+  fromDefinition(sleeveBoxDefinition),
   {
     id: 'rigid-lid-base',
     version: 1,

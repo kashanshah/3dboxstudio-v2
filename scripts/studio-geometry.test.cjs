@@ -471,7 +471,8 @@ test('every ready template has a matching runtime and real default dimensions',(
       openingMode:runtime.assembly.defaultOpeningMode,
       splitTopHingeSide:'side_a',
     });
-    assert.ok(geometry.panels.length>=6,`${template.id} has incomplete dieline geometry`);
+    // Four walls and a glue flap at least (a sleeve has just those).
+    assert.ok(geometry.panels.length>=5,`${template.id} has incomplete dieline geometry`);
     assert.ok(geometry.bounds.width>0&&geometry.bounds.height>0);
     assert.ok(geometry.panels.every(panel=>[panel.x,panel.y,panel.width,panel.height].every(Number.isFinite)));
 
@@ -567,6 +568,7 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'base-box':'base-box',
     'split-top-box':'split-top',
     'pizza-box':'pizza-box',
+    'sleeve-box':'sleeve-box',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];

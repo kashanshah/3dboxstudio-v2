@@ -32,7 +32,7 @@ const sections = [
 const faqs = [
   {
     "question": "Which box templates are available?",
-    "answer": "Reverse tuck end carton, straight tuck end box, pizza box and split top box are ready now. Mailer, sleeve, rigid lid and base, and drawer boxes are planned."
+    "answer": "Reverse tuck end carton, straight tuck end box, pizza box, split top box and sleeve box are ready now. Mailer, rigid lid and base, and drawer boxes are planned."
   },
   {
     "question": "Can I resize a template?",
@@ -66,7 +66,7 @@ export default function Page(){
     <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>
     <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Locking tray, hinged lid</span><i/></Link>
     <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Slotted shipper</span><i/></Link>
-    <div className="template-hero-note">Mailer and sleeve boxes are planned</div>
+    <div className="template-hero-note">Mailer boxes are planned</div>
   </div>;
   return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} afterHero={<TemplatePageLinks />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
