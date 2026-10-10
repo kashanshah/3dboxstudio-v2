@@ -1,6 +1,6 @@
 import { sanitizeCartonDimensions, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
-import { checkTuckEndSize, tuckEndFlapSources, tuckEndSheet, type TuckEndLids, type TuckWall } from '../tuck-end';
+import { checkTuckEndSize, tuckEndSheet, type TuckEndLids, type TuckWall } from '../tuck-end';
 
 // The base box is a straight tuck end carton (ECMA A15.20): both lids hinge on
 // the front, so the top and bottom tuck into the back. A design may hinge its
@@ -15,12 +15,6 @@ export function baseBoxLids(openingMode: LegacyOpeningMode = 'closed'): TuckEndL
         : 'front';
   return { top, bottom: 'front' };
 }
-
-/** Flap → the panel whose edge colour it takes where it is bare, for any opening. */
-export const BASE_BOX_FLAP_SOURCES: Record<string, string> = {
-  ...tuckEndFlapSources({ top: 'left', bottom: 'front' }),
-  ...tuckEndFlapSources({ top: 'front', bottom: 'front' }),
-};
 
 /** The cutting template; it is also the design grid. */
 export function baseBoxSheet(input: CartonDimensions, openingMode: LegacyOpeningMode = 'closed') {

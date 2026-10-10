@@ -1,8 +1,7 @@
 import type { ArtworkByPanel } from './artwork';
 import { layerPrintsOn, type FullDielineArtworkLayer } from './full-dieline-artwork';
 import { getTemplateExportGeometry, getTemplateGeometry, type TemplateGeometryOptions } from './template-runtime';
-import { panelName } from './flap-artwork';
-import { drawPanelPrint, flapFillColours } from './flap-fill';
+import { drawPanelPrint, panelName } from './panel-print';
 import type { CartonDimensions } from './reverse-tuck';
 import {
   validatePdfOptions, validatePdfDimensions, getPdfRasterBudget, panelPixelsPerMm, choosePanelImageEncoding,
@@ -168,15 +167,11 @@ export function preparePdfArtwork(input: DownloadInput) {
   const release = () => { for (const c of [canvas, mask]) if (c) c.width = c.height = 0; };
   const visible = input.layers.filter(layer => layer.visible !== false && (layer.opacity ?? 100) > 0);
   const prefix = input.scope === 'inside' ? 'Interior ' : '';
-  // Flaps print in their neighbour's edge colour wherever their artwork leaves them bare.
-  let fills: Promise<Record<string, string>> | null = null;
   const renderPanel = async (index: number): Promise<PdfPanelImage | null> => {
     const panel = geometry.panels[index];
     const original = source.panels.find(p => p.id === panel.sourceId);
-    fills ??= flapFillColours({ ...input, layers: visible }, getImage);
-    const fill = original ? (await fills)[original.id] : undefined;
     const explicit = original ? input.artworkByPanel[`${prefix}${panelName(original.label)}`] : undefined;
-    if (!input.baseColor && !fill && (!original || (!visible.some(layer => layerPrintsOn(layer, original.id)) && !explicit))) return null;
+    if (!input.baseColor && (!original || (!visible.some(layer => layerPrintsOn(layer, original.id)) && !explicit))) return null;
     const w = panel.width + 2 * bleed, h = panel.height + 2 * bleed;
     const pixelsPerMm = panelPixelsPerMm(w, h, totalAreaMm2, budget);
     // Load artwork before allocating the canvas.
@@ -192,8 +187,6 @@ export function preparePdfArtwork(input: DownloadInput) {
       ctx.scale(canvas.width / w, canvas.height / h);
       ctx.translate(bleed, bleed);
       if (input.baseColor) { ctx.fillStyle = input.baseColor; ctx.fillRect(-bleed, -bleed, w, h); }
-      // A flap's edge colour shows wherever its artwork leaves it bare.
-      if (fill) { ctx.fillStyle = fill; ctx.fillRect(-bleed, -bleed, w, h); }
       if (original) {
         ctx.save();
         ctx.translate(panel.width / 2, panel.height / 2);

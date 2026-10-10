@@ -1,5 +1,5 @@
 import { sanitizeCartonDimensions, type CartonDimensions } from '../../reverse-tuck';
-import { checkTuckEndSize, tuckEndFlapSources, tuckEndLidSizes, tuckEndSheet, type TuckEndLids } from '../tuck-end';
+import { checkTuckEndSize, tuckEndLidSizes, tuckEndSheet, type TuckEndLids } from '../tuck-end';
 
 // The reverse tuck end carton (ECMA A20.20): the top lid hinges on the front
 // and the bottom lid on the back, so each tucks into the opposite wall. See
@@ -8,13 +8,6 @@ import { checkTuckEndSize, tuckEndFlapSources, tuckEndLidSizes, tuckEndSheet, ty
 // Hinged on the back, the bottom sits upside down on the sheet: artwork placed
 // on it alone is turned half a turn to read upright on the box.
 const LIDS: TuckEndLids = { top: 'front', bottom: 'back', bottomRotation: 180 };
-
-/**
- * Panels with no artwork of their own carry on the edge of the panel they fold
- * from: tuck and dust flaps, and the top and bottom from the front and back.
- * The glue flap stays bare for gluing.
- */
-export const REVERSE_TUCK_FLAP_SOURCES: Record<string, string> = tuckEndFlapSources(LIDS);
 
 /** The top lid's sizes, which the 3D model's tuck uses. */
 export function reverseTuckClosureSizes(d: CartonDimensions) {

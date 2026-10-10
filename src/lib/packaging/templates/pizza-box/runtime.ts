@@ -1,5 +1,5 @@
 import type { TemplateRuntime } from '../../template-runtime';
-import { PIZZA_BOX_FLAP_SOURCES, pizzaBoxExportGeometry, pizzaBoxSheet, sanitizePizzaBoxDimensions } from './geometry';
+import { pizzaBoxExportGeometry, pizzaBoxSheet, sanitizePizzaBoxDimensions } from './geometry';
 import { buildPizzaBoxTemplateMeshes } from './renderer';
 
 export const pizzaBoxRuntime: TemplateRuntime = {
@@ -11,7 +11,6 @@ export const pizzaBoxRuntime: TemplateRuntime = {
   getDielinePanels: dimensions => pizzaBoxSheet(dimensions).panels,
   getDielineBounds: dimensions => pizzaBoxSheet(dimensions).bounds,
   getExportGeometry: pizzaBoxExportGeometry,
-  flapArtworkSources: PIZZA_BOX_FLAP_SOURCES,
   buildMeshes: buildPizzaBoxTemplateMeshes,
   assembly: {
     control: 'none',

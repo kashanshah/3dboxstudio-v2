@@ -33,8 +33,6 @@ export type TemplateRuntime = {
   getExportGeometry?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielineExportGeometry;
   exportSummary?: string;
   exportArtworkNote?: string;
-  /** Flap id → the panel whose artwork a flap with none of its own continues. */
-  flapArtworkSources?: Record<string, string>;
 };
 
 const runtimeMap=new Map<string,TemplateRuntime>(
