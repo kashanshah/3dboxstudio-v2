@@ -33,6 +33,7 @@ import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkM
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
@@ -2829,30 +2830,58 @@ function DielinePrototype({
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
-  const visualMax = 760;
+  const stageRef=useRef<HTMLDivElement>(null);
+  const [mobileFit,setMobileFit]=useState(1);
+  const [sheetFit,setSheetFit]=useState(1);
+  const visualMax = 760 * sheetFit;
   const visualScale = visualMax / Math.max(bounds.width, bounds.height);
   const visualWidth = bounds.width * visualScale;
   const visualHeight = bounds.height * visualScale;
-  // Phones: shrink the board so the default 112% view fits the stage area left
-  // visible above the bottom sheet. Wider screens keep the fixed 760px board.
-  const stageRef=useRef<HTMLDivElement>(null);
-  const [mobileFit,setMobileFit]=useState(1);
+  const fullWidth = bounds.width * 760 / Math.max(bounds.width, bounds.height);
+  const fullHeight = bounds.height * 760 / Math.max(bounds.width, bounds.height);
+  // Size the board so the default 112% view shows the whole sheet. Phones
+  // shrink it into the stage area left visible above the bottom sheet. Wider
+  // screens size it, up to 760px, to the stage's content box (which stops
+  // above the line legend and toolbar) and the gap between the side panels,
+  // since the stage runs underneath them.
   useEffect(()=>{
     const stage=stageRef.current;
     if(!stage) return;
     const query=window.matchMedia('(max-width:640px)');
+    const panels=()=>[...(stage.closest('.pro-studio-body')??document).querySelectorAll<HTMLElement>('.pro-design-inspector-shell, .pro-design-context-stack')];
     const update=()=>{
-      if(!query.matches){setMobileFit(1);return;}
       const style=getComputedStyle(stage);
-      const width=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-24;
-      const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-24;
-      setMobileFit(Math.max(.05,Math.min(1,width/(visualWidth*1.12),height/(visualHeight*1.12))));
+      if(query.matches){
+        const width=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-24;
+        const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-24;
+        setSheetFit(1);
+        setMobileFit(Math.max(.05,Math.min(1,width/(fullWidth*1.12),height/(fullHeight*1.12))));
+        return;
+      }
+      setMobileFit(1);
+      const box=stage.getBoundingClientRect();
+      const centre=box.left+box.width/2;
+      let left=box.left,right=box.right;
+      for(const panel of panels()){
+        const rect=panel.getBoundingClientRect();
+        if(rect.width===0||rect.height===0||getComputedStyle(panel).visibility==='hidden')continue;
+        if(rect.right<=centre)left=Math.max(left,rect.right);
+        else if(rect.left>=centre)right=Math.min(right,rect.left);
+      }
+      // Fit between the panels when they leave a usable gap; where they cover
+      // most of the stage (tablets), they overlap the sheet's edges as before.
+      const between=2*Math.min(centre-left,right-centre)-32;
+      const width=between>=box.width*.4?between:box.width-32;
+      const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-16;
+      setSheetFit(Math.max(.3,Math.min(1,width/(fullWidth*1.12),height/(fullHeight*1.12))));
     };
+    update();
     const observer=new ResizeObserver(update);
     observer.observe(stage);
+    for(const panel of panels())observer.observe(panel);
     query.addEventListener('change',update);
     return ()=>{observer.disconnect();query.removeEventListener('change',update);};
-  },[visualWidth,visualHeight]);
+  },[fullWidth,fullHeight]);
 
   const lastPdfExportRequest=useRef(0);
   const pdfRunning=useRef(false);
@@ -3401,8 +3430,8 @@ function DielinePrototype({
               <PrintedArea geometry={sheetLines} bleed={bleedMm} colour="#000"/>
             </mask>
             {bleedMm>0 && <mask id={`${maskId}-band`} maskUnits="userSpaceOnUse" x={-bleedMm} y={-bleedMm} width={artboard.width} height={artboard.height}>
-              {sheetLines.cut.map((line,index)=><line key={index} x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} stroke="#fff" strokeWidth={2*bleedMm} strokeLinecap="round"/>)}
-              {sheetLines.panels.map(panel=><polygon key={panel.id} points={panel.outline.map(point=>`${point.x},${point.y}`).join(' ')} fill="#000"/>)}
+              {sheetLines.cut.map((line,index)=><line key={index} {...svgLine(line)} stroke="#fff" strokeWidth={2*bleedMm} strokeLinecap="round"/>)}
+              {sheetLines.panels.map(panel=><polygon key={panel.id} points={svgPoints(panel.outline)} fill="#000"/>)}
             </mask>}
           </defs>
           <rect className="dl-offcut" x={-bounds.width} y={-bounds.height} width={3*bounds.width} height={3*bounds.height} mask={`url(#${maskId}-offcut)`}/>
@@ -3450,11 +3479,11 @@ function DielinePrototype({
           const panelName=item.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
-          const shape=item.outline ? `polygon(${item.outline.map(point=>`${(point.x-item.x)/item.width*100}% ${(point.y-item.y)/item.height*100}%`).join(',')})` : undefined;
+          const shape=item.outline ? `polygon(${item.outline.map(point=>`${cssPercent((point.x-item.x)/item.width*100)} ${cssPercent((point.y-item.y)/item.height*100)}`).join(',')})` : undefined;
           return <div
             key={item.id}
             className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''} pro-dieline-panel-guide`}
-            style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden',clipPath:shape}}
+            style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
             data-panel={panelName}
           >
@@ -3464,14 +3493,14 @@ function DielinePrototype({
         })}
 
         {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
-          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={item.outline!.map(point=>`${point.x},${point.y}`).join(' ')}/>)}
+          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={svgPoints(item.outline!)}/>)}
         </svg>}
 
         {/* Cut and crease lines stay visible over any artwork, as on a printer's proof. */}
         {sheetLines && <svg className="pro-dieline-lines" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
           {(['cut','crease'] as const).map(kind=><g key={kind} className={`dl-lines dl-lines-${kind}`}>
-            {sheetLines[kind].map((line,index)=><line key={`halo:${index}`} className="dl-line-halo" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}/>)}
-            {sheetLines[kind].map((line,index)=><line key={index} className="dl-line" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}/>)}
+            {sheetLines[kind].map((line,index)=><line key={`halo:${index}`} className="dl-line-halo" {...svgLine(line)}/>)}
+            {sheetLines[kind].map((line,index)=><line key={index} className="dl-line" {...svgLine(line)}/>)}
           </g>)}
         </svg>}
 
@@ -3488,7 +3517,7 @@ function DielinePrototype({
           width*=artwork.scale/100;height*=artwork.scale/100;
           const transform=artwork.transform ?? {x:50+(100-width)/2*artwork.alignX,y:50+(100-height)/2*artwork.alignY,width,height,rotation:artwork.rotation};
           const layer:FullDielineArtworkLayer={id:`panel:${key}`,name:artwork.name,url:artwork.url,aspectRatio:imageAspect,transform};
-          return <div key={item.id} className="pro-side-artwork-transform-surface" data-turned={item.artworkRotation===180?'180':undefined} style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,transform:item.artworkRotation===180?'rotate(180deg)':undefined}}>
+          return <div key={item.id} className="pro-side-artwork-transform-surface" data-turned={item.artworkRotation===180?'180':undefined} style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),transform:item.artworkRotation===180?'rotate(180deg)':undefined}}>
             <div className="pro-full-artwork-transform pro-side-artwork-transform is-selected" style={{left:`${transform.x}%`,top:`${transform.y}%`,width:`${transform.width}%`,height:`${transform.height}%`,transform:`translate(-50%,-50%) rotate(${transform.rotation}deg)`}}
               aria-label={`Move ${selectedPanel} artwork`}
               onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture}>
@@ -3531,15 +3560,15 @@ function pointerIn(container:HTMLElement,event:{clientX:number;clientY:number}){
 /** The dieline's panels with the bleed past their cut edges, filled in one colour (an SVG mask's contents). */
 function PrintedArea({geometry,bleed,colour}:{geometry:{panels:{id:string;outline:{x:number;y:number}[]}[];cut:{start:{x:number;y:number};end:{x:number;y:number}}[]};bleed:number;colour:string}){
   return <>
-    {geometry.panels.map(panel=><polygon key={panel.id} points={panel.outline.map(point=>`${point.x},${point.y}`).join(' ')} fill={colour}/>)}
-    {bleed>0 && geometry.cut.map((line,index)=><line key={index} x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} stroke={colour} strokeWidth={2*bleed} strokeLinecap="round"/>)}
+    {geometry.panels.map(panel=><polygon key={panel.id} points={svgPoints(panel.outline)} fill={colour}/>)}
+    {bleed>0 && geometry.cut.map((line,index)=><line key={index} {...svgLine(line)} stroke={colour} strokeWidth={2*bleed} strokeLinecap="round"/>)}
   </>;
 }
 
 const formatArtboardMm=(value:number)=>Number(value.toFixed(1)).toString();
 
 function boardPolygon(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]},bounds:{width:number;height:number}){
-  return `polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`;
+  return `polygon(${panelOutline(panel).map(point=>`${cssPercent(point.x/bounds.width*100)} ${cssPercent(point.y/bounds.height*100)}`).join(',')})`;
 }
 
 /** A panel's own artwork, filling the panel box it is placed in. */

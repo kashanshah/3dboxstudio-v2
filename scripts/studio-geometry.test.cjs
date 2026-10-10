@@ -574,9 +574,11 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     const root=path.resolve(__dirname,'../src/lib/packaging/templates',folder);
     const runtime=fs.readFileSync(path.join(root,'runtime.ts'),'utf8');
     const geometry=fs.readFileSync(path.join(root,'geometry.ts'),'utf8');
+    assert.ok(geometry.length>0,`${template.id} geometry entry point is empty`);
+    // A template built from a parametric definition gets its mesh builder from the compiler.
+    if(/compileParametricTemplate\(/.test(runtime))continue;
     const renderer=fs.readFileSync(path.join(root,'renderer.ts'),'utf8');
     assert.match(runtime,/buildMeshes:/,`${template.id} runtime does not own its mesh builder registration`);
-    assert.ok(geometry.length>0,`${template.id} geometry entry point is empty`);
     assert.match(renderer,/TemplateMeshBuilder/,`${template.id} renderer does not implement the shared mesh contract`);
   }
 });

@@ -319,6 +319,37 @@ function cross3(a:number[],b:number[]) { return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a
 function dot3(a:number[],b:number[]) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
 export function clamp(value:number,min:number,max:number){ return Math.min(max,Math.max(min,value)); }
 
+const STUDIO_FOV = Math.PI / 4.2;
+const STUDIO_EYE_DISTANCE = 2.462;
+
+/**
+ * The zoom factor (at most 1) that keeps everything within `reach` of the
+ * box's centre in view at the default zoom, with a little margin: what an
+ * opened lid or the flat sheet needs, since the camera is framed for the
+ * closed box (`maxDimension`).
+ */
+export function studioFitZoom(maxDimension:number,reach:number,aspect:number){
+  const distance = maxDimension * STUDIO_EYE_DISTANCE;
+  const halfAngle = Math.asin(Math.min(0.99, reach / Math.max(1e-6, distance)));
+  const room = Math.tan(STUDIO_FOV / 2) * Math.min(1, aspect) * 0.92;
+  return Math.min(1, room / Math.tan(halfAngle));
+}
+
+/** How far the furthest vertex of `meshes` lies from the scene's centre. */
+export function meshReach(meshes:Mesh[]){
+  let reach = 0;
+  for (const mesh of meshes) {
+    const v = mesh.vertices, m = mesh.model;
+    for (let i = 0; i < v.length; i += 8) {
+      const [x, y, z] = m
+        ? [m[0]*v[i]+m[4]*v[i+1]+m[8]*v[i+2]+m[12], m[1]*v[i]+m[5]*v[i+1]+m[9]*v[i+2]+m[13], m[2]*v[i]+m[6]*v[i+1]+m[10]*v[i+2]+m[14]]
+        : [v[i], v[i+1], v[i+2]];
+      reach = Math.max(reach, Math.hypot(x, y, z));
+    }
+  }
+  return reach;
+}
+
 /** Shared by drawing and picking. Magnify the lens without moving through the box or clipping distant zoom levels. */
 export function studioViewMatrices(
   maxDimension:number,
@@ -329,11 +360,11 @@ export function studioViewMatrices(
   offsetNdcX=0,
   offsetNdcY=0,
 ) {
-  const eye = orbitEye(maxDimension * 2.462, yaw, pitch);
+  const eye = orbitEye(maxDimension * STUDIO_EYE_DISTANCE, yaw, pitch);
   const view = lookAt(eye, [0, 0, 0], [0, 1, 0]);
   // Keep the depth range close to the actual carton. A near plane at 1% of
   // its size loses enough precision to make 0.3–2 mm board edges flicker.
-  const projection = perspective(Math.PI / 4.2, aspect, Math.max(0.1, maxDimension * 0.2), maxDimension * 12, zoom / 82);
+  const projection = perspective(STUDIO_FOV, aspect, Math.max(0.1, maxDimension * 0.2), maxDimension * 12, zoom / 82);
   if(!offsetNdcX&&!offsetNdcY)return {view,projection,eye};
 
   // Translate after perspective projection so the offset is true screen-space

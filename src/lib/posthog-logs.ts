@@ -32,7 +32,10 @@ const posthogLogger=posthogLogProvider?.getLogger('3dboxstudio-product-operation
 
 export function registerPostHogLogs():void{
   const variable=missingPostHogConfig();
-  if(variable)throw new Error(`${variable} environment variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${variable} is configured`);
+  // Analytics are optional in development (.env.example: leave the token
+  // empty to disable); a missing variable is reported, not fatal, so
+  // `npm run dev` works without credentials as the README promises.
+  if(variable)console.warn(`${variable} is not configured, so PostHog logs are off and server events are not recorded. Set it in .env.local to turn them on.`);
   if(posthogLogProvider)logs.setGlobalLoggerProvider(posthogLogProvider);
 }
 

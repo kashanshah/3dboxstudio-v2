@@ -182,6 +182,7 @@ export function OriginalHome() {
 
     <FaqSection
       items={HOME_FAQS}
+      collapse={{ after: 6, showAll: `Show all ${HOME_FAQS.length} questions`, showFewer: 'Show fewer questions' }}
       description={<><strong>3D Box Studio is a free online 3D box designer and packaging mockup generator.</strong> It combines supported box structures, dimensions, a 2D flat-layout artwork workspace, and interactive 3D review in the browser. Using the Studio requires a free account.</>}
       links={[
         { href: "/features", label: "Features" },
