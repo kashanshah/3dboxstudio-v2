@@ -13,7 +13,6 @@ export { TemplateDefinitionError } from './sheet';
 /** Folds a parametric template's cutting template into its 3D model. */
 export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBuilder {
   const { definition } = compiled;
-  const specs = new Map(definition.panels.map(panel => [panel.id, panel]));
   const fallbacks = new Map(definition.panels.filter(panel => panel.artworkFallback)
     .map(panel => [panel.name ?? panelName(panel.label), panel.artworkFallback!]));
 
@@ -47,22 +46,26 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
       ...(hinge.setback === undefined ? {} : { setback: evaluate(hinge.setback, scope) }),
     }));
     const panels: SheetPanel[] = geometry.panels.map(panel => {
-      const spec = specs.get(panel.id)!;
+      const spec = definition.panels.find(candidate => candidate.id === panel.id && (candidate.when === undefined || evaluate(candidate.when, scope) !== 0))!;
       return {
         id: panel.id,
         name: spec.name ?? panelName(panel.label),
         // The 3D folds each panel's four-corner shape; the print file cuts the full outline.
-        outline: panel.fold ?? panel.outline,
+        outline: spec.model
+          ? spec.model.map(([x, y]) => ({ x: evaluate(x, scope), y: evaluate(y, scope) }))
+          : panel.fold ?? panel.outline,
         ...(spec.layer === undefined ? {} : { layer: evaluate(spec.layer, scope) }),
         ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}),
         ...(spec.closureFlap ? { closureFlap: true } : {}),
       };
     });
-    const [x, y, z] = definition.fold.offset.map(value => evaluate(value, scope));
+    const placement = definition.fold.matrix
+      ? definition.fold.matrix.map(value => evaluate(value, scope))
+      : translation((definition.fold.offset ?? [0, 0, 0]).map(value => evaluate(value, scope)) as [number, number, number]);
     return foldSheet({
       panels, hinges, root: definition.fold.root, thickness: scope.foldT,
       color: input.color, interiorColor: input.interiorColor,
-      placement: translation([x, y, z]),
+      placement,
     }).map((mesh: Mesh) => {
       const own = mesh.panel?.replace(/^Interior /, '');
       const fallback = own ? fallbacks.get(own) : undefined;

@@ -1,6 +1,6 @@
 # Parametric template format (draft)
 
-Status: draft, `parametric-template/1`. Three of the four ready templates are built from it in the studio, the PDF export, layout migrations and the public template pages: the split top box, the straight tuck end (base box) and the reverse tuck end. Each is proven equal to the hand-written version it replaced. The pizza box is still hand-written.
+Status: draft, `parametric-template/1`. All four ready templates are built from it in the studio, the PDF export, layout migrations and the public template pages: the split top box, the straight tuck end (base box), the reverse tuck end and the pizza box. Each is proven equal to the hand-written version it replaced, and no hand-written template renderers remain.
 
 ## Why
 
@@ -35,7 +35,12 @@ An outline entry is either a corner `[x, y]` or an arc:
 { arc: { center: ['l + radius', 'tip + radius'], radius: 'radius', from: -90, to: -180 } }
 ```
 
-Angles are in degrees, with 0 pointing right and 90 pointing down the sheet. The arc is drawn as `segments` short straight cuts (8 by default), using the same `arcPoints` helper as the hand-written dies.
+Angles are in degrees, with 0 pointing right and 90 pointing down the sheet. The arc is drawn as `segments` short straight cuts (8 by default), using the same `arcPoints` helper as the hand-written dies. Lines in `cuts` and `slits` can be arcs too, for example the pizza box's finger hole.
+
+### Model shapes and placement
+
+- **`model`** on a panel gives the four corners the 3D model folds when they differ from the cut panel. The pizza box's roll strip is cut two boards wide but modelled three, as wide as its score bends. Only the model uses it; the cutting template keeps `outline` and `fold`.
+- **`fold.matrix`** replaces `fold.offset` when the sheet must be turned, not just moved, before it is placed. It is a column-major 4×4 matrix of formulas. The pizza box is folded printed side down with the lid at the back.
 
 ### Variants and motions
 
@@ -55,6 +60,7 @@ Formulas are strings in a small language evaluated without `eval`:
 - `+ - * / %`, comparisons, `&& || !` and `a ? b : c`
 - `min max abs sqrt floor ceil round clamp pow sin cos tan asin acos atan2`, `pi` and `sqrt1_2`
 - `stage(value, start, end)`, an eased 0 → 1 as `value` runs from `start` to `end`, for fold timing
+- `skirtCurl(fold, lid, depth, skirt, clearance)`: a lid skirt curling past square until it clears the wall it tucks behind. It's a step-by-step search, so a formula can't express it exactly.
 
 Unknown names, bad syntax and non-finite results are errors. What's in scope, by section:
 
@@ -86,8 +92,9 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/tuck-end.ts` | The die every tuck end carton shares, and the tongue-curl formula |
 | `src/lib/packaging/parametric/definitions/base-box.ts` | ECMA A15.20 straight tuck end, with every opening mode (lid on any wall, doors) |
 | `src/lib/packaging/parametric/definitions/reverse-tuck.ts` | ECMA A20.20 reverse tuck end |
+| `src/lib/packaging/parametric/definitions/pizza-box.ts` | One-piece corrugated pizza box with a locking double front |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `pizza-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 
@@ -109,13 +116,20 @@ It also checks:
 ## Not covered yet
 
 Done:
-- the split top box and both tuck end cartons run on their definitions
-- outlines support arcs with a separate four-corner fold shape
+- all four ready templates run on their definitions
+- outlines and cuts support arcs, with a separate four-corner fold shape and a model-only shape
 - options can switch panels and hinges, and motions drive folds that depend on each other
 
-The tuck end parity test covers six sizes (0.3–2 mm board, plus one beyond the limits), every opening mode and 17 fold and opening stages. Next, roughly in order:
+The parity tests cover:
 
-1. **Port the pizza box**, then delete the remaining hand-written renderer. Remove each frozen reference once its template has been stable in production.
+| Template | Sizes | Coverage |
+| --- | --- | --- |
+| Tuck ends | 6 (0.3–2 mm board, plus one beyond the limits) | Every opening mode, 17 fold and opening stages |
+| Pizza box | 4 (1–5 mm board) | 9 stages |
+
+Next, roughly in order:
+
+1. **Retire the frozen references** in `scripts/reference/` once each template has been stable in production.
 2. **Repetition.** Allow a `repeat` over a list of walls, to remove the copy-paste of four near-identical walls and their flaps.
 3. **Template registry metadata.** Name, thumbnail, artwork regions and parameter UI currently live in `template-registry.ts`. They could move into the definition so one record describes a template completely.
 4. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.

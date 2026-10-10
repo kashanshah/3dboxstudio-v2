@@ -67,6 +67,13 @@ export type PanelSpec = {
    * more corners (rounded tucks, a thumb notch, shouldered dust flaps).
    */
   fold?: [[Expr, Expr], [Expr, Expr], [Expr, Expr], [Expr, Expr]];
+  /**
+   * The four corners the 3D model folds when they differ from the cut panel
+   * itself (a roll strip drawn as wide as its score bends). Only the model
+   * uses them; the cutting template keeps `outline` and `fold`. Fold values
+   * (`foldT`, panel boxes) are available.
+   */
+  model?: [[Expr, Expr], [Expr, Expr], [Expr, Expr], [Expr, Expr]];
 } & (
   /** x, y, width, height on the sheet in millimetres, y down. */
   | { rect: [Expr, Expr, Expr, Expr] }
@@ -74,7 +81,11 @@ export type PanelSpec = {
   | { outline: OutlineEntry[] }
 );
 
-export type LineSpec = { from: [Expr, Expr]; to: [Expr, Expr]; when?: Expr };
+export type LineSpec = { when?: Expr } & (
+  | { from: [Expr, Expr]; to: [Expr, Expr] }
+  /** A circular arc cut as short straight lines (a finger hole), angles in degrees. */
+  | { arc: { center: [Expr, Expr]; radius: Expr; from: Expr; to: Expr; segments?: number } }
+);
 
 export type HingeSpec = {
   child: string;
@@ -138,7 +149,12 @@ export type ParametricTemplate = {
      * Moves the flat sheet (x right, y up) so the folded box sits centred.
      * Panel boxes are available as `front.x`, `front.width` and so on.
      */
-    offset: [Expr, Expr, Expr];
+    offset?: [Expr, Expr, Expr];
+    /**
+     * Instead of `offset`, the whole placement as a column-major 4×4 matrix,
+     * for a sheet folded printed side down or turned before it is placed.
+     */
+    matrix?: Expr[];
     /**
      * Named values computed in order before the hinges, usually fold angles
      * in radians. Besides everything above they can use `formation` and

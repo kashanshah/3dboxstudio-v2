@@ -301,3 +301,60 @@ test('the tuck end definitions survive a JSON round trip unchanged',()=>{
     assertClose(fromJson.buildMeshes(input),original.buildMeshes(input));
   }
 });
+
+// The pizza box, against its hand-written version.
+const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pizza-box.ts');
+// The hand-written version this definition replaced, frozen for comparison.
+const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
+
+test('the parametric pizza box matches the hand-written one at every stage',()=>{
+  const parametric=compileParametricTemplate(pizzaBoxDefinition);
+  const sizes=[
+    {width:305,height:45,depth:305,thickness:1.5},
+    {width:240,height:35,depth:180,thickness:1},
+    {width:460,height:60,depth:460,thickness:5},
+    {width:90,height:15,depth:120,thickness:3},
+  ];
+  for(const input of [...sizes,{width:NaN,height:-5,depth:Infinity,thickness:99}]){
+    assert.deepEqual(parametric.sanitizeParameters(input),pizzaReference.sanitizeParameters(input));
+  }
+  for(const dimensions of sizes){
+    const label=JSON.stringify(dimensions);
+    assertClose(parametric.getDielinePanels(dimensions),pizzaReference.getDielinePanels(dimensions),`${label} panels`);
+    assertClose(parametric.getDielineBounds(dimensions),pizzaReference.getDielineBounds(dimensions),`${label} bounds`);
+    let expected,expectedError;
+    try{expected=pizzaReference.getExportGeometry(dimensions);}catch(error){expectedError=error.message;}
+    if(expectedError)assert.throws(()=>parametric.getExportGeometry(dimensions),{message:expectedError});
+    else assertClose(parametric.getExportGeometry(dimensions),expected,`${label} export`);
+    for(const [formation,opening] of [[0,100],[25,100],[50,100],[65,100],[78,100],[90,100],[100,100],[100,60],[100,0]]){
+      const input={dimensions,formation,opening,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[0.8,0.7,0.6],interiorColor:[0.9,0.9,0.9]};
+      assertClose(parametric.buildMeshes(input),pizzaReference.buildMeshes(input),`${label} ${formation}/${opening}`);
+    }
+  }
+  const {hasOpeningStage,...assembly}=parametric.assembly;
+  const {hasOpeningStage:expectedStage,...expected}=pizzaReference.assembly;
+  assert.deepEqual(JSON.parse(JSON.stringify(assembly)),JSON.parse(JSON.stringify(expected)));
+  for(const mode of OPENING_MODES)assert.equal(hasOpeningStage(mode),expectedStage(mode),mode);
+  for(const key of ['templateId','structureKey','rendererKey','exportSummary','exportArtworkNote'])assert.equal(parametric[key],pizzaReference[key]);
+});
+
+test('the studio, layout migrations and template pages build the pizza box from its definition',()=>{
+  const {pizzaBoxSheet,pizzaBoxExportGeometry}=require('../src/lib/packaging/templates/pizza-box/geometry.ts');
+  const {templatePreviewGeometry}=require('../src/lib/packaging/template-preview.ts');
+  const dimensions={width:305,height:45,depth:305,thickness:1.5};
+  const expected=pizzaReference.getExportGeometry(dimensions);
+  assertClose(getTemplateRuntime('pizza-box').getExportGeometry(dimensions),expected);
+  assertClose(pizzaBoxSheet(dimensions),expected);
+  assertClose(pizzaBoxExportGeometry(dimensions),expected);
+  assertClose(templatePreviewGeometry('pizza-box',dimensions),expected);
+  const input={dimensions,formation:88,opening:40,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]};
+  assertClose(getTemplateRuntime('pizza-box').buildMeshes(input),pizzaReference.buildMeshes(input));
+});
+
+test('every ready template is built from a parametric definition',()=>{
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box'}[template.id],'runtime.ts'),'utf8');
+    assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
+  }
+});

@@ -1,6 +1,13 @@
-import type { TemplateMeshBuilder } from '../../template-mesh';
-import { foldSheet, restingSetback, type Mat4, type SheetHinge, type SheetPanel } from '../../fold-sheet';
-import { boardThickness, panelName, substage } from '../folded-box';
+// FROZEN REFERENCE. The pizza box exactly as it was hand-written before it
+// moved to the parametric definition in
+// src/lib/packaging/parametric/definitions/pizza-box.ts. Nothing in the app
+// imports this file: scripts/parametric-templates.test.cjs compares the
+// definition against it, so any change to the die or fold shows up as a test
+// failure. Never edit it to make that test pass.
+
+import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
+import { foldSheet, restingSetback, type Mat4, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
+import { boardThickness, panelName, substage } from '@/lib/packaging/templates/folded-box';
 import { pizzaBoxSheet, pizzaBoxSizes, sanitizePizzaBoxDimensions } from './geometry';
 
 // Folded from the cutting template itself, the way a pizza box is made: the

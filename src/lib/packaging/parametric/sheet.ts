@@ -49,7 +49,11 @@ export function compileParametricSheet(definition: ParametricTemplate) {
   });
   const lines = (specs: LineSpec[] | undefined, scope: Scope): LineMm[] => (specs ?? [])
     .filter(line => included(line.when, scope))
-    .map(line => ({ start: point(line.from, scope), end: point(line.to, scope) }));
+    .flatMap(line => {
+      if ('from' in line) return [{ start: point(line.from, scope), end: point(line.to, scope) }];
+      const points = trace([line], scope);
+      return points.slice(1).map((end, i) => ({ start: points[i], end }));
+    });
 
   /** The cutting template, which is also the design grid. */
   const sheet = (input: CartonDimensions, options: OptionValues = {}) => {
@@ -111,12 +115,15 @@ function checkStructure(definition: ParametricTemplate) {
     // more corners gives the four it folds separately.
     const plainQuad = 'rect' in panel || (panel.outline.length === 4 && panel.outline.every(Array.isArray));
     if (panel.fold ? panel.fold.length !== 4 : !plainQuad) fail(`panel "${panel.id}" needs a four-corner fold shape`);
+    if (panel.model && panel.model.length !== 4) fail(`panel "${panel.id}" needs four corners for its model shape`);
   }
   for (const panel of definition.panels) {
     if (copies.get(panel.id)! > 1 && panel.when === undefined) fail(`panel "${panel.id}" is defined twice; give every copy a "when"`);
   }
   const ids = new Set(copies.keys());
   if (!ids.has(definition.fold.root)) fail(`fold root "${definition.fold.root}" is not a panel`);
+  if (!definition.fold.offset === !definition.fold.matrix) fail('the fold needs either an offset or a placement matrix');
+  if (definition.fold.matrix && definition.fold.matrix.length !== 16) fail('the placement matrix needs 16 values');
   const hinged = new Map<string, number>();
   for (const hinge of definition.fold.hinges) {
     for (const end of [hinge.child, hinge.parent]) if (!ids.has(end)) fail(`hinge refers to unknown panel "${end}"`);

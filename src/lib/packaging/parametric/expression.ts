@@ -4,7 +4,8 @@
 //
 // Numbers, named values (`depth`, `front.x`), + - * / %, comparisons, && || !,
 // `a ? b : c` and a fixed set of functions, including `stage(value, start,
-// end)`, the eased 0 → 1 the fold timings use. Comparisons and logic give 1 or 0.
+// end)`, the eased 0 → 1 the fold timings use, and `skirtCurl(...)`, the
+// packaging motion a closed-form formula can't express. Comparisons and logic give 1 or 0.
 // Nothing else is reachable: no property access, no globals, no eval.
 
 export type Expr = number | string;
@@ -38,6 +39,25 @@ const FUNCTIONS: Record<string, (...args: number[]) => number> = {
   stage: (value, start, end) => {
     const x = Math.min(1, Math.max(0, (value - start) / (end - start)));
     return x * x * (3 - 2 * x);
+  },
+  /**
+   * A lid's skirt (front tuck) folded `fold` radians, curled further while the
+   * lid (`depth` deep) swings from upright (0) to closed (π/2): its tip
+   * sweeps out beyond the lid's edge on the way down, so it curls past square
+   * in half-degree steps until it passes `clearance` inside the wall it tucks
+   * behind, then springs back.
+   */
+  skirtCurl: (fold, lid, depth, skirt, clearance) => {
+    if (fold <= 0 || skirt <= 0) return fold;
+    const edge = [depth * Math.sin(lid), depth * Math.cos(lid)];
+    const along = [Math.sin(lid), Math.cos(lid)], inward = [Math.cos(lid), -Math.sin(lid)];
+    const clear = (curl: number) => {
+      const tip = [0, 1].map(i => edge[i] + skirt * (along[i] * Math.cos(curl) + inward[i] * Math.sin(curl)));
+      return tip[1] >= 0 || tip[0] <= depth - clearance;
+    };
+    let curl = fold;
+    while (curl < Math.PI * 0.85 && !clear(curl)) curl += Math.PI / 360;
+    return curl;
   },
 };
 
