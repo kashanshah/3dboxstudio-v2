@@ -7,12 +7,6 @@ import type { ParametricTemplate } from '../format';
 // scripts/parametric-templates.test.cjs checks the two still produce the same
 // cutting template and 3D model.
 
-const flap = (end: 'top' | 'bottom', x: string, width: string, length: string) => {
-  const hinge = end === 'top' ? 'top' : 'bottom';
-  const tip = end === 'top' ? `top - ${length}` : `bottom + ${length}`;
-  return [[`${x} + slot / 2`, hinge], [`${x} + ${width} - slot / 2`, hinge], [`${x} + ${width} - slot / 2`, tip], [`${x} + slot / 2`, tip]] as [string, string][];
-};
-
 export const splitTopDefinition = {
   format: 'parametric-template/1',
   templateId: 'split-top-box',
@@ -62,25 +56,38 @@ export const splitTopDefinition = {
     ['xBack', 'xRight + end'],
     ['xLeft', 'xBack + long'],
   ],
+  adjustable: [
+    { key: 'joint', label: 'Glue joint', min: 'max(8, slot)', max: 'max(8, min(60, depth))' },
+  ],
   panels: [
     { id: 'glue', label: 'GLUE', kind: 'glue', layer: 0, outline: [
       ['joint', 'top + jointCutBack'], ['joint', 'bottom - jointCutBack'],
       [0, 'bottom - jointCutBack - jointTaper'], [0, 'top + jointCutBack + jointTaper'],
     ] },
-    { id: 'front', label: 'FRONT', kind: 'body', layer: 1, rect: ['xFront', 'top', 'long', 'wallHeight'] },
-    { id: 'topFront', label: 'TOP FRONT', kind: 'flap', layer: 'outerTopIsEnd ? 2 : 3', outline: flap('top', 'xFront', 'long', 'end / 2') },
-    { id: 'bottomFront', label: 'BOTTOM FRONT', kind: 'flap', layer: 3, outline: flap('bottom', 'xFront', 'long', 'end / 2'),
-      artworkFallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
-    { id: 'right', label: 'RIGHT', kind: 'body', layer: 1, rect: ['xRight', 'top', 'end', 'wallHeight'] },
-    { id: 'topRight', label: 'TOP RIGHT', kind: 'flap', layer: 'outerTopIsEnd ? 3 : 2', outline: flap('top', 'xRight', 'end', 'endTopFlap') },
-    { id: 'bottomRight', label: 'BOTTOM RIGHT', kind: 'flap', layer: 2, outline: flap('bottom', 'xRight', 'end', 'end / 2') },
-    { id: 'back', label: 'BACK', kind: 'body', layer: 1, rect: ['xBack', 'top', 'long', 'wallHeight'] },
-    { id: 'topBack', label: 'TOP BACK', kind: 'flap', layer: 'outerTopIsEnd ? 2 : 3', outline: flap('top', 'xBack', 'long', 'end / 2') },
-    { id: 'bottomBack', label: 'BOTTOM BACK', kind: 'flap', layer: 3, outline: flap('bottom', 'xBack', 'long', 'end / 2'),
-      artworkFallback: { name: 'Bottom', uv: [0, 0, 1, 0.5] } },
-    { id: 'left', label: 'LEFT', kind: 'body', layer: 1, rect: ['xLeft', 'top', 'jointEnd', 'wallHeight'] },
-    { id: 'topLeft', label: 'TOP LEFT', kind: 'flap', layer: 'outerTopIsEnd ? 3 : 2', outline: flap('top', 'xLeft', 'jointEnd', 'endTopFlap') },
-    { id: 'bottomLeft', label: 'BOTTOM LEFT', kind: 'flap', layer: 2, outline: flap('bottom', 'xLeft', 'jointEnd', 'end / 2') },
+    // Each wall with a flap at each end. Slots either side of every flap, half
+    // on each neighbour, let them fold past each other. Outer flaps draw over
+    // inner ones; the outer top pair depends on the split direction.
+    {
+      repeat: [
+        { wall: 'front', Wall: 'Front', WALL: 'FRONT', x: 'xFront', width: 'long', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
+        { wall: 'right', Wall: 'Right', WALL: 'RIGHT', x: 'xRight', width: 'end', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
+        { wall: 'back', Wall: 'Back', WALL: 'BACK', x: 'xBack', width: 'long', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0, 1, 0.5] } },
+        { wall: 'left', Wall: 'Left', WALL: 'LEFT', x: 'xLeft', width: 'jointEnd', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
+      ],
+      each: [
+        { id: '{{wall}}', label: '{{WALL}}', kind: 'body', layer: 1, rect: ['{{x}}', 'top', '{{width}}', 'wallHeight'] },
+        { id: 'top{{Wall}}', label: 'TOP {{WALL}}', kind: 'flap', layer: '{{topLayer}}', outline: [
+          ['{{x}} + slot / 2', 'top'], ['{{x}} + {{width}} - slot / 2', 'top'],
+          ['{{x}} + {{width}} - slot / 2', 'top - {{topFlap}}'], ['{{x}} + slot / 2', 'top - {{topFlap}}'],
+        ] },
+        // Designs made before the bottom was split print one "Bottom" artwork
+        // across both outer bottom flaps.
+        { id: 'bottom{{Wall}}', label: 'BOTTOM {{WALL}}', kind: 'flap', layer: '{{bottomLayer}}', artworkFallback: '{{fallback}}', outline: [
+          ['{{x}} + slot / 2', 'bottom'], ['{{x}} + {{width}} - slot / 2', 'bottom'],
+          ['{{x}} + {{width}} - slot / 2', 'bottom + end / 2'], ['{{x}} + slot / 2', 'bottom + end / 2'],
+        ] },
+      ],
+    },
   ],
   validations: [
     { require: 'depth >= joint + 5', message: 'The depth is too small for the glued joint. Use a depth of at least {joint + 5} mm on this board.' },
@@ -108,14 +115,21 @@ export const splitTopDefinition = {
       { child: 'right', parent: 'front', drive: 'formation', from: 0, to: 0.6 },
       { child: 'back', parent: 'right', drive: 'formation', from: 0.1, to: 0.7 },
       { child: 'left', parent: 'back', drive: 'formation', from: 0.2, to: 0.8 },
-      { child: 'bottomFront', parent: 'front', drive: 'formation', from: 0.9, to: 1, setback: '-1.5 * foldT' },
-      { child: 'topFront', parent: 'front', drive: 'closing', from: 'outerTopIsEnd ? 0 : 0.5', to: 'outerTopIsEnd ? 0.5 : 1', setback: 'outerTopIsEnd ? -1.5 * foldT + foldT : -1.5 * foldT' },
-      { child: 'bottomRight', parent: 'right', drive: 'formation', from: 0.8, to: 0.9, setback: '-1.5 * foldT + foldT' },
-      { child: 'topRight', parent: 'right', drive: 'closing', from: 'outerTopIsEnd ? 0.5 : 0', to: 'outerTopIsEnd ? 1 : 0.5', setback: 'outerTopIsEnd ? -1.5 * foldT : -1.5 * foldT + foldT' },
-      { child: 'bottomBack', parent: 'back', drive: 'formation', from: 0.9, to: 1, setback: '-1.5 * foldT' },
-      { child: 'topBack', parent: 'back', drive: 'closing', from: 'outerTopIsEnd ? 0 : 0.5', to: 'outerTopIsEnd ? 0.5 : 1', setback: 'outerTopIsEnd ? -1.5 * foldT + foldT : -1.5 * foldT' },
-      { child: 'bottomLeft', parent: 'left', drive: 'formation', from: 0.8, to: 0.9, setback: '-1.5 * foldT + foldT' },
-      { child: 'topLeft', parent: 'left', drive: 'closing', from: 'outerTopIsEnd ? 0.5 : 0', to: 'outerTopIsEnd ? 1 : 0.5', setback: 'outerTopIsEnd ? -1.5 * foldT : -1.5 * foldT + foldT' },
+      // Bottom: end flaps in, then the long flaps over them. Top: the inner
+      // pair closes over the first half of the slider, the outer pair over
+      // the second, whichever walls carry them.
+      {
+        repeat: [
+          { wall: 'front', Wall: 'Front', bottomFrom: 0.9, bottomTo: 1, bottomSetback: '-1.5 * foldT', topFrom: 'outerTopIsEnd ? 0 : 0.5', topTo: 'outerTopIsEnd ? 0.5 : 1', topSetback: 'outerTopIsEnd ? -1.5 * foldT + foldT : -1.5 * foldT' },
+          { wall: 'right', Wall: 'Right', bottomFrom: 0.8, bottomTo: 0.9, bottomSetback: '-1.5 * foldT + foldT', topFrom: 'outerTopIsEnd ? 0.5 : 0', topTo: 'outerTopIsEnd ? 1 : 0.5', topSetback: 'outerTopIsEnd ? -1.5 * foldT : -1.5 * foldT + foldT' },
+          { wall: 'back', Wall: 'Back', bottomFrom: 0.9, bottomTo: 1, bottomSetback: '-1.5 * foldT', topFrom: 'outerTopIsEnd ? 0 : 0.5', topTo: 'outerTopIsEnd ? 0.5 : 1', topSetback: 'outerTopIsEnd ? -1.5 * foldT + foldT : -1.5 * foldT' },
+          { wall: 'left', Wall: 'Left', bottomFrom: 0.8, bottomTo: 0.9, bottomSetback: '-1.5 * foldT + foldT', topFrom: 'outerTopIsEnd ? 0.5 : 0', topTo: 'outerTopIsEnd ? 1 : 0.5', topSetback: 'outerTopIsEnd ? -1.5 * foldT : -1.5 * foldT + foldT' },
+        ],
+        each: [
+          { child: 'bottom{{Wall}}', parent: '{{wall}}', drive: 'formation', from: '{{bottomFrom}}', to: '{{bottomTo}}', setback: '{{bottomSetback}}' },
+          { child: 'top{{Wall}}', parent: '{{wall}}', drive: 'closing', from: '{{topFrom}}', to: '{{topTo}}', setback: '{{topSetback}}' },
+        ],
+      },
     ],
   },
   assembly: {
@@ -127,5 +141,47 @@ export const splitTopDefinition = {
     kind: 'cutting-template',
     summary: 'Slotted shipping box cutting template. Your box maker must approve the flute and score allowances.',
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the flaps.',
+  },
+  catalog: {
+    thumbnail: '/images/templates/split-top-box.webp',
+    version: 1,
+    name: 'Split Top Box',
+    shortName: 'Split top',
+    family: 'corrugated',
+    category: 'Corrugated',
+    description: 'Corrugated shipping box: four slotted flaps at each end, meeting in the middle (FEFCO 0204) or the outer pair only (FEFCO 0201).',
+    tags: ['box', 'split top', 'shipping', 'corrugated', 'rsc', 'slotted', '0201', '0204'],
+    capabilities: ['dieline', '3d', 'interior-artwork', 'full-dieline-artwork'],
+    parameters: [
+      { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 400 },
+      { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 300 },
+      { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 300 },
+      // Single-wall corrugated is 1.5-4 mm, double wall up to 7 mm.
+      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 7, step: 0.1, defaultValue: 3 },
+    ],
+    artworkRegions: [
+      { id: 'outside-front', label: 'Front', surface: 'outside', panelId: 'Front' },
+      { id: 'outside-back', label: 'Back', surface: 'outside', panelId: 'Back' },
+      { id: 'outside-left', label: 'Left', surface: 'outside', panelId: 'Left' },
+      { id: 'outside-right', label: 'Right', surface: 'outside', panelId: 'Right' },
+      { id: 'outside-top-front', label: 'Top front', surface: 'outside', panelId: 'Top Front' },
+      { id: 'outside-top-back', label: 'Top back', surface: 'outside', panelId: 'Top Back' },
+      { id: 'outside-bottom-front', label: 'Bottom front', surface: 'outside', panelId: 'Bottom Front' },
+      { id: 'outside-bottom-back', label: 'Bottom back', surface: 'outside', panelId: 'Bottom Back' },
+      { id: 'outside-top-left', label: 'Top left', surface: 'outside', panelId: 'Top Left' },
+      { id: 'outside-top-right', label: 'Top right', surface: 'outside', panelId: 'Top Right' },
+      { id: 'inside-front', label: 'Inside Front', surface: 'inside', panelId: 'Interior Front' },
+      { id: 'inside-back', label: 'Inside Back', surface: 'inside', panelId: 'Interior Back' },
+      { id: 'inside-left', label: 'Inside Left', surface: 'inside', panelId: 'Interior Left' },
+      { id: 'inside-right', label: 'Inside Right', surface: 'inside', panelId: 'Interior Right' },
+      { id: 'inside-bottom-front', label: 'Inside bottom front', surface: 'inside', panelId: 'Interior Bottom Front' },
+      { id: 'inside-bottom-back', label: 'Inside bottom back', surface: 'inside', panelId: 'Interior Bottom Back' },
+      { id: 'inside-top-left', label: 'Inside top left', surface: 'inside', panelId: 'Interior Top Left' },
+      { id: 'inside-top-right', label: 'Inside top right', surface: 'inside', panelId: 'Interior Top Right' },
+      { id: 'inside-top-front', label: 'Inside top front', surface: 'inside', panelId: 'Interior Top Front' },
+      { id: 'inside-top-back', label: 'Inside top back', surface: 'inside', panelId: 'Interior Top Back' },
+    ],
+    defaultDimensions: { width: 400, height: 300, depth: 300, thickness: 3 },
+    fixedOpeningMode: 'top_split_meet_center',
   },
 } satisfies ParametricTemplate;

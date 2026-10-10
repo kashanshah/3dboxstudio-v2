@@ -1,4 +1,5 @@
 import type { Expr } from './expression';
+import type { PackagingTemplateDefinition } from '../template-registry';
 
 // The parametric template format: one plain-data description of a folded
 // package from which the studio derives the design grid, the printable
@@ -118,7 +119,8 @@ export type HingeSpec = {
   | { angle: Expr }
 );
 
-export type ParametricTemplate = {
+/** A definition with every `repeat` block expanded: what the compiler works on. */
+export type ExpandedTemplate = {
   format: typeof PARAMETRIC_TEMPLATE_FORMAT;
   templateId: string;
   structureKey: string;
@@ -132,6 +134,11 @@ export type ParametricTemplate = {
    * values and anything defined above it.
    */
   derived: [name: string, value: Expr][];
+  /**
+   * Sizes the user may change in the studio, such as a glue flap's width or
+   * a tuck's length; everything computed from them follows.
+   */
+  adjustable?: AdjustableSpec[];
   panels: PanelSpec[];
   /** Cuts along a crease (tuck slit locks) and cuts inside panels (slots). */
   slits?: LineSpec[];
@@ -177,5 +184,56 @@ export type ParametricTemplate = {
     kind: 'cutting-template' | 'layout-proof';
     summary?: string;
     artworkNote?: string;
+  };
+  /**
+   * How the template appears in the studio and on the site: names, card
+   * image, size controls and artwork regions. The template registry lists
+   * every template with a catalog entry as ready.
+   */
+  catalog?: TemplateCatalog;
+};
+
+/**
+ * A size the user may set in place of a derived value's formula. Their value
+ * is stored under `key` and replaces each of `targets` (by default `key`
+ * itself), clamped to `min` and `max`. Those are evaluated where each target
+ * is computed, with the formula's own value available as `default`.
+ */
+export type AdjustableSpec = {
+  key: string;
+  /** Shown in the studio, e.g. "Glue flap". */
+  label: string;
+  targets?: string[];
+  min: Expr;
+  max: Expr;
+};
+
+/** A template's catalog entry: its registry record without what the definition already says. */
+export type TemplateCatalog = Omit<PackagingTemplateDefinition, 'id' | 'rendererKey' | 'structureKey' | 'status'>;
+
+// `repeat` blocks (see repeat.ts): any list in an authored definition may hold
+// { repeat: [entries], each: [items using {{key}}] } among its items.
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+/** Values for one repetition. A property whose whole value is a placeholder for `null` is left out. */
+export type RepeatEntry = Record<string, Json>;
+/** An item inside `each`: any value may instead be a `{{key}}` placeholder string. */
+export type Templated<T> = string | (T extends object ? { [K in keyof T]: Templated<T[K]> } : T);
+export type Repeat<T> = { repeat: RepeatEntry[]; each: Repeatable<Templated<T>> };
+export type Repeatable<T> = (T | Repeat<T>)[];
+
+type Lists = 'derived' | 'panels' | 'slits' | 'cuts' | 'validations' | 'notes' | 'fold';
+type Item<T> = T extends (infer U)[] ? U : never;
+
+/** A parametric template as authored: plain data, whose lists may repeat items. */
+export type ParametricTemplate = Omit<ExpandedTemplate, Lists> & {
+  derived: Repeatable<Item<ExpandedTemplate['derived']>>;
+  panels: Repeatable<PanelSpec>;
+  slits?: Repeatable<LineSpec>;
+  cuts?: Repeatable<LineSpec>;
+  validations?: Repeatable<Item<NonNullable<ExpandedTemplate['validations']>>>;
+  notes: Repeatable<Item<ExpandedTemplate['notes']>>;
+  fold: Omit<ExpandedTemplate['fold'], 'hinges' | 'motions'> & {
+    hinges: Repeatable<HingeSpec>;
+    motions?: Repeatable<Item<NonNullable<ExpandedTemplate['fold']['motions']>>>;
   };
 };

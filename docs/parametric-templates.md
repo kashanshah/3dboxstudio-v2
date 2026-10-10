@@ -42,6 +42,74 @@ Angles are in degrees, with 0 pointing right and 90 pointing down the sheet. The
 - **`model`** on a panel gives the four corners the 3D model folds when they differ from the cut panel. The pizza box's roll strip is cut two boards wide but modelled three, as wide as its score bends. Only the model uses it; the cutting template keeps `outline` and `fold`.
 - **`fold.matrix`** replaces `fold.offset` when the sheet must be turned, not just moved, before it is placed. It is a column-major 4×4 matrix of formulas. The pizza box is folded printed side down with the lid at the back.
 
+### Repeats
+
+Any list in a definition (panels, derived values, hinges, motions, cuts, slits, validations, notes) may hold a `repeat` block in place of near-identical items:
+
+```ts
+{
+  repeat: [
+    { wall: 'front', Wall: 'Front', x: 'xFront', width: 'long', fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
+    { wall: 'right', Wall: 'Right', x: 'xRight', width: 'end', fallback: null },
+  ],
+  each: [
+    { id: '{{wall}}', kind: 'body', rect: ['{{x}}', 'top', '{{width}}', 'wallHeight'] },
+    { id: 'bottom{{Wall}}', kind: 'flap', artworkFallback: '{{fallback}}', outline: [ … ] },
+  ],
+}
+```
+
+How it expands:
+
+- `each` is expanded once per entry, in order, with every `{{key}}` replaced by that entry's value.
+- A string that is only `{{key}}` takes the value itself, so numbers stay numbers and objects stay objects.
+- As a property's whole value, `null` leaves the property out.
+- Repeats can nest.
+- A placeholder with no value is an error.
+
+Expansion happens before the definition is checked or compiled. The split top box uses repeats for its four walls and their flaps, so its definition is plain data with no TypeScript helpers.
+
+### Catalog entry
+
+`catalog` holds how the template appears in the studio and on the site:
+
+- name, short name, family and category
+- description and tags
+- thumbnail
+- capabilities
+- the size controls (label, unit, step, limits, default)
+- the default box
+- the artwork regions
+
+`template-registry.ts` lists every definition with a catalog entry as a ready template. Planned templates stay registry-only until they get a definition.
+
+A test checks that each entry agrees with its definition:
+
+- every artwork region names a panel the template has
+- region ids are unique
+- the size controls start at the default box, which the definition accepts unchanged
+- a fixed opening mode matches the assembly default
+
+Note that the size controls' limits can be stricter than the definition's `parameters`. The reverse tuck's controls allow 30–400 mm widths; its geometry accepts any positive size. They were kept as they were.
+
+### Adjustable sizes
+
+`adjustable` lists the sizes people may change in the studio without changing the box, as Pacdora's advanced dimensions do: a glue flap's width, a tuck's length, the dust flaps, a mailer's ears.
+
+```ts
+adjustable: [
+  { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
+  { key: 'dustFlap', label: 'Dust flaps', targets: ['dustTopLeftHeight', 'dustTopRightHeight'], min: 4, max: '…' },
+]
+```
+
+- Each entry names derived values (`targets`, by default just `key`). The user's value, stored in the box's `dimensions.adjustments[key]`, replaces their formulas, so everything computed from them follows: the cutting template, the 3D fold, the PDF and the size checks.
+- `min` and `max` are formulas, evaluated where each target is computed, with the formula's own value available as `default`. The value is clamped to them every time it's used, so the limits move with the box size.
+- Unknown keys are dropped when the dimensions are cleaned up, so switching templates leaves no stray sizes.
+- A test sets every size to its limits, one at a time and all together, and checks that no two panels on the sheet overlap and that the box still folds.
+
+The studio shows them under Box & Size and in the Design step's Sizes tool, each with its limits and a reset.
+
 ### Variants and motions
 
 The opening mode or another option can change the box itself, not just its numbers:
@@ -93,8 +161,10 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/base-box.ts` | ECMA A15.20 straight tuck end, with every opening mode (lid on any wall, doors) |
 | `src/lib/packaging/parametric/definitions/reverse-tuck.ts` | ECMA A20.20 reverse tuck end |
 | `src/lib/packaging/parametric/definitions/pizza-box.ts` | One-piece corrugated pizza box with a locking double front |
+| `src/lib/packaging/parametric/definitions/sleeve-box.ts` | Open-ended sleeve; the first template written only as a definition |
+| `src/lib/packaging/parametric/definitions/mailer-box.ts` | FEFCO 0427 roll end tuck top mailer: the pizza box's double wall moved to the sides |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `pizza-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 
@@ -119,6 +189,9 @@ Done:
 - all four ready templates run on their definitions
 - outlines and cuts support arcs, with a separate four-corner fold shape and a model-only shape
 - options can switch panels and hinges, and motions drive folds that depend on each other
+- `repeat` blocks replace copy-pasted near-identical items
+- each definition carries its catalog entry, so one record describes a template completely
+- `adjustable` sizes let people change flaps and joints within limits
 
 The parity tests cover:
 
@@ -130,8 +203,6 @@ The parity tests cover:
 Next, roughly in order:
 
 1. **Retire the frozen references** in `scripts/reference/` once each template has been stable in production.
-2. **Repetition.** Allow a `repeat` over a list of walls, to remove the copy-paste of four near-identical walls and their flaps.
-3. **Template registry metadata.** Name, thumbnail, artwork regions and parameter UI currently live in `template-registry.ts`. They could move into the definition so one record describes a template completely.
-4. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
+2. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
 
 Out of scope for this format: bottles, cans, pouches and other curved or flexible packaging. Their geometry isn't folded from flat panels; they will need their own format family that shares only the parameter, option and expression layers.
