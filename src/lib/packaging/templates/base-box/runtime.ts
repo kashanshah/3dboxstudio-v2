@@ -1,6 +1,6 @@
 import type { TemplateRuntime } from '@/lib/packaging/template-runtime';
 import { sanitizeCartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { BASE_BOX_FLAP_SOURCES, baseBoxExportGeometry, baseBoxSheet } from './geometry';
+import { baseBoxExportGeometry, baseBoxSheet } from './geometry';
 import { buildBaseBoxTemplateMeshes } from './renderer';
 
 export const baseBoxRuntime:TemplateRuntime={
@@ -20,5 +20,4 @@ export const baseBoxRuntime:TemplateRuntime={
     defaultOpeningMode:'closed',
     hasOpeningStage:openingMode=>openingMode!=='closed',
   },
-  flapArtworkSources:BASE_BOX_FLAP_SOURCES,
 };

@@ -44,17 +44,6 @@ const LABELS: Record<string, string> = {
   leftBackTab: 'LEFT BACK TAB', leftFrontTab: 'LEFT FRONT TAB', rightBackTab: 'RIGHT BACK TAB', rightFrontTab: 'RIGHT FRONT TAB',
 };
 
-/**
- * Panels with no artwork of their own print in a neighbour's edge colour:
- * the double front from the front, corner tabs from their walls, the lid's
- * flaps from the lid.
- */
-export const PIZZA_BOX_FLAP_SOURCES: Record<string, string> = {
-  frontRoll: 'front', frontInner: 'frontRoll',
-  leftFrontTab: 'left', leftBackTab: 'left', rightFrontTab: 'right', rightBackTab: 'right',
-  lidFront: 'top', lidLeft: 'top', lidRight: 'top',
-};
-
 /** The cutting template's panels, outlines, creases and cuts; also the design grid. */
 export function pizzaBoxSheet(input: CartonDimensions) {
   const d = sanitizePizzaBoxDimensions(input);

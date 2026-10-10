@@ -9,9 +9,8 @@ import { migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { Brand } from '@/components/site-shell';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import { attachTouchPinch } from '@/lib/touch-pinch';
-import { getTemplateAssemblyState, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
-import { artworkImageLoader, flapFillColours, flapFillTextures } from '@/lib/packaging/flap-fill';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 
 const PROMO_HREF='/studio?ref=shared-design';
@@ -36,24 +35,14 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
 
   useEffect(()=>{
     let cancelled=false;
-    const getImage=artworkImageLoader();
-    const fillBase={templateId:state.templateId,dimensions:state.dimensions,geometryOptions:{openingMode,splitTopHingeSide:state.splitTopHingeSide},artworkByPanel:state.artworkByPanel};
     const geometryOptions={openingMode,splitTopHingeSide:state.splitTopHingeSide};
-    // Flaps print in their neighbour's edge colour wherever their artwork
-    // leaves them bare, so the colours are worked out first.
     void Promise.all([
-      flapFillColours({...fillBase,layers:state.outsideArtworkLayers,scope:'outside'},getImage),
-      flapFillColours({...fillBase,layers:state.insideArtworkLayers,scope:'inside'},getImage),
-    ]).then(([outsideFills,insideFills])=>Promise.all([
-      state.outsideArtworkLayers.length?rasterizeFullDielineLayers(state.outsideArtworkLayers,state.dimensions,state.templateId,'',geometryOptions,outsideFills):Promise.resolve({} as ArtworkByPanel),
-      state.insideArtworkLayers.length?rasterizeFullDielineLayers(state.insideArtworkLayers,state.dimensions,state.templateId,'Interior ',geometryOptions,insideFills):Promise.resolve({} as ArtworkByPanel),
+      state.outsideArtworkLayers.length?rasterizeFullDielineLayers(state.outsideArtworkLayers,state.dimensions,state.templateId,'',geometryOptions):Promise.resolve({} as ArtworkByPanel),
+      state.insideArtworkLayers.length?rasterizeFullDielineLayers(state.insideArtworkLayers,state.dimensions,state.templateId,'Interior ',geometryOptions):Promise.resolve({} as ArtworkByPanel),
       rasterizePanelArtwork(state.artworkByPanel,state.dimensions,state.templateId,geometryOptions),
-      outsideFills,
-      insideFills,
-    ])).then(([outside,inside,panels,outsideFills,insideFills])=>{
+    ]).then(([outside,inside,panels])=>{
       if(cancelled)return;
-      const geometry=getTemplateGeometry(state.templateId,state.dimensions,geometryOptions).panels;
-      setSharedLayerArtwork({...flapFillTextures(outsideFills,geometry,''),...flapFillTextures(insideFills,geometry,'Interior '),...outside,...inside});
+      setSharedLayerArtwork({...outside,...inside});
       setSharedPanelArtwork(panels);
     }).catch(error=>{console.error('shared artwork rasterization failed',error);});
     return()=>{cancelled=true;};

@@ -1,7 +1,7 @@
 import type { TemplateRuntime } from '@/lib/packaging/template-runtime';
 import { reverseTuckFoldState, sanitizeCartonDimensions } from './geometry';
 import { buildReverseTuckTemplateMeshes } from './renderer';
-import { REVERSE_TUCK_FLAP_SOURCES, reverseTuckExportGeometry, reverseTuckSheet } from './export';
+import { reverseTuckExportGeometry, reverseTuckSheet } from './export';
 
 export const reverseTuckRuntime:TemplateRuntime={
   templateId:'reverse-tuck-carton',
@@ -22,5 +22,4 @@ export const reverseTuckRuntime:TemplateRuntime={
     hasOpeningStage:()=>false,
   },
   getFoldState:reverseTuckFoldState,
-  flapArtworkSources:REVERSE_TUCK_FLAP_SOURCES,
 };

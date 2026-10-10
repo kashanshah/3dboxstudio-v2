@@ -867,57 +867,6 @@ test('inside artwork keeps its long-standing orientation: across as outside, tur
   }
 });
 
-test('reverse-tuck panels with no artwork take their neighbour\'s edge colour',()=>{
-  const {flapChains}=require('../src/lib/packaging/flap-artwork.ts');
-  // Each flap's nearest printed neighbour, and the crease between them.
-  const inheritedFlaps=(...args)=>flapChains(...args).map(({flap,chain})=>({flap,...chain[0]}));
-  const {edgeBand,EDGE_BAND_MM}=require('../src/lib/packaging/flap-continuation.ts');
-  const {getTemplateRuntime}=require('../src/lib/packaging/template-runtime.ts');
-  const d={width:120,height:180,depth:55,thickness:.5};
-  const {panels,bounds}=getTemplateGeometry('reverse-tuck-carton',d);
-  const sources=getTemplateRuntime('reverse-tuck-carton').flapArtworkSources;
-  const art=name=>({name,url:`${name}.png`,mode:'fill',scale:100,rotation:0,alignX:0,alignY:0});
-  const sourceOf=(artwork,prefix='')=>Object.fromEntries(inheritedFlaps(sources,panels,bounds,[],artwork,prefix).map(item=>[item.flap.id,item]));
-  // Every printed panel's flaps take its colour; an empty bottom and its tuck
-  // take the back's, and the glue flap stays bare for gluing.
-  const all=sourceOf(Object.fromEntries(['Front','Back','Left','Right','Top'].map(name=>[name,art(name)])));
-  assert.deepEqual(Object.fromEntries(Object.entries(all).map(([id,item])=>[id,item.source.id])),{
-    'top-tuck':'top','top-left-dust':'left','top-right-dust':'right','bottom':'back','bottom-tuck':'back','bottom-left-dust':'left','bottom-right-dust':'right',
-  });
-  // A sheet layer that stops on a crease leaves the flap beyond it to take
-  // the edge colour, however its percentages round.
-  const top0=panels.find(panel=>panel.id==='top'),back0=panels.find(panel=>panel.id==='back'),left0=panels.find(panel=>panel.id==='left');
-  const body={x:left0.x,y:top0.y,width:back0.x+back0.width-left0.x,height:left0.y+left0.height-top0.y};
-  const layer={id:'L',name:'L',url:'l.png',aspectRatio:body.width/body.height,transform:{x:(body.x+body.width/2)/bounds.width*100,y:(body.y+body.height/2)/bounds.height*100,width:body.width/bounds.width*100,height:body.height/bounds.height*100,rotation:0}};
-  const fromLayer=Object.fromEntries(inheritedFlaps(sources,panels,bounds,[layer],{}).map(item=>[item.flap.id,item.source.id]));
-  // Flaps the layer covers, wholly (the top lid) or in part (the top dust
-  // flaps), still take the edge colour wherever it leaves them bare.
-  assert.deepEqual(fromLayer,{top:'front','top-tuck':'top','top-left-dust':'left','top-right-dust':'right','bottom':'back','bottom-tuck':'back','bottom-left-dust':'left','bottom-right-dust':'right'});
-  // A flap with panel artwork of its own takes no edge colour.
-  assert.equal(sourceOf({Left:art('Left'),'Top Left Dust Flap':art('Top Left Dust Flap')})['top-left-dust'],undefined);
-  // Inside artwork is looked up under the inside names.
-  assert.equal(sourceOf({'Interior Left':art('Interior Left')},'Interior ')['top-left-dust'].source.id,'left');
-  assert.equal(sourceOf({'Left':art('Left')},'Interior ')['top-left-dust'],undefined);
-  // The colour is read from a band of the source along the crease.
-  const top=panels.find(panel=>panel.id==='top'),tuck=all['top-tuck'];
-  assert.deepEqual(edgeBand(top,tuck.crease),{x:top.x,y:top.y,width:top.width,height:Math.min(EDGE_BAND_MM,top.height/3)});
-  const back=panels.find(panel=>panel.id==='back'),bottom=all.bottom;
-  assert.deepEqual(edgeBand(back,bottom.crease),{x:back.x,y:back.y+back.height-EDGE_BAND_MM,width:back.width,height:EDGE_BAND_MM});
-  const left=panels.find(panel=>panel.id==='left');
-  assert.equal(edgeBand(left,all['bottom-left-dust'].crease).y,left.y+left.height-EDGE_BAND_MM);
-});
-
-test('a flap takes the colour covering most of its source edge, not the logo or a thin rule on it',()=>{
-  const {dominantColour}=require('../src/lib/packaging/flap-continuation.ts');
-  const pixels=(...runs)=>runs.flatMap(([n,rgba])=>Array.from({length:n},()=>rgba)).flat();
-  // Mostly near-black background with white lettering and a red rule.
-  const colour=dominantColour(pixels([600,[18,18,20,255]],[10,[22,20,18,255]],[250,[255,255,255,255]],[140,[200,30,40,255]]));
-  assert.equal(colour,'#121214');
-  // An edge that is mostly unprinted leaves the flap plain board.
-  assert.equal(dominantColour(pixels([700,[0,0,0,0]],[300,[200,30,40,255]])),null);
-  assert.equal(dominantColour([]),null);
-});
-
 test('pizza box panel artwork reads upright on the closed box',()=>{
   const meshes=buildMeshes({width:305,height:45,depth:305,thickness:1.5},0,[1,1,1],[1,1,1],{templateId:'pizza-box',formation:100,openingMode:'lid_from_back'});
   const up=name=>{

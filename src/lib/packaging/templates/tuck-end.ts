@@ -74,13 +74,6 @@ function dustSizes(d: CartonDimensions, wall: TuckWall, lidInsideWidth: number) 
   return { height, shoulder, taper };
 }
 
-/** Panel id → the panel whose edge colour a flap takes where it is bare. */
-export function tuckEndFlapSources(lids: TuckEndLids): Record<string, string> {
-  const sources: Record<string, string> = { 'top-tuck': 'top', 'bottom-tuck': 'bottom', top: lids.top, bottom: lids.bottom };
-  for (const end of ['top', 'bottom'] as const) for (const wall of BESIDE[lids[end]]) sources[`${end}-${wall}-dust`] = wall;
-  return sources;
-}
-
 /** The cutting template's panels, outlines, creases and cuts. */
 export function tuckEndSheet(input: CartonDimensions, lids: TuckEndLids, notes: string[]) {
   const d = sanitizeCartonDimensions(input);
