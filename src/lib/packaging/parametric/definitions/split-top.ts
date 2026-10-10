@@ -1,9 +1,10 @@
 import type { ParametricTemplate } from '../format';
 
-// The split top box as a parametric definition: the same regular slotted
-// container (FEFCO 0201) and centre special slotted container (FEFCO 0204) as
-// templates/split-top, written as data instead of code. Kept in step with it
-// by scripts/parametric-templates.test.cjs, which checks they produce the same
+// The split top box: a regular slotted container (FEFCO 0201) or, with every
+// top flap meeting in the middle, a centre special slotted container (FEFCO
+// 0204). The studio builds it from this definition. It replaced a
+// hand-written template, kept frozen in scripts/reference, and
+// scripts/parametric-templates.test.cjs checks the two still produce the same
 // cutting template and 3D model.
 
 const flap = (end: 'top' | 'bottom', x: string, width: string, length: string) => {

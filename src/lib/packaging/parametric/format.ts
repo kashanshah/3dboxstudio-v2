@@ -30,6 +30,15 @@ export type OptionSpec = {
   choices: Record<string, Record<string, number>>;
 };
 
+/**
+ * One step along a cut outline: a corner, or a circular arc from one angle
+ * to another (degrees, 0 pointing right, 90 down the sheet), drawn as short
+ * straight cuts the way die makers approximate curves.
+ */
+export type OutlineEntry =
+  | [Expr, Expr]
+  | { arc: { center: [Expr, Expr]; radius: Expr; from: Expr; to: Expr; segments?: number } };
+
 export type PanelSpec = {
   id: string;
   /** Shown on the design grid ("TOP FRONT"); the artwork name is derived from it. */
@@ -49,11 +58,16 @@ export type PanelSpec = {
    * longer exists ("Bottom" before the bottom was split in two).
    */
   artworkFallback?: { name: string; uv: [number, number, number, number] };
+  /**
+   * The four corners the 3D model folds, when the cut outline has curves or
+   * more corners (rounded tucks, a thumb notch, shouldered dust flaps).
+   */
+  fold?: [[Expr, Expr], [Expr, Expr], [Expr, Expr], [Expr, Expr]];
 } & (
   /** x, y, width, height on the sheet in millimetres, y down. */
   | { rect: [Expr, Expr, Expr, Expr] }
-  /** Corners in order; only straight edges. */
-  | { outline: [Expr, Expr][] }
+  /** Corners and arcs in order round the panel. */
+  | { outline: OutlineEntry[] }
 );
 
 export type LineSpec = { from: [Expr, Expr]; to: [Expr, Expr]; when?: Expr };

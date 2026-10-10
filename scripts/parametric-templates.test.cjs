@@ -16,7 +16,12 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
 const {compileParametricTemplate,TemplateDefinitionError}=require('../src/lib/packaging/parametric/compile.ts');
 const {evaluate,interpolate}=require('../src/lib/packaging/parametric/expression.ts');
 const {splitTopDefinition}=require('../src/lib/packaging/parametric/definitions/split-top.ts');
-const {splitTopRuntime}=require('../src/lib/packaging/templates/split-top/runtime.ts');
+// The hand-written split top this definition replaced, frozen for comparison.
+const {splitTopReferenceRuntime:splitTopRuntime}=require('./reference/split-top-handwritten.ts');
+const {getTemplateRuntime}=require('../src/lib/packaging/template-runtime.ts');
+const {splitTopSheet,splitTopExportGeometry}=require('../src/lib/packaging/templates/split-top/geometry.ts');
+const {baseBoxSheet}=require('../src/lib/packaging/templates/base-box/geometry.ts');
+const {tuckEndBodySizes,tuckEndLidSizes}=require('../src/lib/packaging/templates/tuck-end.ts');
 
 // Same shape and values, numbers within a hair (expressions and hand-written
 // code may round differently in the last bit).
@@ -102,6 +107,74 @@ test('the parametric split top keeps the same assembly behaviour',()=>{
   for(const key of ['templateId','structureKey','rendererKey','exportSummary','exportArtworkNote'])assert.equal(parametric[key],splitTopRuntime[key]);
 });
 
+test('the studio and the public template pages use the definition',()=>{
+  const live=getTemplateRuntime('split-top-box');
+  const dimensions=fixtures[0];
+  assertClose(live.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}),splitTopRuntime.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}));
+  const input={dimensions,formation:60,opening:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]};
+  assertClose(live.buildMeshes(input),splitTopRuntime.buildMeshes(input));
+  assertClose(splitTopSheet(dimensions,'side_b'),splitTopRuntime.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}));
+  assertClose(splitTopExportGeometry(dimensions),splitTopRuntime.getExportGeometry(dimensions));
+});
+
+// The straight tuck end's thumb-notched back and rounded top tuck, written
+// with arcs and fold shapes, with sizes taken from the hand-written die.
+function tuckPanelsDefinition(d){
+  const body=tuckEndBodySizes(d),lid=tuckEndLidSizes(d,'front');
+  const hand=Object.fromEntries(baseBoxSheet(d,'closed').panels.map(panel=>[panel.id,panel]));
+  const back=hand.back.fold;
+  return {
+    format:'parametric-template/1',templateId:'tuck-arcs',structureKey:'tuck-arcs',rendererKey:'tuck-arcs',
+    parameters:{width:{fallback:d.width},height:{fallback:d.height},depth:{fallback:d.depth},thickness:{fallback:d.thickness}},
+    derived:[
+      ['x0',back[0].x],['y0',back[0].y],['wallWidth',back[1].x-back[0].x],['y1',back[2].y],
+      ['notch',Math.min(10,body.inside.back/6)],
+      ['hingeY',hand.top.y],['l',hand.top.x+body.tuckInset],['r',hand.top.x+lid.width-body.tuckInset],
+      ['tongue',lid.tongue],['shoulder',lid.shoulder],['radius',lid.radius],
+      ['tip','hingeY - tongue'],['bevel','radius * (1 - sqrt(0.5))'],
+    ],
+    panels:[
+      // Plain walls and lid linking the back and the tuck, as on the real die.
+      ...['front','right','top'].map(id=>({id,label:id.toUpperCase(),kind:hand[id].kind,rect:[hand[id].x,hand[id].y,hand[id].width,hand[id].height]})),
+      {id:'back',label:'BACK',kind:'body',
+        outline:[['x0','y0'],{arc:{center:['x0 + wallWidth / 2','y0'],radius:'notch',from:180,to:0,segments:12}},['x0 + wallWidth','y0'],['x0 + wallWidth','y1'],['x0','y1']],
+        fold:[['x0','y0'],['x0 + wallWidth','y0'],['x0 + wallWidth','y1'],['x0','y1']]},
+      {id:'top-tuck',label:'TOP TUCK',kind:'flap',
+        outline:[['l','hingeY'],['r','hingeY'],['r','hingeY - shoulder'],
+          {arc:{center:['r - radius','tip + radius'],radius:'radius',from:0,to:-90}},
+          {arc:{center:['l + radius','tip + radius'],radius:'radius',from:-90,to:-180}},
+          ['l','hingeY - shoulder']],
+        fold:[['l','hingeY'],['r','hingeY'],['r - bevel','tip'],['l + bevel','tip']]},
+    ],
+    notes:[],
+    fold:{root:'front',thickness:'thickness',offset:[0,0,0],hinges:[
+      {child:'right',parent:'front',drive:'formation',from:0,to:0.5},
+      {child:'back',parent:'right',drive:'formation',from:0,to:0.5},
+      {child:'top',parent:'front',drive:'formation',from:0.5,to:1},
+      {child:'top-tuck',parent:'top',drive:'formation',from:0.5,to:1},
+    ]},
+    assembly:{control:'none',defaultOpeningMode:'closed',openingStage:'never'},
+    export:{kind:'cutting-template'},
+  };
+}
+
+test('arcs and fold shapes draw the tuck end die\'s thumb notch and rounded tuck exactly',()=>{
+  for(const d of [{width:65,height:160,depth:65,thickness:0.5},{width:240,height:100,depth:160,thickness:0.4},{width:20,height:24,depth:10,thickness:0.3}]){
+    const hand=Object.fromEntries(baseBoxSheet(d,'closed').panels.map(panel=>[panel.id,panel]));
+    const runtime=compileParametricTemplate(tuckPanelsDefinition(d));
+    const panels=Object.fromEntries(runtime.getDielinePanels(d).map(panel=>[panel.id,panel]));
+    for(const id of ['back','top-tuck']){
+      assertClose(panels[id].outline,hand[id].outline,`${id} outline`);
+      assertClose(panels[id].fold,hand[id].fold,`${id} fold`);
+      for(const key of ['x','y','width','height'])assertClose(panels[id][key],hand[id][key],`${id}.${key}`);
+    }
+    // The model folds the four-corner shape: one face per side, not the curve's points.
+    const meshes=runtime.buildMeshes({dimensions:d,formation:0,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    const tuck=meshes.find(mesh=>mesh.panel==='Top Tuck');
+    assertClose(tuck.pickCorners.map(([x,y])=>({x,y:-y})),hand['top-tuck'].fold,'tuck pick corners');
+  }
+});
+
 test('a definition survives a JSON round trip unchanged',()=>{
   const fromJson=compileParametricTemplate(JSON.parse(JSON.stringify(splitTopDefinition)));
   const dimensions=fixtures[0];
@@ -121,6 +194,8 @@ test('authoring mistakes are refused when the definition is compiled',()=>{
     [copy=>{copy.panels[1].rect[2]='long +';},/ends too early/],
     [copy=>{copy.validations[0].message='at least {jiont} mm';},/Unknown value "jiont"/],
     [copy=>{copy.fold.offset[0]='-(lid.x)';},/Unknown value "lid.x".*side_a/],
+    [copy=>{copy.panels[1]={...copy.panels[1],rect:undefined,outline:[[0,0],{arc:{center:[0,0],radius:5,from:0,to:90}},[0,5]]};delete copy.panels[1].rect;},/"front" needs a four-corner fold shape/],
+    [copy=>{copy.panels[2].fold=[[0,0],[1,0],[1,1]];},/"topFront" needs a four-corner fold shape/],
   ];
   for(const [change,error] of cases){
     assert.throws(broken(change),error);
