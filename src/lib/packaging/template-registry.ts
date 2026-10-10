@@ -98,13 +98,13 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     structureKey: 'base-box-v1',
     capabilities: ['dieline','3d','interior-artwork','full-dieline-artwork'],
     parameters: [
-      { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 240 },
-      { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 100 },
-      { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 160 },
+      { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 65 },
+      { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 160 },
+      { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 65 },
       { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 2, step: 0.1, defaultValue: 0.5 },
     ],
     artworkRegions: [...exteriorRegions, ...interiorRegions],
-    defaultDimensions: { width: 240, height: 100, depth: 160, thickness: 0.5 },
+    defaultDimensions: { width: 65, height: 160, depth: 65, thickness: 0.5 },
     status: 'ready',
   },
   {
