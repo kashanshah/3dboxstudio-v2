@@ -1,11 +1,10 @@
-import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { LegacyOpeningMode } from '@/lib/studio-project';
 import type { TemplateGeometryOptions, TemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import { panelName, substage } from '@/lib/packaging/templates/folded-box';
 import { evaluate, interpolate } from './expression';
-import type { ExpandedTemplate, ParametricTemplate } from './format';
+import type { DimensionKey, ExpandedTemplate, ParametricTemplate } from './format';
 import { compileParametricSheet, definitionError, DIMENSIONS, type OptionValues, type ParametricSheet } from './sheet';
 
 export { TemplateDefinitionError } from './sheet';
@@ -97,6 +96,7 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
     structureKey: definition.structureKey,
     rendererKey: definition.rendererKey,
     sanitizeParameters: compiled.sanitize,
+    getAdjustableSizes: (dimensions, options) => compiled.adjustableSizes(dimensions, fromOptions(options)),
     getDielinePanels: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)).panels,
     getDielineBounds: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)).bounds,
     getExportGeometry: (dimensions, options) => compiled.exportGeometry(dimensions, fromOptions(options)),
@@ -113,10 +113,15 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
   };
 
   // Build every variant once so a bad expression fails now, with the template named.
-  const fallback = Object.fromEntries(DIMENSIONS.map(key => [key, definition.parameters[key].fallback])) as CartonDimensions;
+  const fallback = Object.fromEntries(DIMENSIONS.map(key => [key, definition.parameters[key].fallback])) as Record<DimensionKey, number>;
   for (const options of variants(definition)) {
     try {
       const scope = compiled.values(fallback, options);
+      // Every adjustable size, at its limits too.
+      const sizes = compiled.adjustableSizes(fallback, options);
+      for (const extreme of [-1e9, 1e9]) {
+        compiled.sheet({ ...fallback, adjustments: Object.fromEntries(sizes.map(size => [size.key, extreme])) }, options);
+      }
       for (const check of definition.validations ?? []) {
         evaluate(check.require, scope);
         interpolate(check.message, scope);

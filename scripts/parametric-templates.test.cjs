@@ -479,3 +479,88 @@ test('the mailer folds into a box of the entered inside size, every layer in its
   }
   assert.throws(()=>mailer.getExportGeometry({width:50,height:80,depth:160,thickness:1.5}),/at least 60 mm/);
 });
+
+// Whether two cut outlines overlap: sharing an edge or a corner is fine, but
+// no edges may cross and no corner may lie inside the other panel.
+function outlinesOverlap(a,b){
+  const eps=1e-6;
+  const cross=(o,p,q)=>(p.x-o.x)*(q.y-o.y)-(p.y-o.y)*(q.x-o.x);
+  const edges=poly=>poly.map((point,i)=>[point,poly[(i+1)%poly.length]]);
+  for(const [p1,p2] of edges(a))for(const [q1,q2] of edges(b)){
+    const d1=cross(q1,q2,p1),d2=cross(q1,q2,p2),d3=cross(p1,p2,q1),d4=cross(p1,p2,q2);
+    if(((d1>eps&&d2<-eps)||(d1<-eps&&d2>eps))&&((d3>eps&&d4<-eps)||(d3<-eps&&d4>eps)))return true;
+  }
+  const strictlyInside=(point,poly)=>{
+    let inside=false;
+    for(const [p,q] of edges(poly)){
+      // On an edge counts as outside.
+      const length=Math.hypot(q.x-p.x,q.y-p.y);
+      const along=((point.x-p.x)*(q.x-p.x)+(point.y-p.y)*(q.y-p.y))/(length*length);
+      if(Math.abs(cross(p,q,point))/length<1e-4&&along>=-eps&&along<=1+eps)return false;
+      if((p.y>point.y)!==(q.y>point.y)&&point.x<p.x+(point.y-p.y)/(q.y-p.y)*(q.x-p.x))inside=!inside;
+    }
+    return inside;
+  };
+  // Corners, edge midpoints and the centre, for panels whose corners all sit on the other's edges.
+  const centre=poly=>({x:poly.reduce((sum,point)=>sum+point.x,0)/poly.length,y:poly.reduce((sum,point)=>sum+point.y,0)/poly.length});
+  const probes=poly=>[...poly,...edges(poly).map(([p,q])=>({x:(p.x+q.x)/2,y:(p.y+q.y)/2})),centre(poly)];
+  return probes(a).some(point=>strictlyInside(point,b))||probes(b).some(point=>strictlyInside(point,a));
+}
+
+test('adjustable sizes replace the template’s own, within their limits, and every sheet stays whole',()=>{
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const options={openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'};
+    const dimensions=template.defaultDimensions;
+    const sizes=runtime.getAdjustableSizes(dimensions,options);
+    assert.ok(sizes.length>0,`${template.id} offers no adjustable sizes`);
+    // Nothing set: the template's own sizes.
+    for(const size of sizes){
+      assert.equal(size.adjusted,false);
+      assert.equal(size.value,size.defaultValue,`${template.id} ${size.key}`);
+      assert.ok(size.min<=size.defaultValue+1e-9&&size.defaultValue<=size.max+1e-9,`${template.id} ${size.key} default ${size.defaultValue} outside ${size.min}–${size.max}`);
+    }
+    // Only known keys survive sanitising, so a template switch drops the rest.
+    const kept=runtime.sanitizeParameters({...dimensions,adjustments:{[sizes[0].key]:sizes[0].min,unknownSize:5}});
+    assert.deepEqual(kept.adjustments,{[sizes[0].key]:sizes[0].min});
+    const sheets=[
+      ['min',Object.fromEntries(sizes.map(size=>[size.key,-1e6]))],
+      ['max',Object.fromEntries(sizes.map(size=>[size.key,1e6]))],
+      ...sizes.map(size=>[`${size.key} max`,{[size.key]:1e6}]),
+    ];
+    for(const [label,adjustments] of sheets){
+      const adjusted={...dimensions,adjustments};
+      const after=runtime.getAdjustableSizes(adjusted,options);
+      for(const size of after)if(size.key in adjustments){
+        assert.ok(size.adjusted);
+        assert.equal(size.value,adjustments[size.key]<0?size.min:size.max,`${template.id} ${size.key} clamped (${label})`);
+      }
+      const sheet=runtime.getExportGeometry(adjusted,options);
+      for(let i=0;i<sheet.panels.length;i++)for(let j=i+1;j<sheet.panels.length;j++){
+        const a=sheet.panels[i],b=sheet.panels[j];
+        assert.ok(!outlinesOverlap(a.outline,b.outline),`${template.id} (${label}): ${a.id} overlaps ${b.id}`);
+      }
+      // And the box still folds.
+      for(const formation of [50,100]){
+        const meshes=runtime.buildMeshes({dimensions:adjusted,formation,opening:0,openingMode:options.openingMode,splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+        assert.ok(meshes.every(mesh=>mesh.vertices.every(Number.isFinite)),`${template.id} (${label}) folds at ${formation}%`);
+      }
+    }
+    // A changed size changes the sheet.
+    const size=sizes.find(item=>item.max-item.min>2);
+    const changed=runtime.getExportGeometry({...dimensions,adjustments:{[size.key]:(size.min+size.defaultValue)/2===size.defaultValue?size.max:(size.min+size.defaultValue)/2}},options);
+    assert.notDeepEqual(changed.panels,runtime.getExportGeometry(dimensions,options).panels,`${template.id} ${size.key} changes nothing`);
+  }
+});
+
+test('the unadjusted sheets have no overlapping panels either',()=>{
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const sheet=runtime.getExportGeometry(template.defaultDimensions,{openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'});
+    for(let i=0;i<sheet.panels.length;i++)for(let j=i+1;j<sheet.panels.length;j++){
+      assert.ok(!outlinesOverlap(sheet.panels[i].outline,sheet.panels[j].outline),`${template.id}: ${sheet.panels[i].id} overlaps ${sheet.panels[j].id}`);
+    }
+  }
+});

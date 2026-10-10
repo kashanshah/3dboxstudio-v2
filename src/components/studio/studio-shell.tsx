@@ -21,14 +21,14 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
-import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
@@ -400,6 +400,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(!initialProject);
   const [designToolsOpen, setDesignToolsOpen] = useState(true);
+  // The Design step's left panel: artwork, or the flap and panel sizes.
+  const [designPanel, setDesignPanel] = useState<'artwork' | 'sizes'>('artwork');
   // Phone-only bottom sheet height for the inspector / design tools; not persisted.
   const [sheetSize, setSheetSize] = useState<SheetSize>('half');
   const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
@@ -1881,8 +1883,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <button type="button" className={tool==='material'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('material')}><Layers3 size={22}/><span>{t("studio.material_finish")}</span></button>
         </>}
         {workflowStep==='design' && <>
-          <button type="button" className={artworkScope==='outside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.outside")}</span></button>
-          <button type="button" className={artworkScope==='inside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.inside")}</span></button>
+          <button type="button" className={artworkScope==='outside'&&designPanel==='artwork'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignPanel('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.outside")}</span></button>
+          <button type="button" className={artworkScope==='inside'&&designPanel==='artwork'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignPanel('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.inside")}</span></button>
+          {getTemplateRuntime(selectedTemplateId)?.getAdjustableSizes && <button type="button" className={designPanel==='sizes'&&designToolsOpen?'is-active':''} onClick={()=>{setDesignPanel('sizes');setDesignToolsOpen(true);}}><Ruler size={22}/><span>{t("studio.sizes")}</span></button>}
         </>}
         {workflowStep==='preview' && <>
           <button type="button" className={tool==='opening'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('opening')}><PackageOpen size={22}/><span>{t("studio.open_close")}</span></button>
@@ -1995,6 +1998,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onDropArtworkFiles={handleBoardArtworkDrop}
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
+          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit}/> : null}
           sheetSize={sheetSize}
           onSheetSize={setSheetSize}
           onApplyChanges={() => {
@@ -2486,6 +2490,8 @@ function Inspector(props: {
         <p className="pro-help">{t("studio.controls_the_visible_board_edge_and_the_distance_between_the_outside_and_in")}</p>
       </div>
 
+      <AdjustableSizesCard templateId={props.selectedTemplateId} dimensions={props.dimensions} setDimensions={props.setDimensions} options={{openingMode:props.openingMode,splitTopHingeSide:props.splitTopHingeSide}} unit={props.measurementUnit}/>
+
       <button className="pro-next-step-button" type="button" onClick={()=>props.onOpenMediaLibrary(undefined,'upload')}>
         <span><strong>{t("studio.next_add_your_design")}</strong><small>{t("studio.upload_artwork_and_place_it_on_your_box")}</small></span>
         <ImageIcon size={18}/>
@@ -2760,6 +2766,7 @@ function DielinePrototype({
   onDropArtworkFiles,
   toolsOpen,
   onCloseTools,
+  sizesPanel,
   sheetSize,
   onSheetSize,
   onApplyChanges,
@@ -2799,6 +2806,8 @@ function DielinePrototype({
   onDropArtworkFiles:(files:File[],point:{x:number;y:number})=>void;
   toolsOpen:boolean;
   onCloseTools:()=>void;
+  /** Shown in place of the artwork tools when the Sizes tool is chosen. */
+  sizesPanel:React.ReactNode;
   sheetSize:SheetSize;
   onSheetSize:(size:SheetSize)=>void;
   onApplyChanges:()=>void;
@@ -3279,10 +3288,10 @@ function DielinePrototype({
       {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label={t("studio.design_tools")}>
         <SheetHandle size={sheetSize} onSize={onSheetSize}/>
         <div className="pro-inspector-title pro-design-inspector-title">
-          <div><span>{t("studio.design_2")}</span><h2>{artworkScope==='inside'?t("studio.inside_artwork"):t("studio.outside_artwork")}</h2></div>
+          <div><span>{t("studio.design_2")}</span><h2>{sizesPanel?t("studio.flap_sizes"):artworkScope==='inside'?t("studio.inside_artwork"):t("studio.outside_artwork")}</h2></div>
           <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label={t("studio.close_design_tools")} title={t("studio.close")} onClick={onCloseTools}><X size={18}/></button>
         </div>
-        <div className="pro-design-inspector-content">
+        {sizesPanel ? <div className="pro-design-inspector-content pro-design-sizes-content">{sizesPanel}</div> : <div className="pro-design-inspector-content">
           <div className="pro-dieline-surface-switch" role="group" aria-label={t("studio.printed_side")}>
             <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>{t("studio.outside")}</button>
             <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>{t("studio.inside")}</button>
@@ -3354,7 +3363,7 @@ function DielinePrototype({
             <span>{t("studio.print_output")}</span>
             <button type="button" className="pro-secondary-button" disabled={printing} onClick={()=>void exportPdf()}><Download size={16}/> {printing?t("studio.preparing_pdf"):'Download 1:1 PDF'}</button>
           </div>
-        </div>
+        </div>}
       </aside>}
 
       <div className="pro-2d-right-preview pro-design-context-stack">
@@ -3916,6 +3925,55 @@ function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }
     onBlur={() => setDraft(null)}
     onKeyDown={event => { if (event.key === 'Enter') setDraft(null); }}
   />;
+}
+
+/**
+ * The template's flap and panel sizes (glue flap, tucks, dust flaps…), each
+ * set apart from the box size. A size the user sets replaces the template's
+ * own, within limits that keep the flaps clear of each other.
+ */
+function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, unit }: {
+  templateId: string; dimensions: CartonDimensions; setDimensions: (value: CartonDimensions) => void;
+  options: TemplateGeometryOptions; unit: MeasurementUnit;
+}) {
+  const t = useTranslations();
+  const sizes = getTemplateRuntime(templateId)?.getAdjustableSizes?.(dimensions, options) ?? [];
+  if (!sizes.length) return null;
+  const update = (key: string, mm: number | null) => {
+    const { adjustments, ...size } = dimensions;
+    const next = { ...adjustments };
+    if (mm === null) delete next[key]; else next[key] = mm;
+    setDimensions(Object.keys(next).length ? { ...size, adjustments: next } : size);
+  };
+  const changed = sizes.filter(size => size.adjusted).length;
+  const step = unit === 'mm' ? 0.5 : 0.01;
+  return <div className="pro-card-section pro-adjustable-sizes">
+    <SectionTitle title={t('studio.flap_sizes')} meta={changed ? t('studio.flap_sizes_changed', { count: changed }) : t('studio.flap_sizes_template')} />
+    <p className="pro-help">{t('studio.flap_sizes_help')}</p>
+    {sizes.map(size => <div className={`pro-adjustable-size${size.adjusted ? ' is-adjusted' : ''}`} key={size.key}>
+      <div>
+        <strong>{size.label}</strong>
+        <span>{formatDimension(size.min, unit)}–{formatDimension(size.max, unit)} {unit}</span>
+      </div>
+      <label>
+        <DimensionInput
+          aria-label={size.label}
+          min={unit === 'mm' ? size.min : Number((size.min / 25.4).toFixed(3))}
+          max={unit === 'mm' ? size.max : Number((size.max / 25.4).toFixed(3))}
+          step={step}
+          valueMm={size.value} unit={unit} minMm={size.min} maxMm={size.max}
+          onCommit={mm => update(size.key, mm)}
+        />
+        <em>{unit}</em>
+      </label>
+      <button type="button" className="pro-adjustable-reset" disabled={!size.adjusted} onClick={() => update(size.key, null)}
+        title={t('studio.flap_size_reset_title', { size: formatDimension(size.defaultValue, unit) + ' ' + unit })}
+        aria-label={t('studio.flap_size_reset_label', { label: size.label })}><RotateCcw size={13} aria-hidden="true" /></button>
+    </div>)}
+    {changed > 1 && <button type="button" className="pro-reset-box-size" onClick={() => {
+      setDimensions({ width: dimensions.width, height: dimensions.height, depth: dimensions.depth, thickness: dimensions.thickness });
+    }}><RotateCcw size={12} aria-hidden="true" />{' ' + t('studio.flap_sizes_reset_all')}</button>}
+  </div>;
 }
 
 function formatBytes(bytes: number) {

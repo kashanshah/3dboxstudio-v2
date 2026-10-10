@@ -3,6 +3,11 @@ export type CartonDimensions = {
   height: number;
   depth: number;
   thickness: number;
+  /**
+   * Sizes the user set in place of the template's own, by key (a glue flap's
+   * width, a tuck's length), in mm. Templates ignore keys they don't know.
+   */
+  adjustments?: Record<string, number>;
 };
 
 export type FoldStage = {

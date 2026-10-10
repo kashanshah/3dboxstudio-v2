@@ -134,6 +134,11 @@ export type ExpandedTemplate = {
    * values and anything defined above it.
    */
   derived: [name: string, value: Expr][];
+  /**
+   * Sizes the user may change in the studio, such as a glue flap's width or
+   * a tuck's length; everything computed from them follows.
+   */
+  adjustable?: AdjustableSpec[];
   panels: PanelSpec[];
   /** Cuts along a crease (tuck slit locks) and cuts inside panels (slots). */
   slits?: LineSpec[];
@@ -186,6 +191,21 @@ export type ExpandedTemplate = {
    * every template with a catalog entry as ready.
    */
   catalog?: TemplateCatalog;
+};
+
+/**
+ * A size the user may set in place of a derived value's formula. Their value
+ * is stored under `key` and replaces each of `targets` (by default `key`
+ * itself), clamped to `min` and `max`. Those are evaluated where each target
+ * is computed, with the formula's own value available as `default`.
+ */
+export type AdjustableSpec = {
+  key: string;
+  /** Shown in the studio, e.g. "Glue flap". */
+  label: string;
+  targets?: string[];
+  min: Expr;
+  max: Expr;
 };
 
 /** A template's catalog entry: its registry record without what the definition already says. */

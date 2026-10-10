@@ -115,6 +115,14 @@ export const pizzaBoxDefinition = {
     ['slotY', 'frontTop - 2.5 * t'],
     ['slotHalf', '(t + 1) / 2'],
   ],
+  // Corner tabs stop short of meeting inside the front and of the lid flaps
+  // beside the back wall on the sheet; the lid's tuck and flaps stay clear
+  // of the base.
+  adjustable: [
+    { key: 'ear', label: 'Corner tabs', min: 5, max: 'max(5, min(width / 2 - t, height))' },
+    { key: 'lidTuck', label: 'Lid tuck', min: 5, max: 'max(5, height - 2 * t)' },
+    { key: 'lidFlap', label: 'Lid side flaps', min: 5, max: 'max(5, height - 2 * t)' },
+  ],
   panels: ([
     { id: 'bottom', label: 'BOTTOM', kind: 'body', rect: ['x0', 'y0', 'width', 'depth'] },
     // The front wall, lid and lid front sit upside down on the sheet relative

@@ -47,7 +47,7 @@ export function tuckEndDie(config: {
   topRotation?: 0 | 180;
   bottomRotation?: 0 | 180;
   notes: ParametricTemplate['notes'];
-}): Pick<ParametricTemplate, 'parameters' | 'derived' | 'panels' | 'slits' | 'validations' | 'notes'> {
+}): Pick<ParametricTemplate, 'parameters' | 'derived' | 'adjustable' | 'panels' | 'slits' | 'validations' | 'notes'> {
   const B = cap(config.bottom);
   const lid = (end: 'top' | 'bottom', width: string, insideWidth: string, insideLength: string): [string, Expr][] => [
     [`${end}Width`, width],
@@ -178,6 +178,17 @@ export function tuckEndDie(config: {
       thickness: { fallback: 0.5, min: 0.3, max: 2 },
     },
     derived,
+    // Sizes the studio lets people change. Dust flaps stop short of meeting
+    // across the opening; tucks stay within half the carton's height.
+    adjustable: [
+      { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
+      { key: 'tuck', label: 'Tuck flap', targets: ['topTongue', 'bottomTongue'], min: 4, max: 'max(4, min(height / 2, 60))' },
+      {
+        key: 'dustFlap', label: 'Dust flaps',
+        targets: [...STRIP.map(wall => `dustTop${cap(wall)}Height`), ...BESIDE[config.bottom].map(wall => `dustBottom${cap(wall)}Height`)],
+        min: 4, max: 'max(4, min(topInsideWidth, bottomInsideWidth) / 2 - t - 1.5)',
+      },
+    ],
     panels: [
       panel({ id: 'glue', label: 'GLUE', kind: 'glue', outline: [['glue', 'glueTop'], ['glue', 'glueBottom'], [0, 'glueBottom - glueTaper'], [0, 'glueTop + glueTaper']] }),
       ...walls,

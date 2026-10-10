@@ -56,6 +56,9 @@ export const splitTopDefinition = {
     ['xBack', 'xRight + end'],
     ['xLeft', 'xBack + long'],
   ],
+  adjustable: [
+    { key: 'joint', label: 'Glue joint', min: 'max(8, slot)', max: 'max(8, min(60, depth))' },
+  ],
   panels: [
     { id: 'glue', label: 'GLUE', kind: 'glue', layer: 0, outline: [
       ['joint', 'top + jointCutBack'], ['joint', 'bottom - jointCutBack'],

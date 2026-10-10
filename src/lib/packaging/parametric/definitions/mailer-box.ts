@@ -133,7 +133,7 @@ export const mailerBoxDefinition = {
     ['lidTuck', 'height - 2 * t - 2'],
     ['lidFlap', 'height - 3 * t - clearance'],
     ['backHeight', 'height + t'],
-    ['x0', 'height + roll + innerHeight + tabHeight'],
+    ['x0', 'max(height + roll + innerHeight + tabHeight, ear, lidFlap)'],
     ['lidTop', 'lidTuck'],
     ['backTop', 'lidTop + lidDepth'],
     ['y0', 'backTop + backHeight'],
@@ -151,6 +151,13 @@ export const mailerBoxDefinition = {
     ['slotLeft', 'x0 + 2.5 * t'],
     ['slotRight', 'x0 + W - 2.5 * t'],
     ['slotHalf', '(t + 1) / 2'],
+  ],
+  // Ears stop short of meeting along the sides; the lid's tuck and flaps
+  // stay clear of the base.
+  adjustable: [
+    { key: 'ear', label: 'Ears', min: 5, max: 'max(5, depth / 2 - t)' },
+    { key: 'lidTuck', label: 'Lid tuck', min: 5, max: 'max(5, height - 2 * t)' },
+    { key: 'lidFlap', label: 'Lid side flaps', min: 5, max: 'max(5, height - 3 * t)' },
   ],
   panels: ([
     { id: 'bottom', label: 'BOTTOM', kind: 'body', rect: ['x0', 'y0', 'W', 'D'] },

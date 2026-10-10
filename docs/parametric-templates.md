@@ -92,6 +92,24 @@ A test checks that each entry agrees with its definition:
 
 Note that the size controls' limits can be stricter than the definition's `parameters`. The reverse tuck's controls allow 30–400 mm widths; its geometry accepts any positive size. They were kept as they were.
 
+### Adjustable sizes
+
+`adjustable` lists the sizes people may change in the studio without changing the box, as Pacdora's advanced dimensions do: a glue flap's width, a tuck's length, the dust flaps, a mailer's ears.
+
+```ts
+adjustable: [
+  { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
+  { key: 'dustFlap', label: 'Dust flaps', targets: ['dustTopLeftHeight', 'dustTopRightHeight'], min: 4, max: '…' },
+]
+```
+
+- Each entry names derived values (`targets`, by default just `key`). The user's value, stored in the box's `dimensions.adjustments[key]`, replaces their formulas, so everything computed from them follows: the cutting template, the 3D fold, the PDF and the size checks.
+- `min` and `max` are formulas, evaluated where each target is computed, with the formula's own value available as `default`. The value is clamped to them every time it's used, so the limits move with the box size.
+- Unknown keys are dropped when the dimensions are cleaned up, so switching templates leaves no stray sizes.
+- A test sets every size to its limits, one at a time and all together, and checks that no two panels on the sheet overlap and that the box still folds.
+
+The studio shows them under Box & Size and in the Design step's Sizes tool, each with its limits and a reset.
+
 ### Variants and motions
 
 The opening mode or another option can change the box itself, not just its numbers:
@@ -173,6 +191,7 @@ Done:
 - options can switch panels and hinges, and motions drive folds that depend on each other
 - `repeat` blocks replace copy-pasted near-identical items
 - each definition carries its catalog entry, so one record describes a template completely
+- `adjustable` sizes let people change flaps and joints within limits
 
 The parity tests cover:
 

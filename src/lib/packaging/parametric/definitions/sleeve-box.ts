@@ -31,6 +31,9 @@ export const sleeveBoxDefinition = {
     ['glueTaper', 'glue * tan(15 * pi / 180)'],
     ['xLeft', 'glue'], ['xFront', 'xLeft + wallLeft'], ['xRight', 'xFront + wallFront'], ['xBack', 'xRight + wallRight'],
   ],
+  adjustable: [
+    { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
+  ],
   panels: [
     { id: 'glue', label: 'GLUE', kind: 'glue', layer: 0, outline: [
       ['glue', 'glueCut'], ['glue', 'height - glueCut'],

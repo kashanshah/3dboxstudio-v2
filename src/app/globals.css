@@ -1875,10 +1875,10 @@ body{font-size:var(--type-body)}
 /* Tapered flaps: the outline is drawn as a shape, the box border is hidden. */
 .dl-live.is-shaped{border-color:transparent!important}
 /* Narrow closure flaps: labels wrap inside the flap instead of running past it. */
-.dl-live.is-shaped.dl-flap{container-type:inline-size}
-.dl-live.is-shaped.dl-flap .dl-label{max-width:80%;text-align:center;line-height:1.15;white-space:normal;overflow-wrap:normal}
-/* Narrow flaps (a mailer's ears) shrink their label so whole words still fit. */
-.pro-canvas.is-workflow-design .dl-live.is-shaped.dl-flap .dl-label{font-size:clamp(8px,16cqw,11px)}
+.dl-live.is-shaped:is(.dl-flap,.dl-glue){container-type:size}
+.dl-live.is-shaped:is(.dl-flap,.dl-glue) .dl-label{max-width:80%;text-align:center;line-height:1.15;white-space:normal;overflow-wrap:normal}
+/* Narrow or short flaps (a mailer's ears, dust flaps) shrink their label so whole words still fit. */
+.pro-canvas.is-workflow-design .dl-live.is-shaped:is(.dl-flap,.dl-glue) .dl-label{font-size:clamp(7px,min(16cqw,20cqh),11px)}
 .pro-dieline-shapes{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
 .pro-dieline-shapes .dl-shape{fill:none;stroke:var(--accent);stroke-width:1.5px;vector-effect:non-scaling-stroke}
 .pro-dieline-shapes .dl-shape-glue{stroke-dasharray:5 3}
@@ -5551,3 +5551,22 @@ body{font-size:var(--type-body)}
     right:calc(16px + var(--sheet-reserve-right,0px));
   }
 }
+
+/* Flap & panel sizes: one row per size, its reset beside the field. */
+.pro-adjustable-sizes .pro-help{margin:4px 0 6px}
+.pro-adjustable-size{display:grid;grid-template-columns:minmax(0,1fr) auto 28px;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.pro-adjustable-size:first-of-type{border-top:0}
+.pro-adjustable-size>div{display:grid;gap:2px;min-width:0}
+.pro-adjustable-size strong{font-size:12px}
+.pro-adjustable-size span{color:var(--muted);font-size:10px}
+.pro-adjustable-size.is-adjusted strong::after{content:"";display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--accent,#1673d6);vertical-align:middle}
+.pro-adjustable-size label{display:flex;align-items:center;gap:6px}
+.pro-adjustable-size input{width:76px;height:34px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);padding:0 8px;font:inherit;font-size:12px}
+.pro-adjustable-size input[aria-invalid]{border-color:#d92d20}
+.pro-adjustable-size em{color:var(--muted);font-size:10px;font-style:normal;font-weight:600}
+.pro-adjustable-reset{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer}
+.pro-adjustable-reset:hover:not(:disabled){background:var(--soft,#f2f5f9);color:var(--ink)}
+.pro-adjustable-reset:disabled{opacity:.3;cursor:default}
+.pro-design-sizes-content{padding-top:4px}
+/* The panel's own title already names the card. */
+.pro-design-sizes-content .pro-adjustable-sizes .pro-section-title strong{display:none}
