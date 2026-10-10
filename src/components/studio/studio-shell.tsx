@@ -248,7 +248,9 @@ function usePanelOpen(key:string){
     const remembered=panelOpenMemory.get(key);
     if(remembered!==undefined)return remembered;
     try{const stored=window.localStorage.getItem(key);if(stored!==null)return stored==='1';}catch{}
-    return !window.matchMedia?.('(max-width:760px)').matches;
+    // Open by default only where there is room beside the canvas: on phones
+    // and tablets the panels would cover the design.
+    return !window.matchMedia?.('(max-width:1100px)').matches;
   },[key]);
   const open=useSyncExternalStore(
     useCallback((listener:()=>void)=>{panelOpenListeners.add(listener);return ()=>{panelOpenListeners.delete(listener);};},[]),
@@ -2841,17 +2843,32 @@ function DielinePrototype({
   const fullHeight = bounds.height * 760 / Math.max(bounds.width, bounds.height);
   // Size the board so the default 112% view shows the whole sheet. Phones
   // shrink it into the stage area left visible above the bottom sheet. Wider
-  // screens size it, up to 760px, to the stage's content box (which stops
-  // above the line legend and toolbar) and the gap between the side panels,
-  // since the stage runs underneath them.
+  // screens size it, up to 760px, to the stage's content box, which stops
+  // above the line legend and toolbar and, through the padding set below,
+  // beside the side panels, since the stage runs underneath them.
   useEffect(()=>{
     const stage=stageRef.current;
     if(!stage) return;
     const query=window.matchMedia('(max-width:640px)');
     const panels=()=>[...(stage.closest('.pro-studio-body')??document).querySelectorAll<HTMLElement>('.pro-design-inspector-shell, .pro-design-context-stack')];
+    // What a panel covers: the right-hand stack's own box stays tall when its
+    // panels collapse to bars, so it counts as the union of its visible children.
+    const panelRect=(panel:HTMLElement)=>{
+      if(getComputedStyle(panel).visibility==='hidden')return null;
+      const parts=panel.classList.contains('pro-design-context-stack')?[...panel.children]:[panel];
+      const rects=parts.map(part=>part.getBoundingClientRect()).filter(rect=>rect.width>0&&rect.height>0);
+      if(!rects.length)return null;
+      const top=Math.min(...rects.map(rect=>rect.top)),bottom=Math.max(...rects.map(rect=>rect.bottom));
+      return {left:Math.min(...rects.map(rect=>rect.left)),right:Math.max(...rects.map(rect=>rect.right)),height:bottom-top};
+    };
     const update=()=>{
       const style=getComputedStyle(stage);
       if(query.matches){
+        stage.style.paddingLeft='';
+        stage.style.paddingRight='';
+        stage.style.removeProperty('--sheet-reserve-left');
+        stage.style.removeProperty('--sheet-reserve-right');
+        stage.removeAttribute('data-sheet-reserve');
         const width=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-24;
         const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-24;
         setSheetFit(1);
@@ -2859,26 +2876,43 @@ function DielinePrototype({
         return;
       }
       setMobileFit(1);
+      // Reserve the space of the side panels standing beside the sheet, so the
+      // workspace (and the zoom anchor, which is its centre) is the free area.
+      // A collapsed panel, short at the top, overlaps the sheet's edge instead,
+      // and so does the smaller panel when both would leave the sheet under
+      // 30% of the stage.
       const box=stage.getBoundingClientRect();
       const centre=box.left+box.width/2;
-      let left=box.left,right=box.right;
+      let left=0,right=0;
       for(const panel of panels()){
-        const rect=panel.getBoundingClientRect();
-        if(rect.width===0||rect.height===0||getComputedStyle(panel).visibility==='hidden')continue;
-        if(rect.right<=centre)left=Math.max(left,rect.right);
-        else if(rect.left>=centre)right=Math.min(right,rect.left);
+        const rect=panelRect(panel);
+        if(!rect||rect.height<box.height*.4)continue;
+        if(rect.right<=centre)left=Math.max(left,rect.right-box.left+12);
+        else if(rect.left>=centre)right=Math.max(right,box.right-rect.left+12);
       }
-      // Fit between the panels when they leave a usable gap; where they cover
-      // most of the stage (tablets), they overlap the sheet's edges as before.
-      const between=2*Math.min(centre-left,right-centre)-32;
-      const width=between>=box.width*.4?between:box.width-32;
+      const roomy=(l:number,r:number)=>box.width-l-r>=box.width*.3;
+      if(!roomy(left,right)){
+        if(left>=right&&roomy(left,0))right=0;
+        else if(right>left&&roomy(0,right))left=0;
+        else{left=0;right=0;}
+      }
+      stage.style.paddingLeft=left?`${left}px`:'';
+      stage.style.paddingRight=right?`${right}px`:'';
+      // The line legend follows the reserved space too (globals.css).
+      stage.style.setProperty('--sheet-reserve-left',`${left}px`);
+      stage.style.setProperty('--sheet-reserve-right',`${right}px`);
+      stage.toggleAttribute('data-sheet-reserve',left>0||right>0);
+      const width=box.width-left-right-32;
       const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-16;
       setSheetFit(Math.max(.3,Math.min(1,width/(fullWidth*1.12),height/(fullHeight*1.12))));
     };
     update();
     const observer=new ResizeObserver(update);
     observer.observe(stage);
-    for(const panel of panels())observer.observe(panel);
+    for(const panel of panels()){
+      observer.observe(panel);
+      for(const part of panel.classList.contains('pro-design-context-stack')?panel.children:[])observer.observe(part);
+    }
     query.addEventListener('change',update);
     return ()=>{observer.disconnect();query.removeEventListener('change',update);};
   },[fullWidth,fullHeight]);

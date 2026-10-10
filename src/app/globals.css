@@ -5540,3 +5540,11 @@ body{font-size:var(--type-body)}
 @media(min-width:641px){
   .pro-2d-design-stage{padding-bottom:150px}
 }
+/* While the design sheet reserves the side panels' space (studio-shell.tsx),
+   the line legend spans the same free area beneath it. */
+@media(min-width:761px){
+  .pro-canvas.is-workflow-design .pro-2d-design-stage[data-sheet-reserve]>.pro-dieline-legend{
+    left:calc(16px + var(--sheet-reserve-left,0px));
+    right:calc(16px + var(--sheet-reserve-right,0px));
+  }
+}
