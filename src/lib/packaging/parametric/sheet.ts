@@ -1,7 +1,8 @@
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { arcPoints, finishExportGeometry, type ExportPanel, type LineMm, type PointMm } from '@/lib/packaging/export-geometry';
 import { evaluate, interpolate, type Expr, type Scope } from './expression';
-import { PARAMETRIC_TEMPLATE_FORMAT, type DimensionKey, type LineSpec, type OptionSpec, type OutlineEntry, type ParametricTemplate } from './format';
+import { PARAMETRIC_TEMPLATE_FORMAT, type DimensionKey, type LineSpec, type OptionSpec, type OutlineEntry, type ExpandedTemplate, type ParametricTemplate } from './format';
+import { expandRepeats } from './repeat';
 
 // The flat half of a parametric template: sizes, the design grid and the
 // cutting template. Kept apart from the folding so pages that only show a
@@ -12,7 +13,8 @@ export type OptionValues = Partial<Record<OptionSpec['source'], string | undefin
 
 export class TemplateDefinitionError extends Error {}
 
-export function compileParametricSheet(definition: ParametricTemplate) {
+export function compileParametricSheet(source: ParametricTemplate) {
+  const definition = expandRepeats(source, message => definitionError(source, message));
   checkStructure(definition);
 
   const sanitize = (value: CartonDimensions): CartonDimensions => {
@@ -99,11 +101,11 @@ export function compileParametricSheet(definition: ParametricTemplate) {
 
 export type ParametricSheet = ReturnType<typeof compileParametricSheet>;
 
-export function definitionError(definition: ParametricTemplate, message: string): never {
+export function definitionError(definition: Pick<ParametricTemplate, 'templateId'>, message: string): never {
   throw new TemplateDefinitionError(`Template ${definition.templateId}: ${message}`);
 }
 
-function checkStructure(definition: ParametricTemplate) {
+function checkStructure(definition: ExpandedTemplate) {
   const fail = (message: string) => definitionError(definition, message);
   if (definition.format !== PARAMETRIC_TEMPLATE_FORMAT) fail(`unsupported format "${definition.format}"`);
   for (const key of DIMENSIONS) if (!definition.parameters?.[key]) fail(`missing parameter "${key}"`);

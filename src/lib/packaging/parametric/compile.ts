@@ -5,7 +5,7 @@ import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import { panelName, substage } from '@/lib/packaging/templates/folded-box';
 import { evaluate, interpolate } from './expression';
-import type { ParametricTemplate } from './format';
+import type { ExpandedTemplate, ParametricTemplate } from './format';
 import { compileParametricSheet, definitionError, DIMENSIONS, type OptionValues, type ParametricSheet } from './sheet';
 
 export { TemplateDefinitionError } from './sheet';
@@ -83,8 +83,9 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
  * every variant once at its fallback size, so mistakes surface when the
  * template is registered rather than when someone opens it.
  */
-export function compileParametricTemplate(definition: ParametricTemplate): TemplateRuntime {
-  const compiled = compileParametricSheet(definition);
+export function compileParametricTemplate(source: ParametricTemplate): TemplateRuntime {
+  const compiled = compileParametricSheet(source);
+  const { definition } = compiled;
   const buildMeshes = parametricMeshBuilder(compiled);
   const fromOptions = (options?: TemplateGeometryOptions): OptionValues => ({
     splitTopHingeSide: options?.splitTopHingeSide,
@@ -134,7 +135,7 @@ export function compileParametricTemplate(definition: ParametricTemplate): Templ
 }
 
 /** Every panel but the root hangs on exactly one present panel, and the hinges reach the root. */
-function checkHingeTree(definition: ParametricTemplate, present: Set<string>, hinges: ParametricTemplate['fold']['hinges']) {
+function checkHingeTree(definition: ExpandedTemplate, present: Set<string>, hinges: ExpandedTemplate['fold']['hinges']) {
   const parents = new Map<string, string>();
   for (const hinge of hinges) {
     if (parents.has(hinge.child)) definitionError(definition, `panel "${hinge.child}" hinges on more than one panel here`);
@@ -152,7 +153,7 @@ function checkHingeTree(definition: ParametricTemplate, present: Set<string>, hi
   }
 }
 
-function variants(definition: ParametricTemplate): OptionValues[] {
+function variants(definition: ExpandedTemplate): OptionValues[] {
   return (definition.options ?? []).reduce<OptionValues[]>(
     (all, option) => all.flatMap(partial => Object.keys(option.choices).map(choice => ({ ...partial, [option.source]: choice }))),
     [{}],

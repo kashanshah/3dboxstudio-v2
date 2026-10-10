@@ -42,6 +42,33 @@ Angles are in degrees, with 0 pointing right and 90 pointing down the sheet. The
 - **`model`** on a panel gives the four corners the 3D model folds when they differ from the cut panel. The pizza box's roll strip is cut two boards wide but modelled three, as wide as its score bends. Only the model uses it; the cutting template keeps `outline` and `fold`.
 - **`fold.matrix`** replaces `fold.offset` when the sheet must be turned, not just moved, before it is placed. It is a column-major 4×4 matrix of formulas. The pizza box is folded printed side down with the lid at the back.
 
+### Repeats
+
+Any list in a definition (panels, derived values, hinges, motions, cuts, slits, validations, notes) may hold a `repeat` block in place of near-identical items:
+
+```ts
+{
+  repeat: [
+    { wall: 'front', Wall: 'Front', x: 'xFront', width: 'long', fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
+    { wall: 'right', Wall: 'Right', x: 'xRight', width: 'end', fallback: null },
+  ],
+  each: [
+    { id: '{{wall}}', kind: 'body', rect: ['{{x}}', 'top', '{{width}}', 'wallHeight'] },
+    { id: 'bottom{{Wall}}', kind: 'flap', artworkFallback: '{{fallback}}', outline: [ … ] },
+  ],
+}
+```
+
+How it expands:
+
+- `each` is expanded once per entry, in order, with every `{{key}}` replaced by that entry's value.
+- A string that is only `{{key}}` takes the value itself, so numbers stay numbers and objects stay objects.
+- As a property's whole value, `null` leaves the property out.
+- Repeats can nest.
+- A placeholder with no value is an error.
+
+Expansion happens before the definition is checked or compiled. The split top box uses repeats for its four walls and their flaps, so its definition is plain data with no TypeScript helpers.
+
 ### Variants and motions
 
 The opening mode or another option can change the box itself, not just its numbers:
@@ -119,6 +146,7 @@ Done:
 - all four ready templates run on their definitions
 - outlines and cuts support arcs, with a separate four-corner fold shape and a model-only shape
 - options can switch panels and hinges, and motions drive folds that depend on each other
+- `repeat` blocks replace copy-pasted near-identical items
 
 The parity tests cover:
 
@@ -130,8 +158,7 @@ The parity tests cover:
 Next, roughly in order:
 
 1. **Retire the frozen references** in `scripts/reference/` once each template has been stable in production.
-2. **Repetition.** Allow a `repeat` over a list of walls, to remove the copy-paste of four near-identical walls and their flaps.
-3. **Template registry metadata.** Name, thumbnail, artwork regions and parameter UI currently live in `template-registry.ts`. They could move into the definition so one record describes a template completely.
-4. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
+2. **Template registry metadata.** Name, thumbnail, artwork regions and parameter UI currently live in `template-registry.ts`. They could move into the definition so one record describes a template completely.
+3. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
 
 Out of scope for this format: bottles, cans, pouches and other curved or flexible packaging. Their geometry isn't folded from flat panels; they will need their own format family that shares only the parameter, option and expression layers.

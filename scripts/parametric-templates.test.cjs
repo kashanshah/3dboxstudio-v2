@@ -15,6 +15,7 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
 };
 const {compileParametricTemplate,TemplateDefinitionError}=require('../src/lib/packaging/parametric/compile.ts');
 const {evaluate,interpolate}=require('../src/lib/packaging/parametric/expression.ts');
+const {expandRepeats}=require('../src/lib/packaging/parametric/repeat.ts');
 const {splitTopDefinition}=require('../src/lib/packaging/parametric/definitions/split-top.ts');
 // The hand-written split top this definition replaced, frozen for comparison.
 const {splitTopReferenceRuntime:splitTopRuntime}=require('./reference/split-top-handwritten.ts');
@@ -182,7 +183,9 @@ test('a definition survives a JSON round trip unchanged',()=>{
 });
 
 test('authoring mistakes are refused when the definition is compiled',()=>{
-  const broken=change=>{const copy=structuredClone(splitTopDefinition);change(copy);return ()=>compileParametricTemplate(copy);};
+  // Mistakes are made on the expanded definition, where every panel and hinge is listed.
+  const expanded=expandRepeats(splitTopDefinition,message=>{throw new Error(message);});
+  const broken=change=>{const copy=structuredClone(expanded);change(copy);return ()=>compileParametricTemplate(copy);};
   const cases=[
     [copy=>{copy.format='parametric-template/9';},/unsupported format/],
     [copy=>{copy.panels.push({...copy.panels[1]});},/defined twice/],
@@ -357,4 +360,20 @@ test('every ready template is built from a parametric definition',()=>{
     const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
+});
+
+test('repeat blocks expand in order, keep value types, nest, and refuse unfilled placeholders',()=>{
+  const fail=message=>{throw new Error(message);};
+  const definition=structuredClone(splitTopDefinition);
+  definition.notes=[{repeat:[{n:1},{n:2}],each:[{text:'note {{n}}',when:'{{n}}'},{repeat:[{m:'a'},{m:'b'}],each:[{text:'{{n}}{{m}}'}]}]}];
+  const expanded=expandRepeats(definition,fail);
+  assert.deepEqual(expanded.notes,[{text:'note 1',when:1},{text:'1a'},{text:'1b'},{text:'note 2',when:2},{text:'2a'},{text:'2b'}]);
+  // Twelve flaps and four walls from one block, in the order the hand-written die listed them.
+  assert.deepEqual(expandRepeats(splitTopDefinition,fail).panels.map(panel=>panel.id),['glue','front','topFront','bottomFront','right','topRight','bottomRight','back','topBack','bottomBack','left','topLeft','bottomLeft']);
+  const panels=expandRepeats(splitTopDefinition,fail).panels;
+  assert.deepEqual(panels.find(panel=>panel.id==='bottomBack').artworkFallback,{name:'Bottom',uv:[0,0,1,0.5]});
+  assert.equal('artworkFallback' in panels.find(panel=>panel.id==='bottomLeft'),false);
+  assert.equal(panels.find(panel=>panel.id==='bottomFront').layer,3);
+  definition.notes=[{repeat:[{n:1}],each:[{text:'{{missing}}'}]}];
+  assert.throws(()=>compileParametricTemplate(definition),/Template split-top-box: "\{\{missing\}\}" has no value/);
 });
