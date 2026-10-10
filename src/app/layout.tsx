@@ -33,7 +33,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang={defaultLocale} dir={localeDirection(defaultLocale)}>
+    // The page scrolls smoothly to in-page anchors (#showcase); this lets
+    // Next.js turn that off while it jumps a newly opened page to the top,
+    // so leaving /#showcase for another page does not land partway down.
+    <html lang={defaultLocale} dir={localeDirection(defaultLocale)} data-scroll-behavior="smooth">
       <body>
         <AnalyticsRouteGuard />
         <GoogleAnalytics />
