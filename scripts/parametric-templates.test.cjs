@@ -308,6 +308,7 @@ test('the tuck end definitions survive a JSON round trip unchanged',()=>{
 // The pizza box, against its hand-written version.
 const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pizza-box.ts');
 const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions/sleeve-box.ts');
+const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
 
@@ -358,7 +359,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -382,7 +383,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -429,4 +430,52 @@ test('the sleeve folds into an open tube of the entered size',()=>{
     assert.ok(sheet.panels.every(panel=>panel.y>=0&&panel.y+panel.height<=dimensions.height+1e-9));
   }
   assert.throws(()=>sleeve.getExportGeometry({width:15,height:120,depth:60,thickness:0.5}),/at least 20 mm/);
+});
+
+test('the mailer folds into a box of the entered inside size, every layer in its place',()=>{
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  const mailer=getTemplateRuntime('mailer-box');
+  for(const dimensions of [{width:220,height:80,depth:160,thickness:1.5},{width:400,height:120,depth:300,thickness:3},{width:80,height:30,depth:70,thickness:0.8}]){
+    const t=dimensions.thickness;
+    const input=(formation,opening=0)=>({dimensions,formation,opening,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    // Each panel's extent along each axis, both of its faces together.
+    const extents=meshes=>{
+      const out={};
+      for(const mesh of meshes){
+        if(typeof mesh.panel!=='string')continue;
+        const id=mesh.panel.replace(/^Interior /,'');
+        const box=out[id]??=[[Infinity,-Infinity],[Infinity,-Infinity],[Infinity,-Infinity]];
+        for(let i=0;i<mesh.vertices.length;i+=8)for(let k=0;k<3;k++){box[k][0]=Math.min(box[k][0],mesh.vertices[i+k]);box[k][1]=Math.max(box[k][1],mesh.vertices[i+k]);}
+      }
+      return out;
+    };
+    const closed=extents(mailer.buildMeshes(input(100)));
+    // Distance from the centre to a side panel's nearer or farther face.
+    const near=(id,k)=>Math.min(...closed[id][k].map(Math.abs));
+    const far=(id,k)=>Math.max(...closed[id][k].map(Math.abs));
+    within(near('Left Inner',0)+near('Right Inner',0),dimensions.width,t,'inside width');
+    within(near('Front',2)+near('Back',2),dimensions.depth,t,'inside depth');
+    within(closed.Top[1][0]-closed.Bottom[1][1],dimensions.height,t,'inside height');
+    for(const side of ['Left','Right']){
+      // The ears are trapped between the side wall's two layers…
+      for(const wall of ['Front','Back']){
+        const ear=`${wall} ${side} Ear`;
+        assert.ok(near(ear,0)>far(`${side} Inner`,0)&&far(ear,0)<near(side,0),`${ear} between the layers`);
+      }
+      // …and the lid's flap tucks inside the inner layer.
+      assert.ok(far(`Lid ${side}`,0)<near(`${side} Inner`,0),`lid ${side} flap inside the wall`);
+    }
+    assert.ok(far('Lid Front',2)<near('Front',2),'lid tuck inside the front');
+    // Flat before forming.
+    const flat=extents(mailer.buildMeshes(input(0)));
+    assert.ok(Object.values(flat).every(box=>box[1][1]-box[1][0]<2*t),'flat sheet');
+    // The inner walls' locking tabs have their slots in the base.
+    const sheet=mailer.getExportGeometry(dimensions);
+    assert.equal(sheet.panels.length,17);
+    assert.equal(sheet.crease.length,16,'creases: 4 walls, 4 ears, 2 per roll strip, lid and its 3 flaps');
+    const base=sheet.panels.find(panel=>panel.id==='bottom');
+    const inside=point=>point.x>base.x&&point.x<base.x+base.width&&point.y>base.y&&point.y<base.y+base.height;
+    assert.equal(sheet.cut.filter(line=>inside(line.start)&&inside(line.end)).length,16,'four slots of four cuts');
+  }
+  assert.throws(()=>mailer.getExportGeometry({width:50,height:80,depth:160,thickness:1.5}),/at least 60 mm/);
 });

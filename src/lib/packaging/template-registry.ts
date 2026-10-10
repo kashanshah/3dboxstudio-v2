@@ -5,6 +5,7 @@ import { splitTopDefinition } from '@/lib/packaging/parametric/definitions/split
 import { reverseTuckDefinition } from '@/lib/packaging/parametric/definitions/reverse-tuck';
 import { pizzaBoxDefinition } from '@/lib/packaging/parametric/definitions/pizza-box';
 import { sleeveBoxDefinition } from '@/lib/packaging/parametric/definitions/sleeve-box';
+import { mailerBoxDefinition } from '@/lib/packaging/parametric/definitions/mailer-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -87,22 +88,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   // Catalog seeds. These intentionally remain planned until their real
   // structure + geometry adapters are implemented and validated; a template
   // becomes ready by getting a parametric definition with a catalog entry.
-  {
-    id: 'mailer-box',
-    version: 1,
-    name: 'Mailer Box',
-    shortName: 'Mailer',
-    family: 'corrugated',
-    category: 'Corrugated',
-    description: 'Self-locking shipping and presentation mailer.',
-    tags: ['mailer','shipping','corrugated','ecommerce'],
-    rendererKey: 'mailer-v1',
-    structureKey: 'mailer-v1',
-    capabilities: [],
-    parameters: [],
-    artworkRegions: [],
-    status: 'planned',
-  },
+  fromDefinition(mailerBoxDefinition),
   fromDefinition(pizzaBoxDefinition),
   fromDefinition(sleeveBoxDefinition),
   {

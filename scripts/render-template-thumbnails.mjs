@@ -19,6 +19,7 @@ const SHOTS = [
   { id: 'split-top-box', mode: 'top_split_meet_center', progress: 85, yaw: -0.6, pitch: 0.35, material: 'Kraft', zoom: 75 },
   { id: 'pizza-box', mode: 'lid_from_back', progress: 85, yaw: -0.6, pitch: 0.35, material: 'Kraft' },
   { id: 'sleeve-box', mode: 'closed', progress: 100, yaw: -0.6, pitch: 0.45, material: 'White board' },
+  { id: 'mailer-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.4, material: 'Kraft' },
 ];
 // ONLY=sleeve-box,pizza-box renders just those, leaving the other images as they are.
 const only = process.env.ONLY?.split(',').map(id => id.trim()).filter(Boolean);

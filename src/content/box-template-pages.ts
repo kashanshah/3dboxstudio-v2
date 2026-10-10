@@ -136,6 +136,58 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     updated: '2026-10-06',
   },
   {
+    slug: 'mailer-box',
+    templateId: 'mailer-box',
+    name: 'Mailer box',
+    title: 'Mailer Box Template & Dieline (FEFCO 0427) with 3D Mockup | 3D Box Studio',
+    description: 'Free mailer box template (FEFCO 0427 roll end tuck top). Enter your inside size to draw the dieline, brand the outside and inside, fold it in 3D and export a 1:1 PDF.',
+    eyebrow: 'Box template',
+    h1: 'Mailer box template',
+    intro: 'The self-locking e-commerce mailer: one sheet of corrugated board, no glue, double side walls that lock into the base, and a hinged lid that tucks in at the front. Enter the inside size of your box and the cutting template below redraws. Open it in the Studio to brand the outside and the unboxing inside, fold it in 3D and export mockups or a 1:1 PDF.',
+    fields: { width: 'Width (front)', height: 'Height', depth: 'Depth (front to back)' },
+    presets: [
+      { label: 'Jewellery / small gift', note: 'Slim mailer', width: 150, height: 50, depth: 100, unit: 'mm' },
+      { label: 'Cosmetics set', note: 'Subscription box', width: 220, height: 80, depth: 160, unit: 'mm' },
+      { label: 'Apparel', note: 'Folded T-shirt', width: 300, height: 70, depth: 230, unit: 'mm' },
+      { label: 'Shoe-box size', note: 'Large mailer', width: 340, height: 120, depth: 220, unit: 'mm' },
+      { label: '9 × 6 × 3 in', note: 'US standard', width: 9, height: 3, depth: 6, unit: 'in' },
+    ],
+    geometryNote: 'Cutting template: front and back walls with ears, side walls folded double over a roll strip with locking tabs and base slots, and a lid with a front tuck and side flaps. Width, depth and height are inside sizes; the base is cut wider so the double walls stand inside it. Ask your box maker to confirm the allowances for the flute you choose.',
+    sections: [
+      {
+        title: 'How a mailer box is built',
+        body: 'The roll end tuck top mailer (FEFCO 0427) is a single die-cut sheet of corrugated board with no glue. The front and back walls fold up and their ears turn in along the sides. Each side wall folds up outside the ears and then double over a narrow roll strip, its inner layer locking into slots in the base and trapping the ears. The lid hinges from the back wall; its side flaps drop inside the double walls and its front tuck slides in behind the front wall.',
+      },
+      {
+        title: 'What is on the dieline',
+        body: 'The template draws every panel from your three inside measurements and the board thickness.',
+        bullets: [
+          'Base with front and back walls, each with two tapered ears.',
+          'Double side walls: outer wall, roll strip and inner wall with two locking tabs.',
+          'Four slots in the base for the locking tabs.',
+          'Lid hinged from the back wall, with a chamfered front tuck and two side flaps.',
+          'Cut lines and crease lines kept separate, as in the PDF export.',
+        ],
+      },
+      {
+        title: 'Designing for unboxing',
+        body: 'Mailers are opened by the customer, so the inside matters as much as the outside. Print the lid’s inside and the inner walls with a message, pattern or brand colour, and keep the outside simple for shipping labels. The Studio lets you design both sides of the sheet and preview the box opening in 3D.',
+      },
+      {
+        title: 'Measuring for a mailer',
+        body: 'Measure the product, or the stack of products with tissue and inserts, and add a few millimetres of clearance. Width runs across the front, depth from front to back and height from the base to the lid. The double side walls take up board inside the box; the template allows for that, so enter the space you need inside.',
+      },
+    ],
+    faqs: [
+      { question: 'Is the mailer box template free?', answer: 'Yes. The size picker and dieline here are free. Designing artwork, saving and exporting the PDF happen in the Studio with a free account.' },
+      { question: 'Which mailer style is this?', answer: 'The roll end tuck top mailer, FEFCO 0427: one piece, no glue, double side walls locked into the base, and a lid with a front tuck and side flaps. It is the style most e-commerce and subscription boxes use.' },
+      { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. The base and walls are cut larger so the folded box keeps the inside size you enter, for the board thickness set in the Studio. Ask your box maker to confirm the allowances for their flute and tooling.' },
+      { question: 'Can I print the inside of the mailer?', answer: 'Yes. Every panel has an outside and an inside surface in the Studio, so you can design the unboxing view and export both sides in the PDF.' },
+    ],
+    guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'how-to-measure-a-box-inside-vs-outside-dimensions'],
+    updated: '2026-10-10',
+  },
+  {
     slug: 'split-top-box',
     templateId: 'split-top-box',
     name: 'Split top box',

@@ -3,6 +3,7 @@ import { splitTopRuntime } from './split-top/runtime';
 import { reverseTuckRuntime } from './reverse-tuck/runtime';
 import { pizzaBoxRuntime } from './pizza-box/runtime';
 import { sleeveBoxRuntime } from './sleeve-box/runtime';
+import { mailerBoxRuntime } from './mailer-box/runtime';
 
 export const BUILT_IN_TEMPLATE_RUNTIMES=[
   baseBoxRuntime,
@@ -10,4 +11,5 @@ export const BUILT_IN_TEMPLATE_RUNTIMES=[
   reverseTuckRuntime,
   pizzaBoxRuntime,
   sleeveBoxRuntime,
+  mailerBoxRuntime,
 ] as const;

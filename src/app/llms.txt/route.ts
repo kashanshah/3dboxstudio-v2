@@ -25,7 +25,7 @@ export function GET() {
 ## Key facts
 
 - Price: free. A free account is required to use the Studio, save designs and export. Shared preview links can be opened by anyone without an account.
-- Box templates available now: reverse tuck end carton, straight tuck end box, split top box, pizza box and sleeve box. Mailer boxes are planned, not yet available.
+- Box templates available now: reverse tuck end carton, straight tuck end box, split top box, pizza box, mailer box (FEFCO 0427) and sleeve box. Rigid lid and base, and drawer boxes are planned, not yet available.
 - Workflow: 1) Box — structure, finished size and material; 2) Design — artwork on the outside and inside of the dieline with cut, crease and bleed guides, and an artboard (the dieline plus bleed) that full-sheet artwork can be made to fit; 3) Preview & Download — fold from flat to closed in 3D, then export.
 - Exports: PNG mockup images from the 3D view; a 1:1 vector PDF dieline (outside or inside, adjustable bleed, cut and crease lines, calibration ruler). No video or MP4 export yet.
 - Sharing: view-only interactive 3D links for clients and teammates.

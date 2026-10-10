@@ -22,7 +22,7 @@ const sections = [
   },
   {
     "title": "Mailer-style packaging",
-    "body": "A mailer template is planned, with its own panel layout and folding behavior. Until then, the split top box covers corrugated shippers: a slotted shipping box with four flaps at each end."
+    "body": "The mailer box is the one-piece roll end tuck top mailer (FEFCO 0427): double side walls that lock into the base, and a lid that tucks in at the front. For plain shipping cartons, the split top box is a slotted shipper with four flaps at each end."
   },
   {
     "title": "Template-specific behavior",
@@ -32,7 +32,7 @@ const sections = [
 const faqs = [
   {
     "question": "Which box templates are available?",
-    "answer": "Reverse tuck end carton, straight tuck end box, pizza box, split top box and sleeve box are ready now. Mailer, rigid lid and base, and drawer boxes are planned."
+    "answer": "Reverse tuck end carton, straight tuck end box, pizza box, split top box, mailer box and sleeve box are ready now. Rigid lid and base, and drawer boxes are planned."
   },
   {
     "question": "Can I resize a template?",
@@ -66,7 +66,7 @@ export default function Page(){
     <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>
     <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Locking tray, hinged lid</span><i/></Link>
     <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Slotted shipper</span><i/></Link>
-    <div className="template-hero-note">Mailer boxes are planned</div>
+    <Link className="template-hero-note" href="/box-templates/mailer-box">New: mailer box</Link>
   </div>;
   return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} afterHero={<TemplatePageLinks />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
