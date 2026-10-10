@@ -15,6 +15,7 @@ import { CameraAngleIcon } from './camera-angle-icon';
 import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import { attachTouchPinch } from '@/lib/touch-pinch';
+import { shortcutKey } from '@/lib/shortcut-key';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
@@ -573,7 +574,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       const target = event.target;
       if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
 
-      const key = event.key.toLowerCase();
+      const key = shortcutKey(event);
       const wantsUndo = key === 'z' && !event.shiftKey;
       const wantsRedo = (key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey && !event.metaKey);
       if (!wantsUndo && !wantsRedo) return;
@@ -1720,7 +1721,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   useEffect(() => {
     const onSaveShortcut = (event:KeyboardEvent) => {
-      if (event.key.toLowerCase() !== 's' || (!event.metaKey && !event.ctrlKey)) return;
+      if ((!event.metaKey && !event.ctrlKey) || shortcutKey(event) !== 's') return;
       event.preventDefault();
       if (event.repeat || saving) return;
       void saveDesign();
