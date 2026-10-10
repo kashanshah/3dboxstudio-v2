@@ -377,3 +377,29 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
   definition.notes=[{repeat:[{n:1}],each:[{text:'{{missing}}'}]}];
   assert.throws(()=>compileParametricTemplate(definition),/Template split-top-box: "\{\{missing\}\}" has no value/);
 });
+
+test('every catalog entry agrees with its definition',()=>{
+  const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
+  const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition];
+  for(const definition of definitions){
+    const catalog=definition.catalog;
+    assert.ok(catalog,`${definition.templateId} has no catalog entry`);
+    const template=getPackagingTemplate(definition.templateId);
+    assert.equal(template.status,'ready');
+    assert.equal(template.name,catalog.name);
+    // Every artwork region names a panel this template has, in any of its variants.
+    const names=new Set(expandRepeats(definition,message=>{throw new Error(message);}).panels.map(panel=>panel.name??panelName(panel.label)));
+    for(const region of catalog.artworkRegions){
+      const panel=region.surface==='inside'?region.panelId.replace(/^Interior /,''):region.panelId;
+      assert.ok(names.has(panel),`${definition.templateId} region ${region.id} names no panel ("${region.panelId}")`);
+      assert.equal(region.surface==='inside',region.panelId.startsWith('Interior '),`${definition.templateId} region ${region.id} surface`);
+    }
+    assert.equal(new Set(catalog.artworkRegions.map(region=>region.id)).size,catalog.artworkRegions.length,`${definition.templateId} repeats a region id`);
+    // The size controls start at the default box, which the definition accepts as is.
+    for(const parameter of catalog.parameters)assert.equal(parameter.defaultValue,catalog.defaultDimensions[parameter.key],`${definition.templateId} ${parameter.key} default`);
+    const runtime=compileParametricTemplate(definition);
+    assert.deepEqual(runtime.sanitizeParameters(catalog.defaultDimensions),catalog.defaultDimensions,`${definition.templateId} default size is clamped`);
+    if(catalog.fixedOpeningMode)assert.equal(catalog.fixedOpeningMode,definition.assembly.defaultOpeningMode,`${definition.templateId} opening mode`);
+  }
+});

@@ -1,4 +1,5 @@
 import type { ParametricTemplate } from '../format';
+import { BOX_FACES, panelRegions } from './artwork-regions';
 import { dustFlapHinges, tongueCurl, TUCK_END_FOLD, tuckEndDie } from './tuck-end';
 
 // The base box is a straight tuck end carton (ECMA A15.20): both lids hinge on
@@ -95,5 +96,24 @@ export const baseBoxDefinition = {
     kind: 'cutting-template',
     summary: 'Straight tuck end cutting template with closure flaps. Your printer must approve the stock and crease allowances.',
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the tuck and dust flaps.',
+  },
+  catalog: {
+    thumbnail: '/images/templates/base-box.webp',
+    version: 1,
+    name: 'Straight Tuck End Box',
+    shortName: 'Straight tuck',
+    family: 'folding-carton',
+    category: 'Cartons',
+    description: 'Folding carton with both tuck lids on the front: slit-locked tucks, dust flaps and a tapered glue flap.',
+    tags: ['carton', 'tuck', 'straight tuck', 'retail', 'paperboard', 'hinged lid', 'door'],
+    capabilities: ['dieline', '3d', 'interior-artwork', 'full-dieline-artwork'],
+    parameters: [
+      { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 65 },
+      { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 160 },
+      { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 65 },
+      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 2, step: 0.1, defaultValue: 0.5 },
+    ],
+    artworkRegions: panelRegions(BOX_FACES),
+    defaultDimensions: { width: 65, height: 160, depth: 65, thickness: 0.5 },
   },
 } satisfies ParametricTemplate;

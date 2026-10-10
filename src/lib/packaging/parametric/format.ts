@@ -1,4 +1,5 @@
 import type { Expr } from './expression';
+import type { PackagingTemplateDefinition } from '../template-registry';
 
 // The parametric template format: one plain-data description of a folded
 // package from which the studio derives the design grid, the printable
@@ -179,7 +180,16 @@ export type ExpandedTemplate = {
     summary?: string;
     artworkNote?: string;
   };
+  /**
+   * How the template appears in the studio and on the site: names, card
+   * image, size controls and artwork regions. The template registry lists
+   * every template with a catalog entry as ready.
+   */
+  catalog?: TemplateCatalog;
 };
+
+/** A template's catalog entry: its registry record without what the definition already says. */
+export type TemplateCatalog = Omit<PackagingTemplateDefinition, 'id' | 'rendererKey' | 'structureKey' | 'status'>;
 
 // `repeat` blocks (see repeat.ts): any list in an authored definition may hold
 // { repeat: [entries], each: [items using {{key}}] } among its items.

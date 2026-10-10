@@ -1,4 +1,5 @@
 import type { ParametricTemplate } from '../format';
+import { BOX_FACES, panelRegions } from './artwork-regions';
 import { dustFlapHinges, tongueCurl, TUCK_END_FOLD, tuckEndDie } from './tuck-end';
 
 // The reverse tuck end carton (ECMA A20.20): the top lid hinges on the front
@@ -75,5 +76,25 @@ export const reverseTuckDefinition = {
     kind: 'cutting-template',
     summary: 'Cutting template with closure flaps. Your printer must approve the stock and crease allowances.',
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the tuck and dust flaps.',
+  },
+  catalog: {
+    thumbnail: '/images/templates/reverse-tuck-carton.webp',
+    version: 1,
+    isDefault: true,
+    name: 'Reverse Tuck End Carton',
+    shortName: 'Reverse tuck',
+    family: 'folding-carton',
+    category: 'Cartons',
+    description: 'Classic folding carton with opposite top and bottom tuck directions.',
+    tags: ['carton', 'tuck', 'retail', 'paperboard', 'reverse tuck'],
+    capabilities: ['dieline', '3d', 'fold', 'interior-artwork', 'full-dieline-artwork'],
+    parameters: [
+      { key: 'width', label: 'Width', unit: 'mm', min: 30, max: 400, step: 1, defaultValue: 120 },
+      { key: 'height', label: 'Height', unit: 'mm', min: 40, max: 500, step: 1, defaultValue: 180 },
+      { key: 'depth', label: 'Depth', unit: 'mm', min: 15, max: 250, step: 1, defaultValue: 55 },
+      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 2, step: 0.1, defaultValue: 0.5 },
+    ],
+    artworkRegions: panelRegions(BOX_FACES),
+    defaultDimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
   },
 } satisfies ParametricTemplate;

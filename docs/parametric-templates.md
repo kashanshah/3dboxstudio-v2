@@ -69,6 +69,29 @@ How it expands:
 
 Expansion happens before the definition is checked or compiled. The split top box uses repeats for its four walls and their flaps, so its definition is plain data with no TypeScript helpers.
 
+### Catalog entry
+
+`catalog` holds how the template appears in the studio and on the site:
+
+- name, short name, family and category
+- description and tags
+- thumbnail
+- capabilities
+- the size controls (label, unit, step, limits, default)
+- the default box
+- the artwork regions
+
+`template-registry.ts` lists every definition with a catalog entry as a ready template. Planned templates stay registry-only until they get a definition.
+
+A test checks that each entry agrees with its definition:
+
+- every artwork region names a panel the template has
+- region ids are unique
+- the size controls start at the default box, which the definition accepts unchanged
+- a fixed opening mode matches the assembly default
+
+Note that the size controls' limits can be stricter than the definition's `parameters`. The reverse tuck's controls allow 30–400 mm widths; its geometry accepts any positive size. They were kept as they were.
+
 ### Variants and motions
 
 The opening mode or another option can change the box itself, not just its numbers:
@@ -147,6 +170,7 @@ Done:
 - outlines and cuts support arcs, with a separate four-corner fold shape and a model-only shape
 - options can switch panels and hinges, and motions drive folds that depend on each other
 - `repeat` blocks replace copy-pasted near-identical items
+- each definition carries its catalog entry, so one record describes a template completely
 
 The parity tests cover:
 
@@ -158,7 +182,6 @@ The parity tests cover:
 Next, roughly in order:
 
 1. **Retire the frozen references** in `scripts/reference/` once each template has been stable in production.
-2. **Template registry metadata.** Name, thumbnail, artwork regions and parameter UI currently live in `template-registry.ts`. They could move into the definition so one record describes a template completely.
-3. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
+2. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
 
 Out of scope for this format: bottles, cans, pouches and other curved or flexible packaging. Their geometry isn't folded from flat panels; they will need their own format family that shares only the parameter, option and expression layers.
