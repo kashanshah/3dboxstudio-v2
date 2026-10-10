@@ -5519,3 +5519,21 @@ body{font-size:var(--type-body)}
   /* Both panels open on a phone: the stack scrolls above the design sheet. */
   .pro-studio-body.has-sheet .pro-design-context-stack{overflow:auto;overscroll-behavior:contain}
 }
+
+/* Editor toolbar beside an open inspector, not under it: centre it in the
+   canvas space right of the panel (12px inset + 384px panel + 12px gap). The
+   stage's status chips sit above the toolbar instead of behind it. */
+@media(min-width:761px){
+  .pro-studio-body:has(> .pro-inspector.is-open) .pro-shared-canvas-control-bar:not(.is-2d){
+    left:calc(50% + 204px);
+    width:min(680px,calc(100% - 432px));
+  }
+}
+@media(min-width:641px){
+  .pro-3d-stage .pro-stage-meta{bottom:98px}
+}
+/* The design sheet centres in the stage space above the line legend and the
+   toolbar (legend 100px up, about 40px tall), not behind them. */
+@media(min-width:641px){
+  .pro-2d-design-stage{padding-bottom:150px}
+}
