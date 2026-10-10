@@ -5528,6 +5528,9 @@ body{font-size:var(--type-body)}
     left:calc(50% + 204px);
     width:min(680px,calc(100% - 432px));
   }
+  /* The 3D view itself starts beside the open inspector, so the box centres
+     in the space left visible (on tablets it otherwise sat behind the panel). */
+  .pro-studio-body:has(> .pro-inspector.is-open) .pro-canvas>.pro-3d-stage{left:408px}
 }
 @media(min-width:641px){
   .pro-3d-stage .pro-stage-meta{bottom:98px}
