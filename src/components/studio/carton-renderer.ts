@@ -34,7 +34,7 @@ import {
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
-import type { Mesh } from '@/lib/packaging/template-mesh';
+import { CORRUGATED_THICKNESS, type Mesh } from '@/lib/packaging/template-mesh';
 import { requireTemplateRuntime } from '@/lib/packaging/template-runtime';
 import {
   artworkUrlSignature,
@@ -200,8 +200,12 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     // millimetre so the soft highlight is visible at normal zoom.
     const roundRadius = Math.max(thickness * 1.5, 0.9);
     // Corrugated board (about 1 mm and up) shows its flutes on cut edges.
-    const flutePitch = thickness >= 1 ? thickness * 2.15 : 0;
+    const flutePitch = thickness >= CORRUGATED_THICKNESS ? thickness * 2.15 : 0;
     const finish = FINISHES[scene.material] ?? DEFAULT_FINISH;
+    // Little light reaches the inside of a closed carton, so what shows of it
+    // through the small slots where folds meet at a corner stays dark.
+    const shut = scene.formation >= 100 ? 1 - Math.min(1, scene.opening / 15) : 0;
+    const insideShade = 1 - 0.7 * shut;
     meshes.forEach((mesh, index) => {
       let object = objects[index];
       if (!object) {
@@ -224,7 +228,8 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       const material = object.material;
       const uniforms = material.userData.uniforms as CartonUniforms;
       applyFinish(material, surface === 'outside' ? finish : surface === 'inside' ? INSIDE_FINISH : EDGE_FINISH, uniforms, scene.material === 'Kraft' && surface !== 'outside' ? FINISHES.Kraft : null);
-      material.color.setRGB(mesh.color[0], mesh.color[1], mesh.color[2], SRGBColorSpace);
+      const shade = surface === 'inside' ? insideShade : 1;
+      material.color.setRGB(mesh.color[0] * shade, mesh.color[1] * shade, mesh.color[2] * shade, SRGBColorSpace);
       material.side = mesh.doubleSided ? DoubleSide : FrontSide;
       // Inside faces and board edges meet the printed faces along a shared
       // line; nudging them back in depth keeps that line from flickering.

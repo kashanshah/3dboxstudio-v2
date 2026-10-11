@@ -32,6 +32,12 @@ export type Mesh = {
   uvSize?: [number, number];
 };
 
+/**
+ * Board this thick (mm) or more is corrugated: its cut edges show the flutes.
+ * Thinner board's cut edges carry the print that runs up to them.
+ */
+export const CORRUGATED_THICKNESS = 1;
+
 export type TemplateMeshInput = {
   dimensions: CartonDimensions;
   opening: number;
