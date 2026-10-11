@@ -61,11 +61,21 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
     const placement = definition.fold.matrix
       ? definition.fold.matrix.map(value => evaluate(value, scope))
       : translation((definition.fold.offset ?? [0, 0, 0]).map(value => evaluate(value, scope)) as [number, number, number]);
-    return foldSheet({
-      panels, hinges, root: definition.fold.root, thickness: scope.foldT,
+    // Each piece folds on its own: its root and every panel hinged under it.
+    const pieces = [
+      { root: definition.fold.root, placement },
+      ...(definition.fold.pieces ?? []).map(piece => ({ root: piece.root, placement: piece.matrix.map(value => evaluate(value, scope)) })),
+    ];
+    const parentOf = new Map(hinges.map(hinge => [hinge.child, hinge.parent]));
+    const rootOf = (id: string): string => (parentOf.has(id) ? rootOf(parentOf.get(id)!) : id);
+    const meshes = pieces.flatMap(piece => foldSheet({
+      panels: panels.filter(panel => rootOf(panel.id) === piece.root),
+      hinges: hinges.filter(hinge => rootOf(hinge.child) === piece.root),
+      root: piece.root, thickness: scope.foldT,
       color: input.color, interiorColor: input.interiorColor,
-      placement,
-    }).map((mesh: Mesh) => {
+      placement: piece.placement,
+    }));
+    return meshes.map((mesh: Mesh) => {
       const own = mesh.panel?.replace(/^Interior /, '');
       const fallback = own ? fallbacks.get(own) : undefined;
       if (!fallback) return mesh;
@@ -149,11 +159,12 @@ function checkHingeTree(definition: ExpandedTemplate, present: Set<string>, hing
     if (!present.has(hinge.parent)) definitionError(definition, `panel "${hinge.child}" hinges on "${hinge.parent}", which is left out here`);
     parents.set(hinge.child, hinge.parent);
   }
+  const roots = new Set([definition.fold.root, ...(definition.fold.pieces ?? []).map(piece => piece.root)]);
   for (const id of present) {
-    if (id === definition.fold.root) continue;
+    if (roots.has(id)) continue;
     if (!parents.has(id)) definitionError(definition, `panel "${id}" has no hinge here`);
     const seen = new Set<string>();
-    for (let at = id; at !== definition.fold.root; at = parents.get(at)!) {
+    for (let at = id; !roots.has(at); at = parents.get(at)!) {
       if (seen.has(at)) definitionError(definition, `hinges loop back on themselves at "${at}"`);
       seen.add(at);
     }

@@ -41,6 +41,7 @@ Angles are in degrees, with 0 pointing right and 90 pointing down the sheet. The
 
 - **`model`** on a panel gives the four corners the 3D model folds when they differ from the cut panel. The pizza box's roll strip is cut two boards wide but modelled three, as wide as its score bends. Only the model uses it; the cutting template keeps `outline` and `fold`.
 - **`fold.matrix`** replaces `fold.offset` when the sheet must be turned, not just moved, before it is placed. It is a column-major 4×4 matrix of formulas. The pizza box is folded printed side down with the lid at the back.
+- **`fold.pieces`** lists further roots for boxes made of separate pieces printed on one sheet, each `{ root, matrix }`. Every piece is folded from its own root and placed by its own matrix, which may use motions. The rigid lid and base box folds the base from `bottom` and the lid from `lidTop`, then turns the lid over and lowers it onto the base.
 
 ### Repeats
 

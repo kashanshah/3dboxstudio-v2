@@ -309,6 +309,7 @@ test('the tuck end definitions survive a JSON round trip unchanged',()=>{
 const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pizza-box.ts');
 const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions/sleeve-box.ts');
 const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
+const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
 
@@ -359,7 +360,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -383,7 +384,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -573,9 +574,10 @@ test('each adjustable size names the panels it reshapes, and only those',()=>{
     for(const size of runtime.getAdjustableSizes(template.defaultDimensions,options)){
       const panels=runtime.getAdjustedPanels(template.defaultDimensions,size.key,options);
       assert.ok(panels.length>0,`${template.id} ${size.key} reshapes nothing`);
-      // Body panels only move as flaps change; they keep their shape.
-      const kinds=new Map(runtime.getExportGeometry(template.defaultDimensions,options).panels.map(panel=>[panel.id,panel.kind]));
-      assert.ok(panels.every(id=>kinds.get(id)!=='body'),`${template.id} ${size.key} reshapes a body panel: ${panels}`);
+      // The box's own front keeps its shape: flap sizes (and a rigid box's
+      // lid height, which reshapes only the lid) leave it alone.
+      const labels=new Map(runtime.getExportGeometry(template.defaultDimensions,options).panels.map(panel=>[panel.id,panel.label]));
+      assert.ok(panels.every(id=>labels.get(id)!=='FRONT'),`${template.id} ${size.key} reshapes the front: ${panels}`);
     }
   }
   const tuck=getTemplateRuntime('reverse-tuck-carton');

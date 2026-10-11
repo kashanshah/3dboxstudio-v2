@@ -233,19 +233,25 @@ function checkStructure(definition: ExpandedTemplate) {
   }
   const ids = new Set(copies.keys());
   if (!ids.has(definition.fold.root)) fail(`fold root "${definition.fold.root}" is not a panel`);
+  const roots = new Set([definition.fold.root, ...(definition.fold.pieces ?? []).map(piece => piece.root)]);
+  if (roots.size !== 1 + (definition.fold.pieces?.length ?? 0)) fail('each piece needs a root panel of its own');
+  for (const piece of definition.fold.pieces ?? []) {
+    if (!ids.has(piece.root)) fail(`piece root "${piece.root}" is not a panel`);
+    if (piece.matrix.length !== 16) fail(`the placement matrix for piece "${piece.root}" needs 16 values`);
+  }
   if (!definition.fold.offset === !definition.fold.matrix) fail('the fold needs either an offset or a placement matrix');
   if (definition.fold.matrix && definition.fold.matrix.length !== 16) fail('the placement matrix needs 16 values');
   const hinged = new Map<string, number>();
   for (const hinge of definition.fold.hinges) {
     for (const end of [hinge.child, hinge.parent]) if (!ids.has(end)) fail(`hinge refers to unknown panel "${end}"`);
-    if (hinge.child === definition.fold.root) fail(`the fold root "${hinge.child}" cannot hinge on another panel`);
+    if (roots.has(hinge.child)) fail(`the fold root "${hinge.child}" cannot hinge on another panel`);
     hinged.set(hinge.child, (hinged.get(hinge.child) ?? 0) + 1);
   }
   for (const hinge of definition.fold.hinges) {
     if (hinged.get(hinge.child)! > 1 && hinge.when === undefined) fail(`panel "${hinge.child}" hinges on more than one panel; give every hinge for it a "when"`);
   }
   for (const id of ids) {
-    if (id !== definition.fold.root && !hinged.has(id)) fail(`panel "${id}" is not attached to anything by a hinge`);
+    if (!roots.has(id) && !hinged.has(id)) fail(`panel "${id}" is not attached to anything by a hinge`);
   }
   const derived = new Set(definition.derived.map(([name]) => name));
   const keys = new Set<string>(), targets = new Set<string>();
