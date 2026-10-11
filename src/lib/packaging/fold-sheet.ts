@@ -1,4 +1,4 @@
-import { faceNormal, type Mesh } from './template-mesh';
+import { CORRUGATED_THICKNESS, faceNormal, type Mesh } from './template-mesh';
 
 // Folds a flat dieline into 3D the way scored card behaves: every panel is a
 // rigid piece of board, and every crease is a short strip of the same sheet
@@ -267,9 +267,14 @@ function bendMeshes(args: {
     for (const w of [from, to]) {
       const strip = [place(pointAt(s0, w, 0)), place(pointAt(s1, w, 0)), place(pointAt(s1, w, t)), place(pointAt(s0, w, t))];
       const edgeNormal = faceNormal(strip);
-      const edge = smoothQuad(strip, [edgeNormal, edgeNormal, edgeNormal, edgeNormal], [[0, 0], [1, 0], [1, 1], [0, 1]],
+      // Printed board shows its print right up to the cut, so the end of a
+      // fold reads as part of the box, not as a hole; corrugated shows flutes.
+      const printed = t < CORRUGATED_THICKNESS;
+      const uvs = printed ? [dieline(s0, w), dieline(s1, w), dieline(s1, w), dieline(s0, w)] : [[0, 0], [1, 0], [1, 1], [0, 1]];
+      const edge = smoothQuad(strip, [edgeNormal, edgeNormal, edgeNormal, edgeNormal], uvs,
         input.color.map(value => value * 0.86) as Vec3, null, false);
       edge.doubleSided = true;
+      if (printed) printedEdge(edge, owner.name, ownerSize);
       meshes.push(edge);
     }
   }
@@ -289,6 +294,14 @@ function bendMeshes(args: {
     meshes.push(smoothQuad(inner.map(placeChild), [back, back, back, back], [uvs[3], uvs[2], uvs[1], uvs[0]].map(insideUv), input.interiorColor, `Interior ${parent.name}`, true, size));
   }
   return meshes;
+}
+
+/** A cut board edge that shows `panel`'s print through its own texture coordinates. */
+export function printedEdge(mesh: Mesh, panel: string, uvSize: [number, number]) {
+  mesh.useTexture = true;
+  mesh.sourcePanel = panel;
+  mesh.uvSize = uvSize;
+  mesh.faceAspect = uvSize[0] / uvSize[1];
 }
 
 function smoothQuad(corners: Vec3[], normals: Vec3[], uvs: number[][], color: Vec3, panel: string | null, inside: boolean, uvSize?: [number, number]): Mesh {

@@ -846,6 +846,29 @@ test('solid board: inside faces meet at creases, edges only on cut sides, covere
   assert.ok(flatStrips<panels*4,'fold lines between panels are not drawn as cut edges');
 });
 
+test('cut edges of printed board carry the print along them; corrugated edges show flutes',()=>{
+  const uvAt=(mesh,index)=>[mesh.vertices[index*8+6],mesh.vertices[index*8+7]];
+  const options={templateId:'base-box',formation:100,openingMode:'closed'};
+  const carton={width:65,height:160,depth:65,thickness:.5};
+  const solid=solidify(buildMeshes(carton,0,[1,1,1],[.8,.8,.8],options),carton.thickness);
+  const edges=solid.filter(mesh=>mesh.doubleSided&&!mesh.panel);
+  assert.ok(edges.length>0);
+  // Every cut edge and every fold end shows a panel's print, so a dark design
+  // has no pale lines at the lid and the corners that read as gaps.
+  for(const edge of edges)assert.ok(edge.useTexture&&edge.sourcePanel,'edge borrows a panel\'s print');
+  // The lid's cut edges read the lid's print at the cut: the same texture
+  // coordinates straight through the board.
+  const lidEdges=edges.filter(mesh=>mesh.sourcePanel==='Top'&&!mesh.bend);
+  assert.ok(lidEdges.length>0,'the lid shows cut edges');
+  for(const edge of lidEdges){
+    assert.deepEqual(uvAt(edge,0),uvAt(edge,5),'outer and inner corners share the print');
+    assert.deepEqual(uvAt(edge,1),uvAt(edge,2));
+  }
+  const shipper={width:200,height:80,depth:150,thickness:3};
+  const fluted=solidify(buildMeshes(shipper,0,[1,1,1],[.8,.8,.8],options),shipper.thickness).filter(mesh=>mesh.doubleSided&&!mesh.panel);
+  assert.ok(fluted.length>0&&fluted.every(mesh=>!mesh.sourcePanel),'corrugated edges keep the board and its flutes');
+});
+
 test('inside faces of every template can be picked in 3D',()=>{
   const cases=[['reverse-tuck-carton','closed'],['base-box','lid_from_back'],['split-top-box','top_split_meet_center'],['pizza-box','lid_from_back']];
   for(const [templateId,openingMode] of cases){

@@ -1,4 +1,5 @@
-import { faceNormal, quadFromCorners, type Mesh } from '@/lib/packaging/template-mesh';
+import { printedEdge } from '@/lib/packaging/fold-sheet';
+import { CORRUGATED_THICKNESS, faceNormal, quadFromCorners, type Mesh } from '@/lib/packaging/template-mesh';
 
 // How each face meets its neighbours, worked out from the template meshes so
 // every template gets soft inside corners, rounded folds and cut board edges
@@ -104,6 +105,33 @@ function closestNeighbour(quad: Quad, a: Vec3, b: Vec3, quads: (Quad | null)[], 
   return best;
 }
 
+/**
+ * Printed board shows its print right up to a cut, so a cut edge carries the
+ * colour of the print along it (the same texture coordinates straight
+ * through the board) and reads as part of the box rather than a gap.
+ */
+function printEdge(strip: Mesh, face: Mesh, edge: number) {
+  const panel = face.panel ?? face.sourcePanel;
+  if (!panel || !face.useTexture || face.vertices.length !== QUAD_FLOATS) return;
+  // Texture coordinates of the face's corners a, b, c, d.
+  const uv = [0, 1, 2, 5].map(index => [face.vertices[index * 8 + 6], face.vertices[index * 8 + 7]]);
+  const outer = uv[edge], next = uv[(edge + 1) % 4];
+  // The strip's corners are outer, next, inner next, inner: a b c | a c d.
+  [outer, next, next, outer, next, outer].forEach(([u, v], index) => {
+    strip.vertices[index * 8 + 6] = u;
+    strip.vertices[index * 8 + 7] = v;
+  });
+  const size = face.uvSize ?? quadSize(face);
+  printedEdge(strip, panel, size);
+  strip.faceAspect = face.faceAspect ?? size[0] / size[1];
+  if (face.fallbackPanel) { strip.fallbackPanel = face.fallbackPanel; strip.fallbackUv = face.fallbackUv; }
+}
+
+function quadSize(mesh: Mesh): [number, number] {
+  const v = mesh.vertices;
+  return [Math.max(Math.hypot(v[8] - v[0], v[9] - v[1], v[10] - v[2]), 1e-3), Math.max(Math.hypot(v[40] - v[0], v[41] - v[1], v[42] - v[2]), 1e-3)];
+}
+
 type Board = { id: string; outside: Quad; inside: Quad; inner: Vec3[] };
 
 /** Marks a quad edge that continues into a bent crease. */
@@ -196,6 +224,7 @@ export function solidify(meshes: Mesh[], thickness: number): Mesh[] {
       if (allFaces.some(face => face !== board.outside && liesOn(middle, face, thickness * 0.6))) return;
       const mesh = quadFromCorners(strip, board.outside.mesh.color.map(value => value * 0.86) as [number, number, number]);
       mesh.doubleSided = true;
+      if (thickness < CORRUGATED_THICKNESS) printEdge(mesh, board.outside.mesh, edge);
       edges.push(mesh);
     });
   }
