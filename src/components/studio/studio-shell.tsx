@@ -407,7 +407,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   // The flap size being pointed at or edited there; the grid marks what it changes.
   const [highlightedSize, setHighlightedSize] = useState<string | null>(null);
   // "Show sizes": measurements on the flat sheet and the 3D box, editable in place.
-  const [showSizes, setShowSizes] = useState(false);
+  // On by default; turning it off is remembered in this browser.
+  const showSizes = useSyncExternalStore(showSizesSetting.subscribe, showSizesSetting.get, () => true);
+  const setShowSizes = (update: (value: boolean) => boolean) => showSizesSetting.set(update(showSizes));
   // Phone-only bottom sheet height for the inspector / design tools; not persisted.
   const [sheetSize, setSheetSize] = useState<SheetSize>('half');
   const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
@@ -1461,15 +1463,15 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const control = selectedTemplate.parameters.find(parameter => parameter.key === key);
     return { key, kind: 'dimension', label: control?.label ?? key[0].toUpperCase() + key.slice(1), value: dimensions[key], min: Math.max(MIN_BOX_MM, control?.min ?? 1), max: Math.min(MAX_BOX_MM, control?.max ?? Infinity) };
   };
-  // On the 3D box once it's fully formed and closed.
-  const boxMeasures = showSizes && mode === '3d' && formation >= 99.5 && opening <= 0.5 ? {
+  // On the 3D box once it's fully formed; an open lid is measured closed.
+  const boxMeasures = showSizes && mode === '3d' && formation >= 99.5 ? {
     x: <SizeChip size={boxSize('width')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
     y: <SizeChip size={boxSize('height')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
     z: <SizeChip size={boxSize('depth')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
   } : null;
   const panelSizes = useMemo(
-    () => showSizes && workflowStep === 'design' ? getTemplateRuntime(selectedTemplateId)?.getPanelSizes?.(dimensions, { openingMode, splitTopHingeSide }) ?? null : null,
-    [showSizes, workflowStep, selectedTemplateId, dimensions, openingMode, splitTopHingeSide],
+    () => (showSizes || designPanel === 'sizes') && workflowStep === 'design' ? getTemplateRuntime(selectedTemplateId)?.getPanelSizes?.(dimensions, { openingMode, splitTopHingeSide }) ?? null : null,
+    [showSizes, designPanel, workflowStep, selectedTemplateId, dimensions, openingMode, splitTopHingeSide],
   );
 
   const stopFoldAnimation = () => {
@@ -1957,6 +1959,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <StudioViewBoundary view="3d"><CartonEngine
             ref={engineRef}
             measures={boxMeasures}
+            measuresHint={showSizes && mode === '3d' && formation < 99.5 ? t('studio.show_sizes_assemble_hint') : null}
             dimensions={dimensions}
             templateId={selectedTemplateId}
             opening={opening}
@@ -2056,6 +2059,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onCloseTools={()=>setDesignToolsOpen(false)}
           sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
           panelSizes={panelSizes}
+          showSizeChips={showSizes}
           onSetMeasuredSize={setMeasuredSize}
           highlightedPanels={designPanel==='sizes' && highlightedSize ? getTemplateRuntime(selectedTemplateId)?.getAdjustedPanels?.(dimensions,highlightedSize,{openingMode,splitTopHingeSide}) ?? [] : []}
           sheetSize={sheetSize}
@@ -2832,6 +2836,7 @@ function DielinePrototype({
   sizesPanel,
   highlightedPanels,
   panelSizes,
+  showSizeChips,
   onSetMeasuredSize,
   sheetSize,
   onSheetSize,
@@ -2876,8 +2881,10 @@ function DielinePrototype({
   sizesPanel:React.ReactNode;
   /** Panel ids the flap size being edited changes, marked on the grid. */
   highlightedPanels:string[];
-  /** With "Show sizes" on: the box or flap size each panel shows, editable in place. */
+  /** With "Show sizes" on or the Sizes tool open: the box or flap size each panel shows. */
   panelSizes:PanelSizes[]|null;
+  /** Show the sizes as editable chips ("Show sizes"); flap drag handles show either way. */
+  showSizeChips:boolean;
   onSetMeasuredSize:(size:MeasuredSize,mm:number)=>void;
   sheetSize:SheetSize;
   onSheetSize:(size:SheetSize)=>void;
@@ -2918,6 +2925,77 @@ function DielinePrototype({
   },[panelSizes,cartonPanels]);
   const sizeDrivenPanels=hoveredSizeKey&&panelSizes?panelSizes.filter(entry=>entry.x?.key===hoveredSizeKey||entry.y?.key===hoveredSizeKey).map(entry=>entry.panel):[];
   const highlighted=sizeDrivenPanels.length?sizeDrivenPanels:highlightedPanels;
+  // Drag handles for the flap sizes: one per size, on the free edge of the
+  // largest flap it drives (the edge facing away from the box's body
+  // panels). Dragging that edge outwards makes the flap bigger, one for one.
+  const sizeHandles=useMemo(()=>{
+    if(!panelSizes) return [];
+    const bodies=cartonPanels.filter(panel=>panel.kind==='body');
+    if(!bodies.length) return [];
+    const centre={x:bodies.reduce((sum,panel)=>sum+panel.x+panel.width/2,0)/bodies.length,y:bodies.reduce((sum,panel)=>sum+panel.y+panel.height/2,0)/bodies.length};
+    const best=new Map<string,{panel:typeof cartonPanels[number];axis:'x'|'y';size:MeasuredSize}>();
+    for(const entry of panelSizes)for(const axis of ['x','y'] as const){
+      const size=entry[axis];
+      if(size?.kind!=='adjustment'||size.max-size.min<0.5)continue;
+      const panel=cartonPanels.find(item=>item.id===entry.panel);
+      if(!panel)continue;
+      const current=best.get(size.key);
+      if(!current||panel.width*panel.height>=current.panel.width*current.panel.height)best.set(size.key,{panel,axis,size});
+    }
+    return [...best.values()].map(({panel,axis,size})=>{
+      const low=axis==='x'?panel.x+panel.width/2<centre.x:panel.y+panel.height/2<centre.y;
+      const direction=low?-1:1;
+      return axis==='x'
+        ?{size,axis,direction,x:low?panel.x:panel.x+panel.width,y:panel.y+panel.height/2}
+        :{size,axis,direction,x:panel.x+panel.width/2,y:low?panel.y:panel.y+panel.height};
+    });
+  },[panelSizes,cartonPanels]);
+  type SizeHandle=(typeof sizeHandles)[number];
+  const [draggingSize,setDraggingSize]=useState<string|null>(null);
+  const beginSizeDrag=(event:React.PointerEvent<HTMLButtonElement>,handle:SizeHandle)=>{
+    event.preventDefault();
+    event.stopPropagation();
+    const target=event.currentTarget;
+    const layer=target.parentElement;
+    if(!layer)return;
+    // Screen pixels per millimetre of sheet, at the zoom the drag starts at.
+    const scale=layer.getBoundingClientRect().width/bounds.width;
+    if(!(scale>0))return;
+    target.setPointerCapture(event.pointerId);
+    const start={x:event.clientX,y:event.clientY,value:handle.size.value};
+    let frame:number|null=null,latest=start.value;
+    setDraggingSize(handle.size.key);
+    setHoveredSizeKey(handle.size.key);
+    const apply=()=>{frame=null;onSetMeasuredSize(handle.size,latest);};
+    const move=(moveEvent:PointerEvent)=>{
+      const moved=(handle.axis==='x'?moveEvent.clientX-start.x:moveEvent.clientY-start.y)/scale*handle.direction;
+      const next=Math.min(handle.size.max,Math.max(handle.size.min,Math.round((start.value+moved)*2)/2));
+      if(next===latest)return;
+      latest=next;
+      if(frame===null)frame=requestAnimationFrame(apply);
+    };
+    const end=()=>{
+      target.removeEventListener('pointermove',move);
+      target.removeEventListener('pointerup',end);
+      target.removeEventListener('pointercancel',end);
+      if(frame!==null){cancelAnimationFrame(frame);apply();}
+      setDraggingSize(null);
+      setHoveredSizeKey(null);
+    };
+    target.addEventListener('pointermove',move);
+    target.addEventListener('pointerup',end);
+    target.addEventListener('pointercancel',end);
+  };
+  // Arrow keys move a focused handle by a millimetre (ten with Shift).
+  const nudgeSizeHandle=(event:React.KeyboardEvent<HTMLButtonElement>,handle:SizeHandle)=>{
+    const keys=handle.axis==='x'?{ArrowLeft:-1,ArrowRight:1}:{ArrowUp:-1,ArrowDown:1};
+    const way=keys[event.key as keyof typeof keys];
+    if(!way)return;
+    event.preventDefault();
+    event.stopPropagation();
+    const step=(event.shiftKey?10:1)*way*handle.direction;
+    onSetMeasuredSize(handle.size,Math.min(handle.size.max,Math.max(handle.size.min,handle.size.value+step)));
+  };
   // The cutting template's own cut and crease lines, drawn over the artwork.
   // Sizes the cutting template cannot be made at (a width half typed, say)
   // simply show no lines.
@@ -3639,7 +3717,20 @@ function DielinePrototype({
           </g>)}
         </svg>}
 
-        {sizePlacements && <div className="pro-dieline-sizes">
+        {sizeHandles.length>0 && <div className="pro-dieline-size-handles">
+          {sizeHandles.map(handle=><button key={handle.size.key} type="button"
+            className={`dl-size-handle is-${handle.axis}${draggingSize===handle.size.key?' is-dragging':''}`}
+            style={{left:cssPercent(handle.x/bounds.width*100),top:cssPercent(handle.y/bounds.height*100)}}
+            title={`${handle.size.label}: drag to resize`}
+            aria-label={`${handle.size.label} ${formatDimension(handle.size.value,measurementUnit)} ${measurementUnit}. Drag, or use the arrow keys, to resize`}
+            onPointerEnter={()=>setHoveredSizeKey(handle.size.key)}
+            onPointerLeave={()=>{if(draggingSize!==handle.size.key)setHoveredSizeKey(null);}}
+            onPointerDown={event=>beginSizeDrag(event,handle)}
+            onKeyDown={event=>nudgeSizeHandle(event,handle)}
+          >{draggingSize===handle.size.key&&<span className="dl-size-handle-value">{handle.size.label} {formatDimension(handle.size.value,measurementUnit)} {measurementUnit}</span>}</button>)}
+        </div>}
+
+        {showSizeChips && sizePlacements && <div className="pro-dieline-sizes">
           {sizePlacements.map(({panel,sizes})=><span key={panel.id} className={`dl-sizes${sizes.every(size=>size.kind==='adjustment')?' is-flap':''}`} style={{left:cssPercent((panel.x+panel.width/2)/bounds.width*100),top:cssPercent((panel.y+panel.height/2)/bounds.height*100)}}>
             {sizes.map(size=><SizeChip key={size.key} size={size} unit={measurementUnit} onCommit={onSetMeasuredSize} onHover={setHoveredSizeKey}/>)}
           </span>)}
@@ -3990,6 +4081,27 @@ function parseDimension(value: number, unit: MeasurementUnit) {
   if (!Number.isFinite(value)) return 0;
   return unit === 'mm' ? value : value * 25.4;
 }
+
+/** "Show sizes", kept per browser: on unless someone turned it off. */
+const showSizesSetting = (() => {
+  const key = 'studio.showSizes';
+  const listeners = new Set<() => void>();
+  let fallback = true;
+  return {
+    get() {
+      try { return window.localStorage.getItem(key) !== 'off'; } catch { return fallback; }
+    },
+    set(value: boolean) {
+      fallback = value;
+      try { window.localStorage.setItem(key, value ? 'on' : 'off'); } catch { /* storage unavailable: kept for this page */ }
+      listeners.forEach(listener => listener());
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
+    },
+  };
+})();
 
 const MIN_BOX_MM = 1, MAX_BOX_MM = 3000, MIN_BOARD_MM = 0.1, MAX_BOARD_MM = 2;
 

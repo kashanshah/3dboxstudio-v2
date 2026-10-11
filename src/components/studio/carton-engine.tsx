@@ -78,6 +78,8 @@ type Props = {
    * drawn along its nearest edges; null hides them.
    */
   measures?: { x: ReactNode; y: ReactNode; z: ReactNode } | null;
+  /** Shown in place of the measurements while they can't be drawn (a flat or half-folded box). */
+  measuresHint?: string | null;
 };
 
 type Point = { x: number; y: number };
@@ -118,7 +120,7 @@ function measureLines(corners: (Point & { distance: number })[]): MeasureLine[] 
 const NO_PAN = { x: 0, y: 0 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true, measures = null },
+  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true, measures = null, measuresHint = null },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -440,5 +442,5 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       </g>)}
     </svg>
     {lines.map(line => <span key={line.axis} className="carton-engine-measure-label" style={{ left: line.label.x, top: line.label.y }}>{measures[line.axis]}</span>)}
-  </div>}</>;
+  </div>}{!measures && measuresHint && <div className="carton-engine-measures-hint" role="status">{measuresHint}</div>}</>;
 });
