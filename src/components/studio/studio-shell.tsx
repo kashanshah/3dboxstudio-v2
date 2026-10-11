@@ -3711,7 +3711,7 @@ function MediaLibraryModal(props: {
                 aria-pressed={props.selectedAssetId === asset.id}
                 onClick={() => props.setSelectedAssetId(asset.id)}
               >
-                <img src={asset.url} alt={asset.name} />
+                <span className="pro-media-tile-thumb"><img src={asset.url} alt={asset.name} /></span>
                 <span className="pro-media-tile-name">{asset.name}</span>
                 {props.selectedAssetId === asset.id && <span className="pro-media-check"><Check size={14}/></span>}
                 {used > 0 && <span className="pro-media-usage">{used}</span>}
