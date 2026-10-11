@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { defaultOgImage } from '@/lib/site';
 import { ContentPageShell } from '@/components/content-page-shell';
 import { PRIVACY_EFFECTIVE_DATE, PRIVACY_PAGE_DESCRIPTION, PRIVACY_PAGE_TITLE, PRIVACY_SECTIONS, type PrivacySection } from '@/content/privacy';
 
-export const metadata: Metadata = { title: { absolute: `${PRIVACY_PAGE_TITLE} | 3D Box Studio` }, description: PRIVACY_PAGE_DESCRIPTION, alternates: { canonical: '/privacy' } };
+export const metadata: Metadata = { title: { absolute: `${PRIVACY_PAGE_TITLE} | 3D Box Studio` }, description: PRIVACY_PAGE_DESCRIPTION, alternates: { canonical: '/privacy' }, openGraph: { title: `${PRIVACY_PAGE_TITLE} | 3D Box Studio`, description: PRIVACY_PAGE_DESCRIPTION, url: '/privacy', type: 'website', images: [defaultOgImage] } };
 
 function slug(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 type PrivacyBodySection = Exclude<PrivacySection, { type: 'h2' }>;

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
+import { defaultOgImage } from '@/lib/site';
 import { ContentPageShell } from '@/components/content-page-shell';
 import { TERMS_EFFECTIVE_DATE, TERMS_PAGE_DESCRIPTION, TERMS_PAGE_TITLE, TERMS_SECTIONS, type TermsSection } from '@/content/terms';
 
-export const metadata: Metadata = { title: { absolute: `${TERMS_PAGE_TITLE} | 3D Box Studio` }, description: TERMS_PAGE_DESCRIPTION, alternates: { canonical: '/terms' } };
+export const metadata: Metadata = { title: { absolute: `${TERMS_PAGE_TITLE} | 3D Box Studio` }, description: TERMS_PAGE_DESCRIPTION, alternates: { canonical: '/terms' }, openGraph: { title: `${TERMS_PAGE_TITLE} | 3D Box Studio`, description: TERMS_PAGE_DESCRIPTION, url: '/terms', type: 'website', images: [defaultOgImage] } };
 
 function slug(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
 type TermsBodySection = Exclude<TermsSection, { type: 'h2' }>;

@@ -20,14 +20,14 @@ export function GET() {
 
   const body = `# 3D Box Studio
 
-> 3D Box Studio is a free online 3D box generator, maker and packaging mockup tool. You choose a box structure, enter exact dimensions in millimetres or inches, place artwork on the flat dieline, fold the box in an interactive 3D preview, and export PNG mockups or the dieline as a 1:1 PDF, SVG or DXF. It runs in the browser; using the Studio requires a free account (Google or email).
+> 3D Box Studio is a free online 3D box generator, maker and packaging mockup tool. You choose a box structure, enter exact dimensions in millimetres or inches, place artwork on the flat dieline, fold the box in an interactive 3D preview, and export PNG mockups, an MP4 fold-and-turn video, or the dieline as a 1:1 PDF, SVG or DXF. It runs in the browser; using the Studio requires a free account (Google or email).
 
 ## Key facts
 
 - Price: free. A free account is required to use the Studio, save designs and export. Shared preview links can be opened by anyone without an account.
 - Box templates available now: reverse tuck end carton, straight tuck end box, split top box, pizza box, mailer box (FEFCO 0427), sleeve box and rigid lid and base box (two-piece set-up box with corner ears, turn-ins, adjustable lid height and turn-in depth). Flap and panel sizes can be adjusted per side on most templates. Drawer boxes are planned, not yet available.
 - Workflow: 1) Box — structure, finished size and material; 2) Design — artwork on the outside and inside of the dieline with cut, crease and bleed guides, and an artboard (the dieline plus bleed) that full-sheet artwork can be made to fit; 3) Preview & Download — fold from flat to closed in 3D, then export.
-- Exports: PNG mockup images from the 3D view; a 1:1 vector PDF dieline (outside or inside, adjustable bleed, cut and crease lines, calibration ruler); the cutting template on its own as SVG or DXF (R12) at 1:1 in millimetres, with cut and crease lines on separate CUT and CREASE layers, for die makers, CAD programs, cutting tables, Cricut and laser cutters. No video or MP4 export yet.
+- Exports: PNG mockup images from the 3D view; a 1:1 vector PDF dieline (outside or inside, adjustable bleed, cut and crease lines, calibration ruler); the cutting template on its own as SVG or DXF (R12) at 1:1 in millimetres, with cut and crease lines on separate CUT and CREASE layers, for die makers, CAD programs, cutting tables, Cricut and laser cutters. An MP4 video of about 10 seconds: the box folds from flat to closed, then turns once (1080p, 720p on phones).
 - Sharing: view-only interactive 3D links for clients and teammates.
 - Production: dielines are design-ready layouts for proofs and review. Validate board thickness, tolerances, glue areas and printer requirements with your printer before manufacturing.
 - Commercial use: exports of your own designs can be used for client work, marketing and e-commerce, provided you have rights to the uploaded artwork.

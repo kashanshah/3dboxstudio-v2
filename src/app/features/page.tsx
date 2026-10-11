@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
 import { FeaturesHeroVideo } from "@/components/features-hero-video";
 import { MarketingProductPage } from "@/components/marketing-product-page";
-import { site } from "@/lib/site";
+import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: {
     absolute: "3D Box Studio Features — 2D Dieline Design, 3D Preview & Export",
   },
   description:
-    "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, PDF, SVG and DXF dielines, saving and share links.",
+    "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, adjustable flap sizes, opening simulation, PNG and MP4 export, PDF, SVG and DXF dielines, saving and share links.",
   alternates: { canonical: "/features" },
   openGraph: {
     title: "3D Box Studio Features — 2D Dieline Design, 3D Preview & Export",
     description:
-      "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, PDF, SVG and DXF dielines, saving and share links.",
+      "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, adjustable flap sizes, opening simulation, PNG and MP4 export, PDF, SVG and DXF dielines, saving and share links.",
     type: "website",
+    url: "/features",
+    images: [defaultOgImage],
   },
 };
 
@@ -26,6 +28,16 @@ const sections = [
       "Template-based geometry",
       "Finished dimensions and units",
       "Material and finish controls",
+    ],
+  },
+  {
+    title: "Change any flap or panel size",
+    body: "Every template has its own adjustable sizes: tuck flaps, dust flaps, glue flaps, lid height, turn-ins and more. Type a size in the Sizes panel, click a size on the 3D box or the flat dieline and type over it, or drag a handle on the dieline. The cutting template, the 3D fold and the exports all follow.",
+    bullets: [
+      "Per-side flap and panel sizes",
+      "Edit on the 3D box or the dieline",
+      "Drag handles on the dieline",
+      "Show sizes on or off",
     ],
   },
   {
@@ -53,14 +65,15 @@ const sections = [
     body: "Use fold/open controls to inspect how the structure behaves rather than judging only a closed hero angle.",
     bullets: [
       "Open/close controls",
+      "Animated fold from flat to closed",
       "Structure-specific motion",
       "Assembled and flatter review states",
     ],
   },
   {
     title: "Export, save, and share",
-    body: "Download PNG previews, export the dieline as a 1:1 PDF, SVG or DXF, save projects to your account, reopen designs later, and create shareable preview links for review.",
-    bullets: ["PNG export", "1:1 PDF dieline with artwork", "SVG and DXF cutting templates", "Project save/reopen", "Shareable previews"],
+    body: "Download transparent PNG images up to 4K, a 10-second MP4 of the box folding closed and turning, the dieline as a 1:1 PDF with your artwork, or the cutting template as SVG or DXF. Save projects to your account, duplicate designs, and create view-only share links for review.",
+    bullets: ["PNG export up to 4K", "MP4 fold-and-turn video", "1:1 PDF dieline with artwork", "SVG and DXF cutting templates", "Projects, duplicates and share links"],
   },
 ];
 const faqs = [
@@ -110,7 +123,7 @@ export default function Page() {
         "@type": "WebPage",
         name: "A packaging design workspace that connects the dieline to the 3D box.",
         description:
-          "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, PDF, SVG and DXF dielines, saving and share links.",
+          "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, adjustable flap sizes, opening simulation, PNG and MP4 export, PDF, SVG and DXF dielines, saving and share links.",
         url,
       },
       {

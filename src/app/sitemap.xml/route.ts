@@ -45,6 +45,8 @@ function getEntries(): SitemapEntry[] {
     ...BOX_TEMPLATE_PAGES.map((page): SitemapEntry => ({ path: `/box-templates/${page.slug}`, lastModified: new Date(page.updated), changeFrequency: 'monthly', priority: 0.85 })),
     { path: '/faq', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/contact', changeFrequency: 'monthly', priority: 0.5 },
+    { path: '/privacy', lastModified: new Date('2026-10-11'), changeFrequency: 'yearly', priority: 0.3 },
+    { path: '/terms', lastModified: new Date('2026-10-11'), changeFrequency: 'yearly', priority: 0.3 },
     { path: '/blog', changeFrequency: 'weekly', priority: 0.8 },
   ];
 

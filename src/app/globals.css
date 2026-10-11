@@ -740,8 +740,8 @@ body{font-size:var(--type-body)}
 }
 .marketing-footer-links{
   display:grid;
-  grid-template-columns:repeat(3,minmax(130px,1fr));
-  gap:48px;
+  grid-template-columns:repeat(4,minmax(130px,1fr));
+  gap:40px;
 }
 .marketing-footer-links>div{display:flex;flex-direction:column;gap:10px}
 .marketing-footer-links b{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}

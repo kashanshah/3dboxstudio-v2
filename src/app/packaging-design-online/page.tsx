@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
+import { TemplatePageLinks } from "@/components/template-page-links";
 import { site, defaultOgImage } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: { absolute: "Packaging Design Online — Dieline Artwork to 3D Preview | 3D Box Studio" },
-  description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share and PNG export.",
+  description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share, PNG and MP4 export, and 1:1 dielines.",
   alternates: { canonical: "/packaging-design-online" },
-  openGraph: { images:[defaultOgImage], title: "Packaging Design Online — Dieline Artwork to 3D Preview | 3D Box Studio", description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share and PNG export.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Packaging Design Online — Dieline Artwork to 3D Preview | 3D Box Studio", description: "Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share, PNG and MP4 export, and 1:1 dielines.", type: "website" }
 };
 
 const sections = [
@@ -61,8 +62,8 @@ const faqs = [
 export default function Page(){
   const url=new URL("/packaging-design-online",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
-    {"@type":"WebPage",name:"Design packaging online without separating the flat file from the 3D proof.",description:"Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share and PNG export.",url},
+    {"@type":"WebPage",name:"Design packaging online without separating the flat file from the 3D proof.",description:"Design packaging online in a browser workflow that combines box structure, finished dimensions, dieline artwork, layers, 3D preview, save, share, PNG and MP4 export, and 1:1 dielines.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Packaging design online" title="Design packaging online without separating the flat file from the 3D proof." intro="3D Box Studio combines the box setup, 2D packaging artwork workspace, and interactive 3D review so a design can move from panel layout to client-ready preview without rebuilding the mockup." secondaryHref="/features" secondaryLabel="View all features" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage afterHero={<TemplatePageLinks title="Choose a box to design online" />} eyebrow="Packaging design online" title="Design packaging online without separating the flat file from the 3D proof." intro="3D Box Studio combines the box setup, 2D packaging artwork workspace, and interactive 3D review so a design can move from panel layout to client-ready preview without rebuilding the mockup." secondaryHref="/features" secondaryLabel="View all features" sections={sections} faqs={faqs} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

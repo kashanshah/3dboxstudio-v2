@@ -61,7 +61,7 @@ const faqs = [
   },
   {
     "question": "Is the generated dieline press-ready?",
-    "answer": "Not universally. Dimensional and production tolerances are still being improved, so final manufacturing files should be checked for bleed, tolerances, board behavior, cut/fold rules, and printer requirements."
+    "answer": "It is a 1:1 cutting template drawn from your inside size and board thickness, ready for proofs, samples and quotes. Each factory has its own board, crease rules and tooling, so have your printer confirm the final die before production."
   },
   {
     "question": "Can I design artwork on the generated dieline?",

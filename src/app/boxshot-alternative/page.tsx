@@ -41,7 +41,7 @@ const rows = [
   },
   {
     "label": "3D preview",
-    "ours": "Real-time fold and open, orbit, PNG export",
+    "ours": "Real-time fold and open, orbit, PNG and MP4 export",
     "theirs": "Photoreal renders, animations and 3D HTML export"
   },
   {
@@ -86,7 +86,7 @@ const faqs = [
   },
   {
     "question": "Can 3D Box Studio export animations or video?",
-    "answer": "Not yet. It exports PNG images from the 3D view and a PDF dieline."
+    "answer": "Yes, a short one. It exports an MP4 of about 10 seconds in which the box folds from flat to closed and turns once, along with PNG images and the PDF, SVG and DXF dieline. Boxshot is stronger for long, custom-animated renders."
   },
   {
     "question": "Can I use the dieline for printing?",
