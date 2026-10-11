@@ -19,6 +19,8 @@ export function useDialogFocus<T extends HTMLElement=HTMLElement>(open:boolean,o
    const node=ref.current;
    (node?.querySelector<HTMLElement>('[data-autofocus]:not(:disabled)')??node?.querySelector<HTMLElement>('input:not(:disabled)')??node?.querySelector<HTMLElement>('.button-primary:not(:disabled)')??items()[0]??node)?.focus();
    const keydown=(event:KeyboardEvent)=>{
+     // A dialog opened inside this one handles its own keys.
+     if(ref.current?.querySelector('[aria-modal="true"]'))return;
      if(event.key==='Escape'){event.preventDefault();if(!latest.current.busy)latest.current.onClose();return;}
      if(event.key!=='Tab')return;
      const list=items(),first=list[0],last=list[list.length-1];

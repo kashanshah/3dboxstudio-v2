@@ -51,36 +51,6 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
     "category": "templates.drawer-box.category",
     "description": "templates.drawer-box.description"
   },
-  "stand-up-pouch": {
-    "name": "templates.stand-up-pouch.name",
-    "shortName": "templates.stand-up-pouch.shortName",
-    "category": "templates.stand-up-pouch.category",
-    "description": "templates.stand-up-pouch.description"
-  },
-  "glass-bottle": {
-    "name": "templates.glass-bottle.name",
-    "shortName": "templates.glass-bottle.shortName",
-    "category": "templates.glass-bottle.category",
-    "description": "templates.glass-bottle.description"
-  },
-  "round-jar": {
-    "name": "templates.round-jar.name",
-    "shortName": "templates.round-jar.shortName",
-    "category": "templates.round-jar.category",
-    "description": "templates.round-jar.description"
-  },
-  "paper-cup": {
-    "name": "templates.paper-cup.name",
-    "shortName": "templates.paper-cup.shortName",
-    "category": "templates.paper-cup.category",
-    "description": "templates.paper-cup.description"
-  },
-  "beverage-can": {
-    "name": "templates.beverage-can.name",
-    "shortName": "templates.beverage-can.shortName",
-    "category": "templates.beverage-can.category",
-    "description": "templates.beverage-can.description"
-  }
 };
 
 /** Localize display fields only. Geometry, panel names, category filters and persisted IDs remain stable. */

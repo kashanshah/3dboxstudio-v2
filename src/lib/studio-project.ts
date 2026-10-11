@@ -53,7 +53,7 @@ const OPENING_MODES=new Set<LegacyOpeningMode>(['closed','lid_from_back','lid_fr
 export function validProjectState(value:unknown):value is StudioProjectState{
  if(!value||typeof value!=='object')return false;const s=value as StudioProjectState;
  const template=typeof s.templateId==='string'?getPackagingTemplate(s.templateId):null;
- if(s.version!==1||!template||template.status!=='ready'||!s.dimensions||!(['width','height','depth','thickness'] as const).every(key=>typeof s.dimensions[key]==='number'&&Number.isFinite(s.dimensions[key])&&s.dimensions[key]>0))return false;
+ if(s.version!==1||!template||template.status!=='ready'||!s.dimensions||!(['width','height','depth','thickness'] as const).every(key=>typeof s.dimensions[key]==='number'&&Number.isFinite(s.dimensions[key])&&s.dimensions[key]>0&&s.dimensions[key]<=100000))return false;
  // Flap and panel sizes the user set: a few named lengths in mm.
  const adjustments=s.dimensions.adjustments;
  if(adjustments!==undefined&&(!adjustments||typeof adjustments!=='object'||Array.isArray(adjustments)||Object.keys(adjustments).length>40||!Object.entries(adjustments).every(([key,value])=>/^[A-Za-z][A-Za-z0-9]{0,40}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=100000)))return false;
