@@ -78,6 +78,7 @@ export const reverseTuckDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the tuck and dust flaps.',
   },
   catalog: {
+    defaultMaterial: 'White board',
     thumbnail: '/images/templates/reverse-tuck-carton.webp',
     version: 1,
     isDefault: true,

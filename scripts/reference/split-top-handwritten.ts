@@ -11,7 +11,7 @@ import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { sanitizeCorrugatedDimensions } from '@/lib/packaging/templates/corrugated';
 import { finishExportGeometry, rectangleOutline, type ExportPanel, type PointMm } from '@/lib/packaging/export-geometry';
 import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
-import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
+import { creaseHalfWidth, foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import type { TemplateRuntime } from '@/lib/packaging/template-runtime';
 import { boardThickness, panelName, substage } from '@/lib/packaging/templates/folded-box';
 
@@ -133,7 +133,7 @@ export const buildSplitTopTemplateMeshes: TemplateMeshBuilder = ({ dimensions, f
   const quarter = Math.PI / 2;
   // The outer flaps fold as far out as a score allows (half its width) and
   // the inner flaps one board further in, so the outer pair lies on them.
-  const outerSetback = -1.5 * t, innerSetback = outerSetback + t;
+  const outerSetback = -creaseHalfWidth(t), innerSetback = outerSetback + t;
   // The outer pair of top flaps.
   const outerTop = splitTopHingeSide === 'side_b' ? ['front', 'back'] : ['right', 'left'];
   const name = (end: string, wall: string) => `${end}${wall[0].toUpperCase()}${wall.slice(1)}`;

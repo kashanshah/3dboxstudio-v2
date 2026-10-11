@@ -1,7 +1,7 @@
 import type { LegacyOpeningMode } from '@/lib/studio-project';
 import type { TemplateGeometryOptions, TemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
-import { foldSheet, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
+import { creaseHalfWidth, foldSheet, restingSetback, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import { panelName, substage } from '@/lib/packaging/templates/folded-box';
 import { evaluate, interpolate } from './expression';
 import type { DimensionKey, ExpandedTemplate, ParametricTemplate } from './format';
@@ -26,6 +26,10 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
       });
     }
     scope.foldT = evaluate(definition.fold.thickness, scope);
+    // The fold engine's crease, for setbacks: half a crease (the furthest a
+    // flap can fold out) and the setback that rests a lid on the walls' edges.
+    scope.foldCrease = creaseHalfWidth(scope.foldT);
+    scope.foldResting = restingSetback(scope.foldT);
     const progress = {
       formation: Math.min(1, Math.max(0, input.formation / 100)),
       opening: Math.min(1, Math.max(0, input.opening / 100)),

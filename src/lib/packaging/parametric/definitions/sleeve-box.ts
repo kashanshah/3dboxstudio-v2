@@ -87,6 +87,7 @@ export const sleeveBoxDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid.',
   },
   catalog: {
+    defaultMaterial: 'White board',
     thumbnail: '/images/templates/sleeve-box.webp',
     version: 1,
     name: 'Sleeve Box',

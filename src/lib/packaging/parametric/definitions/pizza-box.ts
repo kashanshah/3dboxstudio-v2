@@ -196,7 +196,7 @@ export const pizzaBoxDefinition = {
       ['turnInner', 'stage(formation, 0.7, 0.85) * (pi / 2)'],
       ['turnSkirts', 'stage(formation, 0.7, 1) * (pi / 2)'],
       ['turnLid', '(1 - opening) * stage(formation, 0.6, 1) * (pi / 2)'],
-      ['resting', '(6 / pi - 1.5) * foldT - foldT * 1.05'],
+      ['resting', 'foldResting'],
     ],
     hinges: [
       hinge('left', 'bottom', 'turnSides'),
@@ -226,6 +226,7 @@ export const pizzaBoxDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the flaps.',
   },
   catalog: {
+    defaultMaterial: 'Kraft',
     thumbnail: '/images/templates/pizza-box.webp',
     version: 1,
     name: 'Pizza Box',

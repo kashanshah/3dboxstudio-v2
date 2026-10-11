@@ -34,7 +34,7 @@ import type { MeasuredSize, PanelSizes } from '@/lib/packaging/parametric/sheet'
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
-import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
+import { PACKAGING_TEMPLATES, STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
@@ -240,7 +240,6 @@ const studioAreas: { id: StudioArea; label: MessageKey; shortLabel?: MessageKey;
   { id: 'preview', label: "studio.preview_download", shortLabel: "studio.preview_short", helper: "studio.3d_review_output", icon: Boxes, defaultTool: 'opening', tools: ['opening','scene','export'] },
 ];
 
-const materials = ['White board','Kraft','Soft touch','Matte coated','Gloss coated','Foil'];
 const cameras = ['Perspective','Hero','Back angle','Overhead','Front','Back','Left','Right','Top'];
 
 type HistoryStatus = {canUndo:boolean;canRedo:boolean};
@@ -360,7 +359,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [templatePreview,setTemplatePreview] = useState<PackagingTemplateDefinition|null>(null);
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
-  const [material, setMaterial] = useState(initial?.material ?? 'Soft touch');
+  // A new design starts in its template's finish (a mailer in kraft, a
+  // carton in white board); switching templates brings the new template's
+  // finish until the person picks a finish or colour themselves. A saved
+  // design keeps its own.
+  const [material, setMaterial] = useState<string>(initial?.material ?? initialTemplate.defaultMaterial);
+  const finishChosenRef = useRef(Boolean(initial));
   const [outsideColorMode, setOutsideColorMode] = useState<BaseColorMode>(initial?.outsideColorMode ?? 'material');
   const [insideColorMode, setInsideColorMode] = useState<BaseColorMode>(initial?.insideColorMode ?? 'material');
   const [outsideCustomColor, setOutsideCustomColor] = useState(initial?.outsideCustomColor ?? '#C7D4DE');
@@ -923,6 +927,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => document.removeEventListener('pointerdown', dismissOnOutsidePointer, true);
   }, [faceAction]);
 
+  /** Wraps a finish setter so the person's own choice outlasts template switches. */
+  const chooseFinish = <T,>(setter: (value: T) => void) => (value: T) => { finishChosenRef.current = true; setter(value); };
+
   const chooseTemplate = (template: PackagingTemplateDefinition) => {
     if (template.status !== 'ready') {
       setMessage(`${getPackagingTemplateCopy(template, t).name} is in the catalog, but its real geometry is not ready yet`);
@@ -941,6 +948,11 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setSplitTopHingeSide('side_a');
     setOpeningValue(0);
     if (template.defaultDimensions) setDimensions(runtime.sanitizeParameters(template.defaultDimensions));
+    if (!finishChosenRef.current) {
+      setMaterial(template.defaultMaterial);
+      setOutsideColorMode('material');
+      setInsideColorMode('material');
+    }
     setMessage(`${getPackagingTemplateCopy(template, t).name} selected`);
   };
 
@@ -2249,7 +2261,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2693,7 +2705,7 @@ function Inspector(props: {
 
   if (tool === 'material') return <div className="pro-inspector-content">
     <PanelIntro title={t("studio.material_finish_2")} text={t("studio.choose_the_board_or_surface_treatment_then_fine_tune_the_physical_material_")} />
-    <div className="pro-material-grid">{materials.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
+    <div className="pro-material-grid">{STUDIO_MATERIALS.map(item=><button key={item} className={props.material===item?'is-selected':''} onClick={()=>props.setMaterial(item)}><span className={`material-${item.toLowerCase().replaceAll(' ','-')}`}/><b>{item}</b></button>)}</div>
 
     <div className="pro-card-section pro-base-color-card">
       <SectionTitle title={t("studio.base_color")} meta="Inside / outside" />
@@ -4034,7 +4046,7 @@ function MediaLibraryModal(props: {
                 aria-pressed={props.selectedAssetId === asset.id}
                 onClick={() => props.setSelectedAssetId(asset.id)}
               >
-                <img src={asset.url} alt={asset.name} />
+                <span className="pro-media-tile-thumb"><img src={asset.url} alt={asset.name} /></span>
                 <span className="pro-media-tile-name">{asset.name}</span>
                 {props.selectedAssetId === asset.id && <span className="pro-media-check"><Check size={14}/></span>}
                 {used > 0 && <span className="pro-media-usage">{used}</span>}
