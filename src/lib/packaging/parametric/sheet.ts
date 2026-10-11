@@ -141,7 +141,21 @@ export function compileParametricSheet(source: ParametricTemplate) {
     return sheet(input, options);
   };
 
-  return { definition, sanitize, values, adjustableSizes, sheet, exportGeometry };
+  /**
+   * The panels one adjustable size changes the shape of, found by nudging the
+   * size and comparing: panels that only move along don't count.
+   */
+  const adjustedPanels = (input: CartonDimensions, options: OptionValues, key: string): string[] => {
+    const size = adjustableSizes(input, options).find(item => item.key === key);
+    if (!size || size.max - size.min < 1e-6) return [];
+    const nudged = size.value + (size.value + 1 <= size.max ? 1 : -Math.min(1, size.value - size.min));
+    const shapes = (value: number) => new Map(sheet({ ...input, adjustments: { ...input.adjustments, [key]: value } }, options).panels
+      .map(panel => [panel.id, panel.outline.map(point => `${(point.x - panel.x).toFixed(4)},${(point.y - panel.y).toFixed(4)}`).join(' ')]));
+    const before = shapes(size.value), after = shapes(nudged);
+    return [...after.keys()].filter(id => before.get(id) !== after.get(id));
+  };
+
+  return { definition, sanitize, values, adjustableSizes, adjustedPanels, sheet, exportGeometry };
 }
 
 export type ParametricSheet = ReturnType<typeof compileParametricSheet>;

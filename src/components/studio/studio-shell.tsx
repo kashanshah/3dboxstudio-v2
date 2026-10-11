@@ -402,6 +402,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [designToolsOpen, setDesignToolsOpen] = useState(true);
   // The Design step's left panel: artwork, or the flap and panel sizes.
   const [designPanel, setDesignPanel] = useState<'artwork' | 'sizes'>('artwork');
+  // The flap size being pointed at or edited there; the grid marks what it changes.
+  const [highlightedSize, setHighlightedSize] = useState<string | null>(null);
   // Phone-only bottom sheet height for the inspector / design tools; not persisted.
   const [sheetSize, setSheetSize] = useState<SheetSize>('half');
   const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
@@ -1441,18 +1443,42 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, mediaLibraryOpen, removeFullDielineLayer]);
 
+  const stopFoldAnimation = () => {
+    if (foldAnimationRef.current === null) return;
+    cancelAnimationFrame(foldAnimationRef.current);
+    foldAnimationRef.current = null;
+    engineRef.current?.releaseAssembly();
+  };
+  /** Moving an assembly slider by hand stops a running animation. */
+  const setAssemblyProgressByHand = (value: number) => {
+    stopFoldAnimation();
+    setAssemblyProgress(value);
+  };
+
   const animateFold = (target: 0 | 100) => {
-    if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+    stopFoldAnimation();
     const start = assemblyProgress;
     const startedAt = performance.now();
     // Each fold stage eases on its own, so the overall pace stays gentle and
     // close to even: about three seconds for a full flat-to-closed run.
     const duration = Math.max(700, 3000 * Math.abs(target - start) / 100);
+    // Each frame moves only the 3D box and the sliders; the page's state is
+    // set once at the end. Re-rendering the whole studio every frame made
+    // slower devices skip straight to the end.
+    const engine = engineRef.current;
 
     const frame = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / duration);
       const eased = 0.5 - 0.5 * Math.cos(Math.PI * progress);
-      setAssemblyProgress(start + (target - start) * eased);
+      const value = start + (target - start) * eased;
+      if (progress < 1 && engine) {
+        const next = templateAssemblyValuesForProgress(selectedTemplateId, value, openingMode);
+        engine.showAssembly(next.formation, next.opening);
+        document.querySelectorAll<HTMLInputElement>('input[data-assembly-range]').forEach(input => { input.value = String(Math.round(value)); });
+        document.querySelectorAll<HTMLElement>('[data-assembly-percent]').forEach(label => { label.textContent = `${Math.round(value)}%`; });
+      } else {
+        setAssemblyProgress(value);
+      }
       if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
       else foldAnimationRef.current = null;
     };
@@ -1998,7 +2024,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onDropArtworkFiles={handleBoardArtworkDrop}
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
-          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit}/> : null}
+          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
+          highlightedPanels={designPanel==='sizes' && highlightedSize ? getTemplateRuntime(selectedTemplateId)?.getAdjustedPanels?.(dimensions,highlightedSize,{openingMode,splitTopHingeSide}) ?? [] : []}
           sheetSize={sheetSize}
           onSheetSize={setSheetSize}
           onApplyChanges={() => {
@@ -2016,7 +2043,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 <div className="pro-artwork-preview-fold-head"><span>{t("studio.assembly")}</span><strong>{Math.round(assemblyProgress)}%</strong></div>
                 <div className="pro-artwork-preview-fold-row">
                   <span>{t("studio.flat")}</span>
-                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label={t("studio.assemble_or_flatten_box_in_3d_preview")} onChange={e=>{if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);foldAnimationRef.current=null;setAssemblyProgress(Number(e.target.value));}}/>
+                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label={t("studio.assemble_or_flatten_box_in_3d_preview")} onChange={e=>setAssemblyProgressByHand(Number(e.target.value))}/>
                   <span>{t("studio.closed")}</span>
                 </div>
               </div>
@@ -2066,17 +2093,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-label">{t("studio.flat")}</span>
               <input
                 className="pro-canvas-bar-range"
+                data-assembly-range
                 type="range"
                 min="0"
                 max="100"
                 step="1"
                 value={Math.round(assemblyProgress)}
                 aria-label={t("studio.assemble_or_flatten_box")}
-                onChange={e => {
-                  if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-                  foldAnimationRef.current = null;
-                  setAssemblyProgress(Number(e.target.value));
-                }}
+                onChange={e => setAssemblyProgressByHand(Number(e.target.value))}
               />
               <span className="pro-canvas-bar-label">{t("studio.closed")}</span>
               <span className="pro-canvas-bar-divider" />
@@ -2121,7 +2145,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2657,8 +2681,8 @@ function Inspector(props: {
         />}
       </div>}
       <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading"><div><span>{t("studio.assembly")}</span><strong>{props.assemblyStage}</strong></div><b>{Math.round(props.assemblyProgress)}%</b></div>
-        <input className="pro-range pro-fold-range" aria-label={t("studio.assemble_or_flatten_box")} type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
+        <div className="pro-fold-heading"><div><span>{t("studio.assembly")}</span><strong>{props.assemblyStage}</strong></div><b data-assembly-percent>{Math.round(props.assemblyProgress)}%</b></div>
+        <input className="pro-range pro-fold-range" data-assembly-range aria-label={t("studio.assemble_or_flatten_box")} type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
         <div className="pro-fold-endpoints"><span>{t("studio.flat")}</span><span>{t("studio.closed")}</span></div>
         <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.assemblyProgress >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.assemblyProgress >= 50 ? t("studio.flatten_box") : t("studio.assemble_close")}</button>
       </div>
@@ -2767,6 +2791,7 @@ function DielinePrototype({
   toolsOpen,
   onCloseTools,
   sizesPanel,
+  highlightedPanels,
   sheetSize,
   onSheetSize,
   onApplyChanges,
@@ -2808,6 +2833,8 @@ function DielinePrototype({
   onCloseTools:()=>void;
   /** Shown in place of the artwork tools when the Sizes tool is chosen. */
   sizesPanel:React.ReactNode;
+  /** Panel ids the flap size being edited changes, marked on the grid. */
+  highlightedPanels:string[];
   sheetSize:SheetSize;
   onSheetSize:(size:SheetSize)=>void;
   onApplyChanges:()=>void;
@@ -3525,7 +3552,7 @@ function DielinePrototype({
           const shape=item.outline ? `polygon(${item.outline.map(point=>`${cssPercent((point.x-item.x)/item.width*100)} ${cssPercent((point.y-item.y)/item.height*100)}`).join(',')})` : undefined;
           return <div
             key={item.id}
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''} pro-dieline-panel-guide`}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''}${highlightedPanels.includes(item.id)?' is-size-highlight':''} pro-dieline-panel-guide`}
             style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
             data-panel={panelName}
@@ -3536,7 +3563,7 @@ function DielinePrototype({
         })}
 
         {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
-          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={svgPoints(item.outline!)}/>)}
+          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}${highlightedPanels.includes(item.id)?' is-size-highlight':''}`} points={svgPoints(item.outline!)}/>)}
         </svg>}
 
         {/* Cut and crease lines stay visible over any artwork, as on a printer's proof. */}
@@ -3932,9 +3959,11 @@ function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }
  * set apart from the box size. A size the user sets replaces the template's
  * own, within limits that keep the flaps clear of each other.
  */
-function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, unit }: {
+function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, unit, onHighlight }: {
   templateId: string; dimensions: CartonDimensions; setDimensions: (value: CartonDimensions) => void;
   options: TemplateGeometryOptions; unit: MeasurementUnit;
+  /** The size being pointed at or edited, so the design grid can mark the panels it changes. */
+  onHighlight?: (key: string | null) => void;
 }) {
   const t = useTranslations();
   const sizes = getTemplateRuntime(templateId)?.getAdjustableSizes?.(dimensions, options) ?? [];
@@ -3950,7 +3979,9 @@ function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, u
   return <div className="pro-card-section pro-adjustable-sizes">
     <SectionTitle title={t('studio.flap_sizes')} meta={changed ? t('studio.flap_sizes_changed', { count: changed }) : t('studio.flap_sizes_template')} />
     <p className="pro-help">{t('studio.flap_sizes_help')}</p>
-    {sizes.map(size => <div className={`pro-adjustable-size${size.adjusted ? ' is-adjusted' : ''}`} key={size.key}>
+    {sizes.map(size => <div className={`pro-adjustable-size${size.adjusted ? ' is-adjusted' : ''}`} key={size.key}
+      onPointerEnter={() => onHighlight?.(size.key)} onPointerLeave={() => onHighlight?.(null)}
+      onFocus={() => onHighlight?.(size.key)} onBlur={() => onHighlight?.(null)}>
       <div>
         <strong>{size.label}</strong>
         <span>{formatDimension(size.min, unit)}–{formatDimension(size.max, unit)} {unit}</span>

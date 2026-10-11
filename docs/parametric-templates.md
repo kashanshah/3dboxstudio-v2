@@ -99,7 +99,7 @@ Note that the size controls' limits can be stricter than the definition's `param
 ```ts
 adjustable: [
   { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
-  { key: 'dustFlap', label: 'Dust flaps', targets: ['dustTopLeftHeight', 'dustTopRightHeight'], min: 4, max: '…' },
+  { key: 'topDustFlap', label: 'Top dust flaps', targets: ['dustTopLeftHeight', 'dustTopRightHeight'], min: 4, max: '…' },
 ]
 ```
 
@@ -108,7 +108,7 @@ adjustable: [
 - Unknown keys are dropped when the dimensions are cleaned up, so switching templates leaves no stray sizes.
 - A test sets every size to its limits, one at a time and all together, and checks that no two panels on the sheet overlap and that the box still folds.
 
-The studio shows them under Box & Size and in the Design step's Sizes tool, each with its limits and a reset.
+The studio shows them under Box & Size and in the Design step's Sizes tool, each with its limits and a reset. While one is focused or hovered, the design grid highlights the panels it changes; `adjustedPanels` finds them by nudging the size and comparing each panel's shape, so definitions don't list them.
 
 ### Variants and motions
 

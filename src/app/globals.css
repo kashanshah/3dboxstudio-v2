@@ -5570,3 +5570,7 @@ body{font-size:var(--type-body)}
 .pro-design-sizes-content{padding-top:4px}
 /* The panel's own title already names the card. */
 .pro-design-sizes-content .pro-adjustable-sizes .pro-section-title strong{display:none}
+/* Panels the flap size being edited changes: tinted, with a heavier edge. */
+.dl-live.is-size-highlight{background:rgba(245,158,11,.22)!important;box-shadow:inset 0 0 0 2px #d97706;transition:background .15s}
+.dl-live.is-shaped.is-size-highlight{box-shadow:none}
+.pro-dieline-shapes .dl-shape.is-size-highlight{stroke:#d97706;stroke-width:2.5px}
