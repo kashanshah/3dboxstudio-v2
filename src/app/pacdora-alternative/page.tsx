@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     "title": "What 3D Box Studio focuses on",
-    "body": "The Studio is centered on box structures, finished dimensions, 2D artwork placement, live 3D review, opening behavior, PNG export, project saving, and share links."
+    "body": "The Studio is centered on box structures, finished dimensions, 2D artwork placement, live 3D review, opening behavior, PNG export, project saving, and share links. Templates cover folding cartons, mailer, pizza and shipping boxes, and a rigid lid and base box, and every dieline downloads free as a 1:1 PDF, SVG or DXF."
   },
   {
     "title": "Where the products may differ",
@@ -48,6 +48,14 @@ const faqs = [
   {
     "question": "Can 3D Box Studio import an existing dieline?",
     "answer": "No. The current product intentionally works from its own supported packaging templates and dimensions rather than importing arbitrary external dielines."
+  },
+  {
+    "question": "Can I download dielines as SVG or DXF?",
+    "answer": "Yes, free for every template. The SVG and DXF hold the cutting template at 1:1 in millimetres with cut and crease lines on separate layers; the PDF adds your artwork and bleed."
+  },
+  {
+    "question": "Does it have a rigid box template?",
+    "answer": "Yes. The rigid lid and base box draws both wraps from your inside size, with corner ears, turn-ins and an adjustable lid height, and shows the lid lifting off in 3D."
   },
   {
     "question": "Can I save projects and send review links?",

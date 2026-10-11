@@ -8,12 +8,12 @@ export const metadata: Metadata = {
     absolute: "3D Box Studio Features — 2D Dieline Design, 3D Preview & Export",
   },
   description:
-    "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, saving and share links.",
+    "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, PDF, SVG and DXF dielines, saving and share links.",
   alternates: { canonical: "/features" },
   openGraph: {
     title: "3D Box Studio Features — 2D Dieline Design, 3D Preview & Export",
     description:
-      "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, saving and share links.",
+      "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, PDF, SVG and DXF dielines, saving and share links.",
     type: "website",
   },
 };
@@ -59,8 +59,8 @@ const sections = [
   },
   {
     title: "Export, save, and share",
-    body: "Download PNG previews, save projects to your account, reopen designs later, and create shareable preview links for review.",
-    bullets: ["PNG export", "Project save/reopen", "Shareable previews"],
+    body: "Download PNG previews, export the dieline as a 1:1 PDF, SVG or DXF, save projects to your account, reopen designs later, and create shareable preview links for review.",
+    bullets: ["PNG export", "1:1 PDF dieline with artwork", "SVG and DXF cutting templates", "Project save/reopen", "Shareable previews"],
   },
 ];
 const faqs = [
@@ -90,6 +90,11 @@ const faqs = [
       "Yes. The 2D Design workspace can prepare the current supported template layout for PDF output. Treat that output as part of the design/review workflow and validate production requirements before manufacturing.",
   },
   {
+    question: "Can I download the dieline as SVG or DXF?",
+    answer:
+      "Yes. Preview & Download saves the cutting template at 1:1 in millimetres as an SVG or a DXF, with cut and crease lines on separate layers, for die makers, CAD programs and cutting tables.",
+  },
+  {
     question: "Does 3D Box Studio work entirely in the browser?",
     answer:
       "Yes. The V2 workflow runs in a modern browser; no desktop application is required.",
@@ -105,7 +110,7 @@ export default function Page() {
         "@type": "WebPage",
         name: "A packaging design workspace that connects the dieline to the 3D box.",
         description:
-          "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, saving and share links.",
+          "Explore 3D Box Studio features: packaging templates, custom dimensions, 2D dieline artwork, layers, live 3D preview, opening simulation, PNG export, PDF, SVG and DXF dielines, saving and share links.",
         url,
       },
       {

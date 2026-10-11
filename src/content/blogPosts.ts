@@ -107,6 +107,9 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "standard-box-sizes-carton-mailer-shipping": "getting-started",
   "packaging-bleed-safe-zone-dieline": "tools",
   "dieline-in-illustrator-vs-online-generator": "tools",
+  "rigid-box-lid-and-base-template": "tools",
+  "box-dieline-svg-dxf-export": "tools",
+  "box-template-svg-cricut-laser-cutter": "tools",
 };
 
 export function getBlogCategory(slug: string): BlogCategoryId {
@@ -121,7 +124,7 @@ export const BLOG_INDEX_TITLE =
   "3D Box Design Blog — Free Packaging Mockups, Carton & Mailer Guides | 3D Box Studio";
 
 export const BLOG_INDEX_DESCRIPTION =
-  "Practical guides to free 3D box designers, packaging mockup generators, folding carton previews, mailer box mockups, and browser-based box makers—for e-commerce sellers, beauty, coffee, electronics, jewelry, print shops, freelancers, and packaging teams.";
+  "Practical guides to free 3D box designers, packaging mockup generators, folding carton previews, mailer and rigid box templates, SVG and DXF dielines, and browser-based box makers—for e-commerce sellers, beauty, coffee, electronics, jewelry, print shops, freelancers, and packaging teams.";
 
 export const BLOG_POSTS: BlogPost[] = [
   {
@@ -1315,10 +1318,11 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Luxury and gift box packaging demands flawless proportions. Use a 3D packaging simulator to preview rigid-style cartons, foil accents, and unboxing angles before committing to premium print.",
     published: "2025-09-16",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 5,
     keywords: [
       "gift box mockup",
+      "rigid gift box template",
       "luxury packaging 3d",
       "premium box design",
       "gift packaging preview",
@@ -1344,11 +1348,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Gift box mockups without rigid-box CAD",
+        text: "Rigid lid and base gift boxes",
       },
       {
         type: "p",
-        text: "True rigid boxes with separate wrap and tray need structural CAD. But many premium gift lines use folding cartons with magnetic-style closures or tuck lids that simulate a rigid feel. 3D Box Studio handles folding cartons and mailer-style boxes with configurable openings—ideal for early luxury concept reviews.",
+        text: "The classic premium gift box is a rigid lid and base box: greyboard trays wrapped in printed paper, with a lid that lifts off. The free [rigid box template](/box-templates/rigid-box) draws both wraps from your inside size, with corner ears, turn-ins and an adjustable lid height, and shows the lid coming off in 3D. For lighter or lower-cost gift lines, folding cartons and [mailer boxes](/box-templates/mailer-box) give a premium feel at a lower unit price. See the [rigid box guide](/blog/rigid-box-lid-and-base-template) for sizing.",
       },
       {
         type: "h2",
@@ -1827,10 +1831,11 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Jewelry brands can preview gift cartons, ring boxes, and set packaging in 3D—validate foil accents, proportions, and unboxing angles before premium print.",
     published: "2025-11-18",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 5,
     keywords: [
       "jewelry packaging mockup",
+      "rigid jewelry box template",
       "jewelry box design",
       "luxury jewelry carton",
       "ring box packaging preview",
@@ -1856,11 +1861,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "h2",
-        text: "Folding cartons vs. rigid jewelry boxes",
+        text: "Rigid jewelry boxes and folding cartons",
       },
       {
         type: "p",
-        text: "True rigid jewelry boxes with wrap-and-tray construction need structural CAD. Many DTC jewelry lines use folding cartons or tuck-style gift boxes that simulate a premium feel. 3D Box Studio is built for those folding and mailer-style structures—perfect for early concept approval before you engineer a rigid sample.",
+        text: "Rigid lid and base boxes are the standard for rings, necklaces and watches. Start the [rigid box template](/box-templates/rigid-box) from its jewellery preset, set a shallow or full-depth lid, and design the lid top and the inside of the base for the reveal. Many DTC jewelry lines also use folding cartons or tuck-style gift boxes for a premium feel at a lower cost; the [reverse tuck end box](/box-templates/reverse-tuck-end-box) covers those. Ask your box maker to confirm board and wrap allowances before a rigid sample.",
       },
       {
         type: "h2",
@@ -2143,8 +2148,9 @@ export const BLOG_POSTS: BlogPost[] = [
     seoTitle: "How to Generate a Box Dieline Online | 3D Box Studio",
     description: "Generate a design-ready box dieline from a supported structure and dimensions, place artwork on the flat layout, preview it in 3D, and learn what still needs production validation.",
     published: "2026-09-30",
+    updated: "2026-10-11",
     readMinutes: 8,
-    keywords: ["box dieline generator","generate box dieline online","packaging dieline generator","box template dimensions"],
+    keywords: ["box dieline generator","generate box dieline online","packaging dieline generator","box template dimensions","dieline svg","dieline dxf"],
     imagePath: "/images/blog/tuck-end-folding-carton-mockup.webp",
     imageAlt: "Folding carton flat layout and assembled packaging preview",
     relatedSlugs: ["3d-box-generator-with-dimensions","2d-dieline-to-3d-packaging-mockup-workflow","tuck-end-folding-carton-mockup"],
@@ -2165,7 +2171,9 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "p", text: "Upload artwork, position it on the appropriate panels, and use crop, resize, rotation, exact transforms, and layers as needed. Keep important elements away from folds and edges unless the design intentionally crosses them." },
       { type: "h2", text: "5. Preview the assembled package in 3D" },
       { type: "p", text: "Move into the 3D preview to check panel hierarchy, edge transitions, corners, opening behavior, and camera angles. If something feels wrong, return to the 2D layout and adjust the same design." },
-      { type: "h2", text: "6. Validate before production" },
+      { type: "h2", text: "6. Export the dieline" },
+      { type: "p", text: "Export a 1:1 PDF with your artwork, bleed and cut and crease lines for the printer, or download the cutting template on its own as an [SVG or DXF](/blog/box-dieline-svg-dxf-export) for a die maker, CAD program or cutting table." },
+      { type: "h2", text: "7. Validate before production" },
       { type: "callout", text: "A design-ready dieline is not automatically a manufacturing-approved dieline. Before production, validate bleed, board thickness/caliper, crease and fold allowances, glue areas, tolerances, cut/fold conventions, grain direction where relevant, tooling, and printer specifications." },
       { type: "cta", label: "Open the box dieline workflow", href: "/box-dieline-generator" },
       { type: "faq" }
@@ -2337,6 +2345,7 @@ export const BLOG_POSTS: BlogPost[] = [
     seoTitle: "Make a Box Dieline in Illustrator vs Online | 3D Box Studio",
     description: "Compare drawing a box dieline in Adobe Illustrator with generating one online from your dimensions: speed, accuracy, cost, and when to use each.",
     published: "2026-10-06",
+    updated: "2026-10-11",
     readMinutes: 7,
     keywords: ["how to make a box dieline","dieline in illustrator","box dieline generator","online dieline maker","create dieline"],
     imagePath: "/images/blog/packaging-mockup-without-photoshop.webp",
@@ -2345,7 +2354,8 @@ export const BLOG_POSTS: BlogPost[] = [
     faqs: [
       { question: "Can I make a dieline in Illustrator?", answer: "Yes. Most production dielines are drawn or finalised in a vector editor such as Illustrator, with cut and crease lines on separate layers or spot colours." },
       { question: "Is an online dieline generator accurate?", answer: "It is accurate to the dimensions you enter, but it does not know your board thickness, crease allowances or printer's conventions. Use it for design and proofs, and let your printer finalise the die." },
-      { question: "Can I edit a generated dieline in Illustrator?", answer: "Yes. 3D Box Studio exports a vector PDF that opens in Illustrator, with cut and crease lines on separate layers." },
+      { question: "Can I edit a generated dieline in Illustrator?", answer: "Yes. 3D Box Studio exports the cutting template as an SVG at 1:1 in millimetres, with cut and crease lines on separate named layers, and a vector PDF with your artwork. Both open in Illustrator." },
+      { question: "Can I get the dieline as a DXF?", answer: "Yes. The same cutting template downloads as a DXF (R12, millimetres) for CAD programs, die makers and cutting tables." },
     ],
     sections: [
       { type: "p", text: "A dieline is the flat outline of a box: where it is cut and where it folds. You can draw one by hand in a vector editor, start from a printer's template, or generate one from your dimensions. Each route suits a different stage of a project." },
@@ -2367,8 +2377,174 @@ export const BLOG_POSTS: BlogPost[] = [
         "Unusual structures, inserts or windows: draw in Illustrator or use your printer's structural team.",
         "Production: whichever you start with, your printer should finalise the die for their board, creasing rules and tooling."
       ] },
-      { type: "callout", text: "A common workflow is to generate the dieline, design and approve the artwork in 3D, then open the exported PDF in Illustrator for final production edits." },
+      { type: "p", text: "When the layout is right, download the cutting template on its own as an [SVG or DXF](/blog/box-dieline-svg-dxf-export): red cut lines and blue dashed crease lines on separate layers, at actual size in millimetres." },
+      { type: "callout", text: "A common workflow is to generate the dieline, design and approve the artwork in 3D, then open the exported SVG or PDF in Illustrator for final production edits." },
       { type: "cta", label: "Generate a dieline from your size", href: "/box-dieline-generator" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "rigid-box-lid-and-base-template",
+    title: "Rigid Box Template: How to Design a Lid and Base Gift Box",
+    seoTitle: "Rigid Box Template (Lid & Base) and Dieline | 3D Box Studio",
+    description: "How a two-piece rigid lid and base box is made, how to size the base, lid height and turn-ins, and how to generate the rigid box dieline from your dimensions and preview it in 3D for free.",
+    published: "2026-10-11",
+    readMinutes: 8,
+    keywords: ["rigid box template","rigid box dieline","lid and base box","two piece rigid box","telescope box template","gift box with lid template","rigid box mockup","setup box"],
+    imageAlt: "A white rigid lid and base box with the lid lifting off, next to its flat wrap layout",
+    relatedSlugs: ["gift-box-packaging-luxury-preview","jewelry-packaging-box-mockup","box-dieline-svg-dxf-export"],
+    faqs: [
+      { question: "What is a lid and base rigid box?", answer: "A two-piece set-up box: a base tray that holds the product and a slightly larger lid tray that lifts off it. Both are made from thick greyboard wrapped in printed paper, which is what gives rigid boxes their premium feel." },
+      { question: "Is there a free rigid box template?", answer: "Yes. The rigid lid and base box template in 3D Box Studio is free. Enter the inside size of the base and it draws both trays, with corner ears and turn-ins, and folds them in 3D. Designing and exporting need a free account." },
+      { question: "How much bigger should the lid be than the base?", answer: "Just enough to slide over the base walls: the base's outside size plus the lid's own board on each side and a small clearance. The template sizes the lid from the base for the board thickness you set, with 1 mm of play on each side." },
+      { question: "Can I change the lid height?", answer: "Yes. The lid height is an adjustable size in the Studio, from a shallow shoulder lid to a full telescope lid that covers the base completely. The turn-in depth is adjustable too." },
+      { question: "Can I download the rigid box dieline?", answer: "Yes. Export a 1:1 PDF with your artwork, or the cutting template on its own as SVG or DXF for your box maker." },
+    ],
+    sections: [
+      { type: "p", text: "Rigid boxes are the packaging people keep: phone boxes, jewellery boxes, cosmetics gift sets and premium apparel. The most common style is the lid and base box, also called a two-piece or telescope box. Its structure is simple, but the sizes have to fit each other exactly: the lid must slide over the base without being loose, and the paper wrap has to turn over every edge." },
+      { type: "p", text: "This guide explains how a lid and base box is built, which sizes matter, and how to generate the layout from your own dimensions with the free [rigid box template](/box-templates/rigid-box)." },
+      { type: "h2", text: "How a rigid lid and base box is made" },
+      { type: "p", text: "A rigid (set-up) box is not folded from one printed sheet like a carton. It is built from greyboard, usually 1.5 to 3 mm thick, and covered with a printed wrap. Each of the two pieces is a tray:" },
+      { type: "ul", items: [
+        "A bottom (or lid top) with four walls standing up around it.",
+        "Corner ears that wrap round each corner and are glued inside the side walls, so the corners stay square.",
+        "Turn-ins: the wrap continues over the top edge of each wall and is glued down inside the tray.",
+        "The lid is the same construction, slightly larger, so it sits over the base walls."
+      ] },
+      { type: "p", text: "The layout you design on is that wrap: the centre panel, the four walls, the ears and the turn-ins. Artwork on the walls has to continue onto the turn-ins, because that is the edge people see when they lift the lid." },
+      { type: "h2", text: "The sizes that matter" },
+      { type: "ul", items: [
+        "Inside size of the base: the width, depth and height of the space your product needs. Measure the product and add a few millimetres, or the size of any insert.",
+        "Board thickness: thicker board makes a sturdier box, and every outside size grows with it. The template builds the walls outward from the inside size for the board you set.",
+        "Lid fit: the lid has to clear the base's outside walls. The template sizes it from the base with 1 mm of play on each side, which is a typical starting point.",
+        "Lid height: a shallow shoulder lid shows part of the base; a full-depth telescope lid covers it completely. Both are the same structure with a different lid height.",
+        "Turn-in depth: how far the wrap folds inside each tray, usually 10 to 20 mm. Deeper turn-ins hide the board edge better but use more paper."
+      ] },
+      { type: "callout", text: "Not sure whether to give inside or outside sizes? Rigid box makers almost always quote inside dimensions, because the product has to fit. See [inside vs outside box dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions)." },
+      { type: "h2", text: "Generate the rigid box dieline from your size" },
+      { type: "ol", items: [
+        "Open the [rigid lid and base box template](/box-templates/rigid-box) and pick a preset (jewellery box, cosmetics set, phone or gadget, apparel gift box) or type your inside size in millimetres or inches.",
+        "Open it in the Studio and set the board thickness.",
+        "Adjust the lid height and the turn-in depth in the Sizes panel, or drag them directly on the dieline. Both trays redraw as you change them.",
+        "Place artwork on the outside of the lid and base, and on the inside if you want a printed interior or an unboxing message.",
+        "Fold it in 3D: the base folds up, then the lid turns over and comes down onto the base. Open it again to check how the box looks with the lid off."
+      ] },
+      { type: "h2", text: "Designing for a rigid box" },
+      { type: "ul", items: [
+        "Put the brand on the lid top. It is the face people see first and the one photographed most.",
+        "Run backgrounds and patterns past the edges onto the turn-ins, so no board shows at the rim.",
+        "Keep text away from the corners: the ears overlap there and the wrap is folded twice.",
+        "Use the inside of the base for a message or pattern; it is the reveal when the lid comes off.",
+        "Rigid boxes are often finished with soft-touch lamination, foil or embossing. Preview the material in the Studio, then confirm the finishes with your box maker."
+      ] },
+      { type: "h2", text: "Rigid box vs folding carton" },
+      { type: "p", text: "A folding carton such as a [reverse tuck end box](/box-templates/reverse-tuck-end-box) is cut and folded from a single printed sheet. It is cheap and flat-packs for shipping, which suits retail cartons. A rigid box costs more and ships assembled, but feels solid in the hand and is kept and reused. For e-commerce, a [mailer box](/box-templates/mailer-box) sits between the two: one sheet of corrugated board with a hinged lid." },
+      { type: "h2", text: "Sending it to a box maker" },
+      { type: "p", text: "From Preview & Download you can export a 1:1 PDF of the wrap with your artwork, bleed and cut and crease lines, and the cutting template on its own as an [SVG or DXF](/blog/box-dieline-svg-dxf-export). Rigid box makers work with their own board and wrap allowances, so send them your inside size and the layout, and ask them to confirm the final die." },
+      { type: "cta", label: "Try the rigid box template with your size", href: "/box-templates/rigid-box" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "box-dieline-svg-dxf-export",
+    title: "Box Dieline as SVG or DXF: Files for Printers, Die Makers and CAD",
+    seoTitle: "Download a Box Dieline as SVG or DXF, Free | 3D Box Studio",
+    description: "Export a box dieline as an SVG or DXF at 1:1 in millimetres, with cut and crease lines on separate layers. Which format to send to a printer, die maker, CAD program or cutting table, and how to open it.",
+    published: "2026-10-11",
+    readMinutes: 7,
+    keywords: ["box dieline svg","box template dxf","dieline dxf","dieline svg","box template svg","cut and crease layers","dieline file for printer","free box dieline download"],
+    imageAlt: "A mailer box dieline with red cut lines and blue dashed crease lines, exported as SVG and DXF",
+    relatedSlugs: ["dieline-in-illustrator-vs-online-generator","box-template-svg-cricut-laser-cutter","how-to-generate-box-dieline-online"],
+    faqs: [
+      { question: "Can I download a box dieline as SVG or DXF for free?", answer: "Yes. In 3D Box Studio, every box template can be downloaded as an SVG or a DXF from Preview & Download, at no cost. You need a free account to open the Studio." },
+      { question: "What is the difference between the SVG and the DXF?", answer: "Both hold the same cutting template at 1:1 in millimetres. SVG is for design programs such as Illustrator, Inkscape and Affinity Designer. DXF is for CAD programs, die makers and cutting tables." },
+      { question: "Are cut and crease lines separated?", answer: "Yes. Cut lines are solid red on a CUT layer and crease lines are dashed blue on a CREASE layer, in both files." },
+      { question: "Does the SVG include my artwork?", answer: "No. The SVG and DXF are the cutting template only, which is what a die maker needs. To send artwork, export the 1:1 PDF, which has your design, bleed and the cut and crease lines." },
+      { question: "Which DXF version is it?", answer: "DXF R12 (AC1009), in millimetres. It is the most widely supported version and opens in AutoCAD, LibreCAD, ArtiosCAD, Rhino, LightBurn and most cutting-table software." },
+    ],
+    sections: [
+      { type: "p", text: "A PDF is the right file for printing your artwork, but a die maker, a CAD program or a cutting table wants the lines: where to cut and where to crease, at actual size, and nothing else. That is what the SVG and DXF exports in 3D Box Studio are for." },
+      { type: "h2", text: "What is in the files" },
+      { type: "ul", items: [
+        "The cutting template of your box at 1:1, in millimetres, for the size and board thickness you set.",
+        "Cut lines: solid red, on a layer named CUT.",
+        "Crease (fold) lines: dashed blue, on a layer named CREASE.",
+        "In the SVG, panel names on a hidden LABELS layer you can switch on for reference.",
+        "Any flap or panel sizes you changed in the Studio, such as a longer tuck or a deeper lid."
+      ] },
+      { type: "p", text: "Red cut and blue dashed crease is the usual convention, so most die makers and printers can work with the file as it is. If your printer uses different colour or layer names, rename the layers; the lines are already separated." },
+      { type: "h2", text: "SVG or DXF: which one to send" },
+      { type: "ul", items: [
+        "SVG: open it in Adobe Illustrator, Inkscape or Affinity Designer. The page is sized in millimetres, and each layer appears as a named layer or group. Use it to finish the die in your design program or to lay out artwork around it.",
+        "DXF: open it in a CAD program or send it to a die maker or cutting table. It is DXF R12 with millimetre units and one line per edge, the format almost every CAD and cutting system reads.",
+        "PDF: when the printer needs your artwork as well, export the 1:1 PDF, which has the design, bleed and the cut and crease lines."
+      ] },
+      { type: "h2", text: "How to download a dieline as SVG or DXF" },
+      { type: "ol", items: [
+        "Open a [box template](/box-templates) such as the [mailer box](/box-templates/mailer-box) or [reverse tuck end box](/box-templates/reverse-tuck-end-box) and enter your size.",
+        "Open it in the Studio and adjust board thickness and flap sizes if you need to.",
+        "Go to Preview & Download, choose Download and then the Dieline tab.",
+        "Click Download SVG or Download DXF. The file is named after the template, for example 3d-box-studio-mailer-box-dieline.svg."
+      ] },
+      { type: "callout", text: "The export is available for every box template, including the [rigid lid and base box](/box-templates/rigid-box), [pizza box](/box-templates/pizza-box) and [split top box](/box-templates/split-top-box), and it is free." },
+      { type: "h2", text: "Opening the files" },
+      { type: "ul", items: [
+        "Illustrator: File › Open the SVG. Check that the document is in millimetres and at 100%; the cut and crease groups appear in the Layers panel.",
+        "Inkscape: the CUT, CREASE and LABELS layers show in the Layers panel. Turn LABELS on to see panel names.",
+        "AutoCAD, LibreCAD or ArtiosCAD: open the DXF directly. Units are millimetres, and the sheet's lower left corner sits at the origin.",
+        "Laser cutters and cutting plotters: import either file and assign cut and score settings by layer or colour. See [box templates for Cricut and laser cutters](/blog/box-template-svg-cricut-laser-cutter)."
+      ] },
+      { type: "h2", text: "Before production" },
+      { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. Every factory has its own board, crease rules and tooling, so for a production run ask your printer or die maker to check the file and finalise the die." },
+      { type: "cta", label: "Generate a dieline and download it as SVG or DXF", href: "/box-dieline-generator" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "box-template-svg-cricut-laser-cutter",
+    title: "Box Template SVG for Cricut, Silhouette and Laser Cutters",
+    seoTitle: "Box Template SVG for Cricut & Laser Cutters, Any Size | 3D Box Studio",
+    description: "Make a box template SVG or DXF in any size for Cricut, Silhouette, Glowforge or a laser cutter, with cut and score lines separated, then design the box and preview it folded in 3D. Free.",
+    published: "2026-10-11",
+    readMinutes: 6,
+    keywords: ["box template svg","box svg cricut","cricut box template","laser cut box template","box template dxf","gift box svg","custom size box template"],
+    imagePath: "/images/blog/box-dieline-svg-dxf-export.webp",
+    imageAlt: "A box template with cut and score lines ready to import into a cutting machine",
+    relatedSlugs: ["box-dieline-svg-dxf-export","how-to-measure-a-box-inside-vs-outside-dimensions","standard-box-sizes-carton-mailer-shipping"],
+    faqs: [
+      { question: "Can I make a box SVG in any size for my Cricut?", answer: "Yes. Pick a box style in 3D Box Studio, enter the size you need in millimetres or inches, and download the template as an SVG. It is free with an account." },
+      { question: "Will the crease lines score instead of cut?", answer: "They are on their own CREASE layer, dashed and in blue, so you can switch that layer to Score (Cricut), a score or perforation setting (Silhouette), or a low-power engrave (laser). Check this before cutting; most programs import everything as cut by default." },
+      { question: "Is the SVG the right size when I import it?", answer: "The SVG is sized in millimetres at 1:1. Some programs rescale on import, so check one known measurement, such as the box width, after importing." },
+      { question: "What board thickness should I enter?", answer: "The thickness of your card or board, for example about 0.3 to 0.5 mm for heavy cardstock. The template uses it to space the folds, so the box closes neatly." },
+    ],
+    sections: [
+      { type: "p", text: "Most box SVGs you can download come in one fixed size. If your product is 2 mm too big, the template is useless. 3D Box Studio draws the template from your own size and card thickness, so you can cut a box that fits, and see it folded in 3D before you cut anything." },
+      { type: "h2", text: "Box styles you can cut" },
+      { type: "ul", items: [
+        "[Reverse tuck end box](/box-templates/reverse-tuck-end-box): the classic product carton with tuck flaps at both ends. Good for cardstock gifts and favours.",
+        "[Mailer box](/box-templates/mailer-box): a self-locking box with a hinged lid, no glue needed.",
+        "[Rigid lid and base box](/box-templates/rigid-box): a two-piece gift box with a lift-off lid.",
+        "[Pizza box](/box-templates/pizza-box) and [split top box](/box-templates/split-top-box) for flat items and shipping boxes."
+      ] },
+      { type: "h2", text: "Step by step" },
+      { type: "ol", items: [
+        "Measure what goes inside and add a little room. See [inside vs outside box dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions).",
+        "Open the box template, enter the size and switch to inches if you prefer.",
+        "In the Studio, set the board thickness to your card's thickness, and adjust flap sizes if you want a longer tuck or a deeper lid.",
+        "Add your artwork if you plan to print-then-cut, and check it in 3D.",
+        "Go to Preview & Download › Download › Dieline and download the SVG (or DXF for laser software that prefers it)."
+      ] },
+      { type: "h2", text: "Setting up the cut" },
+      { type: "ul", items: [
+        "Cricut Design Space: upload the SVG, ungroup it, select the blue dashed CREASE lines and change their operation from Cut to Score (a scoring stylus or wheel is needed). Attach the lines before sending to the mat.",
+        "Silhouette Studio: open the SVG and set the CUT lines to cut and the CREASE lines to a perforation or a light score pass.",
+        "Glowforge, LightBurn and other laser software: assign the red CUT layer to cut and the blue CREASE layer to a low-power score or engrave. DXF imports keep the layers too.",
+        "Hide or delete the LABELS layer if your program imports it; it only names the panels."
+      ] },
+      { type: "callout", text: "Always cut one test box from scrap card first. Machines, blades and card weights differ, and a test fold tells you more than any template." },
+      { type: "h2", text: "Why size matters for a box that closes" },
+      { type: "p", text: "A box folded from thicker card loses a little at every fold. The template spaces the panels for the thickness you enter, which is why a tuck flap still slides in and a lid still closes. If you change card weight, change the thickness and download the template again." },
+      { type: "cta", label: "Make a box template in your size", href: "/box-templates" },
       { type: "faq" }
     ],
   },

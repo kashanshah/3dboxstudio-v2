@@ -76,13 +76,13 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     ],
     faqs: [
       { question: 'Is the reverse tuck end template free?', answer: 'Yes. The size picker and dieline on this page are free to use. Designing artwork, saving and exporting the PDF dieline happen in the Studio, which needs a free account.' },
-      { question: 'Can I download the dieline as a PDF?', answer: 'Yes, from the Studio. Open this template with your size, then use Preview & Download to export a 1:1 vector PDF with cut and crease lines, adjustable bleed and a calibration ruler.' },
+      { question: 'Can I download the dieline as a PDF, SVG or DXF?', answer: 'Yes, from the Studio. Open this template with your size, then use Preview & Download to export a 1:1 vector PDF with your artwork, cut and crease lines, adjustable bleed and a calibration ruler, or the cutting template on its own as an SVG or DXF with cut and crease lines on separate layers.' },
       { question: 'Does the dieline include tuck flaps and dust flaps?', answer: 'Yes. The reverse tuck template draws the tuck tongues with slit locks, four shouldered dust flaps, a tapered glue flap and a thumb notch, with panels creased one board thickness wider than the inside size you enter. Artwork prints on the closure flaps too, exactly as laid out on the design grid; the glue flap stays bare.' },
       { question: 'Does it adjust for board thickness?', answer: 'Yes. The sizes you enter are inside dimensions, and each panel is creased one board thickness wider for the caliper set in the Studio. Printers sometimes use their own allowances for a particular board and tooling, so ask yours to confirm before production.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the unit to inches in the size picker; the Studio keeps the same unit when you open the template.' },
     ],
-    guides: ['how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'tuck-end-folding-carton-mockup', 'dieline-in-illustrator-vs-online-generator'],
-    updated: '2026-10-06',
+    guides: ['how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'tuck-end-folding-carton-mockup', 'box-dieline-svg-dxf-export', 'box-template-svg-cricut-laser-cutter'],
+    updated: '2026-10-11',
   },
   {
     slug: 'pizza-box',
@@ -130,10 +130,10 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Is the pizza box template free?', answer: 'Yes. The size picker and layout preview here are free. Designing artwork, saving and exporting happen in the Studio with a free account.' },
       { question: 'What sizes can I make?', answer: 'Any size. Presets cover 10, 12, 14 and 16 inch boxes and a 30 cm metric box, and you can type your own width, depth and wall height in millimetres or inches.' },
       { question: 'Is this a production-ready pizza box die?', answer: 'It is a real cutting template with the locking double front, slots, corner tabs, lid flaps and finger hole, sized from your inside dimensions and board thickness. Ask your box maker to confirm the allowances for the flute they run before production.' },
-      { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a 1:1 PDF cutting template with your artwork, cut and crease lines, and adjustable bleed.' },
+      { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a 1:1 PDF cutting template with your artwork, cut and crease lines, and adjustable bleed. The cutting template on its own downloads as SVG or DXF for your box maker.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'food-beverage-carton-shelf-preview'],
-    updated: '2026-10-06',
+    updated: '2026-10-11',
   },
   {
     slug: 'mailer-box',
@@ -183,9 +183,10 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Which mailer style is this?', answer: 'The roll end tuck top mailer, FEFCO 0427: one piece, no glue, double side walls locked into the base, and a lid with a front tuck and side flaps. It is the style most e-commerce and subscription boxes use.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. The base and walls are cut larger so the folded box keeps the inside size you enter, for the board thickness set in the Studio. Ask your box maker to confirm the allowances for their flute and tooling.' },
       { question: 'Can I print the inside of the mailer?', answer: 'Yes. Every panel has an outside and an inside surface in the Studio, so you can design the unboxing view and export both sides in the PDF.' },
+      { question: 'Can I download the mailer dieline as SVG or DXF?', answer: 'Yes. Preview & Download in the Studio saves the cutting template at 1:1 in millimetres as SVG or DXF, with cut and crease lines on separate layers, for your box maker or cutting table.' },
     ],
-    guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'how-to-measure-a-box-inside-vs-outside-dimensions'],
-    updated: '2026-10-10',
+    guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'box-dieline-svg-dxf-export'],
+    updated: '2026-10-11',
   },
   {
     slug: 'rigid-box',
@@ -232,7 +233,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside the base. The base walls and the lid are sized from it for the board thickness you set, with the lid fitting over the base with a little play.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF for your box maker.' },
     ],
-    guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'how-to-measure-a-box-inside-vs-outside-dimensions'],
+    guides: ['rigid-box-lid-and-base-template', 'gift-box-packaging-luxury-preview', 'jewelry-packaging-box-mockup', 'box-dieline-svg-dxf-export'],
     updated: '2026-10-11',
   },
   {
@@ -281,9 +282,10 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Can I print inside the box?', answer: 'Yes. The Studio has separate outside and inside artwork for this template, and the 3D view opens the flaps so you can review both.' },
       { question: 'Is it the same as a standard shipping box?', answer: 'Yes. It is a regular slotted container (FEFCO 0201), or a centre special slotted container (FEFCO 0204) if you put the outer flaps on the ends. Ask your box maker to confirm the score allowances for the flute you choose.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the size picker to inches; the Studio opens with the same unit.' },
+      { question: 'Can I download the cutting template?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'corrugated-shipping-box-branding', 'subscription-box-unboxing-preview'],
-    updated: '2026-10-06',
+    updated: '2026-10-11',
   },
 ];
 
