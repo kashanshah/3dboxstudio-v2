@@ -5315,7 +5315,8 @@ body{font-size:var(--type-body)}
 /* Download panel tabs */
 .pro-export-tabs{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  /* Image, Video, PDF layout and Dieline, two by two. */
+  grid-template-columns:repeat(2,1fr);
   gap:6px;
   padding:4px;
   margin:2px 0 16px;
@@ -5609,3 +5610,7 @@ body{font-size:var(--type-body)}
 /* The small Live 3D beside the design sheet: the same measurements, smaller. */
 .pro-artwork-preview-canvas .carton-engine-measures .dl-size-chip,.pro-artwork-preview-canvas .carton-engine-measures .dl-size-input{height:18px;padding:0 5px;font-size:10px}
 .pro-artwork-preview-canvas .carton-engine-measures .dl-size-input{width:52px}
+
+/* Download → Dieline: SVG and DXF, each with a line on what it's for. */
+.pro-dieline-formats{display:grid;gap:6px}
+.pro-dieline-formats p{margin:0 0 8px;color:var(--muted);font-size:11px;line-height:1.4}

@@ -270,8 +270,13 @@ const supportsDownloadAttribute = () => typeof HTMLAnchorElement !== 'undefined'
  * has usually expired. Anchor downloads still work in Safari and desktop
  * browsers; iOS in-app webviews ignore `download`, so share or open instead.
  */
-async function deliverPdf(bytes: Uint8Array, filename: string, info: ExportDeviceInfo): Promise<'download' | 'share' | 'tab' | 'cancelled'> {
-  const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' });
+async function deliverPdf(bytes: Uint8Array, filename: string, info: ExportDeviceInfo) {
+  return deliverFile(bytes, filename, 'application/pdf', info);
+}
+
+/** Saves a file: a download where the browser allows it, else the share sheet, else a new tab. */
+export async function deliverFile(bytes: Uint8Array | string, filename: string, type: string, info: ExportDeviceInfo = readExportDeviceInfo()): Promise<'download' | 'share' | 'tab' | 'cancelled'> {
+  const blob = new Blob([typeof bytes === 'string' ? bytes : bytes as Uint8Array<ArrayBuffer>], { type });
   if (supportsDownloadAttribute() && !isIOSWebView(info)) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -283,7 +288,7 @@ async function deliverPdf(bytes: Uint8Array, filename: string, info: ExportDevic
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
     return 'download';
   }
-  const file = typeof File === 'function' ? new File([blob], filename, { type: 'application/pdf' }) : null;
+  const file = typeof File === 'function' ? new File([blob], filename, { type }) : null;
   if (file && typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: filename });
@@ -296,7 +301,7 @@ async function deliverPdf(bytes: Uint8Array, filename: string, info: ExportDevic
   const url = URL.createObjectURL(blob);
   if (window.open(url, '_blank')) { setTimeout(() => URL.revokeObjectURL(url), 300_000); return 'tab'; }
   URL.revokeObjectURL(url);
-  throw new PdfExportError('This browser blocked the PDF download. Open 3D Box Studio in Safari or Chrome and try again.');
+  throw new PdfExportError('This browser blocked the download. Open 3D Box Studio in Safari or Chrome and try again.');
 }
 
 export async function downloadDielinePdf(input: DownloadInput) {
@@ -316,4 +321,15 @@ export async function downloadDielinePdf(input: DownloadInput) {
   } catch (error) {
     throw friendlyPdfError(error);
   } finally { dispose?.(); }
+}
+
+/** Downloads the cutting template alone as an SVG or DXF file for a printer or die maker. */
+export async function downloadDielineVector(input: { templateId: string; dimensions: CartonDimensions; geometryOptions?: TemplateGeometryOptions; format: 'svg' | 'dxf' }) {
+  const { dielineSvg, dielineDxf } = await import('./dieline-vector');
+  // Throws the template's size message when the box can't be made at this size.
+  const geometry = getTemplateExportGeometry(input.templateId, input.dimensions, input.geometryOptions);
+  const name = `3d-box-studio-${input.templateId}-dieline`;
+  return input.format === 'svg'
+    ? deliverFile(dielineSvg(geometry, `3D Box Studio - ${input.templateId} - dieline 1:1 (mm)`), `${name}.svg`, 'image/svg+xml')
+    : deliverFile(dielineDxf(geometry), `${name}.dxf`, 'application/dxf');
 }

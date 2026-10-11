@@ -6,6 +6,7 @@ import { reverseTuckDefinition } from '@/lib/packaging/parametric/definitions/re
 import { pizzaBoxDefinition } from '@/lib/packaging/parametric/definitions/pizza-box';
 import { sleeveBoxDefinition } from '@/lib/packaging/parametric/definitions/sleeve-box';
 import { mailerBoxDefinition } from '@/lib/packaging/parametric/definitions/mailer-box';
+import { rigidLidBaseDefinition } from '@/lib/packaging/parametric/definitions/rigid-lid-base';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -91,22 +92,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(mailerBoxDefinition),
   fromDefinition(pizzaBoxDefinition),
   fromDefinition(sleeveBoxDefinition),
-  {
-    id: 'rigid-lid-base',
-    version: 1,
-    name: 'Rigid Lid & Base Box',
-    shortName: 'Rigid lid',
-    family: 'rigid-box',
-    category: 'Rigid',
-    description: 'Two-piece premium rigid box.',
-    tags: ['rigid','gift','lid','base','luxury'],
-    rendererKey: 'rigid-lid-base-v1',
-    structureKey: 'rigid-lid-base-v1',
-    capabilities: [],
-    parameters: [],
-    artworkRegions: [],
-    status: 'planned',
-  },
+  fromDefinition(rigidLidBaseDefinition),
   {
     id: 'drawer-box',
     version: 1,

@@ -511,8 +511,8 @@ test('dimension changes flow through each ready template runtime',()=>{
     // Entered sizes are inside sizes; a cutting template scores each panel up
     // to a board thickness wider, and a slotted box two boards taller. A
     // mailer's front is as wide as its base, cut wider so the double side
-    // walls stand inside it.
-    const widthAllowance=template.id==='mailer-box'?5.5:0;
+    // walls stand inside it; a rigid box's, a board each side for the turn-ins.
+    const widthAllowance={'mailer-box':5.5,'rigid-lid-base':1}[template.id]??0;
     within(front.width,changed.width+widthAllowance*changed.thickness,changed.thickness,`${template.id} front width`);
     within(front.height,changed.height,2*changed.thickness,`${template.id} front height`);
   }
@@ -573,6 +573,7 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'pizza-box':'pizza-box',
     'sleeve-box':'sleeve-box',
     'mailer-box':'mailer-box',
+    'rigid-lid-base':'rigid-lid-base',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];

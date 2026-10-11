@@ -41,7 +41,7 @@ const rows = [
   },
   {
     "label": "Print output",
-    "ours": "1:1 vector PDF dieline",
+    "ours": "1:1 vector PDF dieline, plus SVG and DXF cutting templates",
     "theirs": "Mockup images only"
   },
   {

@@ -309,6 +309,7 @@ test('the tuck end definitions survive a JSON round trip unchanged',()=>{
 const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pizza-box.ts');
 const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions/sleeve-box.ts');
 const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
+const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
 
@@ -359,7 +360,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -383,7 +384,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -573,9 +574,10 @@ test('each adjustable size names the panels it reshapes, and only those',()=>{
     for(const size of runtime.getAdjustableSizes(template.defaultDimensions,options)){
       const panels=runtime.getAdjustedPanels(template.defaultDimensions,size.key,options);
       assert.ok(panels.length>0,`${template.id} ${size.key} reshapes nothing`);
-      // Body panels only move as flaps change; they keep their shape.
-      const kinds=new Map(runtime.getExportGeometry(template.defaultDimensions,options).panels.map(panel=>[panel.id,panel.kind]));
-      assert.ok(panels.every(id=>kinds.get(id)!=='body'),`${template.id} ${size.key} reshapes a body panel: ${panels}`);
+      // The box's own front keeps its shape: flap sizes (and a rigid box's
+      // lid height, which reshapes only the lid) leave it alone.
+      const labels=new Map(runtime.getExportGeometry(template.defaultDimensions,options).panels.map(panel=>[panel.id,panel.label]));
+      assert.ok(panels.every(id=>labels.get(id)!=='FRONT'),`${template.id} ${size.key} reshapes the front: ${panels}`);
     }
   }
   const tuck=getTemplateRuntime('reverse-tuck-carton');
@@ -615,5 +617,42 @@ test('"Show sizes" puts each box and flap size on the panels that follow it one 
       assert.equal(size.kind,'dimension');
     }
     for(const size of shown.filter(item=>item.kind==='adjustment'))assert.ok(size.min<=size.value&&size.value<=size.max,`${template.id} ${size.key} within its limits`);
+  }
+});
+
+test('the dieline exports as SVG and DXF at 1:1, cut and crease on their own layers',()=>{
+  const {dielineSvg,dielineDxf}=require('../src/lib/packaging/dieline-vector.ts');
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const geometry=runtime.getExportGeometry(template.defaultDimensions,{openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'});
+    const {width,height}=geometry.bounds;
+    // SVG: millimetre page size, one <line> per edge in each layer.
+    const svg=dielineSvg(geometry,'Test & "quotes"');
+    assert.match(svg,new RegExp(`width="${Number(width.toFixed(3))}mm" height="${Number(height.toFixed(3))}mm"`));
+    const layer=name=>svg.slice(svg.indexOf(`<g id="${name}"`),svg.indexOf('</g>',svg.indexOf(`<g id="${name}"`)));
+    assert.equal((layer('CUT').match(/<line /g)??[]).length,geometry.cut.length,`${template.id} SVG cut lines`);
+    assert.equal((layer('CREASE').match(/<line /g)??[]).length,geometry.crease.length,`${template.id} SVG crease lines`);
+    assert.ok(svg.includes('Test &amp; &quot;quotes&quot;'),'title is escaped');
+    assert.equal((svg.match(/<text /g)??[]).length,geometry.panels.length);
+    // DXF: code/value pairs, R12, millimetres, a LINE per edge on its layer, y turned up.
+    const dxf=dielineDxf(geometry).trimEnd().split('\n');
+    assert.equal(dxf.length%2,0,`${template.id} DXF is code/value pairs`);
+    const pairs=[];for(let i=0;i<dxf.length;i+=2)pairs.push([Number(dxf[i]),dxf[i+1]]);
+    assert.ok(pairs.every(([code])=>Number.isInteger(code)),'group codes are integers');
+    assert.deepEqual(pairs.at(-1),[0,'EOF']);
+    const after=name=>pairs[pairs.findIndex(([c,v])=>c===9&&v===name)+1];
+    assert.deepEqual(after('$ACADVER'),[1,'AC1009']);
+    assert.deepEqual(after('$INSUNITS'),[70,'4']);
+    const lines=[];
+    pairs.forEach(([code,value],i)=>{if(code===0&&value==='LINE')lines.push(Object.fromEntries(pairs.slice(i+1,i+8).map(([c,v])=>[c,v])));});
+    assert.equal(lines.filter(line=>line[8]==='CUT').length,geometry.cut.length,`${template.id} DXF cut lines`);
+    assert.equal(lines.filter(line=>line[8]==='CREASE').length,geometry.crease.length,`${template.id} DXF crease lines`);
+    for(const line of lines)for(const [x,y] of [[10,20],[11,21]]){
+      assert.ok(Number(line[x])>=-1e-6&&Number(line[x])<=width+1e-6&&Number(line[y])>=-1e-6&&Number(line[y])<=height+1e-6,`${template.id} DXF point inside the sheet`);
+    }
+    // The first cut line, turned the right way up.
+    const first=geometry.cut[0],mapped=lines.find(line=>line[8]==='CUT');
+    assert.ok(Math.abs(Number(mapped[20])-(height-first.start.y))<1e-3&&Math.abs(Number(mapped[10])-first.start.x)<1e-3);
   }
 });

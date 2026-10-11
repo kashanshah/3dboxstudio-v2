@@ -32,7 +32,7 @@ const sections = [
 const faqs = [
   {
     "question": "Which box templates are available?",
-    "answer": "Reverse tuck end carton, straight tuck end box, pizza box, split top box, mailer box and sleeve box are ready now. Rigid lid and base, and drawer boxes are planned."
+    "answer": "Reverse tuck end carton, straight tuck end box, pizza box, split top box, mailer box, sleeve box and rigid lid and base box are ready now. Drawer boxes are planned."
   },
   {
     "question": "Can I resize a template?",

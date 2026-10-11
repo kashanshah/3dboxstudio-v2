@@ -169,6 +169,13 @@ export type ExpandedTemplate = {
      */
     motions?: [name: string, value: Expr][];
     hinges: HingeSpec[];
+    /**
+     * Further pieces cut on the same sheet but not joined to the root, such
+     * as a rigid box's lid: each has its own root panel, folds on its own and
+     * is placed by its own column-major 4×4 matrix. The matrix may use the
+     * motions, so a lid can lift off as the box opens.
+     */
+    pieces?: { root: string; matrix: Expr[] }[];
   };
   assembly: {
     control: 'none' | 'opening-mechanism' | 'split-direction';

@@ -11,7 +11,7 @@ const description=translate("metadata.home.free_online_3d_box_designer_and_packa
 export const metadata: Metadata = {
   title:{absolute:title},
   description,
-  keywords:['3d box designer','3d box maker','free 3d box maker','online box designer','packaging mockup generator','free packaging mockup','3d packaging simulator','carton mockup','folding carton mockup','mailer box mockup','product box mockup','box design software','packaging box designer','pacdora alternative','3d box studio'],
+  keywords:['3d box designer','3d box maker','free 3d box maker','online box designer','packaging mockup generator','free packaging mockup','3d packaging simulator','carton mockup','folding carton mockup','mailer box mockup','product box mockup','box design software','packaging box designer','pacdora alternative','rigid box template','box dieline svg','dieline dxf','3d box studio'],
   alternates:{canonical:'/',languages:homeLanguageAlternates},
   openGraph:{ images:[defaultOgImage],title,description,type:'website',url:'/'},
   twitter:{card:'summary_large_image',title,description,images:[defaultOgImage.url]}
