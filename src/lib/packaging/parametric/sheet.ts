@@ -13,6 +13,19 @@ export type OptionValues = Partial<Record<OptionSpec['source'], string | undefin
 
 export class TemplateDefinitionError extends Error {}
 
+/** A size shown on a panel of the flat sheet: a box dimension or an adjustable size. */
+export type MeasuredSize = {
+  key: string;
+  kind: 'dimension' | 'adjustment';
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+};
+
+/** The sizes a panel's width (x) and height (y) on the sheet follow one for one. */
+export type PanelSizes = { panel: string; x?: MeasuredSize; y?: MeasuredSize };
+
 /** One size the user may change, as it stands for a box. */
 export type AdjustableSize = {
   key: string;
@@ -155,7 +168,44 @@ export function compileParametricSheet(source: ParametricTemplate) {
     return [...after.keys()].filter(id => before.get(id) !== after.get(id));
   };
 
-  return { definition, sanitize, values, adjustableSizes, adjustedPanels, sheet, exportGeometry };
+  /**
+   * Which size each panel's width and height on the sheet follow one for one,
+   * found by nudging every box dimension and adjustable size: a panel side
+   * that grows by exactly the nudge shows that size. Adjustable sizes are
+   * tried first, so a flap shows its own size rather than the box's.
+   */
+  const panelSizes = (input: CartonDimensions, options: OptionValues = {}): PanelSizes[] => {
+    const extent = (dimensions: CartonDimensions) => new Map(sheet(dimensions, options).panels.map(panel => [panel.id, [panel.width, panel.height] as const]));
+    const before = extent(input);
+    const result = new Map<string, PanelSizes>([...before.keys()].map(id => [id, { panel: id }]));
+    const claim = (size: MeasuredSize, nudged: CartonDimensions, delta: number) => {
+      for (const [id, after] of extent(nudged)) {
+        const entry = result.get(id), was = before.get(id);
+        if (!entry || !was) continue;
+        (['x', 'y'] as const).forEach((axis, i) => {
+          if (!entry[axis] && Math.abs((after[i] - was[i]) / delta - 1) < 0.02) entry[axis] = size;
+        });
+      }
+    };
+    for (const size of adjustableSizes(input, options)) {
+      if (size.max - size.min < 1e-6) continue;
+      const delta = size.value + 1 <= size.max ? 1 : -Math.min(1, size.value - size.min);
+      claim({ key: size.key, kind: 'adjustment', label: size.label, value: size.value, min: size.min, max: size.max },
+        { ...input, adjustments: { ...input.adjustments, [size.key]: size.value + delta } }, delta);
+    }
+    const clean = sanitize(input);
+    const labels = new Map((definition.catalog?.parameters ?? []).map(parameter => [parameter.key, parameter]));
+    for (const key of ['width', 'height', 'depth'] as const) {
+      const spec = definition.parameters[key], control = labels.get(key);
+      const min = Math.max(spec.min ?? 1, control?.min ?? 1), max = Math.min(spec.max ?? Infinity, control?.max ?? Infinity);
+      const delta = clean[key] + 1 <= max ? 1 : -1;
+      claim({ key, kind: 'dimension', label: control?.label ?? key[0].toUpperCase() + key.slice(1), value: clean[key], min, max },
+        { ...clean, [key]: clean[key] + delta }, delta);
+    }
+    return [...result.values()].filter(entry => entry.x || entry.y);
+  };
+
+  return { definition, sanitize, values, adjustableSizes, adjustedPanels, panelSizes, sheet, exportGeometry };
 }
 
 export type ParametricSheet = ReturnType<typeof compileParametricSheet>;

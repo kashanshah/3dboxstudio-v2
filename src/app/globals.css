@@ -5574,3 +5574,25 @@ body{font-size:var(--type-body)}
 .dl-live.is-size-highlight{background:rgba(245,158,11,.22)!important;box-shadow:inset 0 0 0 2px #d97706;transition:background .15s}
 .dl-live.is-shaped.is-size-highlight{box-shadow:none}
 .pro-dieline-shapes .dl-shape.is-size-highlight{stroke:#d97706;stroke-width:2.5px}
+
+/* "Show sizes": each panel's box or flap size over the sheet, editable in place. */
+.pro-dieline-sizes{position:absolute;inset:0;z-index:30;pointer-events:none}
+.dl-sizes{position:absolute;transform:translate(-50%,calc(-50% + 1.6em));display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:11px;color:var(--muted)}
+.dl-sizes.is-flap{transform:translate(-50%,-50%)}
+.pro-dieline-sizes :is(.dl-size-chip,.dl-size-input),.carton-engine-measures :is(.dl-size-chip,.dl-size-input){pointer-events:auto;height:20px;border-radius:999px;font:inherit;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
+.pro-dieline-sizes .dl-size-chip,.carton-engine-measures .dl-size-chip{display:inline-flex;align-items:center;gap:4px;padding:0 7px;border:1px solid #bcd3ec;background:rgba(255,255,255,.94);color:#0b5c9c;cursor:text;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip>span{font-size:10px;opacity:.7;font-weight:600}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip:is(:hover,:focus-visible){border-color:var(--accent);background:#fff;outline:none}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip.is-adjustment{border-color:#f0c98a;color:#9a5b05}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip.is-adjustment:is(:hover,:focus-visible){border-color:#d97706}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-input{width:62px;padding:0 6px;border:1.5px solid var(--accent);background:#fff;color:var(--ink);outline:none}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-input.is-adjustment{border-color:#d97706}
+
+/* "Show sizes" on the 3D box: width, height and depth along its nearest edges. */
+.carton-engine-measures{position:absolute;inset:0;pointer-events:none;z-index:3}
+.carton-engine-measures svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.carton-engine-measures line{stroke:#1d3557;stroke-width:1.25;vector-effect:non-scaling-stroke;paint-order:stroke}
+.carton-engine-measures line.is-extension{stroke-opacity:.45;stroke-dasharray:3 3}
+.carton-engine-measures line.is-dimension{filter:drop-shadow(0 0 1.5px #fff)}
+.carton-engine-measure-label{position:absolute;transform:translate(-50%,-50%)}
+.carton-engine-measure-label .dl-size-chip,.carton-engine-measure-label .dl-size-input{height:24px;font-size:12px}

@@ -586,3 +586,34 @@ test('each adjustable size names the panels it reshapes, and only those',()=>{
   assert.deepEqual(tuck.getAdjustedPanels({...d,adjustments:{glue:1e6}},'glue'),['glue']);
   assert.deepEqual(tuck.getAdjustedPanels(d,'noSuchSize'),[]);
 });
+
+test('"Show sizes" puts each box and flap size on the panels that follow it one for one',()=>{
+  const sizesOf=(id,dimensions,options)=>{
+    const runtime=getTemplateRuntime(id);
+    return new Map(runtime.getPanelSizes(dimensions,options).map(entry=>[entry.panel,[entry.x?.key,entry.y?.key]]));
+  };
+  const tuck=sizesOf('reverse-tuck-carton',{width:120,height:180,depth:55,thickness:0.5});
+  assert.deepEqual(tuck.get('front'),['width','height']);
+  assert.deepEqual(tuck.get('left'),['depth','height']);
+  // A flap shows its own size before the box's.
+  assert.deepEqual(tuck.get('glue'),['glue','height']);
+  assert.deepEqual(tuck.get('top-tuck'),['width','tuck']);
+  assert.deepEqual(tuck.get('top-left-dust'),['depth','topDustFlap']);
+  const mailer=sizesOf('mailer-box',{width:220,height:80,depth:160,thickness:1.5});
+  assert.deepEqual(mailer.get('frontLeftEar')?.[0],'ear');
+  assert.deepEqual(mailer.get('lidFront'),['width','lidTuck']);
+  // Every ready template shows its three box sizes somewhere, with their values.
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const entries=runtime.getPanelSizes(template.defaultDimensions,{openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'});
+    const shown=entries.flatMap(entry=>[entry.x,entry.y]).filter(Boolean);
+    for(const key of ['width','height','depth']){
+      const size=shown.find(item=>item.key===key);
+      assert.ok(size,`${template.id} never shows its ${key}`);
+      assert.equal(size.value,template.defaultDimensions[key]);
+      assert.equal(size.kind,'dimension');
+    }
+    for(const size of shown.filter(item=>item.kind==='adjustment'))assert.ok(size.min<=size.value&&size.value<=size.max,`${template.id} ${size.key} within its limits`);
+  }
+});

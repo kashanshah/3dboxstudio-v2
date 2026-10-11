@@ -303,6 +303,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       }
     }
     if (!Number.isFinite(minY)) return;
+    lastBounds = { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
     const size = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 1);
     const groundY = minY - size * 0.0015;
     // Looking up from below the floor, a shadow plane would sit in front of the carton.
@@ -330,12 +331,17 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     key.shadow.normalBias = size * 0.002;
   };
 
+  // The carton's bounds as last drawn, for measurements laid over the canvas.
+  let lastBounds: { min: [number, number, number]; max: [number, number, number] } | null = null;
+  const renderListeners = new Set<() => void>();
+
   const render = () => {
     if (capture) return;
     resize();
     const eye = updateCamera();
     stageLights(eye);
     renderer.render(world, camera);
+    renderListeners.forEach(listener => listener());
   };
 
   const syncArtwork = (artworkByPanel: ArtworkByPanel) => {
@@ -399,6 +405,28 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       render();
     },
     render,
+    /** Calls `listener` after every frame drawn; returns the unsubscribe. */
+    onRender(listener: () => void) {
+      renderListeners.add(listener);
+      return () => { renderListeners.delete(listener); };
+    },
+    /**
+     * The carton's bounding box as last drawn: its corners in canvas pixels
+     * (index bits: 1 = max x, 2 = max y, 4 = max z) and how far each is from
+     * the camera, so the nearest edges can carry the measurements.
+     */
+    projectBounds() {
+      if (!lastBounds) return null;
+      const { min, max } = lastBounds;
+      const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+      const eye = new Vector3().setFromMatrixPosition(camera.matrixWorld);
+      return Array.from({ length: 8 }, (_, index) => {
+        const point = new Vector3(index & 1 ? max[0] : min[0], index & 2 ? max[1] : min[1], index & 4 ? max[2] : min[2]);
+        const distance = point.distanceTo(eye);
+        point.project(camera);
+        return { x: (point.x + 1) / 2 * width, y: (1 - point.y) / 2 * height, distance };
+      });
+    },
     pickPanel(localX: number, localY: number) {
       return pickScenePanel(scene, meshes, localX, localY, canvas.clientWidth, canvas.clientHeight);
     },

@@ -7,7 +7,8 @@ import {
   useImperativeHandle,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode
 } from 'react';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
@@ -72,7 +73,44 @@ type Props = {
   renderStyle?: RenderStyle;
   /** Soft shadow under the carton in the lit view. */
   floorShadow?: boolean;
+  /**
+   * Measurement labels for the box's width (x), height (y) and depth (z),
+   * drawn along its nearest edges; null hides them.
+   */
+  measures?: { x: ReactNode; y: ReactNode; z: ReactNode } | null;
 };
+
+type Point = { x: number; y: number };
+type MeasureLine = { axis: 'x' | 'y' | 'z'; from: Point; to: Point; start: Point; end: Point; label: Point };
+
+/**
+ * Where to draw the width, height and depth lines for a box whose corners
+ * are at these canvas positions (index bits: 1 = max x, 2 = max y, 4 = max z):
+ * width and depth along the bottom edges nearest the viewer, height up the
+ * front corner at the far end of the width line, each set a little outside.
+ */
+function measureLines(corners: (Point & { distance: number })[]): MeasureLine[] {
+  const centre = corners.reduce((sum, corner) => ({ x: sum.x + corner.x / 8, y: sum.y + corner.y / 8 }), { x: 0, y: 0 });
+  const nearer = (a: [number, number], b: [number, number]) => (corners[a[0]].distance + corners[a[1]].distance <= corners[b[0]].distance + corners[b[1]].distance ? a : b);
+  const widthEdge = nearer([0, 1], [4, 5]);
+  const depthEdge = nearer([0, 4], [1, 5]);
+  // The width edge's corner not on the depth edge carries the height.
+  const shared = widthEdge.find(index => depthEdge.includes(index))!;
+  const foot = widthEdge.find(index => index !== shared)!;
+  const heightEdge: [number, number] = [foot, foot | 2];
+  const line = (axis: MeasureLine['axis'], [a, b]: [number, number]): MeasureLine => {
+    const start = corners[a], end = corners[b];
+    const along = { x: end.x - start.x, y: end.y - start.y };
+    const length = Math.hypot(along.x, along.y) || 1;
+    let normal = { x: -along.y / length, y: along.x / length };
+    const middle = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+    if ((middle.x - centre.x) * normal.x + (middle.y - centre.y) * normal.y < 0) normal = { x: -normal.x, y: -normal.y };
+    const offset = 22;
+    const shift = (point: Point, by: number) => ({ x: point.x + normal.x * by, y: point.y + normal.y * by });
+    return { axis, start: shift(start, 4), end: shift(end, 4), from: shift(start, offset), to: shift(end, offset), label: shift(middle, offset) };
+  };
+  return [line('x', widthEdge), line('z', depthEdge), line('y', heightEdge)];
+}
 
 
 // A shared default, so a preview without its own pan does not count as a
@@ -80,7 +118,7 @@ type Props = {
 const NO_PAN = { x: 0, y: 0 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true },
+  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true, measures = null },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -314,6 +352,25 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     });
   }, [rendererVersion, dimensions, templateId, opening, formation, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel, renderStyle, floorShadow]);
 
+  // Measurement lines follow the box through every frame drawn: orbiting,
+  // zooming and resizing. They hide while an animation moves the box.
+  const [lines, setLines] = useState<MeasureLine[] | null>(null);
+  const showMeasures = Boolean(measures);
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer || !showMeasures) { setLines(null); return; }
+    let frame: number | null = null;
+    const update = () => {
+      frame = null;
+      const corners = shownAssemblyRef.current ? null : renderer.projectBounds();
+      setLines(corners ? measureLines(corners) : null);
+    };
+    const schedule = () => { if (frame === null) frame = requestAnimationFrame(update); };
+    schedule();
+    const unsubscribe = renderer.onRender(schedule);
+    return () => { unsubscribe(); if (frame !== null) cancelAnimationFrame(frame); };
+  }, [rendererVersion, showMeasures]);
+
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -374,5 +431,14 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     onPointerUp={onPointerUp}
     onPointerCancel={() => { dragRef.current = null; }}
     onPointerLeave={() => { dragRef.current = null; setHoverPanel(null); }}
-  /></>;
+  />{measures && lines && <div className="carton-engine-measures">
+    <svg aria-hidden="true">
+      {lines.map(line => <g key={line.axis}>
+        <line className="is-extension" x1={line.start.x} y1={line.start.y} x2={line.from.x} y2={line.from.y}/>
+        <line className="is-extension" x1={line.end.x} y1={line.end.y} x2={line.to.x} y2={line.to.y}/>
+        <line className="is-dimension" x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}/>
+      </g>)}
+    </svg>
+    {lines.map(line => <span key={line.axis} className="carton-engine-measure-label" style={{ left: line.label.x, top: line.label.y }}>{measures[line.axis]}</span>)}
+  </div>}</>;
 });

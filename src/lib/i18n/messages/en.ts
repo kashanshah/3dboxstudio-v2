@@ -262,6 +262,7 @@ export const en = {
   "studio.flap_size_reset_label": "Reset {label}",
   "studio.flap_sizes_reset_all": "Reset all flap sizes",
   "studio.sizes": "Sizes",
+  "studio.show_sizes": "Show sizes",
   "studio.search_packaging_templates": "Search packaging templates",
   "studio.template_categories": "Template categories",
   "studio.no_templates_found": "No templates found",
