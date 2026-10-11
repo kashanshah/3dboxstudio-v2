@@ -54,21 +54,33 @@ export type Mat4 = number[];
 
 const BEND_SEGMENTS = 6;
 
+/**
+ * How wide each crease's bend is, in board thicknesses. Scored board folds
+ * tight: the bend is a little wider than the board is thick, so corners read
+ * crisp and the gap where two bends meet stays small.
+ */
+export const CREASE_WIDTH = 2.2;
+
+/** Half a crease's bend, in millimetres: the most a setback may move into the child. */
+export function creaseHalfWidth(thickness: number) {
+  return Math.max(0.05, thickness) * CREASE_WIDTH / 2;
+}
+
 
 /**
  * The setback for a lid or flap that closes over the cut edges of the walls
  * it meets and rests on them, rather than cutting into them.
  */
 export function restingSetback(thickness: number) {
-  const t = Math.max(0, thickness);
-  // A plain square fold puts the child's outside 2·3t/π − 1.5t beyond the cut
-  // line; a resting lid needs its inside just clear of that line.
-  return (6 / Math.PI - 1.5) * t - t * 1.05;
+  const t = Math.max(0, thickness), w = CREASE_WIDTH * t;
+  // A plain square fold of a bend w wide puts the child's outside 2w/π − w/2
+  // beyond the cut line; a resting lid needs its inside just clear of that line.
+  return Math.max(-w / 2, (2 / Math.PI - 0.5) * w - t * 1.05);
 }
 
 export function foldSheet(input: FoldSheetInput): Mesh[] {
   const t = Math.max(0.05, input.thickness);
-  const crease = t * 3;
+  const crease = t * CREASE_WIDTH;
   const byId = new Map(input.panels.map(panel => [panel.id, panel]));
   const children = new Map<string, SheetHinge[]>();
   for (const hinge of input.hinges) children.set(hinge.parent, [...(children.get(hinge.parent) ?? []), hinge]);
