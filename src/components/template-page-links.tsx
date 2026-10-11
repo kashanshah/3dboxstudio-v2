@@ -1,14 +1,27 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { BOX_TEMPLATE_PAGES } from "@/content/box-template-pages";
+import { getPackagingTemplate } from "@/lib/packaging/template-registry";
+import { studioTemplateHref } from "@/lib/studio-entry";
+import { TemplateCards, type TemplateCard } from "./template-cards";
 
-/** Cards linking to each ready template's page, with its live dieline and size picker. */
-export function TemplatePageLinks({ title = "Ready-to-use box templates" }: { title?: string }) {
+const formatMm = (value: number) => String(Math.round(value * 10) / 10);
+
+/** The ready templates as cards: picture, size, a link to the template page and one straight into the Studio. */
+export function TemplatePageLinks({ title = "Ready-to-use box templates", filters = false }: { title?: string; filters?: boolean }) {
+  const cards: TemplateCard[] = BOX_TEMPLATE_PAGES.map(page => {
+    const size = getPackagingTemplate(page.templateId)?.defaultDimensions ?? { width: 0, height: 0, depth: 0 };
+    return {
+      slug: page.slug,
+      name: page.name,
+      description: page.description,
+      tags: page.tags,
+      image: `/images/templates/${page.templateId}.webp`,
+      size: `${formatMm(size.width)} × ${formatMm(size.height)} × ${formatMm(size.depth)} mm`,
+      studioHref: studioTemplateHref(page.templateId, size, "mm"),
+    };
+  });
   return <section className="template-page-links" aria-labelledby="template-page-links-title">
     <h2 id="template-page-links-title">{title}</h2>
-    <p>Pick a template, enter your size and see the dieline redraw, then open it in the Studio.</p>
-    <div>{BOX_TEMPLATE_PAGES.map(page => <Link key={page.slug} href={`/box-templates/${page.slug}`}>
-      <b>{page.name}</b><span>{page.description}</span><i>Open template <ArrowRight /></i>
-    </Link>)}</div>
+    <p>Pick a template, enter your size and see the dieline redraw, or open it straight in the Studio.</p>
+    <TemplateCards cards={cards} filters={filters} />
   </section>;
 }

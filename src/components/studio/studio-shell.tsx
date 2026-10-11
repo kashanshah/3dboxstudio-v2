@@ -8,6 +8,7 @@ import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
 import { useTranslations } from '@/components/i18n/locale-provider';
 import { useDialogFocus } from '@/components/auth/use-dialog-focus';
+import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
@@ -17,21 +18,13 @@ import { StudioViewBoundary } from './studio-view-boundary';
 import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/studio-zoom';
 import { attachTouchPinch } from '@/lib/touch-pinch';
 import { shortcutKey } from '@/lib/shortcut-key';
-
-// Number fields that apply on blur: Enter applies too, and an emptied field
-// leaves the value as it was instead of setting it to zero.
-const blurOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter') event.currentTarget.blur(); };
-const fieldNumber = (text: string) => text.trim() === '' ? Number.NaN : Number(text);
-
-// Editor shortcuts must not reach the design behind an open dialog.
-const modalIsOpen = () => typeof document !== 'undefined' && !!document.querySelector('[aria-modal="true"],dialog[open]');
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -45,6 +38,14 @@ import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateC
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
+
+// Number fields that apply on blur: Enter applies too, and an emptied field
+// leaves the value as it was instead of setting it to zero.
+const blurOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter') event.currentTarget.blur(); };
+const fieldNumber = (text: string) => text.trim() === '' ? Number.NaN : Number(text);
+
+// Editor shortcuts must not reach the design behind an open dialog.
+const modalIsOpen = () => typeof document !== 'undefined' && !!document.querySelector('[aria-modal="true"],dialog[open]');
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
@@ -2263,12 +2264,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <div className="pro-template-preview-details">
             <span>{t("studio.structure_preview")}</span>
             <strong>{getPackagingTemplateCopy(templatePreview, t).shortName}</strong>
+            <p>{getPackagingTemplateCopy(templatePreview, t).description}</p>
             <p>{t("studio.review_the_structure_before_replacing_the_current_box_template")}</p>
             {templatePreview.defaultDimensions && <dl>
               <div><dt>{t("studio.width")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.width,measurementUnit)} {measurementUnit}</dd></div>
               <div><dt>{t("studio.height")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.height,measurementUnit)} {measurementUnit}</dd></div>
               <div><dt>{t("studio.depth")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
             </dl>}
+            {BOX_TEMPLATE_SLUGS[templatePreview.id] && <a className="pro-template-preview-guide" href={`/box-templates/${BOX_TEMPLATE_SLUGS[templatePreview.id]}`} target="_blank" rel="noopener noreferrer">{t("studio.template_guide_and_sizes")} <ExternalLink size={13}/></a>}
           </div>
         </div>
         <footer>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFoundMetadata } from '@/lib/not-found-metadata';
 import Link from 'next/link';
+import { inlineLinks } from '@/components/inline-links';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
@@ -43,13 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function inlineText(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\(\/[^)]+\))/g);
-  return parts.map((part, index) => {
-    const match = /^\[([^\]]+)\]\((\/[^)]+)\)$/.exec(part);
-    return match ? <Link key={index} href={match[2]}>{match[1]}</Link> : part;
-  });
-}
+const inlineText = inlineLinks;
 
 function headingId(text: string, index: number) {
   return `${text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${index}`;

@@ -328,6 +328,7 @@ export const en = {
   "studio.rendering_video": "Rendering video… {percent}%",
   "studio.enter_a_size_between": "Enter {min}–{max} {unit}",
   "studio.all_templates": "All",
+  "studio.template_guide_and_sizes": "Template guide and sizes",
   "studio.pdf_dieline": "PDF dieline",
   "studio.print_ready": "Print-ready",
   "studio.layout_at_the_finished_physical_size": "layout at the finished physical size.",
