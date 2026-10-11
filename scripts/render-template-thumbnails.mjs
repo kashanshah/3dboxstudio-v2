@@ -2,6 +2,7 @@
 // Studio's own 3D renderer, so thumbnails always match what the Studio builds.
 //
 //   npm i --no-save esbuild && node scripts/render-template-thumbnails.mjs
+//   ONLY=sleeve-box node scripts/render-template-thumbnails.mjs   (just one)
 //
 // Needs Chromium (PLAYWRIGHT_BROWSERS_PATH or CHROMIUM_PATH).
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
@@ -17,7 +18,13 @@ const SHOTS = [
   { id: 'base-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.35, zoom: 70 },
   { id: 'split-top-box', mode: 'top_split_meet_center', progress: 85, yaw: -0.6, pitch: 0.35, zoom: 75 },
   { id: 'pizza-box', mode: 'lid_from_back', progress: 85, yaw: -0.6, pitch: 0.35 },
+  { id: 'sleeve-box', mode: 'closed', progress: 100, yaw: -0.6, pitch: 0.45 },
+  { id: 'mailer-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.4 },
+  { id: 'rigid-lid-base', mode: 'lid_from_back', progress: 85, yaw: -0.6, pitch: 0.45 },
 ];
+// ONLY=sleeve-box,pizza-box renders just those, leaving the other images as they are.
+const only = process.env.ONLY?.split(',').map(id => id.trim()).filter(Boolean);
+const shots = only?.length ? SHOTS.filter(shot => only.includes(shot.id)) : SHOTS;
 
 const entry = `
 import { createCartonRenderer } from '@/components/studio/carton-renderer';
@@ -49,7 +56,7 @@ try {
   });
   const page = await browser.newPage({ viewport: { width: 1200, height: 900 } });
   await page.goto('file://' + path.join(work, 'index.html'));
-  for (const shot of SHOTS) {
+  for (const shot of shots) {
     await page.evaluate(value => window.show(value), shot);
     // Let textures and the shadow settle, then draw once more.
     await page.waitForTimeout(1500);

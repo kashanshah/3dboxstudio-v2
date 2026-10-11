@@ -119,7 +119,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "export",
     question: "What file formats can I export?",
     answer:
-      "The 3D workspace exports PNG previews. The 2D Design workspace can prepare the current flat layout for PDF output. Scene/video output is not part of the current launch scope. Generated layout output should still be validated before manufacturing.",
+      "The 3D workspace exports PNG previews. Preview & Download exports the dieline as a 1:1 vector PDF with your artwork, bleed and cut and crease lines, and the cutting template on its own as SVG (for Illustrator, Inkscape and Affinity) or DXF (for CAD programs, die makers and cutting tables), with cut and crease lines on separate layers. Video output is not available yet. Validate production files with your printer before manufacturing.",
   },
   {
     id: "box-types",
@@ -127,6 +127,20 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "What box types can I design?",
     answer:
       "3D Box Studio uses a growing template library rather than one hard-coded box. Supported structures include folding-carton and other packaging templates as they become engine-ready. Open the current template browser to see which structures are available now; planned structures are clearly marked rather than counted as usable.",
+  },
+  {
+    id: "svg-dxf-dieline",
+    category: "export",
+    question: "Can I download the box dieline as SVG or DXF?",
+    answer:
+      "Yes, for every box template and at no cost. In Preview & Download, open the Dieline tab and choose SVG or DXF. Both are drawn at 1:1 in millimetres, with cut lines in red on a CUT layer and crease lines dashed in blue on a CREASE layer. The DXF is R12, which almost every CAD program and cutting table reads.",
+  },
+  {
+    id: "rigid-box",
+    category: "technical",
+    question: "Can I design a rigid lid and base box?",
+    answer:
+      "Yes. The rigid lid and base box template draws the base and lid wraps from the inside size of the base, with corner ears and turn-ins, and sizes the lid to fit over the base for your board thickness. Lid height and turn-in depth are adjustable, and the 3D view shows the lid lifting off.",
   },
   {
     id: "who-is-it-for",

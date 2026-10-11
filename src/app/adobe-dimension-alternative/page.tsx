@@ -41,7 +41,7 @@ const rows = [
   },
   {
     "label": "Print output",
-    "ours": "1:1 vector PDF dieline with cut, crease and bleed",
+    "ours": "1:1 vector PDF dieline with cut, crease and bleed, plus SVG and DXF cutting templates",
     "theirs": "Rendered images only"
   },
   {

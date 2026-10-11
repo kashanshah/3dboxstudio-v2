@@ -20,6 +20,7 @@ import {
   PerspectiveCamera,
   PlaneGeometry,
   PMREMGenerator,
+  Raycaster,
   Scene as ThreeScene,
   ShadowMaterial,
   SRGBColorSpace,
@@ -303,6 +304,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       }
     }
     if (!Number.isFinite(minY)) return;
+    lastBounds = { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] };
     const size = Math.max(maxX - minX, maxY - minY, maxZ - minZ, 1);
     const groundY = minY - size * 0.0015;
     // Looking up from below the floor, a shadow plane would sit in front of the carton.
@@ -330,12 +332,40 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     key.shadow.normalBias = size * 0.002;
   };
 
+  // The carton's bounds as last drawn, for measurements laid over the canvas.
+  type Bounds = { min: [number, number, number]; max: [number, number, number] } | null;
+  let lastBounds: Bounds = null;
+  const renderListeners = new Set<() => void>();
+  const raycaster = new Raycaster();
+  // The same box closed, built only when measuring an open one.
+  let closedCache: { key: string; bounds: Bounds } | null = null;
+  const closedBounds = (): Bounds => {
+    const key = JSON.stringify([scene.templateId, scene.dimensions, scene.openingMode, scene.splitTopHingeSide]);
+    if (closedCache?.key !== key) {
+      let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (const mesh of sceneMeshes({ ...scene, formation: 100, opening: 0 })) {
+        const m = mesh.model;
+        for (let i = 0; i < mesh.vertices.length; i += 8) {
+          let x = mesh.vertices[i], y = mesh.vertices[i + 1], z = mesh.vertices[i + 2];
+          if (m) [x, y, z] = [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+          minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+        }
+      }
+      closedCache = { key, bounds: Number.isFinite(minY) ? { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] } : null };
+      return closedCache.bounds;
+    }
+    return closedCache.bounds;
+  };
+
   const render = () => {
     if (capture) return;
     resize();
     const eye = updateCamera();
     stageLights(eye);
     renderer.render(world, camera);
+    renderListeners.forEach(listener => listener());
   };
 
   const syncArtwork = (artworkByPanel: ArtworkByPanel) => {
@@ -399,6 +429,54 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       render();
     },
     render,
+    /** Calls `listener` after every frame drawn; returns the unsubscribe. */
+    onRender(listener: () => void) {
+      renderListeners.add(listener);
+      return () => { renderListeners.delete(listener); };
+    },
+    /**
+     * The carton's bounding box as last drawn: its corners in canvas pixels
+     * (index bits: 1 = max x, 2 = max y, 4 = max z) and how far each is from
+     * the camera, so the nearest edges can carry the measurements.
+     */
+    projectBounds() {
+      // An open lid or door is measured as the closed box it belongs to.
+      const bounds = scene.opening > 0.5 ? closedBounds() : lastBounds;
+      if (!bounds) return null;
+      const { min, max } = bounds;
+      const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+      const eye = new Vector3().setFromMatrixPosition(camera.matrixWorld);
+      return Array.from({ length: 8 }, (_, index) => {
+        const point = new Vector3(index & 1 ? max[0] : min[0], index & 2 ? max[1] : min[1], index & 4 ? max[2] : min[2]);
+        const distance = point.distanceTo(eye);
+        point.project(camera);
+        return { x: (point.x + 1) / 2 * width, y: (1 - point.y) / 2 * height, distance };
+      });
+    },
+    /**
+     * Where each named panel's centre is on the canvas, and whether that
+     * panel is the one seen there (not hidden inside the box or round the back).
+     */
+    projectPanels(names: string[]) {
+      const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+      return names.map(name => {
+        const mesh = meshes.find(item => item.panel === name && item.pickCorners);
+        if (!mesh) return null;
+        const m = mesh.model;
+        const centre = new Vector3();
+        for (const [x, y, z] of mesh.pickCorners!) {
+          centre.add(m ? new Vector3(m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]) : new Vector3(x, y, z));
+        }
+        centre.divideScalar(mesh.pickCorners!.length).project(camera);
+        const point = { x: (centre.x + 1) / 2 * width, y: (1 - centre.y) / 2 * height };
+        // The first surface a ray from the camera meets there, so a flap
+        // tucked between walls or inside the box counts as hidden.
+        raycaster.setFromCamera(new Vector2(centre.x, centre.y), camera);
+        const hit = raycaster.intersectObjects(objects.filter(object => object.visible), false)[0];
+        const seen = hit ? meshes[objects.indexOf(hit.object as typeof objects[number])]?.panel : undefined;
+        return { name, ...point, visible: seen === name || seen === `Interior ${name}` };
+      });
+    },
     pickPanel(localX: number, localY: number) {
       return pickScenePanel(scene, meshes, localX, localY, canvas.clientWidth, canvas.clientHeight);
     },

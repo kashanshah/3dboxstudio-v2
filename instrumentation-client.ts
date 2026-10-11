@@ -6,11 +6,10 @@ import { setPostHogClient } from '@/lib/analytics/posthog';
 const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
 const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
 
-if(!token && process.env.NODE_ENV!=='production'){
-  throw new Error('NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is configured');
-}
-if(!host && process.env.NODE_ENV!=='production'){
-  throw new Error('NEXT_PUBLIC_POSTHOG_HOST variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once NEXT_PUBLIC_POSTHOG_HOST is configured');
+// Analytics are optional in development (.env.example: leave the token empty
+// to disable). Say so loudly, but keep the app running.
+if((!token||!host) && process.env.NODE_ENV!=='production'){
+  console.warn(`${!token?'NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN':'NEXT_PUBLIC_POSTHOG_HOST'} is not configured, so PostHog analytics are off and events are not recorded. Set it in .env.local to turn them on.`);
 }
 
 // Autocapture, exceptions, page leaves and replay snapshots bypass trackEvent,

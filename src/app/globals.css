@@ -1875,7 +1875,10 @@ body{font-size:var(--type-body)}
 /* Tapered flaps: the outline is drawn as a shape, the box border is hidden. */
 .dl-live.is-shaped{border-color:transparent!important}
 /* Narrow closure flaps: labels wrap inside the flap instead of running past it. */
-.dl-live.is-shaped.dl-flap .dl-label{max-width:62%;text-align:center;line-height:1.2;white-space:normal;overflow-wrap:anywhere}
+.dl-live.is-shaped:is(.dl-flap,.dl-glue){container-type:size}
+.dl-live.is-shaped:is(.dl-flap,.dl-glue) .dl-label{max-width:80%;text-align:center;line-height:1.15;white-space:normal;overflow-wrap:normal}
+/* Narrow or short flaps (a mailer's ears, dust flaps) shrink their label so whole words still fit. */
+.pro-canvas.is-workflow-design .dl-live.is-shaped:is(.dl-flap,.dl-glue) .dl-label{font-size:clamp(7px,min(16cqw,20cqh),11px)}
 .pro-dieline-shapes{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
 .pro-dieline-shapes .dl-shape{fill:none;stroke:var(--accent);stroke-width:1.5px;vector-effect:non-scaling-stroke}
 .pro-dieline-shapes .dl-shape-glue{stroke-dasharray:5 3}
@@ -5312,7 +5315,8 @@ body{font-size:var(--type-body)}
 /* Download panel tabs */
 .pro-export-tabs{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  /* Image, Video, PDF layout and Dieline, two by two. */
+  grid-template-columns:repeat(2,1fr);
   gap:6px;
   padding:4px;
   margin:2px 0 16px;
@@ -5530,3 +5534,94 @@ body{font-size:var(--type-body)}
 .pro-media-unified-grid .pro-media-tile .pro-media-tile-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
 .pro-media-tile-name{flex:none}
 .pro-media-unified-grid .pro-media-usage{bottom:34px}
+
+/* Editor toolbar beside an open inspector, not under it: centre it in the
+   canvas space right of the panel (12px inset + 384px panel + 12px gap). The
+   stage's status chips sit above the toolbar instead of behind it. */
+@media(min-width:761px){
+  .pro-studio-body:has(> .pro-inspector.is-open) .pro-shared-canvas-control-bar:not(.is-2d){
+    left:calc(50% + 204px);
+    width:min(680px,calc(100% - 432px));
+  }
+  /* The 3D view itself starts beside the open inspector, so the box centres
+     in the space left visible (on tablets it otherwise sat behind the panel). */
+  .pro-studio-body:has(> .pro-inspector.is-open) .pro-canvas>.pro-3d-stage{left:408px}
+}
+@media(min-width:641px){
+  .pro-3d-stage .pro-stage-meta{bottom:98px}
+}
+/* The design sheet centres in the stage space above the line legend and the
+   toolbar (legend 100px up, about 40px tall), not behind them. */
+@media(min-width:641px){
+  .pro-2d-design-stage{padding-bottom:150px}
+}
+/* While the design sheet reserves the side panels' space (studio-shell.tsx),
+   the line legend spans the same free area beneath it. */
+@media(min-width:761px){
+  .pro-canvas.is-workflow-design .pro-2d-design-stage[data-sheet-reserve]>.pro-dieline-legend{
+    left:calc(16px + var(--sheet-reserve-left,0px));
+    right:calc(16px + var(--sheet-reserve-right,0px));
+  }
+}
+
+/* Flap & panel sizes: one row per size, its reset beside the field. */
+.pro-adjustable-sizes .pro-help{margin:4px 0 6px}
+.pro-adjustable-size{display:grid;grid-template-columns:minmax(0,1fr) auto 28px;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.pro-adjustable-size:first-of-type{border-top:0}
+.pro-adjustable-size>div{display:grid;gap:2px;min-width:0}
+.pro-adjustable-size strong{font-size:12px}
+.pro-adjustable-size span{color:var(--muted);font-size:10px}
+.pro-adjustable-size.is-adjusted strong::after{content:"";display:inline-block;width:6px;height:6px;margin-left:6px;border-radius:50%;background:var(--accent,#1673d6);vertical-align:middle}
+.pro-adjustable-size label{display:flex;align-items:center;gap:6px}
+.pro-adjustable-size input{width:76px;height:34px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);padding:0 8px;font:inherit;font-size:12px}
+.pro-adjustable-size input[aria-invalid]{border-color:#d92d20}
+.pro-adjustable-size em{color:var(--muted);font-size:10px;font-style:normal;font-weight:600}
+.pro-adjustable-reset{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer}
+.pro-adjustable-reset:hover:not(:disabled){background:var(--soft,#f2f5f9);color:var(--ink)}
+.pro-adjustable-reset:disabled{opacity:.3;cursor:default}
+.pro-design-sizes-content{padding-top:4px}
+/* The panel's own title already names the card. */
+.pro-design-sizes-content .pro-adjustable-sizes .pro-section-title strong{display:none}
+/* Panels the flap size being edited changes: tinted, with a heavier edge. */
+.dl-live.is-size-highlight{background:rgba(245,158,11,.22)!important;box-shadow:inset 0 0 0 2px #d97706;transition:background .15s}
+.dl-live.is-shaped.is-size-highlight{box-shadow:none}
+.pro-dieline-shapes .dl-shape.is-size-highlight{stroke:#d97706;stroke-width:2.5px}
+
+/* "Show sizes": each panel's box or flap size over the sheet, editable in place. */
+.pro-dieline-sizes{position:absolute;inset:0;z-index:30;pointer-events:none}
+.dl-sizes{position:absolute;transform:translate(-50%,calc(-50% + 1.6em));display:flex;align-items:center;gap:3px;white-space:nowrap;font-size:11px;color:var(--muted)}
+.dl-sizes.is-flap{transform:translate(-50%,-50%)}
+.pro-dieline-sizes :is(.dl-size-chip,.dl-size-input),.carton-engine-measures :is(.dl-size-chip,.dl-size-input){pointer-events:auto;height:20px;border-radius:999px;font:inherit;font-size:11px;font-weight:650;font-variant-numeric:tabular-nums}
+.pro-dieline-sizes .dl-size-chip,.carton-engine-measures .dl-size-chip{display:inline-flex;align-items:center;gap:4px;padding:0 7px;border:1px solid #bcd3ec;background:rgba(255,255,255,.94);color:#0b5c9c;cursor:text;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip>span{font-size:10px;opacity:.7;font-weight:600}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip:is(:hover,:focus-visible){border-color:var(--accent);background:#fff;outline:none}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip.is-adjustment{border-color:#f0c98a;color:#9a5b05}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-chip.is-adjustment:is(:hover,:focus-visible){border-color:#d97706}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-input{width:62px;padding:0 6px;border:1.5px solid var(--accent);background:#fff;color:var(--ink);outline:none}
+:is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-input.is-adjustment{border-color:#d97706}
+
+/* "Show sizes" on the 3D box: width, height and depth along its nearest edges. */
+.carton-engine-measures{position:absolute;inset:0;pointer-events:none;z-index:3}
+.carton-engine-measures svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.carton-engine-measures line{stroke:#1d3557;stroke-width:1.25;vector-effect:non-scaling-stroke;paint-order:stroke}
+.carton-engine-measures line.is-extension{stroke-opacity:.45;stroke-dasharray:3 3}
+.carton-engine-measures line.is-dimension{filter:drop-shadow(0 0 1.5px #fff)}
+.carton-engine-measure-label{position:absolute;transform:translate(-50%,-50%)}
+.carton-engine-measure-label .dl-size-chip,.carton-engine-measure-label .dl-size-input{height:24px;font-size:12px}
+
+/* Flap drag handles: a grip on each flap's free edge. */
+.pro-dieline-size-handles{position:absolute;inset:0;z-index:31;pointer-events:none}
+.pro-dieline-size-handles .dl-size-handle{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;padding:0;border:1.5px solid #fff;border-radius:999px;background:#d97706;box-shadow:0 1px 3px rgba(15,23,42,.3);touch-action:none}
+.pro-dieline-size-handles .dl-size-handle.is-x{width:8px;height:26px;cursor:ew-resize}
+.pro-dieline-size-handles .dl-size-handle.is-y{width:26px;height:8px;cursor:ns-resize}
+.pro-dieline-size-handles .dl-size-handle:is(:hover,:focus-visible,.is-dragging){background:#b45309;outline:2px solid rgba(217,119,6,.35);outline-offset:1px}
+.pro-dieline-size-handles .dl-size-handle-value{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:3px 8px;border-radius:6px;background:#1f2937;color:#fff;font-size:11px;font-weight:650;white-space:nowrap;pointer-events:none}
+.dl-size-handle.is-y .pro-dieline-size-handles .dl-size-handle-value{bottom:calc(100% + 6px)}
+.carton-engine-measures-hint{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:3;padding:6px 12px;border:1px solid #dce5ef;border-radius:999px;background:rgba(255,255,255,.94);color:var(--muted);font-size:12px;font-weight:600;pointer-events:none;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+/* The small Live 3D beside the design sheet: the same measurements, smaller. */
+.pro-artwork-preview-canvas .carton-engine-measures .dl-size-chip,.pro-artwork-preview-canvas .carton-engine-measures .dl-size-input{height:18px;padding:0 5px;font-size:10px}
+.pro-artwork-preview-canvas .carton-engine-measures .dl-size-input{width:52px}
+
+/* Download → Dieline: SVG and DXF, each with a line on what it's for. */
+.pro-dieline-formats{display:grid;gap:6px}
+.pro-dieline-formats p{margin:0 0 8px;color:var(--muted);font-size:11px;line-height:1.4}

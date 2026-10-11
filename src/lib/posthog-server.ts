@@ -13,10 +13,14 @@ export function getPostHogClient():PostHog|null{
   const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();
   if(!token||!host){
     const runningTests=process.env.NODE_ENV==='test'||process.env.NODE_TEST_CONTEXT!==undefined;
+    // Analytics are optional in development (.env.example: leave the token
+    // empty to disable). Report it once instead of failing the request, so
+    // sign-in and every other route work without credentials.
     if(process.env.NODE_ENV!=='production'&&!runningTests){
       const variable=!token?'NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN':'NEXT_PUBLIC_POSTHOG_HOST';
-      throw new Error(`${variable} variable required by PostHog is missing or un-configured, this causes events to be silently missed. This error stops appearing once ${variable} is configured`);
+      console.warn(`${variable} is not configured, so PostHog server events are not recorded. Set it in .env.local to turn them on.`);
     }
+    globalForPostHog.__posthogServerClient=null;
     return null;
   }
   globalForPostHog.__posthogServerClient=new PostHog(token,{host,flushAt:20,flushInterval:10_000,enableExceptionAutocapture:false});

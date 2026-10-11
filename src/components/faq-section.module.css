@@ -79,7 +79,7 @@
   background: #fff;
   transition: transform .2s ease, background .2s ease;
 }
-.accordion details[open] summary i { transform: rotate(45deg); background: #eef5ff; }
+.accordion details[open] > summary i { transform: rotate(45deg); background: #eef5ff; }
 .section .accordion details > p {
   max-width: 760px;
   margin: -4px 48px 22px 2px;
@@ -87,6 +87,21 @@
   font-size: 15px;
   line-height: 1.68;
 }
+/* The "show all questions" control: a quiet link-style row, after the
+   questions shown and above the rest once opened. */
+.accordion .more { border-bottom: 0; }
+.accordion .more > summary {
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 18px 2px;
+  color: #0f67e8;
+  font-size: 15px;
+  font-weight: 750;
+  border-bottom: 1px solid #dfe6ee;
+}
+.accordion .more > summary:hover { text-decoration: underline; text-underline-offset: 4px; }
+.accordion .more .moreOpen, .accordion .more[open] .moreClosed { display: none; }
+.accordion .more[open] .moreOpen { display: inline; }
 @media (max-width: 1050px) {
   .section { grid-template-columns: minmax(0, 1fr); gap: 42px; }
   .intro { position: static; }

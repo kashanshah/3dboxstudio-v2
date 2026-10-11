@@ -41,7 +41,7 @@ const rows = [
   },
   {
     "label": "Print output",
-    "ours": "1:1 vector PDF dieline",
+    "ours": "1:1 vector PDF dieline, plus SVG and DXF cutting templates",
     "theirs": "Mockup images only"
   },
   {
@@ -81,7 +81,7 @@ const faqs = [
   },
   {
     "question": "Which boxes are supported?",
-    "answer": "Reverse tuck end and straight tuck end cartons, pizza boxes and split top boxes. Mailer and sleeve boxes are planned."
+    "answer": "Reverse tuck end and straight tuck end cartons, pizza boxes, split top boxes, mailer boxes and sleeves."
   },
   {
     "question": "Can I use mockups commercially?",

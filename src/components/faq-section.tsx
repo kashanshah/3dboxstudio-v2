@@ -15,6 +15,7 @@ export function FaqSection({
   id,
   eyebrow = "Frequently asked questions",
   className,
+  collapse,
 }: {
   items: readonly FaqSectionItem[];
   title?: string;
@@ -25,7 +26,20 @@ export function FaqSection({
   eyebrow?: string;
   /** Extra class on the section, so a page can align the heading with its own type scale. */
   className?: string;
+  /**
+   * Show only this many questions, the rest behind a "show all" control that
+   * works without JavaScript. Every answer stays in the page's HTML.
+   */
+  collapse?: { after: number; showAll: string; showFewer: string };
 }) {
+  const shown = collapse && items.length > collapse.after + 1 ? items.slice(0, collapse.after) : items;
+  const more = items.slice(shown.length);
+  const question = (item: FaqSectionItem, index: number) => (
+    <details key={item.question} open={index === 0}>
+      <summary><span>{item.question}</span><i aria-hidden="true">+</i></summary>
+      <p>{item.answer}</p>
+    </details>
+  );
   return (
     <section id={id} className={className ? `${styles.section} ${className}` : styles.section} aria-label={eyebrow}>
       <div className={styles.intro}>
@@ -41,12 +55,16 @@ export function FaqSection({
         ) : null}
       </div>
       <div className={styles.accordion}>
-        {items.map((item, index) => (
-          <details key={item.question} open={index === 0}>
-            <summary><span>{item.question}</span><i aria-hidden="true">+</i></summary>
-            <p>{item.answer}</p>
+        {shown.map(question)}
+        {more.length > 0 && collapse ? (
+          <details className={styles.more}>
+            <summary>
+              <span className={styles.moreClosed}>{collapse.showAll}</span>
+              <span className={styles.moreOpen}>{collapse.showFewer}</span>
+            </summary>
+            {more.map((item, index) => question(item, shown.length + index))}
           </details>
-        ))}
+        ) : null}
       </div>
     </section>
   );
