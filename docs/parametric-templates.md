@@ -110,7 +110,7 @@ adjustable: [
 
 The studio shows them under Box & Size and in the Design step's Sizes tool, each with its limits and a reset. While one is focused or hovered, the design grid highlights the panels it changes; `adjustedPanels` finds them by nudging the size and comparing each panel's shape, so definitions don't list them.
 
-"Show sizes" in the canvas toolbar puts the sizes on the design itself: width, height and depth along the 3D box's nearest edges, and on the flat sheet each box and flap size once, on the largest panel it drives. Any of them can be clicked and typed over. `panelSizes` decides which size a panel shows the same way: it nudges every box dimension and adjustable size and keeps the panel sides that grow one for one, so this too needs nothing from the definition.
+"Show sizes" in the canvas toolbar puts the sizes on the design itself: width, height and depth along the 3D box's nearest edges, and on the flat sheet each box and flap size once, on the largest panel it drives. Any of them can be clicked and typed over. `panelSizes` decides which size a panel shows the same way: it nudges every box dimension and adjustable size and keeps the panel sides that grow one for one, so this too needs nothing from the definition. On the 3D box each flap size also sits on its largest flap that the camera can see (a ray from the camera must meet that flap first), so a flap folded inside the box shows its size once the box is opened or flattened.
 
 ### Variants and motions
 
