@@ -40,6 +40,13 @@ export type CartonEngineHandle = {
   /** Renders and downloads an MP4 of the box assembling and turning. Rejects when video is unsupported. */
   exportVideo: (filename: string, onProgress?: (fraction: number) => void) => Promise<boolean>;
   resetCamera: () => void;
+  /**
+   * Draws the box at this formation and opening without waiting for new
+   * props: an animation runs it every frame and sets the props once at the end.
+   */
+  showAssembly: (formation: number, opening: number) => void;
+  /** Back to the formation and opening props, after an animation stops early. */
+  releaseAssembly: () => void;
 };
 
 type Props = {
@@ -135,6 +142,17 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   }, [cameraPreset, animateCameraTo]);
 
   useImperativeHandle(ref, () => ({
+    showAssembly(formation: number, opening: number) {
+      shownAssemblyRef.current = { formation, opening, from: { formation: formationRef.current, opening: openingRef.current } };
+      const renderer = rendererRef.current;
+      if (renderer) renderer.setScene({ ...renderer.currentScene(), formation, opening });
+    },
+    releaseAssembly() {
+      if (!shownAssemblyRef.current) return;
+      shownAssemblyRef.current = null;
+      const renderer = rendererRef.current;
+      if (renderer) renderer.setScene({ ...renderer.currentScene(), formation: formationRef.current, opening: openingRef.current });
+    },
     thumbnail() {
       const source = canvasRef.current;
       if (!source || !source.width || !source.height) return null;
@@ -260,14 +278,25 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     };
   }, [cancelCameraAnimation]);
 
+  // An animation's frame, kept until the formation or opening props move on,
+  // so a redraw for another reason (hovering a panel) doesn't jump back.
+  const shownAssemblyRef = useRef<{ formation: number; opening: number; from: { formation: number | undefined; opening: number } } | null>(null);
+  const formationRef = useRef(formation);
+  const openingRef = useRef(opening);
+  formationRef.current = formation;
+  openingRef.current = opening;
+
   useEffect(() => {
     const renderer = rendererRef.current;
     if (!renderer) return;
+    const shown = shownAssemblyRef.current;
+    if (shown && (shown.from.formation !== formation || shown.from.opening !== opening)) shownAssemblyRef.current = null;
+    const held = shownAssemblyRef.current;
     renderer.setScene({
       dimensions,
       templateId,
-      opening,
-      formation,
+      opening: held ? held.opening : opening,
+      formation: held ? held.formation : formation,
       openingMode,
       splitTopHingeSide,
       material,

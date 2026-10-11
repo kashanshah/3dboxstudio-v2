@@ -1,5 +1,12 @@
-import { sanitizeCartonDimensions, type CartonDimensions } from '../reverse-tuck';
-import { arcPoints, finishExportGeometry, rectangleOutline, type ExportPanel, type LineMm, type PointMm } from '../export-geometry';
+// FROZEN REFERENCE. The tuck end cartons exactly as they were hand-written
+// before they moved to the parametric definitions in
+// src/lib/packaging/parametric/definitions. Nothing in the app imports this
+// file: scripts/parametric-templates.test.cjs compares the definitions
+// against it, so any change to a die or fold shows up as a test failure.
+// Never edit it to make that test pass.
+
+import { sanitizeCartonDimensions, type CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { arcPoints, finishExportGeometry, rectangleOutline, type ExportPanel, type LineMm, type PointMm } from '@/lib/packaging/export-geometry';
 
 // Tuck end cartons as die makers draw them today (ECMA A20.20 reverse tuck,
 // A15.20 straight tuck): one strip of glue flap, left, front, right and back,

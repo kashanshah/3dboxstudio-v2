@@ -1,5 +1,6 @@
 import type { PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { svgNumber, svgPoints } from '@/lib/svg-number';
 import { getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
 
 export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
@@ -31,10 +32,11 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
   if (photo && runtime && size) {
     const dieline = getTemplateExportGeometry(template.id, size);
     const pad = Math.max(dieline.bounds.width, dieline.bounds.height) * 0.02;
-    const line = (segment: { start: { x: number; y: number }; end: { x: number; y: number } }) => `M${segment.start.x} ${segment.start.y}L${segment.end.x} ${segment.end.y}`;
+    const n = svgNumber;
+    const line = (segment: { start: { x: number; y: number }; end: { x: number; y: number } }) => `M${n(segment.start.x)} ${n(segment.start.y)}L${n(segment.end.x)} ${n(segment.end.y)}`;
     return <span className={`pro-template-visual is-photo ${compact ? 'is-compact' : ''}`} aria-hidden="true">
-      <svg className="pro-template-photo-dieline" viewBox={`${-pad} ${-pad} ${dieline.bounds.width + pad * 2} ${dieline.bounds.height + pad * 2}`} preserveAspectRatio="xMidYMid meet">
-        {dieline.panels.map(panel => <polygon key={panel.id} points={panel.outline.map(point => `${point.x},${point.y}`).join(' ')}/>)}
+      <svg className="pro-template-photo-dieline" viewBox={`${n(-pad)} ${n(-pad)} ${n(dieline.bounds.width + pad * 2)} ${n(dieline.bounds.height + pad * 2)}`} preserveAspectRatio="xMidYMid meet">
+        {dieline.panels.map(panel => <polygon key={panel.id} points={svgPoints(panel.outline)}/>)}
         <path className="is-cut" d={dieline.cut.map(line).join('')}/>
         <path className="is-crease" d={dieline.crease.map(line).join('')}/>
       </svg>

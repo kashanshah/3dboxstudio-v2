@@ -471,7 +471,8 @@ test('every ready template has a matching runtime and real default dimensions',(
       openingMode:runtime.assembly.defaultOpeningMode,
       splitTopHingeSide:'side_a',
     });
-    assert.ok(geometry.panels.length>=6,`${template.id} has incomplete dieline geometry`);
+    // Four walls and a glue flap at least (a sleeve has just those).
+    assert.ok(geometry.panels.length>=5,`${template.id} has incomplete dieline geometry`);
     assert.ok(geometry.bounds.width>0&&geometry.bounds.height>0);
     assert.ok(geometry.panels.every(panel=>[panel.x,panel.y,panel.width,panel.height].every(Number.isFinite)));
 
@@ -508,8 +509,11 @@ test('dimension changes flow through each ready template runtime',()=>{
     const front=b.panels.find(panel=>panel.label==='FRONT');
     assert.ok(front,`${template.id} has no FRONT panel`);
     // Entered sizes are inside sizes; a cutting template scores each panel up
-    // to a board thickness wider, and a slotted box two boards taller.
-    within(front.width,changed.width,changed.thickness,`${template.id} front width`);
+    // to a board thickness wider, and a slotted box two boards taller. A
+    // mailer's front is as wide as its base, cut wider so the double side
+    // walls stand inside it.
+    const widthAllowance=template.id==='mailer-box'?5.5:0;
+    within(front.width,changed.width+widthAllowance*changed.thickness,changed.thickness,`${template.id} front width`);
     within(front.height,changed.height,2*changed.thickness,`${template.id} front height`);
   }
 });
@@ -567,6 +571,8 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'base-box':'base-box',
     'split-top-box':'split-top',
     'pizza-box':'pizza-box',
+    'sleeve-box':'sleeve-box',
+    'mailer-box':'mailer-box',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];
@@ -574,9 +580,11 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     const root=path.resolve(__dirname,'../src/lib/packaging/templates',folder);
     const runtime=fs.readFileSync(path.join(root,'runtime.ts'),'utf8');
     const geometry=fs.readFileSync(path.join(root,'geometry.ts'),'utf8');
+    assert.ok(geometry.length>0,`${template.id} geometry entry point is empty`);
+    // A template built from a parametric definition gets its mesh builder from the compiler.
+    if(/compileParametricTemplate\(/.test(runtime))continue;
     const renderer=fs.readFileSync(path.join(root,'renderer.ts'),'utf8');
     assert.match(runtime,/buildMeshes:/,`${template.id} runtime does not own its mesh builder registration`);
-    assert.ok(geometry.length>0,`${template.id} geometry entry point is empty`);
     assert.match(renderer,/TemplateMeshBuilder/,`${template.id} renderer does not implement the shared mesh contract`);
   }
 });

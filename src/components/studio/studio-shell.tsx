@@ -22,18 +22,19 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
-import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
+import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
@@ -248,7 +249,9 @@ function usePanelOpen(key:string){
     const remembered=panelOpenMemory.get(key);
     if(remembered!==undefined)return remembered;
     try{const stored=window.localStorage.getItem(key);if(stored!==null)return stored==='1';}catch{}
-    return !window.matchMedia?.('(max-width:760px)').matches;
+    // Open by default only where there is room beside the canvas: on phones
+    // and tablets the panels would cover the design.
+    return !window.matchMedia?.('(max-width:1100px)').matches;
   },[key]);
   const open=useSyncExternalStore(
     useCallback((listener:()=>void)=>{panelOpenListeners.add(listener);return ()=>{panelOpenListeners.delete(listener);};},[]),
@@ -398,6 +401,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [mediaTargetPanel, setMediaTargetPanel] = useState('Front');
   const [inspectorOpen, setInspectorOpen] = useState(!initialProject);
   const [designToolsOpen, setDesignToolsOpen] = useState(true);
+  // The Design step's left panel: artwork, or the flap and panel sizes.
+  const [designPanel, setDesignPanel] = useState<'artwork' | 'sizes'>('artwork');
+  // The flap size being pointed at or edited there; the grid marks what it changes.
+  const [highlightedSize, setHighlightedSize] = useState<string | null>(null);
   // Phone-only bottom sheet height for the inspector / design tools; not persisted.
   const [sheetSize, setSheetSize] = useState<SheetSize>('half');
   const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
@@ -1437,18 +1444,42 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, mediaLibraryOpen, removeFullDielineLayer]);
 
+  const stopFoldAnimation = () => {
+    if (foldAnimationRef.current === null) return;
+    cancelAnimationFrame(foldAnimationRef.current);
+    foldAnimationRef.current = null;
+    engineRef.current?.releaseAssembly();
+  };
+  /** Moving an assembly slider by hand stops a running animation. */
+  const setAssemblyProgressByHand = (value: number) => {
+    stopFoldAnimation();
+    setAssemblyProgress(value);
+  };
+
   const animateFold = (target: 0 | 100) => {
-    if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
+    stopFoldAnimation();
     const start = assemblyProgress;
     const startedAt = performance.now();
     // Each fold stage eases on its own, so the overall pace stays gentle and
     // close to even: about three seconds for a full flat-to-closed run.
     const duration = Math.max(700, 3000 * Math.abs(target - start) / 100);
+    // Each frame moves only the 3D box and the sliders; the page's state is
+    // set once at the end. Re-rendering the whole studio every frame made
+    // slower devices skip straight to the end.
+    const engine = engineRef.current;
 
     const frame = (now: number) => {
       const progress = Math.min(1, (now - startedAt) / duration);
       const eased = 0.5 - 0.5 * Math.cos(Math.PI * progress);
-      setAssemblyProgress(start + (target - start) * eased);
+      const value = start + (target - start) * eased;
+      if (progress < 1 && engine) {
+        const next = templateAssemblyValuesForProgress(selectedTemplateId, value, openingMode);
+        engine.showAssembly(next.formation, next.opening);
+        document.querySelectorAll<HTMLInputElement>('input[data-assembly-range]').forEach(input => { input.value = String(Math.round(value)); });
+        document.querySelectorAll<HTMLElement>('[data-assembly-percent]').forEach(label => { label.textContent = `${Math.round(value)}%`; });
+      } else {
+        setAssemblyProgress(value);
+      }
       if (progress < 1) foldAnimationRef.current = requestAnimationFrame(frame);
       else foldAnimationRef.current = null;
     };
@@ -1879,8 +1910,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <button type="button" className={tool==='material'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('material')}><Layers3 size={22}/><span>{t("studio.material_finish")}</span></button>
         </>}
         {workflowStep==='design' && <>
-          <button type="button" className={artworkScope==='outside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.outside")}</span></button>
-          <button type="button" className={artworkScope==='inside'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.inside")}</span></button>
+          <button type="button" className={artworkScope==='outside'&&designPanel==='artwork'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('outside');setTool('artwork');setDesignPanel('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.outside")}</span></button>
+          <button type="button" className={artworkScope==='inside'&&designPanel==='artwork'&&designToolsOpen?'is-active':''} onClick={()=>{setArtworkScope('inside');setTool('artwork');setDesignPanel('artwork');setDesignToolsOpen(true);}}><ImageIcon size={22}/><span>{t("studio.inside")}</span></button>
+          {getTemplateRuntime(selectedTemplateId)?.getAdjustableSizes && <button type="button" className={designPanel==='sizes'&&designToolsOpen?'is-active':''} onClick={()=>{setDesignPanel('sizes');setDesignToolsOpen(true);}}><Ruler size={22}/><span>{t("studio.sizes")}</span></button>}
         </>}
         {workflowStep==='preview' && <>
           <button type="button" className={tool==='opening'&&inspectorOpen?'is-active':''} onClick={()=>selectTool('opening')}><PackageOpen size={22}/><span>{t("studio.open_close")}</span></button>
@@ -1993,6 +2025,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onDropArtworkFiles={handleBoardArtworkDrop}
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
+          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
+          highlightedPanels={designPanel==='sizes' && highlightedSize ? getTemplateRuntime(selectedTemplateId)?.getAdjustedPanels?.(dimensions,highlightedSize,{openingMode,splitTopHingeSide}) ?? [] : []}
           sheetSize={sheetSize}
           onSheetSize={setSheetSize}
           onApplyChanges={() => {
@@ -2010,7 +2044,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 <div className="pro-artwork-preview-fold-head"><span>{t("studio.assembly")}</span><strong>{Math.round(assemblyProgress)}%</strong></div>
                 <div className="pro-artwork-preview-fold-row">
                   <span>{t("studio.flat")}</span>
-                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label={t("studio.assemble_or_flatten_box_in_3d_preview")} onChange={e=>{if(foldAnimationRef.current!==null)cancelAnimationFrame(foldAnimationRef.current);foldAnimationRef.current=null;setAssemblyProgress(Number(e.target.value));}}/>
+                  <input type="range" min="0" max="100" step="1" value={Math.round(assemblyProgress)} aria-label={t("studio.assemble_or_flatten_box_in_3d_preview")} onChange={e=>setAssemblyProgressByHand(Number(e.target.value))}/>
                   <span>{t("studio.closed")}</span>
                 </div>
               </div>
@@ -2060,17 +2094,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-label">{t("studio.flat")}</span>
               <input
                 className="pro-canvas-bar-range"
+                data-assembly-range
                 type="range"
                 min="0"
                 max="100"
                 step="1"
                 value={Math.round(assemblyProgress)}
                 aria-label={t("studio.assemble_or_flatten_box")}
-                onChange={e => {
-                  if (foldAnimationRef.current !== null) cancelAnimationFrame(foldAnimationRef.current);
-                  foldAnimationRef.current = null;
-                  setAssemblyProgress(Number(e.target.value));
-                }}
+                onChange={e => setAssemblyProgressByHand(Number(e.target.value))}
               />
               <span className="pro-canvas-bar-label">{t("studio.closed")}</span>
               <span className="pro-canvas-bar-divider" />
@@ -2115,7 +2146,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgress} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={setMaterial} outsideColorMode={outsideColorMode} setOutsideColorMode={setOutsideColorMode} insideColorMode={insideColorMode} setInsideColorMode={setInsideColorMode} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={setOutsideCustomColor} insideCustomColor={insideCustomColor} setInsideCustomColor={setInsideCustomColor} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2484,6 +2515,8 @@ function Inspector(props: {
         <p className="pro-help">{t("studio.controls_the_visible_board_edge_and_the_distance_between_the_outside_and_in")}</p>
       </div>
 
+      <AdjustableSizesCard templateId={props.selectedTemplateId} dimensions={props.dimensions} setDimensions={props.setDimensions} options={{openingMode:props.openingMode,splitTopHingeSide:props.splitTopHingeSide}} unit={props.measurementUnit}/>
+
       <button className="pro-next-step-button" type="button" onClick={()=>props.onOpenMediaLibrary(undefined,'upload')}>
         <span><strong>{t("studio.next_add_your_design")}</strong><small>{t("studio.upload_artwork_and_place_it_on_your_box")}</small></span>
         <ImageIcon size={18}/>
@@ -2649,8 +2682,8 @@ function Inspector(props: {
         />}
       </div>}
       <div className="pro-card-section pro-fold-card">
-        <div className="pro-fold-heading"><div><span>{t("studio.assembly")}</span><strong>{props.assemblyStage}</strong></div><b>{Math.round(props.assemblyProgress)}%</b></div>
-        <input className="pro-range pro-fold-range" aria-label={t("studio.assemble_or_flatten_box")} type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
+        <div className="pro-fold-heading"><div><span>{t("studio.assembly")}</span><strong>{props.assemblyStage}</strong></div><b data-assembly-percent>{Math.round(props.assemblyProgress)}%</b></div>
+        <input className="pro-range pro-fold-range" data-assembly-range aria-label={t("studio.assemble_or_flatten_box")} type="range" min="0" max="100" step="1" value={Math.round(props.assemblyProgress)} onChange={e=>props.setAssemblyProgress(Number(e.target.value))}/>
         <div className="pro-fold-endpoints"><span>{t("studio.flat")}</span><span>{t("studio.closed")}</span></div>
         <button className="pro-fold-play" onClick={() => props.onAnimateFold(props.assemblyProgress >= 50 ? 0 : 100)}><CirclePlay size={20}/>{props.assemblyProgress >= 50 ? t("studio.flatten_box") : t("studio.assemble_close")}</button>
       </div>
@@ -2758,6 +2791,8 @@ function DielinePrototype({
   onDropArtworkFiles,
   toolsOpen,
   onCloseTools,
+  sizesPanel,
+  highlightedPanels,
   sheetSize,
   onSheetSize,
   onApplyChanges,
@@ -2797,6 +2832,10 @@ function DielinePrototype({
   onDropArtworkFiles:(files:File[],point:{x:number;y:number})=>void;
   toolsOpen:boolean;
   onCloseTools:()=>void;
+  /** Shown in place of the artwork tools when the Sizes tool is chosen. */
+  sizesPanel:React.ReactNode;
+  /** Panel ids the flap size being edited changes, marked on the grid. */
+  highlightedPanels:string[];
   sheetSize:SheetSize;
   onSheetSize:(size:SheetSize)=>void;
   onApplyChanges:()=>void;
@@ -2830,30 +2869,90 @@ function DielinePrototype({
   // Size the 2D sheet from its real physical footprint instead of relying on
   // the old fixed .pro-dieline dimensions. This makes width/height/depth
   // edits visibly reshape the dieline immediately.
-  const visualMax = 760;
+  const stageRef=useRef<HTMLDivElement>(null);
+  const [mobileFit,setMobileFit]=useState(1);
+  const [sheetFit,setSheetFit]=useState(1);
+  const visualMax = 760 * sheetFit;
   const visualScale = visualMax / Math.max(bounds.width, bounds.height);
   const visualWidth = bounds.width * visualScale;
   const visualHeight = bounds.height * visualScale;
-  // Phones: shrink the board so the default 112% view fits the stage area left
-  // visible above the bottom sheet. Wider screens keep the fixed 760px board.
-  const stageRef=useRef<HTMLDivElement>(null);
-  const [mobileFit,setMobileFit]=useState(1);
+  const fullWidth = bounds.width * 760 / Math.max(bounds.width, bounds.height);
+  const fullHeight = bounds.height * 760 / Math.max(bounds.width, bounds.height);
+  // Size the board so the default 112% view shows the whole sheet. Phones
+  // shrink it into the stage area left visible above the bottom sheet. Wider
+  // screens size it, up to 760px, to the stage's content box, which stops
+  // above the line legend and toolbar and, through the padding set below,
+  // beside the side panels, since the stage runs underneath them.
   useEffect(()=>{
     const stage=stageRef.current;
     if(!stage) return;
     const query=window.matchMedia('(max-width:640px)');
-    const update=()=>{
-      if(!query.matches){setMobileFit(1);return;}
-      const style=getComputedStyle(stage);
-      const width=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-24;
-      const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-24;
-      setMobileFit(Math.max(.05,Math.min(1,width/(visualWidth*1.12),height/(visualHeight*1.12))));
+    const panels=()=>[...(stage.closest('.pro-studio-body')??document).querySelectorAll<HTMLElement>('.pro-design-inspector-shell, .pro-design-context-stack')];
+    // What a panel covers: the right-hand stack's own box stays tall when its
+    // panels collapse to bars, so it counts as the union of its visible children.
+    const panelRect=(panel:HTMLElement)=>{
+      if(getComputedStyle(panel).visibility==='hidden')return null;
+      const parts=panel.classList.contains('pro-design-context-stack')?[...panel.children]:[panel];
+      const rects=parts.map(part=>part.getBoundingClientRect()).filter(rect=>rect.width>0&&rect.height>0);
+      if(!rects.length)return null;
+      const top=Math.min(...rects.map(rect=>rect.top)),bottom=Math.max(...rects.map(rect=>rect.bottom));
+      return {left:Math.min(...rects.map(rect=>rect.left)),right:Math.max(...rects.map(rect=>rect.right)),height:bottom-top};
     };
+    const update=()=>{
+      const style=getComputedStyle(stage);
+      if(query.matches){
+        stage.style.paddingLeft='';
+        stage.style.paddingRight='';
+        stage.style.removeProperty('--sheet-reserve-left');
+        stage.style.removeProperty('--sheet-reserve-right');
+        stage.removeAttribute('data-sheet-reserve');
+        const width=stage.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)-24;
+        const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-24;
+        setSheetFit(1);
+        setMobileFit(Math.max(.05,Math.min(1,width/(fullWidth*1.12),height/(fullHeight*1.12))));
+        return;
+      }
+      setMobileFit(1);
+      // Reserve the space of the side panels standing beside the sheet, so the
+      // workspace (and the zoom anchor, which is its centre) is the free area.
+      // A collapsed panel, short at the top, overlaps the sheet's edge instead,
+      // and so does the smaller panel when both would leave the sheet under
+      // 30% of the stage.
+      const box=stage.getBoundingClientRect();
+      const centre=box.left+box.width/2;
+      let left=0,right=0;
+      for(const panel of panels()){
+        const rect=panelRect(panel);
+        if(!rect||rect.height<box.height*.4)continue;
+        if(rect.right<=centre)left=Math.max(left,rect.right-box.left+12);
+        else if(rect.left>=centre)right=Math.max(right,box.right-rect.left+12);
+      }
+      const roomy=(l:number,r:number)=>box.width-l-r>=box.width*.3;
+      if(!roomy(left,right)){
+        if(left>=right&&roomy(left,0))right=0;
+        else if(right>left&&roomy(0,right))left=0;
+        else{left=0;right=0;}
+      }
+      stage.style.paddingLeft=left?`${left}px`:'';
+      stage.style.paddingRight=right?`${right}px`:'';
+      // The line legend follows the reserved space too (globals.css).
+      stage.style.setProperty('--sheet-reserve-left',`${left}px`);
+      stage.style.setProperty('--sheet-reserve-right',`${right}px`);
+      stage.toggleAttribute('data-sheet-reserve',left>0||right>0);
+      const width=box.width-left-right-32;
+      const height=stage.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom)-16;
+      setSheetFit(Math.max(.3,Math.min(1,width/(fullWidth*1.12),height/(fullHeight*1.12))));
+    };
+    update();
     const observer=new ResizeObserver(update);
     observer.observe(stage);
+    for(const panel of panels()){
+      observer.observe(panel);
+      for(const part of panel.classList.contains('pro-design-context-stack')?panel.children:[])observer.observe(part);
+    }
     query.addEventListener('change',update);
     return ()=>{observer.disconnect();query.removeEventListener('change',update);};
-  },[visualWidth,visualHeight]);
+  },[fullWidth,fullHeight]);
 
   const lastPdfExportRequest=useRef(0);
   const pdfRunning=useRef(false);
@@ -3217,10 +3316,10 @@ function DielinePrototype({
       {toolsOpen && <aside className="pro-2d-left-panel pro-design-inspector-shell" aria-label={t("studio.design_tools")}>
         <SheetHandle size={sheetSize} onSize={onSheetSize}/>
         <div className="pro-inspector-title pro-design-inspector-title">
-          <div><span>{t("studio.design_2")}</span><h2>{artworkScope==='inside'?t("studio.inside_artwork"):t("studio.outside_artwork")}</h2></div>
+          <div><span>{t("studio.design_2")}</span><h2>{sizesPanel?t("studio.flap_sizes"):artworkScope==='inside'?t("studio.inside_artwork"):t("studio.outside_artwork")}</h2></div>
           <button type="button" className="pro-inspector-close pro-design-inspector-close" aria-label={t("studio.close_design_tools")} title={t("studio.close")} onClick={onCloseTools}><X size={18}/></button>
         </div>
-        <div className="pro-design-inspector-content">
+        {sizesPanel ? <div className="pro-design-inspector-content pro-design-sizes-content">{sizesPanel}</div> : <div className="pro-design-inspector-content">
           <div className="pro-dieline-surface-switch" role="group" aria-label={t("studio.printed_side")}>
             <button type="button" className={artworkScope==='outside'?'is-active':''} onClick={()=>onArtworkScopeChange('outside')}>{t("studio.outside")}</button>
             <button type="button" className={artworkScope==='inside'?'is-active':''} onClick={()=>onArtworkScopeChange('inside')}>{t("studio.inside")}</button>
@@ -3292,7 +3391,7 @@ function DielinePrototype({
             <span>{t("studio.print_output")}</span>
             <button type="button" className="pro-secondary-button" disabled={printing} onClick={()=>void exportPdf()}><Download size={16}/> {printing?t("studio.preparing_pdf"):'Download 1:1 PDF'}</button>
           </div>
-        </div>
+        </div>}
       </aside>}
 
       <div className="pro-2d-right-preview pro-design-context-stack">
@@ -3402,8 +3501,8 @@ function DielinePrototype({
               <PrintedArea geometry={sheetLines} bleed={bleedMm} colour="#000"/>
             </mask>
             {bleedMm>0 && <mask id={`${maskId}-band`} maskUnits="userSpaceOnUse" x={-bleedMm} y={-bleedMm} width={artboard.width} height={artboard.height}>
-              {sheetLines.cut.map((line,index)=><line key={index} x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} stroke="#fff" strokeWidth={2*bleedMm} strokeLinecap="round"/>)}
-              {sheetLines.panels.map(panel=><polygon key={panel.id} points={panel.outline.map(point=>`${point.x},${point.y}`).join(' ')} fill="#000"/>)}
+              {sheetLines.cut.map((line,index)=><line key={index} {...svgLine(line)} stroke="#fff" strokeWidth={2*bleedMm} strokeLinecap="round"/>)}
+              {sheetLines.panels.map(panel=><polygon key={panel.id} points={svgPoints(panel.outline)} fill="#000"/>)}
             </mask>}
           </defs>
           <rect className="dl-offcut" x={-bounds.width} y={-bounds.height} width={3*bounds.width} height={3*bounds.height} mask={`url(#${maskId}-offcut)`}/>
@@ -3451,11 +3550,11 @@ function DielinePrototype({
           const panelName=item.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
-          const shape=item.outline ? `polygon(${item.outline.map(point=>`${(point.x-item.x)/item.width*100}% ${(point.y-item.y)/item.height*100}%`).join(',')})` : undefined;
+          const shape=item.outline ? `polygon(${item.outline.map(point=>`${cssPercent((point.x-item.x)/item.width*100)} ${cssPercent((point.y-item.y)/item.height*100)}`).join(',')})` : undefined;
           return <div
             key={item.id}
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''} pro-dieline-panel-guide`}
-            style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,overflow:'hidden',clipPath:shape}}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''}${highlightedPanels.includes(item.id)?' is-size-highlight':''} pro-dieline-panel-guide`}
+            style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
             data-panel={panelName}
           >
@@ -3465,14 +3564,14 @@ function DielinePrototype({
         })}
 
         {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
-          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={item.outline!.map(point=>`${point.x},${point.y}`).join(' ')}/>)}
+          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}${highlightedPanels.includes(item.id)?' is-size-highlight':''}`} points={svgPoints(item.outline!)}/>)}
         </svg>}
 
         {/* Cut and crease lines stay visible over any artwork, as on a printer's proof. */}
         {sheetLines && <svg className="pro-dieline-lines" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
           {(['cut','crease'] as const).map(kind=><g key={kind} className={`dl-lines dl-lines-${kind}`}>
-            {sheetLines[kind].map((line,index)=><line key={`halo:${index}`} className="dl-line-halo" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}/>)}
-            {sheetLines[kind].map((line,index)=><line key={index} className="dl-line" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y}/>)}
+            {sheetLines[kind].map((line,index)=><line key={`halo:${index}`} className="dl-line-halo" {...svgLine(line)}/>)}
+            {sheetLines[kind].map((line,index)=><line key={index} className="dl-line" {...svgLine(line)}/>)}
           </g>)}
         </svg>}
 
@@ -3489,7 +3588,7 @@ function DielinePrototype({
           width*=artwork.scale/100;height*=artwork.scale/100;
           const transform=artwork.transform ?? {x:50+(100-width)/2*artwork.alignX,y:50+(100-height)/2*artwork.alignY,width,height,rotation:artwork.rotation};
           const layer:FullDielineArtworkLayer={id:`panel:${key}`,name:artwork.name,url:artwork.url,aspectRatio:imageAspect,transform};
-          return <div key={item.id} className="pro-side-artwork-transform-surface" data-turned={item.artworkRotation===180?'180':undefined} style={{left:`${item.x/bounds.width*100}%`,top:`${item.y/bounds.height*100}%`,width:`${item.width/bounds.width*100}%`,height:`${item.height/bounds.height*100}%`,transform:item.artworkRotation===180?'rotate(180deg)':undefined}}>
+          return <div key={item.id} className="pro-side-artwork-transform-surface" data-turned={item.artworkRotation===180?'180':undefined} style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),transform:item.artworkRotation===180?'rotate(180deg)':undefined}}>
             <div className="pro-full-artwork-transform pro-side-artwork-transform is-selected" style={{left:`${transform.x}%`,top:`${transform.y}%`,width:`${transform.width}%`,height:`${transform.height}%`,transform:`translate(-50%,-50%) rotate(${transform.rotation}deg)`}}
               aria-label={`Move ${selectedPanel} artwork`}
               onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture}>
@@ -3532,15 +3631,15 @@ function pointerIn(container:HTMLElement,event:{clientX:number;clientY:number}){
 /** The dieline's panels with the bleed past their cut edges, filled in one colour (an SVG mask's contents). */
 function PrintedArea({geometry,bleed,colour}:{geometry:{panels:{id:string;outline:{x:number;y:number}[]}[];cut:{start:{x:number;y:number};end:{x:number;y:number}}[]};bleed:number;colour:string}){
   return <>
-    {geometry.panels.map(panel=><polygon key={panel.id} points={panel.outline.map(point=>`${point.x},${point.y}`).join(' ')} fill={colour}/>)}
-    {bleed>0 && geometry.cut.map((line,index)=><line key={index} x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} stroke={colour} strokeWidth={2*bleed} strokeLinecap="round"/>)}
+    {geometry.panels.map(panel=><polygon key={panel.id} points={svgPoints(panel.outline)} fill={colour}/>)}
+    {bleed>0 && geometry.cut.map((line,index)=><line key={index} {...svgLine(line)} stroke={colour} strokeWidth={2*bleed} strokeLinecap="round"/>)}
   </>;
 }
 
 const formatArtboardMm=(value:number)=>Number(value.toFixed(1)).toString();
 
 function boardPolygon(panel:{x:number;y:number;width:number;height:number;outline?:{x:number;y:number}[]},bounds:{width:number;height:number}){
-  return `polygon(${panelOutline(panel).map(point=>`${point.x/bounds.width*100}% ${point.y/bounds.height*100}%`).join(',')})`;
+  return `polygon(${panelOutline(panel).map(point=>`${cssPercent(point.x/bounds.width*100)} ${cssPercent(point.y/bounds.height*100)}`).join(',')})`;
 }
 
 /** A panel's own artwork, filling the panel box it is placed in. */
@@ -3854,6 +3953,59 @@ function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }
     onBlur={() => setDraft(null)}
     onKeyDown={event => { if (event.key === 'Enter') setDraft(null); }}
   />;
+}
+
+/**
+ * The template's flap and panel sizes (glue flap, tucks, dust flaps…), each
+ * set apart from the box size. A size the user sets replaces the template's
+ * own, within limits that keep the flaps clear of each other.
+ */
+function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, unit, onHighlight }: {
+  templateId: string; dimensions: CartonDimensions; setDimensions: (value: CartonDimensions) => void;
+  options: TemplateGeometryOptions; unit: MeasurementUnit;
+  /** The size being pointed at or edited, so the design grid can mark the panels it changes. */
+  onHighlight?: (key: string | null) => void;
+}) {
+  const t = useTranslations();
+  const sizes = getTemplateRuntime(templateId)?.getAdjustableSizes?.(dimensions, options) ?? [];
+  if (!sizes.length) return null;
+  const update = (key: string, mm: number | null) => {
+    const { adjustments, ...size } = dimensions;
+    const next = { ...adjustments };
+    if (mm === null) delete next[key]; else next[key] = mm;
+    setDimensions(Object.keys(next).length ? { ...size, adjustments: next } : size);
+  };
+  const changed = sizes.filter(size => size.adjusted).length;
+  const step = unit === 'mm' ? 0.5 : 0.01;
+  return <div className="pro-card-section pro-adjustable-sizes">
+    <SectionTitle title={t('studio.flap_sizes')} meta={changed ? t('studio.flap_sizes_changed', { count: changed }) : t('studio.flap_sizes_template')} />
+    <p className="pro-help">{t('studio.flap_sizes_help')}</p>
+    {sizes.map(size => <div className={`pro-adjustable-size${size.adjusted ? ' is-adjusted' : ''}`} key={size.key}
+      onPointerEnter={() => onHighlight?.(size.key)} onPointerLeave={() => onHighlight?.(null)}
+      onFocus={() => onHighlight?.(size.key)} onBlur={() => onHighlight?.(null)}>
+      <div>
+        <strong>{size.label}</strong>
+        <span>{formatDimension(size.min, unit)}–{formatDimension(size.max, unit)} {unit}</span>
+      </div>
+      <label>
+        <DimensionInput
+          aria-label={size.label}
+          min={unit === 'mm' ? size.min : Number((size.min / 25.4).toFixed(3))}
+          max={unit === 'mm' ? size.max : Number((size.max / 25.4).toFixed(3))}
+          step={step}
+          valueMm={size.value} unit={unit} minMm={size.min} maxMm={size.max}
+          onCommit={mm => update(size.key, mm)}
+        />
+        <em>{unit}</em>
+      </label>
+      <button type="button" className="pro-adjustable-reset" disabled={!size.adjusted} onClick={() => update(size.key, null)}
+        title={t('studio.flap_size_reset_title', { size: formatDimension(size.defaultValue, unit) + ' ' + unit })}
+        aria-label={t('studio.flap_size_reset_label', { label: size.label })}><RotateCcw size={13} aria-hidden="true" /></button>
+    </div>)}
+    {changed > 1 && <button type="button" className="pro-reset-box-size" onClick={() => {
+      setDimensions({ width: dimensions.width, height: dimensions.height, depth: dimensions.depth, thickness: dimensions.thickness });
+    }}><RotateCcw size={12} aria-hidden="true" />{' ' + t('studio.flap_sizes_reset_all')}</button>}
+  </div>;
 }
 
 function formatBytes(bytes: number) {
