@@ -72,19 +72,6 @@ test('the parametric split top cleans sizes exactly as the hand-written one',()=
   }
 });
 
-test('the parametric split top draws the same design grid and cutting template',()=>{
-  for(const dimensions of fixtures)for(const side of sides){
-    const options={splitTopHingeSide:side};
-    const label=`${JSON.stringify(dimensions)} ${side}`;
-    assertClose(parametric.getDielinePanels(dimensions,options),splitTopRuntime.getDielinePanels(dimensions,options),`${label} panels`);
-    assertClose(parametric.getDielineBounds(dimensions,options),splitTopRuntime.getDielineBounds(dimensions,options),`${label} bounds`);
-    let expected,expectedError;
-    try{expected=splitTopRuntime.getExportGeometry(dimensions,options);}catch(error){expectedError=error.message;}
-    if(expectedError)assert.throws(()=>parametric.getExportGeometry(dimensions,options),{message:expectedError});
-    else assertClose(parametric.getExportGeometry(dimensions,options),expected,`${label} export`);
-  }
-});
-
 test('the parametric split top refuses the same undersized boxes with the same messages',()=>{
   for(const dimensions of [{width:30,height:300,depth:300,thickness:3},{width:300,height:300,depth:20,thickness:3},{width:300,height:10,depth:300,thickness:3}]){
     assert.throws(()=>splitTopRuntime.getExportGeometry(dimensions));
@@ -93,10 +80,22 @@ test('the parametric split top refuses the same undersized boxes with the same m
   }
 });
 
-test('the parametric split top folds into the same 3D model at every stage',()=>{
-  for(const dimensions of fixtures)for(const side of sides)for(const [formation,opening] of [[0,100],[35,100],[85,100],[100,100],[100,70],[100,30],[100,0]]){
-    const input={dimensions,formation,opening,openingMode:'top_split_meet_center',splitTopHingeSide:side,color:[0.8,0.7,0.6],interiorColor:[0.9,0.9,0.9]};
-    assertClose(parametric.buildMeshes(input),splitTopRuntime.buildMeshes(input),`${JSON.stringify(dimensions)} ${side} ${formation}/${opening}`);
+// The split top's die and fold matched the hand-written reference until the
+// flaps on the glued end wall were lengthened to end in line with the flaps
+// opposite them; the reference still checks sizes, limits and assembly.
+test('the closed split top has every pair of matching flaps ending in line', () => {
+  const extent = (meshes, id) => {
+    const mesh = meshes.find(item => item.panel === id);
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < mesh.vertices.length; i += 8) { lo = Math.min(lo, mesh.vertices[i + 2]); hi = Math.max(hi, mesh.vertices[i + 2]); }
+    return [lo, hi];
+  };
+  for (const dimensions of fixtures) for (const side of sides) {
+    const meshes = parametric.buildMeshes({ dimensions, formation: 100, opening: 0, openingMode: 'top_split_meet_center', splitTopHingeSide: side, color: [1, 1, 1], interiorColor: [1, 1, 1] });
+    for (const end of ['Top', 'Bottom']) {
+      const left = extent(meshes, `${end} Left`), right = extent(meshes, `${end} Right`);
+      assertClose(left, right, `${JSON.stringify(dimensions)} ${side} ${end}`);
+    }
   }
 });
 
@@ -111,11 +110,11 @@ test('the parametric split top keeps the same assembly behaviour',()=>{
 test('the studio and the public template pages use the definition',()=>{
   const live=getTemplateRuntime('split-top-box');
   const dimensions=fixtures[0];
-  assertClose(live.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}),splitTopRuntime.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}));
+  assertClose(live.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}),parametric.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}));
   const input={dimensions,formation:60,opening:100,openingMode:'top_split_meet_center',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]};
-  assertClose(live.buildMeshes(input),splitTopRuntime.buildMeshes(input));
-  assertClose(splitTopSheet(dimensions,'side_b'),splitTopRuntime.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}));
-  assertClose(splitTopExportGeometry(dimensions),splitTopRuntime.getExportGeometry(dimensions));
+  assertClose(live.buildMeshes(input),parametric.buildMeshes(input));
+  assertClose(splitTopSheet(dimensions,'side_b'),parametric.getExportGeometry(dimensions,{splitTopHingeSide:'side_b'}));
+  assertClose(splitTopExportGeometry(dimensions),parametric.getExportGeometry(dimensions));
 });
 
 // The straight tuck end's thumb-notched back and rounded top tuck, written
