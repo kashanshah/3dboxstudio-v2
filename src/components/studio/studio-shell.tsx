@@ -1470,9 +1470,34 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     z: <SizeChip size={boxSize('depth')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
   } : null;
   const panelSizes = useMemo(
-    () => (showSizes || designPanel === 'sizes') && workflowStep === 'design' ? getTemplateRuntime(selectedTemplateId)?.getPanelSizes?.(dimensions, { openingMode, splitTopHingeSide }) ?? null : null,
+    () => showSizes || (designPanel === 'sizes' && workflowStep === 'design') ? getTemplateRuntime(selectedTemplateId)?.getPanelSizes?.(dimensions, { openingMode, splitTopHingeSide }) ?? null : null,
     [showSizes, designPanel, workflowStep, selectedTemplateId, dimensions, openingMode, splitTopHingeSide],
   );
+  // Flap sizes on the 3D box: each on the largest of its flaps that can be
+  // seen, named as the 3D model names panels ("Top Tuck").
+  const flapCandidates = useMemo(() => {
+    if (!showSizes || !panelSizes) return [];
+    const panels = getTemplateGeometry(selectedTemplateId, dimensions, { openingMode, splitTopHingeSide }).panels;
+    const byKey = new Map<string, { size: MeasuredSize; flaps: { name: string; area: number }[] }>();
+    for (const entry of panelSizes) for (const size of [entry.x, entry.y]) {
+      if (size?.kind !== 'adjustment') continue;
+      const panel = panels.find(item => item.id === entry.panel);
+      if (!panel) continue;
+      const group = byKey.get(size.key) ?? { size, flaps: [] };
+      group.flaps.push({ name: panel.label.toLowerCase().replace(/\b\w/g, char => char.toUpperCase()), area: panel.width * panel.height });
+      byKey.set(size.key, group);
+    }
+    return [...byKey.values()].map(({ size, flaps }) => ({ size, panels: flaps.sort((a, b) => b.area - a.area).map(flap => flap.name) }));
+  }, [showSizes, panelSizes, selectedTemplateId, dimensions, openingMode, splitTopHingeSide]);
+  // The small Live 3D beside the design sheet shows the same measurements.
+  const previewMeasures = {
+    x: <SizeChip size={boxSize('width')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+    y: <SizeChip size={boxSize('height')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+    z: <SizeChip size={boxSize('depth')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+  };
+  const flapMeasures = flapCandidates.length ? flapCandidates.map(({ size, panels }) => ({
+    key: size.key, panels, node: <SizeChip size={size} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+  })) : null;
 
   const stopFoldAnimation = () => {
     if (foldAnimationRef.current === null) return;
@@ -1959,6 +1984,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <StudioViewBoundary view="3d"><CartonEngine
             ref={engineRef}
             measures={boxMeasures}
+            flapMeasures={mode === '3d' ? flapMeasures : null}
             measuresHint={showSizes && mode === '3d' && formation < 99.5 ? t('studio.show_sizes_assemble_hint') : null}
             dimensions={dimensions}
             templateId={selectedTemplateId}
@@ -2074,7 +2100,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <aside className={`pro-artwork-live-preview${previewOpen?' is-open':''}`} aria-label={t("studio.live_3d_artwork_preview")}>
             <button type="button" className="pro-panel-toggle" onClick={()=>togglePreviewOpen()} aria-expanded={previewOpen} title={previewOpen?'Minimize the live 3D preview':'Show the live 3D preview'}><Boxes size={15}/>{" " + t("studio.live_3d") + " "}<ChevronDown size={14}/></button>
             {previewOpen && mode === 'dieline' && <>
-              <div className="pro-artwork-preview-canvas"><CartonEngine dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
+              <div className="pro-artwork-preview-canvas"><CartonEngine measures={showSizes && formation >= 99.5 ? previewMeasures : null} flapMeasures={flapMeasures} dimensions={dimensions} templateId={selectedTemplateId} opening={opening} formation={formation} openingMode={openingMode} splitTopHingeSide={splitTopHingeSide} material={material} outsideColor={outsideColorMode==='custom'?outsideCustomColor:null} insideColor={insideColorMode==='custom'?insideCustomColor:null} artworkByPanel={resolvedArtworkByPanel} cameraPreset="Perspective" zoom={80} onPanelSelect={(name)=>{const parsed=parseArtworkTarget(name);setArtworkScope(parsed.scope);setPanel(parsed.panel);setSelectedOutsideLayerId(null);setSelectedInsideLayerId(null);}}/></div>
               <div className="pro-artwork-preview-fold">
                 <div className="pro-artwork-preview-fold-head"><span>{t("studio.assembly")}</span><strong>{Math.round(assemblyProgress)}%</strong></div>
                 <div className="pro-artwork-preview-fold-row">

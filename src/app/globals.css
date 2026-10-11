@@ -5606,3 +5606,6 @@ body{font-size:var(--type-body)}
 .pro-dieline-size-handles .dl-size-handle-value{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:3px 8px;border-radius:6px;background:#1f2937;color:#fff;font-size:11px;font-weight:650;white-space:nowrap;pointer-events:none}
 .dl-size-handle.is-y .pro-dieline-size-handles .dl-size-handle-value{bottom:calc(100% + 6px)}
 .carton-engine-measures-hint{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:3;padding:6px 12px;border:1px solid #dce5ef;border-radius:999px;background:rgba(255,255,255,.94);color:var(--muted);font-size:12px;font-weight:600;pointer-events:none;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+/* The small Live 3D beside the design sheet: the same measurements, smaller. */
+.pro-artwork-preview-canvas .carton-engine-measures .dl-size-chip,.pro-artwork-preview-canvas .carton-engine-measures .dl-size-input{height:18px;padding:0 5px;font-size:10px}
+.pro-artwork-preview-canvas .carton-engine-measures .dl-size-input{width:52px}

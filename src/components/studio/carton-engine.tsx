@@ -80,6 +80,11 @@ type Props = {
   measures?: { x: ReactNode; y: ReactNode; z: ReactNode } | null;
   /** Shown in place of the measurements while they can't be drawn (a flat or half-folded box). */
   measuresHint?: string | null;
+  /**
+   * Flap sizes laid on the flaps themselves: each on the first of its
+   * panels (3D panel names, best first) that can be seen from the camera.
+   */
+  flapMeasures?: { key: string; panels: string[]; node: ReactNode }[] | null;
 };
 
 type Point = { x: number; y: number };
@@ -120,7 +125,7 @@ function measureLines(corners: (Point & { distance: number })[]): MeasureLine[] 
 const NO_PAN = { x: 0, y: 0 };
 
 export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function CartonEngine(
-  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true, measures = null, measuresHint = null },
+  { dimensions, templateId, opening, formation = 100, openingMode = 'closed', splitTopHingeSide = 'side_a', material, outsideColor = null, insideColor = null, artworkByPanel, cameraPreset, zoom, viewPan = NO_PAN, panEnabled = false, onViewPanChange, lightIntensity = 0, onPanelSelect, renderStyle = 'realistic', floorShadow = true, measures = null, measuresHint = null, flapMeasures = null },
   ref,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -357,21 +362,32 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
   // Measurement lines follow the box through every frame drawn: orbiting,
   // zooming and resizing. They hide while an animation moves the box.
   const [lines, setLines] = useState<MeasureLine[] | null>(null);
+  const [flapSpots, setFlapSpots] = useState<{ key: string; panel: string; x: number; y: number }[]>([]);
   const showMeasures = Boolean(measures);
+  // The flaps to look for, read on each frame without restarting the subscription.
+  const flapPanelsRef = useRef<{ key: string; panels: string[] }[]>([]);
+  flapPanelsRef.current = flapMeasures?.map(({ key, panels }) => ({ key, panels })) ?? [];
+  const showFlapMeasures = Boolean(flapMeasures?.length);
   useEffect(() => {
     const renderer = rendererRef.current;
-    if (!renderer || !showMeasures) { setLines(null); return; }
+    if (!renderer || (!showMeasures && !showFlapMeasures)) { setLines(null); setFlapSpots([]); return; }
     let frame: number | null = null;
     const update = () => {
       frame = null;
-      const corners = shownAssemblyRef.current ? null : renderer.projectBounds();
+      const animating = Boolean(shownAssemblyRef.current);
+      const corners = !showMeasures || animating ? null : renderer.projectBounds();
       setLines(corners ? measureLines(corners) : null);
+      const spots = animating ? [] : flapPanelsRef.current.flatMap(({ key, panels }) => {
+        const seen = renderer.projectPanels(panels).find(spot => spot?.visible);
+        return seen ? [{ key, panel: seen.name, x: seen.x, y: seen.y }] : [];
+      });
+      setFlapSpots(previous => (JSON.stringify(previous) === JSON.stringify(spots) ? previous : spots));
     };
     const schedule = () => { if (frame === null) frame = requestAnimationFrame(update); };
     schedule();
     const unsubscribe = renderer.onRender(schedule);
     return () => { unsubscribe(); if (frame !== null) cancelAnimationFrame(frame); };
-  }, [rendererVersion, showMeasures]);
+  }, [rendererVersion, showMeasures, showFlapMeasures]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
     cancelCameraAnimation();
@@ -442,5 +458,10 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       </g>)}
     </svg>
     {lines.map(line => <span key={line.axis} className="carton-engine-measure-label" style={{ left: line.label.x, top: line.label.y }}>{measures[line.axis]}</span>)}
+  </div>}{flapMeasures && flapSpots.length > 0 && <div className="carton-engine-measures">
+    {flapSpots.map(spot => <span key={spot.key} className="carton-engine-measure-label is-flap" style={{ left: spot.x, top: spot.y }}
+      onPointerEnter={() => setHoverPanel(spot.panel)} onPointerLeave={() => setHoverPanel(null)}>
+      {flapMeasures.find(item => item.key === spot.key)?.node}
+    </span>)}
   </div>}{!measures && measuresHint && <div className="carton-engine-measures-hint" role="status">{measuresHint}</div>}</>;
 });
