@@ -10,6 +10,7 @@ import { useTranslations } from '@/components/i18n/locale-provider';
 import { useDialogFocus } from '@/components/auth/use-dialog-focus';
 import { DEFAULT_TEXT_SPEC, renderTextArtwork, textLayerName, type TextSpec } from '@/lib/packaging/text-artwork';
 import { TextLayerEditor } from './text-layer-editor';
+import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
@@ -26,7 +27,8 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type,
+  AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -3317,6 +3319,14 @@ function DielinePrototype({
   const activeTransformLayer=selectedLayer ?? selectedPanelLayer;
   const activeTransformWidth=selectedLayer ? bounds.width : (selectedPanelGeometry?.width ?? bounds.width);
   const activeTransformHeight=selectedLayer ? bounds.height : (selectedPanelGeometry?.height ?? bounds.height);
+  const sheetSnapLines=snapLines(bounds,cartonPanels);
+  // Align buttons line the artwork up with the panel it sits on (a side's own artwork: that side).
+  const alignArtwork=(alignment:Alignment)=>{
+    if(!activeTransformLayer)return;
+    const area={width:activeTransformWidth,height:activeTransformHeight};
+    const target=selectedLayer?panelUnder(activeTransformLayer.transform,area,cartonPanels):{x:0,y:0,...area};
+    updateArtworkLayer(activeTransformLayer.id,alignTo(activeTransformLayer.transform,area,target,alignment));
+  };
   const deselectArtwork=()=>{onSelectLayer(null);setPanelArtworkActive(false);};
   // A click or tap on the sheet away from the artwork deselects it; a drag,
   // a pan or a pinch does not.
@@ -3344,6 +3354,7 @@ function DielinePrototype({
     startAngle:number;
   } | null>(null);
   const [transformFeedback,setTransformFeedback]=useState<string|null>(null);
+  const [snapGuides,setSnapGuides]=useState<{x:number[];y:number[];onPanel:boolean}|null>(null);
 
   const normalizeAngle=(value:number)=>{
     const normalized=((value%360)+360)%360;
@@ -3443,7 +3454,13 @@ function DielinePrototype({
       const nextX=Math.max(-100,Math.min(200,gesture.start.x+dx));
       const nextY=Math.max(-100,Math.min(200,gesture.start.y+dy));
       setTransformFeedback(null);
-      updateArtworkLayer(gesture.layerId,{...gesture.start,x:nextX,y:nextY});
+      // Edges and centres snap to the panels and the sheet (Alt moves freely).
+      const onPanel=gesture.layerId.startsWith('panel:');
+      const area={width:onPanel?activeTransformWidth:bounds.width,height:onPanel?activeTransformHeight:bounds.height};
+      if(event.altKey){setSnapGuides(null);updateArtworkLayer(gesture.layerId,{...gesture.start,x:nextX,y:nextY});return;}
+      const snapped=snapMove({...gesture.start,x:nextX,y:nextY},area,onPanel?snapLines(area):sheetSnapLines,SNAP_PX/Math.max(1,rect.width)*area.width);
+      setSnapGuides(snapped.guides.x.length||snapped.guides.y.length?{x:snapped.guides.x.map(value=>value/area.width*100),y:snapped.guides.y.map(value=>value/area.height*100),onPanel}:null);
+      updateArtworkLayer(gesture.layerId,snapped.transform);
       return;
     }
 
@@ -3552,6 +3569,7 @@ function DielinePrototype({
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     gestureRef.current=null;
     setTransformFeedback(null);
+    setSnapGuides(null);
   };
 
   return <div ref={stageRef} className="pro-dieline-stage pro-2d-design-stage">
@@ -3714,6 +3732,14 @@ function DielinePrototype({
               <input type="range" min="0" max="100" step="1" value={selectedLayer.opacity ?? 100} onChange={event=>onUpdateLayer(selectedLayer.id,selectedLayer.transform,{opacity:Number(event.target.value)})}/>
             </section>}
 
+            <section className="pro-align-controls" aria-label={t("studio.align_artwork")}>
+              <span>{selectedLayer?t("studio.align_to_panel"):t("studio.align_to_side")}</span>
+              <div role="group" aria-label={t("studio.align_artwork")}>
+                {([['left',AlignStartVertical],['center',AlignCenterVertical],['right',AlignEndVertical],['top',AlignStartHorizontal],['middle',AlignCenterHorizontal],['bottom',AlignEndHorizontal]] as const).map(([alignment,Icon])=>
+                  <button key={alignment} type="button" title={t(`studio.align_${alignment}_edge`)} aria-label={t(`studio.align_${alignment}_edge`)} onClick={()=>alignArtwork(alignment)}><Icon size={16}/></button>)}
+              </div>
+            </section>
+
             <section className="pro-precision-transform" aria-label={t("studio.selected_artwork_transform")}>
               <div className="pro-precision-transform-head">
                 <span>{t("studio.selected_artwork")}</span>
@@ -3839,6 +3865,7 @@ function DielinePrototype({
             </>}
           </div>;
         })}
+        {snapGuides && !snapGuides.onPanel && <SnapGuides guides={snapGuides}/>}
 
         {cartonPanels.map(item => {
           const panelName=item.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
@@ -3910,6 +3937,7 @@ function DielinePrototype({
               <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={`Rotate ${selectedPanel} artwork`} title={t("studio.rotate_snaps_near_15_increments")} onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
               {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
             </div>
+            {snapGuides?.onPanel && <SnapGuides guides={snapGuides}/>}
           </div>;
         })}
       </div>
@@ -4272,6 +4300,17 @@ function parseDimensionDraft(text: string, unit: MeasurementUnit, minMm: number,
  * value into the design. Valid values apply as you type; anything else is
  * flagged and reverts to the last good size when the field loses focus.
  */
+/** Snap distance on screen, in pixels. */
+const SNAP_PX = 6;
+
+/** Guide lines (percent of the area) for the edges or centres a dragged artwork snapped to. */
+function SnapGuides({ guides }: { guides: { x: number[]; y: number[] } }) {
+  return <>
+    {guides.x.map(value => <span key={`x${value}`} className="pro-snap-guide is-vertical" style={{ left: `${value}%` }} aria-hidden="true" />)}
+    {guides.y.map(value => <span key={`y${value}`} className="pro-snap-guide is-horizontal" style={{ top: `${value}%` }} aria-hidden="true" />)}
+  </>;
+}
+
 function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }: {
   valueMm: number; unit: MeasurementUnit; minMm: number; maxMm: number; onCommit: (mm: number) => void;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {

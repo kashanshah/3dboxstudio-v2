@@ -4639,3 +4639,13 @@ body{font-size:var(--type-body)}
 .pro-text-editor-swatches button[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
 .pro-text-editor-range input{width:100%}
 .pro-text-editor-hint{margin:0;color:var(--muted);font-size:11px;line-height:1.4}
+
+/* Snapping: guide lines while dragging, and the align buttons. */
+.pro-snap-guide{position:absolute;z-index:60;pointer-events:none;background:#e5007e}
+.pro-snap-guide.is-vertical{top:0;bottom:0;width:1px;transform:translateX(-.5px)}
+.pro-snap-guide.is-horizontal{left:0;right:0;height:1px;transform:translateY(-.5px)}
+.pro-align-controls{display:grid;gap:6px;margin:10px 0}
+.pro-align-controls>span{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pro-align-controls>div{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.pro-align-controls button{height:34px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.pro-align-controls button:hover{border-color:var(--accent);color:var(--accent)}
