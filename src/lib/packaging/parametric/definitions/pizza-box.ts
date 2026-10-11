@@ -1,5 +1,6 @@
 import type { Expr } from '../expression';
 import type { HingeSpec, LineSpec, PanelSpec, ParametricTemplate } from '../format';
+import { BOX_FACES, pairedPanelRegions, panelRegions } from './artwork-regions';
 
 // A one-piece corrugated pizza box as made today: no glue. The front wall is
 // folded double over a narrow roll strip; its inner layer drops down inside
@@ -114,6 +115,14 @@ export const pizzaBoxDefinition = {
     ['slotY', 'frontTop - 2.5 * t'],
     ['slotHalf', '(t + 1) / 2'],
   ],
+  // Corner tabs stop short of meeting inside the front and of the lid flaps
+  // beside the back wall on the sheet; the lid's tuck and flaps stay clear
+  // of the base.
+  adjustable: [
+    { key: 'ear', label: 'Corner tabs', min: 5, max: 'max(5, min(width / 2 - t, height))' },
+    { key: 'lidTuck', label: 'Lid tuck', min: 5, max: 'max(5, height - 2 * t)' },
+    { key: 'lidFlap', label: 'Lid side flaps', min: 5, max: 'max(5, height - 2 * t)' },
+  ],
   panels: ([
     { id: 'bottom', label: 'BOTTOM', kind: 'body', rect: ['x0', 'y0', 'width', 'depth'] },
     // The front wall, lid and lid front sit upside down on the sheet relative
@@ -215,5 +224,29 @@ export const pizzaBoxDefinition = {
     kind: 'cutting-template',
     summary: 'One-piece pizza box cutting template with a locking double front. Your box maker must approve the flute and allowances.',
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the flaps.',
+  },
+  catalog: {
+    thumbnail: '/images/templates/pizza-box.webp',
+    version: 1,
+    name: 'Pizza Box',
+    shortName: 'Pizza box',
+    family: 'corrugated',
+    category: 'Food',
+    description: 'One-piece corrugated pizza box: double front locked into the base, corner tabs, lid with tuck and side flaps.',
+    tags: ['pizza', 'food', 'corrugated', 'takeout'],
+    capabilities: ['dieline', '3d', 'fold', 'interior-artwork', 'full-dieline-artwork'],
+    parameters: [
+      { key: 'width', label: 'Width', unit: 'mm', min: 1, step: 1, defaultValue: 305 },
+      { key: 'height', label: 'Height', unit: 'mm', min: 1, step: 1, defaultValue: 45 },
+      { key: 'depth', label: 'Depth', unit: 'mm', min: 1, step: 1, defaultValue: 305 },
+      // E flute is about 1.5 mm, B flute 3 mm.
+      { key: 'thickness', label: 'Board thickness', unit: 'mm', min: 0.3, max: 7, step: 0.1, defaultValue: 1.5 },
+    ],
+    artworkRegions: [
+      ...panelRegions(BOX_FACES),
+      ...pairedPanelRegions(['Lid Front', 'Lid Left', 'Lid Right', 'Inner Front', 'Front Roll', 'Left Back Tab', 'Left Front Tab', 'Right Back Tab', 'Right Front Tab']),
+    ],
+    defaultDimensions: { width: 305, height: 45, depth: 305, thickness: 1.5 },
+    fixedOpeningMode: 'lid_from_back',
   },
 } satisfies ParametricTemplate;

@@ -15,6 +15,7 @@ require.extensions['.ts']=require.extensions['.tsx']=(module,file)=>{
 };
 const {compileParametricTemplate,TemplateDefinitionError}=require('../src/lib/packaging/parametric/compile.ts');
 const {evaluate,interpolate}=require('../src/lib/packaging/parametric/expression.ts');
+const {expandRepeats}=require('../src/lib/packaging/parametric/repeat.ts');
 const {splitTopDefinition}=require('../src/lib/packaging/parametric/definitions/split-top.ts');
 // The hand-written split top this definition replaced, frozen for comparison.
 const {splitTopReferenceRuntime:splitTopRuntime}=require('./reference/split-top-handwritten.ts');
@@ -182,7 +183,9 @@ test('a definition survives a JSON round trip unchanged',()=>{
 });
 
 test('authoring mistakes are refused when the definition is compiled',()=>{
-  const broken=change=>{const copy=structuredClone(splitTopDefinition);change(copy);return ()=>compileParametricTemplate(copy);};
+  // Mistakes are made on the expanded definition, where every panel and hinge is listed.
+  const expanded=expandRepeats(splitTopDefinition,message=>{throw new Error(message);});
+  const broken=change=>{const copy=structuredClone(expanded);change(copy);return ()=>compileParametricTemplate(copy);};
   const cases=[
     [copy=>{copy.format='parametric-template/9';},/unsupported format/],
     [copy=>{copy.panels.push({...copy.panels[1]});},/defined twice/],
@@ -304,6 +307,8 @@ test('the tuck end definitions survive a JSON round trip unchanged',()=>{
 
 // The pizza box, against its hand-written version.
 const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pizza-box.ts');
+const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions/sleeve-box.ts');
+const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
 
@@ -354,7 +359,208 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
+  }
+});
+
+test('repeat blocks expand in order, keep value types, nest, and refuse unfilled placeholders',()=>{
+  const fail=message=>{throw new Error(message);};
+  const definition=structuredClone(splitTopDefinition);
+  definition.notes=[{repeat:[{n:1},{n:2}],each:[{text:'note {{n}}',when:'{{n}}'},{repeat:[{m:'a'},{m:'b'}],each:[{text:'{{n}}{{m}}'}]}]}];
+  const expanded=expandRepeats(definition,fail);
+  assert.deepEqual(expanded.notes,[{text:'note 1',when:1},{text:'1a'},{text:'1b'},{text:'note 2',when:2},{text:'2a'},{text:'2b'}]);
+  // Twelve flaps and four walls from one block, in the order the hand-written die listed them.
+  assert.deepEqual(expandRepeats(splitTopDefinition,fail).panels.map(panel=>panel.id),['glue','front','topFront','bottomFront','right','topRight','bottomRight','back','topBack','bottomBack','left','topLeft','bottomLeft']);
+  const panels=expandRepeats(splitTopDefinition,fail).panels;
+  assert.deepEqual(panels.find(panel=>panel.id==='bottomBack').artworkFallback,{name:'Bottom',uv:[0,0,1,0.5]});
+  assert.equal('artworkFallback' in panels.find(panel=>panel.id==='bottomLeft'),false);
+  assert.equal(panels.find(panel=>panel.id==='bottomFront').layer,3);
+  definition.notes=[{repeat:[{n:1}],each:[{text:'{{missing}}'}]}];
+  assert.throws(()=>compileParametricTemplate(definition),/Template split-top-box: "\{\{missing\}\}" has no value/);
+});
+
+test('every catalog entry agrees with its definition',()=>{
+  const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
+  const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition];
+  for(const definition of definitions){
+    const catalog=definition.catalog;
+    assert.ok(catalog,`${definition.templateId} has no catalog entry`);
+    const template=getPackagingTemplate(definition.templateId);
+    assert.equal(template.status,'ready');
+    assert.equal(template.name,catalog.name);
+    // Every artwork region names a panel this template has, in any of its variants.
+    const names=new Set(expandRepeats(definition,message=>{throw new Error(message);}).panels.map(panel=>panel.name??panelName(panel.label)));
+    for(const region of catalog.artworkRegions){
+      const panel=region.surface==='inside'?region.panelId.replace(/^Interior /,''):region.panelId;
+      assert.ok(names.has(panel),`${definition.templateId} region ${region.id} names no panel ("${region.panelId}")`);
+      assert.equal(region.surface==='inside',region.panelId.startsWith('Interior '),`${definition.templateId} region ${region.id} surface`);
+    }
+    assert.equal(new Set(catalog.artworkRegions.map(region=>region.id)).size,catalog.artworkRegions.length,`${definition.templateId} repeats a region id`);
+    // The size controls start at the default box, which the definition accepts as is.
+    for(const parameter of catalog.parameters)assert.equal(parameter.defaultValue,catalog.defaultDimensions[parameter.key],`${definition.templateId} ${parameter.key} default`);
+    const runtime=compileParametricTemplate(definition);
+    assert.deepEqual(runtime.sanitizeParameters(catalog.defaultDimensions),catalog.defaultDimensions,`${definition.templateId} default size is clamped`);
+    if(catalog.fixedOpeningMode)assert.equal(catalog.fixedOpeningMode,definition.assembly.defaultOpeningMode,`${definition.templateId} opening mode`);
+  }
+});
+
+test('the sleeve folds into an open tube of the entered size',()=>{
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  const sleeve=getTemplateRuntime('sleeve-box');
+  for(const dimensions of [{width:180,height:120,depth:60,thickness:0.5},{width:40,height:300,depth:25,thickness:1.2}]){
+    const bounds=meshes=>{
+      const lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
+      for(const mesh of meshes)for(let i=0;i<mesh.vertices.length;i+=8)for(let k=0;k<3;k++){lo[k]=Math.min(lo[k],mesh.vertices[i+k]);hi[k]=Math.max(hi[k],mesh.vertices[i+k]);}
+      return hi.map((v,k)=>v-lo[k]);
+    };
+    const input=formation=>({dimensions,formation,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    const [x,y,z]=bounds(sleeve.buildMeshes(input(100)));
+    const t=dimensions.thickness;
+    // Outside of the folded tube: the inside opening plus the board on each side.
+    within(x,dimensions.width+2*t,3*t,'folded width');
+    within(z,dimensions.depth+2*t,3*t,'folded depth');
+    within(y,dimensions.height,0.01,'sleeve length');
+    // Flat before forming: the whole strip lies in one plane.
+    assert.ok(bounds(sleeve.buildMeshes(input(0)))[2]<2*t,'flat sheet');
+    // Open ends: no panel crosses the top or bottom of the walls.
+    const sheet=sleeve.getExportGeometry(dimensions);
+    assert.deepEqual(sheet.panels.map(panel=>panel.id),['glue','left','front','right','back']);
+    assert.ok(sheet.panels.every(panel=>panel.y>=0&&panel.y+panel.height<=dimensions.height+1e-9));
+  }
+  assert.throws(()=>sleeve.getExportGeometry({width:15,height:120,depth:60,thickness:0.5}),/at least 20 mm/);
+});
+
+test('the mailer folds into a box of the entered inside size, every layer in its place',()=>{
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  const mailer=getTemplateRuntime('mailer-box');
+  for(const dimensions of [{width:220,height:80,depth:160,thickness:1.5},{width:400,height:120,depth:300,thickness:3},{width:80,height:30,depth:70,thickness:0.8}]){
+    const t=dimensions.thickness;
+    const input=(formation,opening=0)=>({dimensions,formation,opening,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    // Each panel's extent along each axis, both of its faces together.
+    const extents=meshes=>{
+      const out={};
+      for(const mesh of meshes){
+        if(typeof mesh.panel!=='string')continue;
+        const id=mesh.panel.replace(/^Interior /,'');
+        const box=out[id]??=[[Infinity,-Infinity],[Infinity,-Infinity],[Infinity,-Infinity]];
+        for(let i=0;i<mesh.vertices.length;i+=8)for(let k=0;k<3;k++){box[k][0]=Math.min(box[k][0],mesh.vertices[i+k]);box[k][1]=Math.max(box[k][1],mesh.vertices[i+k]);}
+      }
+      return out;
+    };
+    const closed=extents(mailer.buildMeshes(input(100)));
+    // Distance from the centre to a side panel's nearer or farther face.
+    const near=(id,k)=>Math.min(...closed[id][k].map(Math.abs));
+    const far=(id,k)=>Math.max(...closed[id][k].map(Math.abs));
+    within(near('Left Inner',0)+near('Right Inner',0),dimensions.width,t,'inside width');
+    within(near('Front',2)+near('Back',2),dimensions.depth,t,'inside depth');
+    within(closed.Top[1][0]-closed.Bottom[1][1],dimensions.height,t,'inside height');
+    for(const side of ['Left','Right']){
+      // The ears are trapped between the side wall's two layers…
+      for(const wall of ['Front','Back']){
+        const ear=`${wall} ${side} Ear`;
+        assert.ok(near(ear,0)>far(`${side} Inner`,0)&&far(ear,0)<near(side,0),`${ear} between the layers`);
+      }
+      // …and the lid's flap tucks inside the inner layer.
+      assert.ok(far(`Lid ${side}`,0)<near(`${side} Inner`,0),`lid ${side} flap inside the wall`);
+    }
+    assert.ok(far('Lid Front',2)<near('Front',2),'lid tuck inside the front');
+    // Flat before forming.
+    const flat=extents(mailer.buildMeshes(input(0)));
+    assert.ok(Object.values(flat).every(box=>box[1][1]-box[1][0]<2*t),'flat sheet');
+    // The inner walls' locking tabs have their slots in the base.
+    const sheet=mailer.getExportGeometry(dimensions);
+    assert.equal(sheet.panels.length,17);
+    assert.equal(sheet.crease.length,16,'creases: 4 walls, 4 ears, 2 per roll strip, lid and its 3 flaps');
+    const base=sheet.panels.find(panel=>panel.id==='bottom');
+    const inside=point=>point.x>base.x&&point.x<base.x+base.width&&point.y>base.y&&point.y<base.y+base.height;
+    assert.equal(sheet.cut.filter(line=>inside(line.start)&&inside(line.end)).length,16,'four slots of four cuts');
+  }
+  assert.throws(()=>mailer.getExportGeometry({width:50,height:80,depth:160,thickness:1.5}),/at least 60 mm/);
+});
+
+// Whether two cut outlines overlap: sharing an edge or a corner is fine, but
+// no edges may cross and no corner may lie inside the other panel.
+function outlinesOverlap(a,b){
+  const eps=1e-6;
+  const cross=(o,p,q)=>(p.x-o.x)*(q.y-o.y)-(p.y-o.y)*(q.x-o.x);
+  const edges=poly=>poly.map((point,i)=>[point,poly[(i+1)%poly.length]]);
+  for(const [p1,p2] of edges(a))for(const [q1,q2] of edges(b)){
+    const d1=cross(q1,q2,p1),d2=cross(q1,q2,p2),d3=cross(p1,p2,q1),d4=cross(p1,p2,q2);
+    if(((d1>eps&&d2<-eps)||(d1<-eps&&d2>eps))&&((d3>eps&&d4<-eps)||(d3<-eps&&d4>eps)))return true;
+  }
+  const strictlyInside=(point,poly)=>{
+    let inside=false;
+    for(const [p,q] of edges(poly)){
+      // On an edge counts as outside.
+      const length=Math.hypot(q.x-p.x,q.y-p.y);
+      const along=((point.x-p.x)*(q.x-p.x)+(point.y-p.y)*(q.y-p.y))/(length*length);
+      if(Math.abs(cross(p,q,point))/length<1e-4&&along>=-eps&&along<=1+eps)return false;
+      if((p.y>point.y)!==(q.y>point.y)&&point.x<p.x+(point.y-p.y)/(q.y-p.y)*(q.x-p.x))inside=!inside;
+    }
+    return inside;
+  };
+  // Corners, edge midpoints and the centre, for panels whose corners all sit on the other's edges.
+  const centre=poly=>({x:poly.reduce((sum,point)=>sum+point.x,0)/poly.length,y:poly.reduce((sum,point)=>sum+point.y,0)/poly.length});
+  const probes=poly=>[...poly,...edges(poly).map(([p,q])=>({x:(p.x+q.x)/2,y:(p.y+q.y)/2})),centre(poly)];
+  return probes(a).some(point=>strictlyInside(point,b))||probes(b).some(point=>strictlyInside(point,a));
+}
+
+test('adjustable sizes replace the template’s own, within their limits, and every sheet stays whole',()=>{
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const options={openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'};
+    const dimensions=template.defaultDimensions;
+    const sizes=runtime.getAdjustableSizes(dimensions,options);
+    assert.ok(sizes.length>0,`${template.id} offers no adjustable sizes`);
+    // Nothing set: the template's own sizes.
+    for(const size of sizes){
+      assert.equal(size.adjusted,false);
+      assert.equal(size.value,size.defaultValue,`${template.id} ${size.key}`);
+      assert.ok(size.min<=size.defaultValue+1e-9&&size.defaultValue<=size.max+1e-9,`${template.id} ${size.key} default ${size.defaultValue} outside ${size.min}–${size.max}`);
+    }
+    // Only known keys survive sanitising, so a template switch drops the rest.
+    const kept=runtime.sanitizeParameters({...dimensions,adjustments:{[sizes[0].key]:sizes[0].min,unknownSize:5}});
+    assert.deepEqual(kept.adjustments,{[sizes[0].key]:sizes[0].min});
+    const sheets=[
+      ['min',Object.fromEntries(sizes.map(size=>[size.key,-1e6]))],
+      ['max',Object.fromEntries(sizes.map(size=>[size.key,1e6]))],
+      ...sizes.map(size=>[`${size.key} max`,{[size.key]:1e6}]),
+    ];
+    for(const [label,adjustments] of sheets){
+      const adjusted={...dimensions,adjustments};
+      const after=runtime.getAdjustableSizes(adjusted,options);
+      for(const size of after)if(size.key in adjustments){
+        assert.ok(size.adjusted);
+        assert.equal(size.value,adjustments[size.key]<0?size.min:size.max,`${template.id} ${size.key} clamped (${label})`);
+      }
+      const sheet=runtime.getExportGeometry(adjusted,options);
+      for(let i=0;i<sheet.panels.length;i++)for(let j=i+1;j<sheet.panels.length;j++){
+        const a=sheet.panels[i],b=sheet.panels[j];
+        assert.ok(!outlinesOverlap(a.outline,b.outline),`${template.id} (${label}): ${a.id} overlaps ${b.id}`);
+      }
+      // And the box still folds.
+      for(const formation of [50,100]){
+        const meshes=runtime.buildMeshes({dimensions:adjusted,formation,opening:0,openingMode:options.openingMode,splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+        assert.ok(meshes.every(mesh=>mesh.vertices.every(Number.isFinite)),`${template.id} (${label}) folds at ${formation}%`);
+      }
+    }
+    // A changed size changes the sheet.
+    const size=sizes.find(item=>item.max-item.min>2);
+    const changed=runtime.getExportGeometry({...dimensions,adjustments:{[size.key]:(size.min+size.defaultValue)/2===size.defaultValue?size.max:(size.min+size.defaultValue)/2}},options);
+    assert.notDeepEqual(changed.panels,runtime.getExportGeometry(dimensions,options).panels,`${template.id} ${size.key} changes nothing`);
+  }
+});
+
+test('the unadjusted sheets have no overlapping panels either',()=>{
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const sheet=runtime.getExportGeometry(template.defaultDimensions,{openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'});
+    for(let i=0;i<sheet.panels.length;i++)for(let j=i+1;j<sheet.panels.length;j++){
+      assert.ok(!outlinesOverlap(sheet.panels[i].outline,sheet.panels[j].outline),`${template.id}: ${sheet.panels[i].id} overlaps ${sheet.panels[j].id}`);
+    }
   }
 });

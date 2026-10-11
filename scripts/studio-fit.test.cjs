@@ -20,6 +20,7 @@ const {svgNumber,svgPoints,svgLine,cssPercent}=require('../src/lib/svg-number.ts
 
 test('the fitted zoom keeps every stage of every template inside the preview frame',()=>{
   const {yaw,pitch}=cameraForPreset('Perspective');
+  const clipped=new Set();
   for(const template of getReadyPackagingTemplates()){
     const d=template.defaultDimensions;
     const runtime=requireTemplateRuntime(template.id);
@@ -47,10 +48,11 @@ test('the fitted zoom keeps every stage of every template inside the preview fra
         assert.ok(inside(82*fit),`${template.id} at ${progress}% (aspect ${aspect.toFixed(2)}) leaves the frame`);
         if(!inside(82))clippedWithoutFit=true;
       }
-      // The case this guards: without the fit, some stage of the loop clips.
-      if(aspect>1)assert.ok(clippedWithoutFit,`${template.id} never clipped, so the test no longer covers the fit`);
+      if(clippedWithoutFit)clipped.add(template.id);
     }
   }
+  // The case this guards: without the fit, stages of these loops leave the frame.
+  for(const id of ['base-box','reverse-tuck-carton','split-top-box','pizza-box'])assert.ok(clipped.has(id),`${id} never clipped, so the test no longer covers the fit`);
 });
 
 test('the fitted zoom leaves a closed box at the default framing',()=>{

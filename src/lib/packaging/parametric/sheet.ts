@@ -1,7 +1,8 @@
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { arcPoints, finishExportGeometry, type ExportPanel, type LineMm, type PointMm } from '@/lib/packaging/export-geometry';
 import { evaluate, interpolate, type Expr, type Scope } from './expression';
-import { PARAMETRIC_TEMPLATE_FORMAT, type DimensionKey, type LineSpec, type OptionSpec, type OutlineEntry, type ParametricTemplate } from './format';
+import { PARAMETRIC_TEMPLATE_FORMAT, type DimensionKey, type LineSpec, type OptionSpec, type OutlineEntry, type ExpandedTemplate, type ParametricTemplate } from './format';
+import { expandRepeats } from './repeat';
 
 // The flat half of a parametric template: sizes, the design grid and the
 // cutting template. Kept apart from the folding so pages that only show a
@@ -12,8 +13,25 @@ export type OptionValues = Partial<Record<OptionSpec['source'], string | undefin
 
 export class TemplateDefinitionError extends Error {}
 
-export function compileParametricSheet(definition: ParametricTemplate) {
+/** One size the user may change, as it stands for a box. */
+export type AdjustableSize = {
+  key: string;
+  label: string;
+  /** In use: the user's value clamped to the limits, or the template's own. */
+  value: number;
+  /** The template's own value. */
+  defaultValue: number;
+  min: number;
+  max: number;
+  adjusted: boolean;
+};
+
+export function compileParametricSheet(source: ParametricTemplate) {
+  const definition = expandRepeats(source, message => definitionError(source, message));
   checkStructure(definition);
+
+  const adjustable = definition.adjustable ?? [];
+  const adjustedBy = new Map(adjustable.flatMap(spec => (spec.targets ?? [spec.key]).map(target => [target, spec] as const)));
 
   const sanitize = (value: CartonDimensions): CartonDimensions => {
     const result = {} as CartonDimensions;
@@ -24,19 +42,48 @@ export function compileParametricSheet(definition: ParametricTemplate) {
         ? Math.min(spec.max ?? Infinity, Math.max(spec.min ?? -Infinity, entry))
         : spec.fallback;
     }
+    // Only sizes this template knows; they're clamped when used, since the
+    // limits move with the box.
+    const adjustments = Object.fromEntries(adjustable
+      .map(spec => [spec.key, value.adjustments?.[spec.key]] as const)
+      .filter((entry): entry is readonly [string, number] => Number.isFinite(entry[1])));
+    if (Object.keys(adjustments).length) result.adjustments = adjustments;
     return result;
   };
 
-  /** The dimensions, option values and derived values for one box. */
-  const values = (input: CartonDimensions, options: OptionValues = {}) => {
-    const scope: Record<string, number> = { ...sanitize(input) };
+  /** Derived values with the user's sizes in place, and how each adjustable size stands. */
+  const resolve = (input: CartonDimensions, options: OptionValues = {}) => {
+    const dimensions = sanitize(input);
+    const { adjustments, ...plain } = dimensions;
+    const scope: Record<string, number> = { ...plain };
     for (const option of definition.options ?? []) {
       const chosen = options[option.source];
       Object.assign(scope, option.choices[chosen && chosen in option.choices ? chosen : option.default]);
     }
-    for (const [name, value] of definition.derived) scope[name] = evaluate(value, scope);
-    return scope;
+    const sizes = new Map<string, AdjustableSize>();
+    for (const [name, value] of definition.derived) {
+      const own = evaluate(value, scope);
+      const spec = adjustedBy.get(name);
+      if (!spec) {
+        scope[name] = own;
+        continue;
+      }
+      const limits = { ...scope, default: own };
+      const min = evaluate(spec.min, limits);
+      const max = Math.max(min, evaluate(spec.max, limits));
+      const wanted = adjustments?.[spec.key];
+      scope[name] = wanted === undefined ? own : Math.min(max, Math.max(min, wanted));
+      // The first target stands for the size in the studio.
+      if (!sizes.has(spec.key)) sizes.set(spec.key, { key: spec.key, label: spec.label, value: scope[name], defaultValue: own, min, max, adjusted: wanted !== undefined });
+    }
+    return { scope, sizes: adjustable.map(spec => sizes.get(spec.key)!) };
   };
+
+  /** The dimensions, option values and derived values for one box. */
+  const values = (input: CartonDimensions, options: OptionValues = {}) => resolve(input, options).scope;
+
+  /** The sizes the user may change, with their current values and limits. */
+  const adjustableSizes = (input: CartonDimensions, options: OptionValues = {}) => resolve(input, options).sizes;
 
   const included = (when: Expr | undefined, scope: Scope) => when === undefined || evaluate(when, scope) !== 0;
   const point = ([x, y]: [Expr, Expr], scope: Scope): PointMm => ({ x: evaluate(x, scope), y: evaluate(y, scope) });
@@ -94,16 +141,16 @@ export function compileParametricSheet(definition: ParametricTemplate) {
     return sheet(input, options);
   };
 
-  return { definition, sanitize, values, sheet, exportGeometry };
+  return { definition, sanitize, values, adjustableSizes, sheet, exportGeometry };
 }
 
 export type ParametricSheet = ReturnType<typeof compileParametricSheet>;
 
-export function definitionError(definition: ParametricTemplate, message: string): never {
+export function definitionError(definition: Pick<ParametricTemplate, 'templateId'>, message: string): never {
   throw new TemplateDefinitionError(`Template ${definition.templateId}: ${message}`);
 }
 
-function checkStructure(definition: ParametricTemplate) {
+function checkStructure(definition: ExpandedTemplate) {
   const fail = (message: string) => definitionError(definition, message);
   if (definition.format !== PARAMETRIC_TEMPLATE_FORMAT) fail(`unsupported format "${definition.format}"`);
   for (const key of DIMENSIONS) if (!definition.parameters?.[key]) fail(`missing parameter "${key}"`);
@@ -135,5 +182,16 @@ function checkStructure(definition: ParametricTemplate) {
   }
   for (const id of ids) {
     if (id !== definition.fold.root && !hinged.has(id)) fail(`panel "${id}" is not attached to anything by a hinge`);
+  }
+  const derived = new Set(definition.derived.map(([name]) => name));
+  const keys = new Set<string>(), targets = new Set<string>();
+  for (const spec of definition.adjustable ?? []) {
+    if (keys.has(spec.key)) fail(`adjustable size "${spec.key}" is listed twice`);
+    keys.add(spec.key);
+    for (const target of spec.targets ?? [spec.key]) {
+      if (!derived.has(target)) fail(`adjustable size "${spec.key}" targets "${target}", which is not a derived value`);
+      if (targets.has(target)) fail(`derived value "${target}" is adjusted by more than one size`);
+      targets.add(target);
+    }
   }
 }
