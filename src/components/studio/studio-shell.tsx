@@ -10,6 +10,8 @@ import { useTranslations } from '@/components/i18n/locale-provider';
 import { useDialogFocus } from '@/components/auth/use-dialog-focus';
 import { DEFAULT_TEXT_SPEC, renderTextArtwork, textLayerName, type TextSpec } from '@/lib/packaging/text-artwork';
 import { TextLayerEditor } from './text-layer-editor';
+import { PanelColourCard } from './panel-colour-card';
+import { fillUrl, panelFillLayer } from '@/lib/packaging/panel-fill';
 import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
@@ -1466,6 +1468,23 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
   };
 
+  // Panel colours: one solid-colour layer per panel, under the artwork.
+  const fillPanel = (scope: 'outside' | 'inside', panelId: string, color: string) => {
+    const geometry = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide});
+    const panel = geometry.panels.find(item => item.id === panelId);
+    if (!panel) return;
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    const name = panel.label.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
+    const existing = (scope === 'inside' ? insideDielineLayers : outsideDielineLayers).find(layer => layer.fill && layer.panels?.length === 1 && layer.panels[0] === panelId);
+    if (existing) {
+      setter(current => current.map(layer => layer.id === existing.id ? { ...layer, fill: { color }, url: fillUrl(color) } : layer));
+      return;
+    }
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setter(current => [panelFillLayer(id, panel, name, geometry.bounds, color), ...current]);
+    setMessage(`${name} coloured`);
+  };
+
   const duplicateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
     const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
     const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
@@ -2170,6 +2189,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           }}
           onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
           onAddText={() => void addTextLayer()}
+          onFillPanel={(panelId, color) => fillPanel(artworkScope, panelId, color)}
           onUpdateText={(layerId, patch) => void updateTextLayer(artworkScope, layerId, patch)}
           onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
           onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
@@ -2959,6 +2979,7 @@ function DielinePrototype({
   onDuplicateLayer,
   onAddText,
   onUpdateText,
+  onFillPanel,
   onRemoveLayer,
   onMoveLayer,
   onReorderLayer,
@@ -3004,6 +3025,7 @@ function DielinePrototype({
   onUpdateLayer:(id:string,transform:FullDielineTransform,meta?:{visible?:boolean;opacity?:number})=>void;
   onDuplicateLayer:(id:string)=>void;
   onAddText:()=>void;
+  onFillPanel:(panelId:string,color:string)=>void;
   onUpdateText:(id:string,patch:Partial<TextSpec>)=>void;
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
@@ -3320,6 +3342,8 @@ function DielinePrototype({
   const activeTransformWidth=selectedLayer ? bounds.width : (selectedPanelGeometry?.width ?? bounds.width);
   const activeTransformHeight=selectedLayer ? bounds.height : (selectedPanelGeometry?.height ?? bounds.height);
   const sheetSnapLines=snapLines(bounds,cartonPanels);
+  // Panels a colour can fill: the printed body and flaps, not the glue flap.
+  const colourablePanels=cartonPanels.filter(panel=>panel.kind!=='glue').map(panel=>({id:panel.id,name:panelDisplayName(cartonPanels,panel.id)}));
   // Align buttons line the artwork up with the panel it sits on (a side's own artwork: that side).
   const alignArtwork=(alignment:Alignment)=>{
     if(!activeTransformLayer)return;
@@ -3640,6 +3664,9 @@ function DielinePrototype({
           </div>
 
           {selectedLayer?.text && <TextLayerEditor key={selectedLayer.id} spec={selectedLayer.text} onChange={patch=>onUpdateText(selectedLayer.id,patch)}/>}
+          {selectedLayer?.fill && selectedLayer.panels?.length===1
+            ? <PanelColourCard key={selectedLayer.id} panels={colourablePanels} editing={{panelId:selectedLayer.panels[0],color:selectedLayer.fill.color}} onFill={onFillPanel}/>
+            : !selectedLayer?.text && <PanelColourCard key={`new-${selectedPanel}`} panels={colourablePanels} initialPanel={cartonPanels.find(panel=>panel.label.toLowerCase()===selectedPanel.toLowerCase())?.id} onFill={onFillPanel}/>}
 
           <aside className="pro-dieline-layers-panel pro-design-left-layers" aria-label={`${artworkScope} artwork layers`}>
             <div className="pro-dieline-layers-heading">
@@ -3682,7 +3709,7 @@ function DielinePrototype({
                   onDragEnd={()=>{draggingLayerId.current=null;setDropTargetId(null);}}
                 >
                   <span className="pro-layer-visibility" role="button" tabIndex={0} title={layer.visible===false?'Show layer':'Hide layer'} aria-label={layer.visible===false?'Show layer':'Hide layer'} onClick={event=>{event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}}}>{layer.visible===false?<EyeOff size={15}/>:<Eye size={15}/>}</span>
-                  {layer.text?<span className="pro-layer-text-thumb" aria-hidden="true" style={{opacity:layer.visible===false?.35:1}}><Type size={16}/></span>:<img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>}
+                  {layer.fill?<span className="pro-layer-text-thumb" aria-hidden="true" style={{background:layer.fill.color,opacity:layer.visible===false?.35:1}}/>:layer.text?<span className="pro-layer-text-thumb" aria-hidden="true" style={{opacity:layer.visible===false?.35:1}}><Type size={16}/></span>:<img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>}
                   <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°{layer.panels ? ` · ${layer.panels.length===1 ? `${panelDisplayName(cartonPanels,layer.panels[0])} only` : `not on ${cartonPanels.filter(panel=>!layer.panels!.includes(panel.id)).map(panel=>panelDisplayName(cartonPanels,panel.id)).join(', ')}`}` : ''}</small></span>
                   <i>{realIndex===layers.length-1?t("studio.top"):realIndex+1}</i>
                 </button>;

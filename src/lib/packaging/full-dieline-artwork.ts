@@ -27,6 +27,8 @@ export type FullDielineArtworkLayer = {
   panels?: string[];
   /** Set on text layers: what the image is drawn from, so the text stays editable. */
   text?: TextSpec;
+  /** Set on panel colour layers: a solid colour filling the panels it prints on. */
+  fill?: { color: string };
 };
 
 /** Overlaps thinner than this (millimetres) are rounding, not artwork. */
