@@ -37,6 +37,10 @@ export type ArtworkRegionDefinition = {
   panelId: string;
 };
 
+/** The board and print finishes the Studio offers. */
+export const STUDIO_MATERIALS = ['White board', 'Kraft', 'Soft touch', 'Matte coated', 'Gloss coated', 'Foil'] as const;
+export type StudioMaterial = (typeof STUDIO_MATERIALS)[number];
+
 export type PackagingTemplateDefinition = {
   id: string;
   version: number;
@@ -56,6 +60,11 @@ export type PackagingTemplateDefinition = {
   foldStages?: FoldStage[];
 
   defaultDimensions?: CartonDimensions;
+  /**
+   * The finish a new design of this box starts with, coloured by that
+   * material, until the person picks another finish or colour.
+   */
+  defaultMaterial: StudioMaterial;
   fixedOpeningMode?: string;
   isDefault?: boolean;
   /** Render of the finished box for template cards (scripts/render-template-thumbnails.mjs). */
@@ -106,6 +115,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     artworkRegions: [...exteriorRegions, ...interiorRegions],
     defaultDimensions: { width: 65, height: 160, depth: 65, thickness: 0.5 },
     status: 'ready',
+    defaultMaterial: 'White board',
   },
   {
     id: 'split-top-box',
@@ -146,6 +156,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     defaultDimensions: { width: 400, height: 300, depth: 300, thickness: 3 },
     fixedOpeningMode: 'top_split_meet_center',
     status: 'ready',
+    defaultMaterial: 'Kraft',
   },
   {
     id: 'reverse-tuck-carton',
@@ -170,6 +181,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     artworkRegions: [...exteriorRegions, ...interiorRegions],
     defaultDimensions: { width: 120, height: 180, depth: 55, thickness: 0.5 },
     status: 'ready',
+    defaultMaterial: 'White board',
   },
 
   // Catalog seeds. These intentionally remain planned until their real
@@ -189,6 +201,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Kraft',
   },
   {
     id: 'pizza-box',
@@ -214,6 +227,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     defaultDimensions: { width: 305, height: 45, depth: 305, thickness: 1.5 },
     fixedOpeningMode: 'lid_from_back',
     status: 'ready',
+    defaultMaterial: 'Kraft',
   },
   {
     id: 'sleeve-box',
@@ -230,6 +244,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Matte coated',
   },
   {
     id: 'rigid-lid-base',
@@ -246,6 +261,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Soft touch',
   },
   {
     id: 'drawer-box',
@@ -262,6 +278,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Soft touch',
   },
   {
     id: 'stand-up-pouch',
@@ -278,6 +295,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Matte coated',
   },
   {
     id: 'glass-bottle',
@@ -294,6 +312,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Gloss coated',
   },
   {
     id: 'round-jar',
@@ -310,6 +329,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Gloss coated',
   },
   {
     id: 'paper-cup',
@@ -326,6 +346,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'White board',
   },
   {
     id: 'beverage-can',
@@ -342,6 +363,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
     parameters: [],
     artworkRegions: [],
     status: 'planned',
+    defaultMaterial: 'Foil',
   },
 ];
 
