@@ -98,6 +98,7 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
     sanitizeParameters: compiled.sanitize,
     getAdjustableSizes: (dimensions, options) => compiled.adjustableSizes(dimensions, fromOptions(options)),
     getAdjustedPanels: (dimensions, key, options) => compiled.adjustedPanels(dimensions, fromOptions(options), key),
+    getPanelSizes: (dimensions, options) => compiled.panelSizes(dimensions, fromOptions(options)),
     getDielinePanels: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)).panels,
     getDielineBounds: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)).bounds,
     getExportGeometry: (dimensions, options) => compiled.exportGeometry(dimensions, fromOptions(options)),

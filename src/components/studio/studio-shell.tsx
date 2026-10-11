@@ -27,6 +27,7 @@ import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
 import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/components/studio/carton-engine';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import type { MeasuredSize, PanelSizes } from '@/lib/packaging/parametric/sheet';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
@@ -404,6 +405,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [designPanel, setDesignPanel] = useState<'artwork' | 'sizes'>('artwork');
   // The flap size being pointed at or edited there; the grid marks what it changes.
   const [highlightedSize, setHighlightedSize] = useState<string | null>(null);
+  // "Show sizes": measurements on the flat sheet and the 3D box, editable in place.
+  const [showSizes, setShowSizes] = useState(false);
   // Phone-only bottom sheet height for the inspector / design tools; not persisted.
   const [sheetSize, setSheetSize] = useState<SheetSize>('half');
   const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
@@ -1443,6 +1446,31 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, mediaLibraryOpen, removeFullDielineLayer]);
 
+  /** A size changed from the sheet or the 3D box: a box dimension or a flap size. */
+  const setMeasuredSize = (size: MeasuredSize, mm: number) => {
+    if (size.kind === 'dimension') {
+      setDimensions({ ...dimensions, [size.key]: mm });
+    } else {
+      setDimensions({ ...dimensions, adjustments: { ...dimensions.adjustments, [size.key]: mm } });
+    }
+    setMessage(`${size.label} set to ${formatDimension(mm, measurementUnit)} ${measurementUnit}`);
+  };
+  /** The box's width, height or depth as a size the measurement chips edit. */
+  const boxSize = (key: 'width' | 'height' | 'depth'): MeasuredSize => {
+    const control = selectedTemplate.parameters.find(parameter => parameter.key === key);
+    return { key, kind: 'dimension', label: control?.label ?? key[0].toUpperCase() + key.slice(1), value: dimensions[key], min: Math.max(MIN_BOX_MM, control?.min ?? 1), max: Math.min(MAX_BOX_MM, control?.max ?? Infinity) };
+  };
+  // On the 3D box once it's fully formed and closed.
+  const boxMeasures = showSizes && mode === '3d' && formation >= 99.5 && opening <= 0.5 ? {
+    x: <SizeChip size={boxSize('width')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+    y: <SizeChip size={boxSize('height')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+    z: <SizeChip size={boxSize('depth')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
+  } : null;
+  const panelSizes = useMemo(
+    () => showSizes && workflowStep === 'design' ? getTemplateRuntime(selectedTemplateId)?.getPanelSizes?.(dimensions, { openingMode, splitTopHingeSide }) ?? null : null,
+    [showSizes, workflowStep, selectedTemplateId, dimensions, openingMode, splitTopHingeSide],
+  );
+
   const stopFoldAnimation = () => {
     if (foldAnimationRef.current === null) return;
     cancelAnimationFrame(foldAnimationRef.current);
@@ -1927,6 +1955,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <div className="pro-stage-badge"><span/>{" " + t("studio.drag_to_rotate")}</div>
           <StudioViewBoundary view="3d"><CartonEngine
             ref={engineRef}
+            measures={boxMeasures}
             dimensions={dimensions}
             templateId={selectedTemplateId}
             opening={opening}
@@ -2025,6 +2054,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
           sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
+          panelSizes={panelSizes}
+          onSetMeasuredSize={setMeasuredSize}
           highlightedPanels={designPanel==='sizes' && highlightedSize ? getTemplateRuntime(selectedTemplateId)?.getAdjustedPanels?.(dimensions,highlightedSize,{openingMode,splitTopHingeSide}) ?? [] : []}
           sheetSize={sheetSize}
           onSheetSize={setSheetSize}
@@ -2105,6 +2136,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-label">{t("studio.closed")}</span>
               <span className="pro-canvas-bar-divider" />
             </>}
+            <button
+              className={`pro-canvas-bar-icon${showSizes ? ' is-active' : ''}`}
+              title={t("studio.show_sizes")}
+              aria-label={t("studio.show_sizes")}
+              aria-pressed={showSizes}
+              onClick={() => setShowSizes(value => !value)}
+            ><Ruler size={18}/></button>
             <button
               className="pro-canvas-bar-icon"
               title={t("studio.fit_view")}
@@ -2792,6 +2830,8 @@ function DielinePrototype({
   onCloseTools,
   sizesPanel,
   highlightedPanels,
+  panelSizes,
+  onSetMeasuredSize,
   sheetSize,
   onSheetSize,
   onApplyChanges,
@@ -2835,6 +2875,9 @@ function DielinePrototype({
   sizesPanel:React.ReactNode;
   /** Panel ids the flap size being edited changes, marked on the grid. */
   highlightedPanels:string[];
+  /** With "Show sizes" on: the box or flap size each panel shows, editable in place. */
+  panelSizes:PanelSizes[]|null;
+  onSetMeasuredSize:(size:MeasuredSize,mm:number)=>void;
   sheetSize:SheetSize;
   onSheetSize:(size:SheetSize)=>void;
   onApplyChanges:()=>void;
@@ -2853,6 +2896,27 @@ function DielinePrototype({
   const [printing,setPrinting]=useState(false);
   const cartonPanels = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).panels;
   const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
+  // "Show sizes": each size once, on the largest panel it drives (body panels
+  // first, so width and height sit on the front). Pointing at one tints
+  // every panel it drives.
+  const [hoveredSizeKey,setHoveredSizeKey]=useState<string|null>(null);
+  const sizePlacements=useMemo(()=>{
+    if(!panelSizes) return null;
+    const area=(id:string)=>{const panel=cartonPanels.find(item=>item.id===id);return panel?(panel.kind==='body'?1e12:0)+panel.width*panel.height:0;};
+    const home=new Map<string,{panel:string;size:MeasuredSize}>();
+    for(const entry of panelSizes)for(const size of [entry.x,entry.y]){
+      if(!size)continue;
+      const current=home.get(size.key);
+      // Ties go to the later panel, away from the glue flap at the sheet's start.
+      if(!current||area(entry.panel)>=area(current.panel))home.set(size.key,{panel:entry.panel,size});
+    }
+    const byPanel=new Map<string,MeasuredSize[]>();
+    for(const {panel,size} of home.values())byPanel.set(panel,[...(byPanel.get(panel)??[]),size]);
+    const order=(size:MeasuredSize)=>['width','height','depth'].indexOf(size.key)+1||9;
+    return [...byPanel].flatMap(([id,sizes])=>{const panel=cartonPanels.find(item=>item.id===id);return panel?[{panel,sizes:sizes.sort((a,b)=>order(a)-order(b))}]:[];});
+  },[panelSizes,cartonPanels]);
+  const sizeDrivenPanels=hoveredSizeKey&&panelSizes?panelSizes.filter(entry=>entry.x?.key===hoveredSizeKey||entry.y?.key===hoveredSizeKey).map(entry=>entry.panel):[];
+  const highlighted=sizeDrivenPanels.length?sizeDrivenPanels:highlightedPanels;
   // The cutting template's own cut and crease lines, drawn over the artwork.
   // Sizes the cutting template cannot be made at (a width half typed, say)
   // simply show no lines.
@@ -3552,7 +3616,7 @@ function DielinePrototype({
           const shape=item.outline ? `polygon(${item.outline.map(point=>`${cssPercent((point.x-item.x)/item.width*100)} ${cssPercent((point.y-item.y)/item.height*100)}`).join(',')})` : undefined;
           return <div
             key={item.id}
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''}${highlightedPanels.includes(item.id)?' is-size-highlight':''} pro-dieline-panel-guide`}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''}${highlighted.includes(item.id)?' is-size-highlight':''} pro-dieline-panel-guide`}
             style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
             data-panel={panelName}
@@ -3563,7 +3627,7 @@ function DielinePrototype({
         })}
 
         {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
-          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}${highlightedPanels.includes(item.id)?' is-size-highlight':''}`} points={svgPoints(item.outline!)}/>)}
+          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}${highlighted.includes(item.id)?' is-size-highlight':''}`} points={svgPoints(item.outline!)}/>)}
         </svg>}
 
         {/* Cut and crease lines stay visible over any artwork, as on a printer's proof. */}
@@ -3573,6 +3637,12 @@ function DielinePrototype({
             {sheetLines[kind].map((line,index)=><line key={index} className="dl-line" {...svgLine(line)}/>)}
           </g>)}
         </svg>}
+
+        {sizePlacements && <div className="pro-dieline-sizes">
+          {sizePlacements.map(({panel,sizes})=><span key={panel.id} className={`dl-sizes${sizes.every(size=>size.kind==='adjustment')?' is-flap':''}`} style={{left:cssPercent((panel.x+panel.width/2)/bounds.width*100),top:cssPercent((panel.y+panel.height/2)/bounds.height*100)}}>
+            {sizes.map(size=><SizeChip key={size.key} size={size} unit={measurementUnit} onCommit={onSetMeasuredSize} onHover={setHoveredSizeKey}/>)}
+          </span>)}
+        </div>}
 
         {cartonPanels.filter(item=>!selectedLayerId && panelArtworkActive && item.label.toLowerCase()===selectedPanel.toLowerCase()).map(item=>{
           const key=artworkScope==='inside'?`Interior ${selectedPanel}`:selectedPanel;
@@ -4005,6 +4075,41 @@ function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, u
       setDimensions({ width: dimensions.width, height: dimensions.height, depth: dimensions.depth, thickness: dimensions.thickness });
     }}><RotateCcw size={12} aria-hidden="true" />{' ' + t('studio.flap_sizes_reset_all')}</button>}
   </div>;
+}
+
+/**
+ * A box or flap size shown on the sheet or the 3D box. Clicking it turns it
+ * into a field; Enter or leaving the field applies the value, clamped to the
+ * size's limits, and Escape cancels.
+ */
+function SizeChip({ size, unit, onCommit, onHover }: { size: MeasuredSize; unit: MeasurementUnit; onCommit: (size: MeasuredSize, mm: number) => void; onHover?: (key: string | null) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = formatDimension(size.value, unit);
+  // Box sizes by their initial (W, H, D; L for a sleeve's length), flap sizes by name.
+  const prefix = size.kind === 'dimension' ? size.label[0].toUpperCase() : size.label;
+  const commit = () => {
+    if (draft === null) return;
+    const mm = parseDimension(Number(draft), unit);
+    if (draft.trim() && mm > 0) onCommit(size, Math.min(size.max, Math.max(size.min, mm)));
+    setDraft(null);
+  };
+  const stop = (event: React.SyntheticEvent) => event.stopPropagation();
+  if (draft !== null) return <input
+    className={`dl-size-input is-${size.kind}`} type="number" step="any" autoFocus value={draft}
+    aria-label={`${size.label} (${unit})`}
+    onPointerDown={stop} onClick={stop}
+    onChange={event => setDraft(event.target.value)}
+    onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') commit(); if (event.key === 'Escape') setDraft(null); }}
+    onBlur={commit}
+  />;
+  return <button type="button" className={`dl-size-chip is-${size.kind}`}
+    title={`${size.label}: ${shown} ${unit}. Click to change.`}
+    aria-label={`${size.label} ${shown} ${unit}, change`}
+    onPointerDown={stop}
+    onPointerEnter={() => onHover?.(size.key)} onPointerLeave={() => onHover?.(null)}
+    onFocus={() => onHover?.(size.key)} onBlur={() => onHover?.(null)}
+    onClick={event => { event.stopPropagation(); setDraft(String(shown)); }}
+  ><span aria-hidden="true">{prefix}</span>{shown}</button>;
 }
 
 function formatBytes(bytes: number) {

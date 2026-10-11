@@ -5,7 +5,7 @@ import type { LegacyOpeningMode } from '@/lib/studio-project';
 import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { BUILT_IN_TEMPLATE_RUNTIMES } from '@/lib/packaging/templates';
 import { layoutProofGeometry, type DielineExportGeometry } from './export-geometry';
-import type { AdjustableSize } from './parametric/sheet';
+import type { AdjustableSize, PanelSizes } from './parametric/sheet';
 
 export type TemplateGeometryOptions = {
   openingMode?: LegacyOpeningMode;
@@ -30,6 +30,8 @@ export type TemplateRuntime = {
   getAdjustableSizes?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => AdjustableSize[];
   /** The panel ids one adjustable size changes the shape of. */
   getAdjustedPanels?: (dimensions: CartonDimensions, key: string, options?: TemplateGeometryOptions) => string[];
+  /** For each panel of the flat sheet, the box or flap size its width and height show. */
+  getPanelSizes?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => PanelSizes[];
   getDielinePanels: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielinePanel[];
   getDielineBounds: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => {width:number;height:number};
   buildMeshes: TemplateMeshBuilder;
