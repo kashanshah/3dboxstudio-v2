@@ -150,7 +150,7 @@ export type ExpandedTemplate = {
   fold: {
     /** Panel that stays still while the others fold around it. */
     root: string;
-    /** Board thickness for the 3D model, available to hinges as `foldT`. */
+    /** Board thickness for the 3D model, available to hinges as `foldT`, with `foldCrease` (half a crease) and `foldResting` (a lid resting on the walls). */
     thickness: Expr;
     /**
      * Moves the flat sheet (x right, y up) so the folded box sits centred.

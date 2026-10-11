@@ -5524,6 +5524,17 @@ body{font-size:var(--type-body)}
   .pro-studio-body.has-sheet .pro-design-context-stack{overflow:auto;overscroll-behavior:contain}
 }
 
+/* My Images tiles: the thumbnail box keeps its proportions with padding, not
+   aspect-ratio, so every browser sizes the grid rows to the whole tile and
+   rows never overlap. */
+.pro-media-grid .pro-media-tile,
+.pro-media-unified-grid .pro-media-tile{aspect-ratio:auto;display:flex;flex-direction:column;align-self:start;min-width:0}
+.pro-media-tile-thumb{position:relative;display:block;width:100%;height:0;padding-top:78%;background:#fff;overflow:hidden}
+.pro-media-tile .pro-media-tile-thumb img,
+.pro-media-unified-grid .pro-media-tile .pro-media-tile-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.pro-media-tile-name{flex:none}
+.pro-media-unified-grid .pro-media-usage{bottom:34px}
+
 /* Editor toolbar beside an open inspector, not under it: centre it in the
    canvas space right of the panel (12px inset + 384px panel + 12px gap). The
    stage's status chips sit above the toolbar instead of behind it. */

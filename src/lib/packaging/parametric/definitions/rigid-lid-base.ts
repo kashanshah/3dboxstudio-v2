@@ -146,7 +146,7 @@ export const rigidLidBaseDefinition = {
       ['turnEars', 'stage(formation, 0.2, 0.45) * (pi / 2)'],
       ['turnSides', 'stage(formation, 0.4, 0.65) * (pi / 2)'],
       ['turnIns', 'stage(formation, 0.6, 0.8) * pi'],
-      ['resting', '(6 / pi - 1.5) * foldT - foldT * 1.05'],
+      ['resting', 'foldResting'],
       // The lid turns over onto the base, then lifts off as the box opens.
       ['place', 'stage(formation, 0.8, 1)'],
       ['flipC', 'cos(pi * place)'], ['flipS', 'sin(pi * place)'],
@@ -183,6 +183,7 @@ export const rigidLidBaseDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the turn-ins.',
   },
   catalog: {
+    defaultMaterial: 'White board',
     thumbnail: '/images/templates/rigid-lid-base.webp',
     version: 1,
     name: 'Rigid Lid & Base Box',

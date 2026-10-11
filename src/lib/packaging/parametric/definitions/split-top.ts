@@ -103,7 +103,7 @@ export const splitTopDefinition = {
   // Folded as a slotted box is packed: the joint turns in and the walls wrap
   // round onto it, the bottom's end flaps fold in and its long flaps close
   // over them, then the top closes the same way, its outer flaps last.
-  // Outer flaps fold as far out as a score allows (setback -1.5 boards), inner
+  // Outer flaps fold as far out as a score allows (setback half a crease), inner
   // ones a board further in so the outer pair lies on them. Inner top flaps
   // close over the first half of the slider, outer ones over the second.
   fold: {
@@ -120,10 +120,10 @@ export const splitTopDefinition = {
       // the second, whichever walls carry them.
       {
         repeat: [
-          { wall: 'front', Wall: 'Front', bottomFrom: 0.9, bottomTo: 1, bottomSetback: '-1.5 * foldT', topFrom: 'outerTopIsEnd ? 0 : 0.5', topTo: 'outerTopIsEnd ? 0.5 : 1', topSetback: 'outerTopIsEnd ? -1.5 * foldT + foldT : -1.5 * foldT' },
-          { wall: 'right', Wall: 'Right', bottomFrom: 0.8, bottomTo: 0.9, bottomSetback: '-1.5 * foldT + foldT', topFrom: 'outerTopIsEnd ? 0.5 : 0', topTo: 'outerTopIsEnd ? 1 : 0.5', topSetback: 'outerTopIsEnd ? -1.5 * foldT : -1.5 * foldT + foldT' },
-          { wall: 'back', Wall: 'Back', bottomFrom: 0.9, bottomTo: 1, bottomSetback: '-1.5 * foldT', topFrom: 'outerTopIsEnd ? 0 : 0.5', topTo: 'outerTopIsEnd ? 0.5 : 1', topSetback: 'outerTopIsEnd ? -1.5 * foldT + foldT : -1.5 * foldT' },
-          { wall: 'left', Wall: 'Left', bottomFrom: 0.8, bottomTo: 0.9, bottomSetback: '-1.5 * foldT + foldT', topFrom: 'outerTopIsEnd ? 0.5 : 0', topTo: 'outerTopIsEnd ? 1 : 0.5', topSetback: 'outerTopIsEnd ? -1.5 * foldT : -1.5 * foldT + foldT' },
+          { wall: 'front', Wall: 'Front', bottomFrom: 0.9, bottomTo: 1, bottomSetback: '-foldCrease', topFrom: 'outerTopIsEnd ? 0 : 0.5', topTo: 'outerTopIsEnd ? 0.5 : 1', topSetback: 'outerTopIsEnd ? -foldCrease + foldT : -foldCrease' },
+          { wall: 'right', Wall: 'Right', bottomFrom: 0.8, bottomTo: 0.9, bottomSetback: '-foldCrease + foldT', topFrom: 'outerTopIsEnd ? 0.5 : 0', topTo: 'outerTopIsEnd ? 1 : 0.5', topSetback: 'outerTopIsEnd ? -foldCrease : -foldCrease + foldT' },
+          { wall: 'back', Wall: 'Back', bottomFrom: 0.9, bottomTo: 1, bottomSetback: '-foldCrease', topFrom: 'outerTopIsEnd ? 0 : 0.5', topTo: 'outerTopIsEnd ? 0.5 : 1', topSetback: 'outerTopIsEnd ? -foldCrease + foldT : -foldCrease' },
+          { wall: 'left', Wall: 'Left', bottomFrom: 0.8, bottomTo: 0.9, bottomSetback: '-foldCrease + foldT', topFrom: 'outerTopIsEnd ? 0.5 : 0', topTo: 'outerTopIsEnd ? 1 : 0.5', topSetback: 'outerTopIsEnd ? -foldCrease : -foldCrease + foldT' },
         ],
         each: [
           { child: 'bottom{{Wall}}', parent: '{{wall}}', drive: 'formation', from: '{{bottomFrom}}', to: '{{bottomTo}}', setback: '{{bottomSetback}}' },
@@ -143,6 +143,7 @@ export const splitTopDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the flaps.',
   },
   catalog: {
+    defaultMaterial: 'Kraft',
     thumbnail: '/images/templates/split-top-box.webp',
     version: 1,
     name: 'Split Top Box',

@@ -216,7 +216,7 @@ export const mailerBoxDefinition = {
       ['turnInner', 'stage(formation, 0.7, 0.85) * (pi / 2)'],
       ['turnSkirts', 'stage(formation, 0.7, 1) * (pi / 2)'],
       ['turnLid', '(1 - opening) * stage(formation, 0.6, 1) * (pi / 2)'],
-      ['resting', '(6 / pi - 1.5) * foldT - foldT * 1.05'],
+      ['resting', 'foldResting'],
     ],
     hinges: [
       hinge('front', 'bottom', 'turnWalls'),
@@ -248,6 +248,7 @@ export const mailerBoxDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the flaps.',
   },
   catalog: {
+    defaultMaterial: 'Kraft',
     thumbnail: '/images/templates/mailer-box.webp',
     version: 1,
     name: 'Mailer Box',

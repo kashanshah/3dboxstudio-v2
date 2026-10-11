@@ -916,3 +916,12 @@ test('full-sheet artwork made at the artboard or dieline size lands exactly on i
   const turned=sheetTransformToPhysical(artboardTransform(256/406,bounds,bleed,90),bounds);
   near(turned.width,256);near(turned.height,406);
 });
+
+test('every template starts in the finish its box is usually made in',()=>{
+  const {PACKAGING_TEMPLATES,STUDIO_MATERIALS}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of PACKAGING_TEMPLATES)assert.ok(STUDIO_MATERIALS.includes(template.defaultMaterial),`${template.id} starts in ${template.defaultMaterial}`);
+  const finish=id=>PACKAGING_TEMPLATES.find(template=>template.id===id).defaultMaterial;
+  // Corrugated boxes start in kraft, folding cartons in white board.
+  for(const id of ['mailer-box','split-top-box','pizza-box'])assert.equal(finish(id),'Kraft',id);
+  for(const id of ['reverse-tuck-carton','base-box'])assert.equal(finish(id),'White board',id);
+});

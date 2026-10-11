@@ -98,6 +98,7 @@ export const baseBoxDefinition = {
     artworkNote: 'Artwork prints exactly as laid out on the design grid, including the tuck and dust flaps.',
   },
   catalog: {
+    defaultMaterial: 'White board',
     thumbnail: '/images/templates/base-box.webp',
     version: 1,
     name: 'Straight Tuck End Box',
