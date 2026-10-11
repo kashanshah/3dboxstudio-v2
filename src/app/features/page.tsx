@@ -42,9 +42,10 @@ const sections = [
   },
   {
     title: "Design on the flat layout",
-    body: "Use the 2D dieline workspace for artwork placement. Upload graphics, drag and drop them, crop, resize, rotate, and organize layers while keeping panel context visible.",
+    body: "Use the 2D dieline workspace for artwork placement. Upload graphics or add text, drag and drop them, crop, resize, rotate, and organize layers while keeping panel context visible.",
     bullets: [
       "Artwork upload and replace",
+      "Text in 9 fonts, with colour, alignment and spacing",
       "Layer ordering",
       "Exact transforms",
       "Outside/inside artwork where supported",

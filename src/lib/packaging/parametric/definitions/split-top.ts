@@ -65,26 +65,28 @@ export const splitTopDefinition = {
       [0, 'bottom - jointCutBack - jointTaper'], [0, 'top + jointCutBack + jointTaper'],
     ] },
     // Each wall with a flap at each end. Slots either side of every flap, half
-    // on each neighbour, let them fold past each other. Outer flaps draw over
+    // on each neighbour, let them fold past each other. The end wall at the
+    // glued joint is half a board narrower, so its flaps are trimmed half a
+    // board less there and end in line with the flaps opposite them. Outer flaps draw over
     // inner ones; the outer top pair depends on the split direction.
     {
       repeat: [
-        { wall: 'front', Wall: 'Front', WALL: 'FRONT', x: 'xFront', width: 'long', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
-        { wall: 'right', Wall: 'Right', WALL: 'RIGHT', x: 'xRight', width: 'end', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
-        { wall: 'back', Wall: 'Back', WALL: 'BACK', x: 'xBack', width: 'long', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0, 1, 0.5] } },
-        { wall: 'left', Wall: 'Left', WALL: 'LEFT', x: 'xLeft', width: 'jointEnd', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
+        { wall: 'front', Wall: 'Front', WALL: 'FRONT', x: 'xFront', width: 'long', endTrim: 'slot / 2', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
+        { wall: 'right', Wall: 'Right', WALL: 'RIGHT', x: 'xRight', width: 'end', endTrim: 'slot / 2', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
+        { wall: 'back', Wall: 'Back', WALL: 'BACK', x: 'xBack', width: 'long', endTrim: 'slot / 2', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0, 1, 0.5] } },
+        { wall: 'left', Wall: 'Left', WALL: 'LEFT', x: 'xLeft', width: 'jointEnd', endTrim: 'slot / 2 - (end - jointEnd)', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
       ],
       each: [
         { id: '{{wall}}', label: '{{WALL}}', kind: 'body', layer: 1, rect: ['{{x}}', 'top', '{{width}}', 'wallHeight'] },
         { id: 'top{{Wall}}', label: 'TOP {{WALL}}', kind: 'flap', layer: '{{topLayer}}', outline: [
-          ['{{x}} + slot / 2', 'top'], ['{{x}} + {{width}} - slot / 2', 'top'],
-          ['{{x}} + {{width}} - slot / 2', 'top - {{topFlap}}'], ['{{x}} + slot / 2', 'top - {{topFlap}}'],
+          ['{{x}} + slot / 2', 'top'], ['{{x}} + {{width}} - ({{endTrim}})', 'top'],
+          ['{{x}} + {{width}} - ({{endTrim}})', 'top - {{topFlap}}'], ['{{x}} + slot / 2', 'top - {{topFlap}}'],
         ] },
         // Designs made before the bottom was split print one "Bottom" artwork
         // across both outer bottom flaps.
         { id: 'bottom{{Wall}}', label: 'BOTTOM {{WALL}}', kind: 'flap', layer: '{{bottomLayer}}', artworkFallback: '{{fallback}}', outline: [
-          ['{{x}} + slot / 2', 'bottom'], ['{{x}} + {{width}} - slot / 2', 'bottom'],
-          ['{{x}} + {{width}} - slot / 2', 'bottom + end / 2'], ['{{x}} + slot / 2', 'bottom + end / 2'],
+          ['{{x}} + slot / 2', 'bottom'], ['{{x}} + {{width}} - ({{endTrim}})', 'bottom'],
+          ['{{x}} + {{width}} - ({{endTrim}})', 'bottom + end / 2'], ['{{x}} + slot / 2', 'bottom + end / 2'],
         ] },
       ],
     },

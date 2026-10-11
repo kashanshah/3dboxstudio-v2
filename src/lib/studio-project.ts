@@ -2,6 +2,7 @@ import type { CartonDimensions } from './packaging/reverse-tuck';
 import type { ArtworkByPanel,LocalMediaAsset } from './packaging/artwork';
 import type { FullDielineArtworkLayer } from './packaging/full-dieline-artwork';
 import { getPackagingTemplate } from './packaging/template-registry';
+import { isTextSpec } from './packaging/text-artwork';
 
 export type LegacyOpeningMode =
  | 'closed'
@@ -73,5 +74,7 @@ export function validProjectState(value:unknown):value is StudioProjectState{
   /^\/api\/admin\/designs\/[A-Za-z0-9._~%-]+\/legacy-media\/[A-Za-z][A-Za-z0-9]*$/.test(item.url) ||
   /^https:\/\//.test(item.url)
  )))return false;
+ // Text layers keep the settings their image is drawn from.
+ if(![...s.outsideArtworkLayers,...s.insideArtworkLayers].every(layer=>layer.text===undefined||isTextSpec(layer.text)))return false;
  return ['material','custom'].includes(s.outsideColorMode)&&['material','custom'].includes(s.insideColorMode)&&[s.outsideCustomColor,s.insideCustomColor].every(color=>typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color));
 }
