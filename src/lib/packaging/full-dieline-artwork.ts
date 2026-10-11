@@ -1,6 +1,7 @@
 import type { CartonDimensions } from './reverse-tuck';
 import { getTemplateGeometry, type TemplateGeometryOptions } from './template-runtime';
 import { defaultArtworkPlacement, type ArtworkByPanel } from './artwork';
+import type { TextSpec } from './text-artwork';
 
 export type FullDielineTransform = {
   x: number;
@@ -24,6 +25,8 @@ export type FullDielineArtworkLayer = {
    * new dieline layout keep printing exactly where they did through this.
    */
   panels?: string[];
+  /** Set on text layers: what the image is drawn from, so the text stays editable. */
+  text?: TextSpec;
 };
 
 /** Overlaps thinner than this (millimetres) are rounding, not artwork. */

@@ -14,6 +14,18 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'text-tool',
+    date: '2026-10-11',
+    title: 'Add text to your box',
+    summary: 'Type straight onto the dieline: brand names, taglines and labels, in nine fonts, on the outside or the inside of any box.',
+    tags: ['New'],
+    highlights: [
+      'Design → Add text puts a text layer on the face people see first: the lid of a mailer or rigid box, the front of a carton.',
+      'Choose from nine fonts (sans, condensed, display, serif, script and mono), bold, colour, alignment, letter spacing and line height.',
+      'Text stays editable after saving, and appears in the 3D view, the PNG and MP4 downloads and the 1:1 PDF exactly as on the sheet.',
+    ],
+  },
+  {
     id: 'rigid-box-svg-dxf',
     date: '2026-10-11',
     title: 'Rigid lid and base boxes, SVG and DXF dielines, and adjustable flap sizes',

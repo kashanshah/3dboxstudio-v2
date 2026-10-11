@@ -8,6 +8,8 @@ import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
 import { useTranslations } from '@/components/i18n/locale-provider';
 import { useDialogFocus } from '@/components/auth/use-dialog-focus';
+import { DEFAULT_TEXT_SPEC, renderTextArtwork, textLayerName, type TextSpec } from '@/lib/packaging/text-artwork';
+import { TextLayerEditor } from './text-layer-editor';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
@@ -24,7 +26,7 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -1404,6 +1406,64 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setMessage('Artwork layer removed');
   }, [selectedOutsideLayerId, selectedInsideLayerId]);
 
+  // Text layers: the image is redrawn from the text settings on every edit.
+  // Edits keep the letters the same size on the sheet and the layer centred
+  // where it was; only the newest edit of a layer is applied.
+  const textEditSequence = useRef(new Map<string, number>());
+  const addTextLayer = async () => {
+    const scope = artworkScope;
+    try {
+      const rendered = await renderTextArtwork(DEFAULT_TEXT_SPEC);
+      const geometry = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide});
+      const bounds = geometry.bounds;
+      // New text goes on the face people see first (the lid of a mailer or
+      // rigid box, the front of a carton), turned to read upright there.
+      const face = ['LID TOP', 'TOP', 'FRONT'].map(label => geometry.panels.find(panel => panel.label === label && panel.kind === 'body')).find(Boolean)
+        ?? geometry.panels.find(panel => panel.kind === 'body');
+      const area = face ?? { x: 0, y: 0, width: bounds.width, height: bounds.height, artworkRotation: 0 as const };
+      let heightMm = Math.max(6, Math.min(40, Math.min(area.width, area.height) * 0.22));
+      let widthMm = heightMm * rendered.aspectRatio;
+      if (widthMm > area.width * 0.85) { heightMm *= area.width * 0.85 / widthMm; widthMm = area.width * 0.85; }
+      const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const layer: FullDielineArtworkLayer = {
+        id, name: textLayerName(DEFAULT_TEXT_SPEC.content), url: rendered.url, aspectRatio: rendered.aspectRatio, text: DEFAULT_TEXT_SPEC,
+        transform: {
+          x: (area.x + area.width / 2) / bounds.width * 100, y: (area.y + area.height / 2) / bounds.height * 100,
+          width: widthMm / bounds.width * 100, height: heightMm / bounds.height * 100,
+          rotation: face?.artworkRotation === 180 ? 180 : 0,
+        },
+      };
+      if (scope === 'inside') { setInsideDielineLayers(current => [...current, layer]); setSelectedInsideLayerId(id); }
+      else { setOutsideDielineLayers(current => [...current, layer]); setSelectedOutsideLayerId(id); }
+      setMessage(`Text added to the ${scope} design`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not add text.');
+    }
+  };
+  const updateTextLayer = async (scope: 'outside' | 'inside', layerId: string, patch: Partial<TextSpec>) => {
+    const layers = scope === 'inside' ? insideDielineLayers : outsideDielineLayers;
+    const layer = layers.find(item => item.id === layerId);
+    if (!layer?.text) return;
+    const previousSpec = layer.text, nextSpec = { ...layer.text, ...patch };
+    const sequence = (textEditSequence.current.get(layerId) ?? 0) + 1;
+    textEditSequence.current.set(layerId, sequence);
+    // Show the new settings at once; the image follows when it is drawn.
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => current.map(item => item.id === layerId ? { ...item, text: nextSpec, name: textLayerName(nextSpec.content) } : item));
+    try {
+      const [previous, next] = await Promise.all([renderTextArtwork(previousSpec), renderTextArtwork(nextSpec)]);
+      if (textEditSequence.current.get(layerId) !== sequence) return;
+      const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
+      setter(current => current.map(item => {
+        if (item.id !== layerId) return item;
+        const mmPerUnit = item.transform.height / 100 * bounds.height / previous.height;
+        return { ...item, url: next.url, aspectRatio: next.aspectRatio, transform: { ...item.transform, width: next.width * mmPerUnit / bounds.width * 100, height: next.height * mmPerUnit / bounds.height * 100 } };
+      }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not update the text.');
+    }
+  };
+
   const duplicateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
     const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
     const setSelectedId = scope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId;
@@ -2107,6 +2167,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             setter(current=>current.map(layer=>layer.id===layerId?{...layer,transform,...meta}:layer));
           }}
           onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
+          onAddText={() => void addTextLayer()}
+          onUpdateText={(layerId, patch) => void updateTextLayer(artworkScope, layerId, patch)}
           onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
           onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
           onReorderLayer={(layerId, targetId) => reorderFullDielineLayer(artworkScope, layerId, targetId)}
@@ -2893,6 +2955,8 @@ function DielinePrototype({
   onSelectLayer,
   onUpdateLayer,
   onDuplicateLayer,
+  onAddText,
+  onUpdateText,
   onRemoveLayer,
   onMoveLayer,
   onReorderLayer,
@@ -2937,6 +3001,8 @@ function DielinePrototype({
   onSelectLayer:(id:string|null)=>void;
   onUpdateLayer:(id:string,transform:FullDielineTransform,meta?:{visible?:boolean;opacity?:number})=>void;
   onDuplicateLayer:(id:string)=>void;
+  onAddText:()=>void;
+  onUpdateText:(id:string,patch:Partial<TextSpec>)=>void;
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
   onReorderLayer:(id:string,targetId:string)=>void;
@@ -3552,7 +3618,10 @@ function DielinePrototype({
 
           <div className="pro-2d-left-actions">
             <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/>{" " + t("studio.add_artwork")}</button>
+            <button type="button" className="pro-secondary-button pro-design-add-text" onClick={onAddText}><Type size={17}/>{" " + t("studio.add_text")}</button>
           </div>
+
+          {selectedLayer?.text && <TextLayerEditor key={selectedLayer.id} spec={selectedLayer.text} onChange={patch=>onUpdateText(selectedLayer.id,patch)}/>}
 
           <aside className="pro-dieline-layers-panel pro-design-left-layers" aria-label={`${artworkScope} artwork layers`}>
             <div className="pro-dieline-layers-heading">
@@ -3595,7 +3664,7 @@ function DielinePrototype({
                   onDragEnd={()=>{draggingLayerId.current=null;setDropTargetId(null);}}
                 >
                   <span className="pro-layer-visibility" role="button" tabIndex={0} title={layer.visible===false?'Show layer':'Hide layer'} aria-label={layer.visible===false?'Show layer':'Hide layer'} onClick={event=>{event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();onUpdateLayer(layer.id,layer.transform,{visible:layer.visible===false});}}}>{layer.visible===false?<EyeOff size={15}/>:<Eye size={15}/>}</span>
-                  <img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>
+                  {layer.text?<span className="pro-layer-text-thumb" aria-hidden="true" style={{opacity:layer.visible===false?.35:1}}><Type size={16}/></span>:<img src={layer.url} alt="" draggable={false} style={{opacity:layer.visible===false?.35:1}}/>}
                   <span><strong>{layer.name}</strong><small>{Math.round(layer.transform.width)} × {Math.round(layer.transform.height)}% · {Math.round(layer.transform.rotation)}°{layer.panels ? ` · ${layer.panels.length===1 ? `${panelDisplayName(cartonPanels,layer.panels[0])} only` : `not on ${cartonPanels.filter(panel=>!layer.panels!.includes(panel.id)).map(panel=>panelDisplayName(cartonPanels,panel.id)).join(', ')}`}` : ''}</small></span>
                   <i>{realIndex===layers.length-1?t("studio.top"):realIndex+1}</i>
                 </button>;
