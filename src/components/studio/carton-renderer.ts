@@ -332,8 +332,30 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   };
 
   // The carton's bounds as last drawn, for measurements laid over the canvas.
-  let lastBounds: { min: [number, number, number]; max: [number, number, number] } | null = null;
+  type Bounds = { min: [number, number, number]; max: [number, number, number] } | null;
+  let lastBounds: Bounds = null;
   const renderListeners = new Set<() => void>();
+  // The same box closed, built only when measuring an open one.
+  let closedCache: { key: string; bounds: Bounds } | null = null;
+  const closedBounds = (): Bounds => {
+    const key = JSON.stringify([scene.templateId, scene.dimensions, scene.openingMode, scene.splitTopHingeSide]);
+    if (closedCache?.key !== key) {
+      let minX = Infinity, minY = Infinity, minZ = Infinity, maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (const mesh of sceneMeshes({ ...scene, formation: 100, opening: 0 })) {
+        const m = mesh.model;
+        for (let i = 0; i < mesh.vertices.length; i += 8) {
+          let x = mesh.vertices[i], y = mesh.vertices[i + 1], z = mesh.vertices[i + 2];
+          if (m) [x, y, z] = [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+          minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+        }
+      }
+      closedCache = { key, bounds: Number.isFinite(minY) ? { min: [minX, minY, minZ], max: [maxX, maxY, maxZ] } : null };
+      return closedCache.bounds;
+    }
+    return closedCache.bounds;
+  };
 
   const render = () => {
     if (capture) return;
@@ -416,8 +438,10 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
      * the camera, so the nearest edges can carry the measurements.
      */
     projectBounds() {
-      if (!lastBounds) return null;
-      const { min, max } = lastBounds;
+      // An open lid or door is measured as the closed box it belongs to.
+      const bounds = scene.opening > 0.5 ? closedBounds() : lastBounds;
+      if (!bounds) return null;
+      const { min, max } = bounds;
       const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
       const eye = new Vector3().setFromMatrixPosition(camera.matrixWorld);
       return Array.from({ length: 8 }, (_, index) => {
