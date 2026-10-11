@@ -183,11 +183,8 @@ export function tuckEndDie(config: {
     adjustable: [
       { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
       { key: 'tuck', label: 'Tuck flap', targets: ['topTongue', 'bottomTongue'], min: 4, max: 'max(4, min(height / 2, 60))' },
-      {
-        key: 'dustFlap', label: 'Dust flaps',
-        targets: [...STRIP.map(wall => `dustTop${cap(wall)}Height`), ...BESIDE[config.bottom].map(wall => `dustBottom${cap(wall)}Height`)],
-        min: 4, max: 'max(4, min(topInsideWidth, bottomInsideWidth) / 2 - t - 1.5)',
-      },
+      { key: 'topDustFlap', label: 'Top dust flaps', targets: STRIP.map(wall => `dustTop${cap(wall)}Height`), min: 4, max: 'max(4, topInsideWidth / 2 - t - 1.5)' },
+      { key: 'bottomDustFlap', label: 'Bottom dust flaps', targets: BESIDE[config.bottom].map(wall => `dustBottom${cap(wall)}Height`), min: 4, max: 'max(4, bottomInsideWidth / 2 - t - 1.5)' },
     ],
     panels: [
       panel({ id: 'glue', label: 'GLUE', kind: 'glue', outline: [['glue', 'glueTop'], ['glue', 'glueBottom'], [0, 'glueBottom - glueTaper'], [0, 'glueTop + glueTaper']] }),

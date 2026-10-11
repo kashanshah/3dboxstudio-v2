@@ -28,6 +28,8 @@ export type TemplateRuntime = {
   sanitizeParameters: (dimensions: CartonDimensions) => CartonDimensions;
   /** Flap and panel sizes the user may change, for templates that offer them. */
   getAdjustableSizes?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => AdjustableSize[];
+  /** The panel ids one adjustable size changes the shape of. */
+  getAdjustedPanels?: (dimensions: CartonDimensions, key: string, options?: TemplateGeometryOptions) => string[];
   getDielinePanels: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielinePanel[];
   getDielineBounds: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => {width:number;height:number};
   buildMeshes: TemplateMeshBuilder;

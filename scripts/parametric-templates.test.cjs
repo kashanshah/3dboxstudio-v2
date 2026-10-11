@@ -564,3 +564,25 @@ test('the unadjusted sheets have no overlapping panels either',()=>{
     }
   }
 });
+
+test('each adjustable size names the panels it reshapes, and only those',()=>{
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const options={openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'};
+    for(const size of runtime.getAdjustableSizes(template.defaultDimensions,options)){
+      const panels=runtime.getAdjustedPanels(template.defaultDimensions,size.key,options);
+      assert.ok(panels.length>0,`${template.id} ${size.key} reshapes nothing`);
+      // Body panels only move as flaps change; they keep their shape.
+      const kinds=new Map(runtime.getExportGeometry(template.defaultDimensions,options).panels.map(panel=>[panel.id,panel.kind]));
+      assert.ok(panels.every(id=>kinds.get(id)!=='body'),`${template.id} ${size.key} reshapes a body panel: ${panels}`);
+    }
+  }
+  const tuck=getTemplateRuntime('reverse-tuck-carton');
+  const d={width:120,height:180,depth:55,thickness:0.5};
+  assert.deepEqual(tuck.getAdjustedPanels(d,'glue'),['glue']);
+  assert.deepEqual(tuck.getAdjustedPanels(d,'topDustFlap'),['top-left-dust','top-right-dust']);
+  // At its limit, the size is nudged back inside it.
+  assert.deepEqual(tuck.getAdjustedPanels({...d,adjustments:{glue:1e6}},'glue'),['glue']);
+  assert.deepEqual(tuck.getAdjustedPanels(d,'noSuchSize'),[]);
+});

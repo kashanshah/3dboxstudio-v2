@@ -402,6 +402,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [designToolsOpen, setDesignToolsOpen] = useState(true);
   // The Design step's left panel: artwork, or the flap and panel sizes.
   const [designPanel, setDesignPanel] = useState<'artwork' | 'sizes'>('artwork');
+  // The flap size being pointed at or edited there; the grid marks what it changes.
+  const [highlightedSize, setHighlightedSize] = useState<string | null>(null);
   // Phone-only bottom sheet height for the inspector / design tools; not persisted.
   const [sheetSize, setSheetSize] = useState<SheetSize>('half');
   const unpeekSheet = () => setSheetSize(size => size==='peek'?'half':size);
@@ -1998,7 +2000,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onDropArtworkFiles={handleBoardArtworkDrop}
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
-          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit}/> : null}
+          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
+          highlightedPanels={designPanel==='sizes' && highlightedSize ? getTemplateRuntime(selectedTemplateId)?.getAdjustedPanels?.(dimensions,highlightedSize,{openingMode,splitTopHingeSide}) ?? [] : []}
           sheetSize={sheetSize}
           onSheetSize={setSheetSize}
           onApplyChanges={() => {
@@ -2767,6 +2770,7 @@ function DielinePrototype({
   toolsOpen,
   onCloseTools,
   sizesPanel,
+  highlightedPanels,
   sheetSize,
   onSheetSize,
   onApplyChanges,
@@ -2808,6 +2812,8 @@ function DielinePrototype({
   onCloseTools:()=>void;
   /** Shown in place of the artwork tools when the Sizes tool is chosen. */
   sizesPanel:React.ReactNode;
+  /** Panel ids the flap size being edited changes, marked on the grid. */
+  highlightedPanels:string[];
   sheetSize:SheetSize;
   onSheetSize:(size:SheetSize)=>void;
   onApplyChanges:()=>void;
@@ -3525,7 +3531,7 @@ function DielinePrototype({
           const shape=item.outline ? `polygon(${item.outline.map(point=>`${cssPercent((point.x-item.x)/item.width*100)} ${cssPercent((point.y-item.y)/item.height*100)}`).join(',')})` : undefined;
           return <div
             key={item.id}
-            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''} pro-dieline-panel-guide`}
+            className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''}${highlightedPanels.includes(item.id)?' is-size-highlight':''} pro-dieline-panel-guide`}
             style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),overflow:'hidden',clipPath:shape}}
             aria-label={`${artworkScope} ${panelName} panel guide`}
             data-panel={panelName}
@@ -3536,7 +3542,7 @@ function DielinePrototype({
         })}
 
         {cartonPanels.some(item=>item.outline) && <svg className="pro-dieline-shapes" viewBox={`0 0 ${bounds.width} ${bounds.height}`} preserveAspectRatio="none" aria-hidden="true">
-          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}`} points={svgPoints(item.outline!)}/>)}
+          {cartonPanels.filter(item=>item.outline).map(item=><polygon key={item.id} className={`dl-shape dl-shape-${item.kind}${highlightedPanels.includes(item.id)?' is-size-highlight':''}`} points={svgPoints(item.outline!)}/>)}
         </svg>}
 
         {/* Cut and crease lines stay visible over any artwork, as on a printer's proof. */}
@@ -3932,9 +3938,11 @@ function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }
  * set apart from the box size. A size the user sets replaces the template's
  * own, within limits that keep the flaps clear of each other.
  */
-function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, unit }: {
+function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, unit, onHighlight }: {
   templateId: string; dimensions: CartonDimensions; setDimensions: (value: CartonDimensions) => void;
   options: TemplateGeometryOptions; unit: MeasurementUnit;
+  /** The size being pointed at or edited, so the design grid can mark the panels it changes. */
+  onHighlight?: (key: string | null) => void;
 }) {
   const t = useTranslations();
   const sizes = getTemplateRuntime(templateId)?.getAdjustableSizes?.(dimensions, options) ?? [];
@@ -3950,7 +3958,9 @@ function AdjustableSizesCard({ templateId, dimensions, setDimensions, options, u
   return <div className="pro-card-section pro-adjustable-sizes">
     <SectionTitle title={t('studio.flap_sizes')} meta={changed ? t('studio.flap_sizes_changed', { count: changed }) : t('studio.flap_sizes_template')} />
     <p className="pro-help">{t('studio.flap_sizes_help')}</p>
-    {sizes.map(size => <div className={`pro-adjustable-size${size.adjusted ? ' is-adjusted' : ''}`} key={size.key}>
+    {sizes.map(size => <div className={`pro-adjustable-size${size.adjusted ? ' is-adjusted' : ''}`} key={size.key}
+      onPointerEnter={() => onHighlight?.(size.key)} onPointerLeave={() => onHighlight?.(null)}
+      onFocus={() => onHighlight?.(size.key)} onBlur={() => onHighlight?.(null)}>
       <div>
         <strong>{size.label}</strong>
         <span>{formatDimension(size.min, unit)}–{formatDimension(size.max, unit)} {unit}</span>
