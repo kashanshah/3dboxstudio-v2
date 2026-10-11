@@ -2,7 +2,7 @@ export const TERMS_PAGE_TITLE = "Terms of Service";
 export const TERMS_PAGE_DESCRIPTION =
   "Terms governing your use of 3D Box Studio—the free browser-based 3D box designer, cloud save, share links, and related website features.";
 
-export const TERMS_EFFECTIVE_DATE = "2026-09-01";
+export const TERMS_EFFECTIVE_DATE = "2026-10-11";
 
 export type TermsSection =
   | { type: "h2"; text: string }
@@ -27,9 +27,9 @@ export const TERMS_SECTIONS: TermsSection[] = [
   {
     type: "ul",
     items: [
-      "You may use much of the studio without creating an account.",
-      "Signed-in users can save designs to the cloud, rename projects, and create share or preview links.",
-      "Exports include viewport PNG images, optional MP4 recordings, and JSON project files as described in the studio.",
+      "Using the Studio requires a free account. Anyone with a share link can view a shared design without an account.",
+      "Signed-in users can save designs to the cloud, organize them in projects, and create view-only share links.",
+      "Exports include PNG images, MP4 videos, and dielines as PDF, SVG and DXF files, as described in the Studio.",
       "Features may change, be added, or be removed at any time.",
     ],
   },

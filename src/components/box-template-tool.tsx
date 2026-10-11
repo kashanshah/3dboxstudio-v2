@@ -7,6 +7,7 @@ import { trackEvent } from "@/lib/analytics";
 import { templatePreviewGeometry, type PreviewTemplateId } from "@/lib/packaging/template-preview";
 import { studioTemplateHref } from "@/lib/studio-entry";
 import type { BoxTemplatePreset } from "@/content/box-template-pages";
+import { svgLine, svgPoints } from "@/lib/svg-number";
 
 type Unit = "mm" | "in";
 const MM_PER_IN = 25.4;
@@ -97,9 +98,9 @@ export function BoxTemplateTool({ templateId, name, fields, presets, thickness, 
     </div>
     <figure className="btt-preview">
       {geometry ? <svg viewBox={`${-pad} ${-pad} ${geometry.bounds.width + pad * 2} ${geometry.bounds.height + pad * 2}`} role="img" aria-label={`Flat dieline of a ${name.toLowerCase()} measuring ${format(mm.width, unit)} by ${format(mm.height, unit)} by ${format(mm.depth, unit)}`}>
-        {geometry.panels.map(panel => <polygon key={panel.id} className={`btt-panel is-${panel.kind}`} points={panel.outline.map(point => `${point.x},${point.y}`).join(" ")} />)}
-        {geometry.crease.map((line, index) => <line key={`c${index}`} className="btt-crease" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} strokeWidth={stroke} strokeDasharray={`${stroke * 5} ${stroke * 3}`} />)}
-        {geometry.cut.map((line, index) => <line key={`k${index}`} className="btt-cut" x1={line.start.x} y1={line.start.y} x2={line.end.x} y2={line.end.y} strokeWidth={stroke * 1.4} />)}
+        {geometry.panels.map(panel => <polygon key={panel.id} className={`btt-panel is-${panel.kind}`} points={svgPoints(panel.outline)} />)}
+        {geometry.crease.map((line, index) => <line key={`c${index}`} className="btt-crease" {...svgLine(line)} strokeWidth={stroke} strokeDasharray={`${stroke * 5} ${stroke * 3}`} />)}
+        {geometry.cut.map((line, index) => <line key={`k${index}`} className="btt-cut" {...svgLine(line)} strokeWidth={stroke * 1.4} />)}
         {geometry.panels.filter(panel => panel.kind === "body" && panel.width > geometry.bounds.width * 0.08 && panel.height > geometry.bounds.height * 0.06).map(panel => <text key={`t${panel.id}`} className="btt-label" x={panel.x + panel.width / 2} y={panel.y + panel.height / 2} fontSize={Math.min(panel.width, panel.height) * 0.16} textAnchor="middle" dominantBaseline="middle">{panel.label}</text>)}
       </svg> : <p className="btt-error" role="alert">{"error" in result ? result.error : null}</p>}
       <figcaption>

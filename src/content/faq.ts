@@ -49,7 +49,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Is 3D Box Studio a free 3D box maker?",
     answer:
-      "Yes. 3D Box Studio is free to use in the browser. Create a free account to access the Studio, choose supported packaging templates, set dimensions, add artwork, review the package in 3D, save projects, share previews, and export PNGs.",
+      "Yes. 3D Box Studio is free to use in the browser. Create a free account to access the Studio, choose supported packaging templates, set dimensions, add artwork, review the package in 3D, save projects, share previews, and export PNG images, MP4 videos and 1:1 PDF, SVG and DXF dielines.",
   },
   {
     id: "3d-box-simulation-use",
@@ -119,14 +119,14 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "export",
     question: "What file formats can I export?",
     answer:
-      "The 3D workspace exports PNG previews. Preview & Download exports the dieline as a 1:1 vector PDF with your artwork, bleed and cut and crease lines, and the cutting template on its own as SVG (for Illustrator, Inkscape and Affinity) or DXF (for CAD programs, die makers and cutting tables), with cut and crease lines on separate layers. Video output is not available yet. Validate production files with your printer before manufacturing.",
+      "The 3D view exports PNG images and an MP4 video of about 10 seconds in which the box folds from flat to closed and turns once (1080p, made in your browser). Preview & Download also exports the dieline as a 1:1 vector PDF with your artwork, bleed and cut and crease lines, and the cutting template on its own as SVG (for Illustrator, Inkscape and Affinity) or DXF (for CAD programs, die makers and cutting tables), with cut and crease lines on separate layers. Validate production files with your printer before manufacturing.",
   },
   {
     id: "box-types",
     category: "overview",
     question: "What box types can I design?",
     answer:
-      "3D Box Studio uses a growing template library rather than one hard-coded box. Supported structures include folding-carton and other packaging templates as they become engine-ready. Open the current template browser to see which structures are available now; planned structures are clearly marked rather than counted as usable.",
+      "Seven box templates are ready: the reverse tuck end carton, straight tuck end box, split top shipping box (FEFCO 0201/0204), pizza box, mailer box (FEFCO 0427), sleeve box, and rigid lid and base box. Each one takes your own size and board thickness, and you can adjust individual flap and panel sizes. The drawer box is next. See them all under Box templates.",
   },
   {
     id: "svg-dxf-dieline",
@@ -154,7 +154,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "comparison",
     question: "Is 3D Box Studio a free Pacdora alternative?",
     answer:
-      "It can be an alternative for focused box-design work: supported structures, editable dimensions, flat-layout artwork, interactive 3D review, saving, sharing, and PNG export. Pacdora has a broader mature packaging ecosystem, so compare the specific feature you need rather than assuming one-to-one parity.",
+      "It can be an alternative for focused box-design work: supported structures, editable dimensions, flat-layout artwork, interactive 3D review, saving, sharing, and PNG, MP4, PDF, SVG and DXF export, all free. Pacdora has a broader mature packaging ecosystem, so compare the specific feature you need rather than assuming one-to-one parity.",
   },
   {
     id: "download-required",
@@ -217,7 +217,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "export",
     question: "Can I record an unboxing video or export an MP4?",
     answer:
-      "Not in the current V2 launch scope. The Studio can animate supported structures open and closed interactively, but video or Scene Studio output should not be treated as a launched export feature yet.",
+      "Yes. Preview & Download → Video exports an MP4 video of about 10 seconds in which the box folds from flat to closed and turns once (1080p, made in your browser). It uses your artwork, material and lighting, so you can drop it into a product page, an ad or a social post. Custom camera paths and longer unboxing sequences are not available yet.",
   },
   {
     id: "material-presets",
@@ -238,7 +238,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "comparison",
     question: "Is a generated 3D Box Studio dieline production-ready?",
     answer:
-      "Do not assume that it is. Dimensional and production accuracy is still being improved. Before manufacturing, validate bleed, board caliper, folds, cut tolerances, glue areas, tooling, grain direction where relevant, and printer-specific requirements.",
+      "It is a real 1:1 cutting template, drawn from your inside size and board thickness, which is what you need for proofs, samples and quotes. Every factory has its own allowances, so before manufacturing have your printer validate bleed, board caliper, folds, cut tolerances, glue areas, tooling, grain direction where relevant, and printer-specific requirements.",
   },
 ];
 

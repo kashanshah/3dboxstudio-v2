@@ -11,6 +11,7 @@ import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import { notFoundMetadata } from '@/lib/not-found-metadata';
 import { site, defaultOgImage } from '@/lib/site';
 import '../../box-template-page.css';
+import { inlineLinks } from '@/components/inline-links';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -62,8 +63,8 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
       <div className="btp-sections">
         {page.sections.map(section => <section key={section.title}>
           <h2>{section.title}</h2>
-          <p>{section.body}</p>
-          {section.bullets ? <ul>{section.bullets.map(item => <li key={item}>{item}</li>)}</ul> : null}
+          <p>{inlineLinks(section.body)}</p>
+          {section.bullets ? <ul>{section.bullets.map(item => <li key={item}>{inlineLinks(item)}</li>)}</ul> : null}
         </section>)}
       </div>
 

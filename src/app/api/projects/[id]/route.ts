@@ -6,10 +6,21 @@ import { guardAuthAction } from '@/server/auth/action-request';
 import { moveDesignToWorkspaceProject } from '@/server/workspace-projects';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { deleteLegacyDesign } from '@/server/legacy-designs';
-import { cleanDesignName,renameDesign } from '@/server/projects';
+import { cleanDesignName,duplicateOwnDesign,renameDesign } from '@/server/projects';
 
 export async function PUT(req:Request,{params}:{params:Promise<{id:string}>}){
   return saveProject(req,(await params).id);
+}
+
+// Duplicate: a copy of the design in the same project.
+export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
+  const denied=guardAuthAction(req,'project-file-action',120);if(denied)return denied;
+  await ensureV2Schema();
+  const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to duplicate this design.'},{status:401});
+  const copy=await duplicateOwnDesign(user.id,(await params).id);
+  if(!copy)return NextResponse.json({error:'Design not found.'},{status:404});
+  await captureServerEvent(user.id,'design_duplicated',{design_id:copy.id});
+  return NextResponse.json({project:copy});
 }
 
 export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){

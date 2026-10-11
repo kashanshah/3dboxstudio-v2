@@ -7,6 +7,8 @@ import { newDesignDefaults, type NewDesignProject } from '@/lib/new-design';
 import type { MessageKey } from '@/lib/i18n';
 import { getPackagingTemplateCopy } from '@/lib/i18n/template-copy';
 import { useTranslations } from '@/components/i18n/locale-provider';
+import { useDialogFocus } from '@/components/auth/use-dialog-focus';
+import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
 import { BoardArtworkImage } from './board-artwork-image';
 import { TemplateVisual } from './template-visual';
@@ -22,7 +24,7 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -36,6 +38,14 @@ import { PACKAGING_TEMPLATES, STUDIO_MATERIALS, getDefaultPackagingTemplate, get
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
+
+// Number fields that apply on blur: Enter applies too, and an emptied field
+// leaves the value as it was instead of setting it to zero.
+const blurOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => { if (event.key === 'Enter') event.currentTarget.blur(); };
+const fieldNumber = (text: string) => text.trim() === '' ? Number.NaN : Number(text);
+
+// Editor shortcuts must not reach the design behind an open dialog.
+const modalIsOpen = () => typeof document !== 'undefined' && !!document.querySelector('[aria-modal="true"],dialog[open]');
 
 type Tool = 'structure' | 'artwork' | 'material' | 'opening' | 'scene' | 'export';
 type StudioArea = 'box' | 'design' | 'preview';
@@ -303,6 +313,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [deleting,setDeleting] = useState(false);
   const [saveConflictOpen,setSaveConflictOpen] = useState(false);
   const [shareOpen,setShareOpen] = useState(false);
+  const [renaming,setRenaming] = useState(false);
   const [shareBusy,setShareBusy] = useState(false);
   const [shareUrl,setShareUrl] = useState('');
   const [shareCopied,setShareCopied] = useState(false);
@@ -586,7 +597,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   useEffect(() => {
     const onHistoryKeyDown = (event:KeyboardEvent) => {
-      if (event.altKey || (!event.ctrlKey && !event.metaKey)) return;
+      if (event.altKey || (!event.ctrlKey && !event.metaKey) || modalIsOpen()) return;
       const target = event.target;
       if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
 
@@ -633,7 +644,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   useEffect(() => {
     const onSpaceKeyDown = (event:KeyboardEvent) => {
-      if (event.code !== 'Space' || event.repeat || mediaLibraryOpen || false) return;
+      if (event.code !== 'Space' || event.repeat || mediaLibraryOpen || modalIsOpen()) return;
       const target = event.target;
       if (target instanceof Element && target.closest('input,textarea,select,button,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
       event.preventDefault();
@@ -1451,7 +1462,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const selectedId = artworkScope === 'inside' ? selectedInsideLayerId : selectedOutsideLayerId;
     if (mode !== 'dieline' || mediaLibraryOpen || !selectedId) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if ((event.key !== 'Delete' && event.key !== 'Backspace') || event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      if ((event.key !== 'Delete' && event.key !== 'Backspace') || event.repeat || event.altKey || event.ctrlKey || event.metaKey || modalIsOpen()) return;
       const target = event.target;
       if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="dialog"]')) return;
       event.preventDefault();
@@ -1901,14 +1912,22 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     <button type="button" className={mode==='3d'?'is-active':''} aria-pressed={mode==='3d'} onClick={()=>{setMode('3d');setFaceAction(null);setPanEnabled(false);}}><Boxes size={16}/>{" " + t("studio.preview_in_3d")}</button>
   </div>;
 
+  // Dialogs opened from the file menu return focus to its trigger: the menu item is gone by then.
+  const fileMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const templatePreviewDialogRef = useDialogFocus<HTMLElement>(!!templatePreview, () => setTemplatePreview(null));
+  const shareDialogRef = useDialogFocus<HTMLElement>(shareOpen, () => setShareOpen(false), shareBusy, fileMenuTriggerRef);
+  const transferDialogRef = useDialogFocus<HTMLElement>(!!projectTransferMode, () => setProjectTransferMode(null), transferBusy, fileMenuTriggerRef);
+  const conflictDialogRef = useDialogFocus<HTMLElement>(saveConflictOpen, () => setSaveConflictOpen(false), saving);
+  const deleteDialogRef = useDialogFocus<HTMLElement>(deleteModalOpen, () => setDeleteModalOpen(false), deleting, fileMenuTriggerRef);
+
   return <><PostExportFeedback/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" translate="no" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
         <span className="pro-divider" />
-        <div className="pro-project-copy"><input ref={projectNameRef} aria-label={t("studio.design_name")} value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)}/><Link href="/studio">{t("studio.your_designs")}</Link></div>
+        <div className={`pro-project-copy${renaming?' is-renaming':''}`}><input ref={projectNameRef} aria-label={t("studio.design_name")} value={projectName} maxLength={120} onChange={event=>setProjectName(event.target.value)} onBlur={()=>setRenaming(false)} onKeyDown={event=>{if(event.key==='Enter'||event.key==='Escape')event.currentTarget.blur();}}/><Link href="/studio">{t("studio.your_designs")}</Link></div>
         <div className="pro-file-menu" ref={fileMenuRef}>
-          <button type="button" className="pro-file-menu-trigger" aria-label={t("studio.file_actions")} title={t("studio.file_actions")} aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
+          <button ref={fileMenuTriggerRef} type="button" className="pro-file-menu-trigger" aria-label={t("studio.file_actions")} title={t("studio.file_actions")} aria-expanded={fileMenuOpen} onClick={()=>setFileMenuOpen(open=>!open)}><MoreHorizontal size={18}/></button>
           {fileMenuOpen&&<div className="pro-file-menu-popover" role="menu">
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign();}}><Download size={15}/><span><strong>{t("studio.save")}</strong><small>{t("studio.ctrl_s")}</small></span></button>
             <button type="button" role="menuitem" disabled={saving} onClick={()=>{setFileMenuOpen(false);void saveDesign(true);}}><FilePlus2 size={15}/><span><strong>{t("studio.save_a_copy")}</strong><small>{t("studio.create_an_independent_design")}</small></span></button>
@@ -1916,7 +1935,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             <button type="button" role="menuitem" disabled={!projectId||saving} onClick={()=>void openProjectTransfer('copy')}><Copy size={15}/><span><strong>{t("studio.copy_to_project")}</strong><small>{t("studio.create_an_independent_copy_elsewhere")}</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId||saving||shareBusy} onClick={()=>void shareDesign()}><Share2 size={15}/><span><strong>{t("studio.share_link")}</strong><small>{projectId?t("studio.create_a_view_only_review_link"):t("studio.save_this_design_first")}</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?t("studio.remove_from_favourites"):t("studio.add_to_favourites")}</strong><small>{projectId?t("studio.keep_important_files_handy"):t("studio.save_this_design_first")}</small></span></button>
-            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>{t("studio.rename")}</strong><small>{t("studio.edit_the_file_name")}</small></span></button>
+            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);setRenaming(true);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>{t("studio.rename")}</strong><small>{t("studio.edit_the_file_name")}</small></span></button>
             <span className="pro-file-menu-separator" aria-hidden="true"/>
             <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>{setFileMenuOpen(false);setDeleteModalOpen(true);}}><Trash2 size={18}/><span><strong>{t("studio.delete")}</strong><small>{projectId?t("studio.permanently_delete_this_design"):t("studio.nothing_saved_yet")}</small></span></button>
           </div>}
@@ -1928,7 +1947,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <button type="button" className="pro-header-icon-action" disabled={!historyStatus.canRedo} onClick={redoStudioAction} aria-label={t("studio.redo")} title={t("studio.redo_ctrl_shift_z")}><Redo2 size={17}/></button>
         </div>
         <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?t("studio.autosave_is_on_click_to_save_now"):t("studio.save_this_design")} onClick={()=>void saveDesign()}>{saving?t("studio.saving"):saveFailed?t("studio.not_saved_retry"):!projectId?t("studio.save"):hasUnsavedChanges?t("studio.unsaved_changes"):t("studio.saved_2")}</button>
-        <button className="pro-secondary pro-header-share" disabled={shareBusy} title={t("studio.share_this_design")} onClick={()=>void shareDesign()}><Share2 size={16}/><span>{t("studio.share")}</span></button>
+        <button className="pro-secondary pro-header-share" disabled={shareBusy||!projectId} title={projectId?t("studio.share_this_design"):t("studio.save_this_design_first")} onClick={()=>void shareDesign()}><Share2 size={16}/><span>{t("studio.share")}</span></button>
         <AccountButton compact className="pro-secondary" />
       </div>
     </header>
@@ -2247,7 +2266,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     </div>
 
     {templatePreview && <div className="pro-template-preview-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setTemplatePreview(null);}}>
-      <section className="pro-template-preview-modal" role="dialog" aria-modal="true" aria-labelledby="template-preview-title">
+      <section ref={templatePreviewDialogRef} className="pro-template-preview-modal" role="dialog" aria-modal="true" aria-labelledby="template-preview-title">
         <header>
           <div><span>{t("studio.packaging_template")}</span><h2 id="template-preview-title">{getPackagingTemplateCopy(templatePreview, t).name}</h2><p>{getPackagingTemplateCopy(templatePreview, t).category}</p></div>
           <button type="button" aria-label={t("studio.close_template_preview")} onClick={()=>setTemplatePreview(null)}><X size={20}/></button>
@@ -2257,12 +2276,14 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           <div className="pro-template-preview-details">
             <span>{t("studio.structure_preview")}</span>
             <strong>{getPackagingTemplateCopy(templatePreview, t).shortName}</strong>
+            <p>{getPackagingTemplateCopy(templatePreview, t).description}</p>
             <p>{t("studio.review_the_structure_before_replacing_the_current_box_template")}</p>
             {templatePreview.defaultDimensions && <dl>
               <div><dt>{t("studio.width")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.width,measurementUnit)} {measurementUnit}</dd></div>
               <div><dt>{t("studio.height")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.height,measurementUnit)} {measurementUnit}</dd></div>
               <div><dt>{t("studio.depth")}</dt><dd>{formatDimension(templatePreview.defaultDimensions.depth,measurementUnit)} {measurementUnit}</dd></div>
             </dl>}
+            {BOX_TEMPLATE_SLUGS[templatePreview.id] && <a className="pro-template-preview-guide" href={`/box-templates/${BOX_TEMPLATE_SLUGS[templatePreview.id]}`} target="_blank" rel="noopener noreferrer">{t("studio.template_guide_and_sizes")} <ExternalLink size={13}/></a>}
           </div>
         </div>
         <footer>
@@ -2296,7 +2317,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     />}
 
     {shareOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!shareBusy)setShareOpen(false);}}>
-      <section className="pro-confirm-modal pro-share-modal" role="dialog" aria-modal="true" aria-labelledby="share-design-title">
+      <section ref={shareDialogRef} className="pro-confirm-modal pro-share-modal" role="dialog" aria-modal="true" aria-labelledby="share-design-title">
         <div className="pro-confirm-copy">
           <span>{t("studio.share_design")}</span>
           <h2 id="share-design-title">{shareUrl?t("studio.interactive_review_link"):t("studio.could_not_create_link")}</h2>
@@ -2349,9 +2370,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 <div className="pro-new-design-size-grid">
                   {(['width','height','depth'] as const).map(axis=><label key={axis} htmlFor={`new-design-${axis}`}>
                     <span>{axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
-                    <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?1:1/25.4} step="any" defaultValue={formatDimension(dimensions[axis],measurementUnit)} onChange={event=>{
+                    <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?MIN_BOX_MM:MIN_BOX_MM/25.4} max={measurementUnit==='mm'?MAX_BOX_MM:MAX_BOX_MM/25.4} step="any" defaultValue={formatDimension(dimensions[axis],measurementUnit)} onChange={event=>{
                       const millimetres=parseDimension(event.currentTarget.valueAsNumber,measurementUnit);
-                      if(Number.isFinite(millimetres)&&millimetres>=1)setDimensions(current=>({...current,[axis]:millimetres}));
+                      if(Number.isFinite(millimetres)&&millimetres>=MIN_BOX_MM&&millimetres<=MAX_BOX_MM)setDimensions(current=>({...current,[axis]:millimetres}));
                     }}/>
                   </label>)}
                 </div>
@@ -2373,7 +2394,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </form>
     </dialog>}
     {projectTransferMode && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!transferBusy)setProjectTransferMode(null);}}>
-      <section className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
+      <section ref={transferDialogRef} className="pro-confirm-modal pro-project-transfer-modal" role="dialog" aria-modal="true" aria-labelledby="organize-design-title">
         <div className="pro-confirm-copy">
           <span>{t("studio.organize_design")}</span>
           <h2 id="organize-design-title">{projectTransferMode==='move'?t("studio.move_to_project_2"):t("studio.copy_to_project_2")}</h2>
@@ -2410,7 +2431,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </section>
     </div>}
     {saveConflictOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!saving)setSaveConflictOpen(false);}}>
-      <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="overwrite-design-title" aria-describedby="overwrite-design-copy">
+      <section ref={conflictDialogRef} className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="overwrite-design-title" aria-describedby="overwrite-design-copy">
         <div className="pro-confirm-icon is-warning"><RotateCcw size={22}/></div>
         <div className="pro-confirm-copy">
           <span>{t("studio.save_conflict")}</span>
@@ -2424,7 +2445,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       </section>
     </div>}
     {deleteModalOpen && <div className="pro-confirm-backdrop" role="presentation" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!deleting)setDeleteModalOpen(false);}}>
-      <section className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title" aria-describedby="delete-design-copy">
+      <section ref={deleteDialogRef} className="pro-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-design-title" aria-describedby="delete-design-copy">
         <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
         <div className="pro-confirm-copy">
           <span>{t("studio.delete_design")}</span>
@@ -2472,9 +2493,15 @@ function Inspector(props: {
   if (tool === 'structure') {
     const categories = getPackagingTemplateCategories();
     const query = props.templateSearch.trim().toLowerCase();
+    // Category ids stay English; the chip shows the category as the cards name it.
+    const categoryLabel = (category: string) => {
+      const member = PACKAGING_TEMPLATES.find(template => template.category === category);
+      return member ? getPackagingTemplateCopy(member, t).category : t("studio.all_templates");
+    };
     const templates = PACKAGING_TEMPLATES.filter(template => {
       const categoryMatch = props.templateCategory === 'All' || template.category === props.templateCategory;
-      const searchMatch = !query || [template.name, template.shortName, template.category, ...template.tags]
+      const copy = getPackagingTemplateCopy(template, t);
+      const searchMatch = !query || [template.name, template.shortName, template.category, copy.name, copy.shortName, copy.category, ...template.tags]
         .some(value => value.toLowerCase().includes(query));
       return categoryMatch && searchMatch;
     });
@@ -2552,7 +2579,7 @@ function Inspector(props: {
           key={category}
           className={props.templateCategory === category ? 'is-active' : ''}
           onClick={()=>props.setTemplateCategory(category)}
-        >{category}</button>)}
+        >{categoryLabel(category)}</button>)}
       </div>
 
       <div className="pro-template-grid">
@@ -2797,12 +2824,6 @@ function Inspector(props: {
       <p>{props.renderStyle==='flat' ? t("studio.scene_lighting_flat_help") : t("studio.scene_lighting_studio_help")}</p>
       <label><input type="checkbox" checked={props.floorShadow} disabled={props.renderStyle==='flat'} onChange={event=>props.setFloorShadow(event.target.checked)}/><span>{t("studio.scene_floor_shadow")}</span></label>
     </div>
-    <div className="pro-feature-empty pro-coming-soon-panel">
-      <Lightbulb size={28}/>
-      <span className="pro-coming-soon-badge">{t("studio.coming_soon")}</span>
-      <strong>{t("studio.create_product_photography_scenes")}</strong>
-      <p>{t("studio.backgrounds_lighting_shadows_cameras_and_multi_box_compositions_will_arrive")}</p>
-    </div>
   </div>;
 
   return <div className="pro-inspector-content">
@@ -2848,7 +2869,7 @@ function Inspector(props: {
         <div className="pro-pdf-surface" role="group" aria-label="PDF artwork side">
           {(['outside','inside'] as const).map(side=><button key={side} type="button" aria-pressed={props.artworkScope===side} onClick={()=>props.setArtworkScope(side)}>{side==='outside'?'Outside':'Inside'}</button>)}
         </div>
-        <label className="pro-pdf-bleed"><span>Bleed</span><input aria-label="PDF bleed in millimetres" type="number" min="0" max="10" step="0.5" value={props.pdfOptions.bleedMm} onChange={event=>props.setPdfOptions(current=>({...current,bleedMm:Number(event.target.value)}))}/><span>mm</span></label>
+        <label className="pro-pdf-bleed"><span>Bleed</span><input aria-label="PDF bleed in millimetres" type="number" min="0" max="10" step="0.5" value={props.pdfOptions.bleedMm} onChange={event=>{const value=event.target.valueAsNumber;if(Number.isFinite(value))props.setPdfOptions(current=>({...current,bleedMm:Math.min(10,Math.max(0,value))}));}}/><span>mm</span></label>
         <label><input type="checkbox" checked={props.pdfOptions.includeCutCrease} onChange={event=>props.setPdfOptions(current=>({...current,includeCutCrease:event.target.checked}))}/><span>Cut and crease lines</span></label>
         <label><input type="checkbox" checked={props.pdfOptions.includeCalibration} onChange={event=>props.setPdfOptions(current=>({...current,includeCalibration:event.target.checked}))}/><span>100 mm calibration ruler</span></label>
         <p>Artwork must extend past the cut to fill the bleed: make full-sheet art at the artboard size shown under the design sheet (the dieline plus the bleed on every side). Print at Actual size / 100%.</p>
@@ -2862,10 +2883,6 @@ function Inspector(props: {
       <button className="pro-secondary-button pro-export-share-button" disabled={!props.canShare||props.shareBusy} onClick={props.onShare}><Share2 size={15}/> {props.shareBusy?t("studio.preparing_link"):props.canShare?t("studio.copy_share_link"):t("studio.save_design_to_share")}</button>
     </section>
 
-    <div className="pro-export-coming">
-      <span>{t("studio.coming_soon")}</span>
-      <div><CirclePlay size={18}/><p><strong>{t("studio.animation")}</strong><small>{t("studio.turntable_and_open_close_video")}</small></p></div>
-    </div>
   </div>;
 }
 
@@ -3634,11 +3651,11 @@ function DielinePrototype({
                 <span>{t("studio.free_movement")}</span>
               </div>
               <div className="pro-precision-transform-grid">
-                <label><span>{t("studio.x")}</span><input key={`x-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.x/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,x:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>{t("studio.y")}</span><input key={`y-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.y/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,y:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>{t("studio.w_2")}</span><input key={`w-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.width/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,width:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
-                <label><span>{t("studio.h_2")}</span><input key={`h-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.height/100))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,height:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
-                <label className="is-rotation"><span><RotateCw size={13}/>{" " + t("studio.rotation")}</span><input key={`r-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(activeTransformLayer.transform.rotation).toFixed(1))} onBlur={event=>{const value=Number(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
+                <label><span>{t("studio.x")}</span><input key={`x-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.x*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.x/100))} onKeyDown={blurOnEnter} onBlur={event=>{const value=fieldNumber(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,x:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>{t("studio.y")}</span><input key={`y-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.y*100)}`} type="number" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.y/100))} onKeyDown={blurOnEnter} onBlur={event=>{const value=fieldNumber(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,y:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>{t("studio.w_2")}</span><input key={`w-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.width*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformWidth*activeTransformLayer.transform.width/100))} onKeyDown={blurOnEnter} onBlur={event=>{const value=fieldNumber(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,width:fromDisplayUnit(value)/activeTransformWidth*100});}}/><small>{measurementUnit}</small></label>
+                <label><span>{t("studio.h_2")}</span><input key={`h-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.height*100)}`} type="number" min="0.1" step={measurementUnit==='mm'?1:.01} defaultValue={formatTransformValue(toDisplayUnit(activeTransformHeight*activeTransformLayer.transform.height/100))} onKeyDown={blurOnEnter} onBlur={event=>{const value=fieldNumber(event.currentTarget.value);if(Number.isFinite(value)&&value>0)updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,height:fromDisplayUnit(value)/activeTransformHeight*100});}}/><small>{measurementUnit}</small></label>
+                <label className="is-rotation"><span><RotateCw size={13}/>{" " + t("studio.rotation")}</span><input key={`r-${activeTransformLayer.id}-${Math.round(activeTransformLayer.transform.rotation*10)}`} type="number" step="1" defaultValue={Number(normalizeAngle(activeTransformLayer.transform.rotation).toFixed(1))} onKeyDown={blurOnEnter} onBlur={event=>{const value=fieldNumber(event.currentTarget.value);if(Number.isFinite(value))updateArtworkLayer(activeTransformLayer.id,{...activeTransformLayer.transform,rotation:normalizeAngle(value)});}}/><small>°</small></label>
               </div>
               <p>{t("studio.drag_freely_hold") + " "}<kbd>{t("studio.shift")}</kbd>{" " + t("studio.while_rotating_for_15_steps")}</p>
             </section>
@@ -3938,6 +3955,9 @@ function MediaLibraryModal(props: {
   const [deleteError,setDeleteError] = useState('');
   const [deleteUsages,setDeleteUsages] = useState<Array<{id:string;name:string}>>([]);
   const fitMode:ArtworkMode='fit',scale=100,rotation=0;
+  const closeDeleteConfirm = () => { setDeleteConfirmOpen(false); setDeleteError(''); setDeleteUsages([]); };
+  const mediaDialogRef = useDialogFocus<HTMLElement>(true, props.onClose);
+  const deleteConfirmRef = useDialogFocus<HTMLElement>(deleteConfirmOpen && !!selected, closeDeleteConfirm, deleteBusy);
   const usageCount = selected ? Object.values(props.artworkByPanel).filter(artwork => artwork.assetId === selected.id).length : 0;
   const targetLabel = props.targetPanel === '__FULL_DIELINE__'
     ? `${props.targetScope === 'inside' ? 'Inside' : 'Outside'} dieline`
@@ -3954,7 +3974,7 @@ function MediaLibraryModal(props: {
   return <div className="pro-media-modal-backdrop" role="presentation" onMouseDown={(event) => {
     if (event.target === event.currentTarget) props.onClose();
   }}>
-    <section className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label={t("studio.add_artwork")}>
+    <section ref={mediaDialogRef} className="pro-media-modal pro-media-modal-unified" role="dialog" aria-modal="true" aria-label={t("studio.add_artwork")}>
       <header className="pro-media-modal-header">
         <div>
           <span>{t("studio.my_images")}</span>
@@ -4082,7 +4102,7 @@ function MediaLibraryModal(props: {
       </div>
 
       {deleteConfirmOpen && selected && <div className="pro-media-delete-confirm-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!deleteBusy){setDeleteConfirmOpen(false);setDeleteError('');setDeleteUsages([]);}}}>
-        <section className="pro-media-delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="media-delete-title">
+        <section ref={deleteConfirmRef} className="pro-media-delete-confirm" role="alertdialog" aria-modal="true" aria-labelledby="media-delete-title">
           <div className="pro-confirm-icon is-danger"><Trash2 size={22}/></div>
           <div className="pro-media-delete-confirm-copy">
             <span>{t("studio.delete_image")}</span>
@@ -4187,20 +4207,26 @@ function DimensionInput({ valueMm, unit, minMm, maxMm, onCommit, ...inputProps }
   valueMm: number; unit: MeasurementUnit; minMm: number; maxMm: number; onCommit: (mm: number) => void;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {
   const [draft, setDraft] = useState<string | null>(null);
+  const t = useTranslations();
+  const errorId = useId();
   const invalid = draft !== null && parseDimensionDraft(draft, unit, minMm, maxMm) === null;
-  return <input
-    {...inputProps}
-    type="number"
-    value={draft ?? String(formatDimension(valueMm, unit))}
-    aria-invalid={invalid || undefined}
-    onChange={event => {
-      setDraft(event.target.value);
-      const mm = parseDimensionDraft(event.target.value, unit, minMm, maxMm);
-      if (mm !== null) onCommit(mm);
-    }}
-    onBlur={() => setDraft(null)}
-    onKeyDown={event => { if (event.key === 'Enter') setDraft(null); }}
-  />;
+  return <>
+    <input
+      {...inputProps}
+      type="number"
+      value={draft ?? String(formatDimension(valueMm, unit))}
+      aria-invalid={invalid || undefined}
+      aria-describedby={invalid ? errorId : inputProps['aria-describedby']}
+      onChange={event => {
+        setDraft(event.target.value);
+        const mm = parseDimensionDraft(event.target.value, unit, minMm, maxMm);
+        if (mm !== null) onCommit(mm);
+      }}
+      onBlur={() => setDraft(null)}
+      onKeyDown={event => { if (event.key === 'Enter') setDraft(null); }}
+    />
+    {invalid && <span id={errorId} className="pro-dimension-error" role="alert">{t("studio.enter_a_size_between", { min: formatDimension(minMm, unit), max: formatDimension(maxMm, unit), unit })}</span>}
+  </>;
 }
 
 /**

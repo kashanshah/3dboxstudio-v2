@@ -5,13 +5,15 @@ import { pizzaBoxExportGeometry } from './templates/pizza-box/geometry';
 import { splitTopExportGeometry } from './templates/split-top/geometry';
 import { mailerBoxExportGeometry } from './templates/mailer-box/geometry';
 import { rigidLidBaseExportGeometry } from './templates/rigid-lid-base/geometry';
+import { baseBoxExportGeometry } from './templates/base-box/geometry';
+import { sleeveBoxExportGeometry } from './templates/sleeve-box/geometry';
 
 /**
  * Flat dieline for the public template pages. Uses the same geometry as the
  * Studio's PDF export but avoids the template runtimes, which pull in the 3D
  * renderer.
  */
-export const PREVIEW_TEMPLATE_IDS = ['reverse-tuck-carton', 'pizza-box', 'split-top-box', 'mailer-box', 'rigid-lid-base'] as const;
+export const PREVIEW_TEMPLATE_IDS = ['reverse-tuck-carton', 'pizza-box', 'split-top-box', 'mailer-box', 'rigid-lid-base', 'base-box', 'sleeve-box'] as const;
 export type PreviewTemplateId = (typeof PREVIEW_TEMPLATE_IDS)[number];
 
 export function templatePreviewGeometry(templateId: PreviewTemplateId, dimensions: CartonDimensions): DielineExportGeometry {
@@ -21,5 +23,7 @@ export function templatePreviewGeometry(templateId: PreviewTemplateId, dimension
     case 'split-top-box': return splitTopExportGeometry(dimensions);
     case 'mailer-box': return mailerBoxExportGeometry(dimensions);
     case 'rigid-lid-base': return rigidLidBaseExportGeometry(dimensions);
+    case 'base-box': return baseBoxExportGeometry(dimensions);
+    case 'sleeve-box': return sleeveBoxExportGeometry(dimensions);
   }
 }

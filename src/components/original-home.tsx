@@ -70,7 +70,7 @@ export const HOME_FAQS = [
   },
   {
     question: "What can I export from 3D Box Studio?",
-    answer: "The current workflow supports exporting clean PNG previews for presentations, approvals, product planning, and other visual review needs."
+    answer: "PNG images of the 3D box for listings and presentations, a short MP4 of the box folding closed and turning, a 1:1 PDF of the dieline with your artwork and bleed for the printer, and the cutting template on its own as SVG or DXF for die makers and cutting machines."
   },
   {
     question: "Do I need Photoshop, Illustrator, or CAD to use it?",

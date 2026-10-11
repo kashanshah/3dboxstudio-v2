@@ -34,7 +34,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     ogLocale: 'es_ES',
     nativeName: 'Español (España)',
     title: 'Diseñador de cajas 3D y mockups gratis | 3D Box Studio',
-    description: 'Generador de cajas 3D online y gratuito: medidas exactas, diseño sobre el troquel, vista 3D que se pliega y exportación en PNG y PDF a escala 1:1. Cuenta gratuita.',
+    description: 'Generador de cajas 3D online y gratuito: medidas exactas, diseño sobre el troquel, vista 3D que se pliega, vídeo MP4 y troquel en PDF, SVG o DXF a escala 1:1. Cuenta gratuita.',
     nav: { features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Saltar al contenido', openMenu: 'Abrir menú', closeMenu: 'Cerrar menú' },
     hero: {
       badge: 'Generador de cajas 3D y mockups gratis',
@@ -52,7 +52,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       items: [
         { title: '1. Caja', body: 'Elige la estructura, introduce ancho, alto y fondo en milímetros o pulgadas y escoge el material.' },
         { title: '2. Diseño', body: 'Coloca tus imágenes sobre el troquel plano, por fuera y por dentro, con guías de corte, hendido y sangrado. La vista 3D se actualiza al instante.' },
-        { title: '3. Vista previa y descarga', body: 'Pliega la caja de plana a cerrada, gírala en 3D y exporta un mockup en PNG o el troquel en PDF a tamaño real.' },
+        { title: '3. Vista previa y descarga', body: 'Pliega la caja de plana a cerrada, gírala en 3D y exporta un mockup en PNG, un vídeo MP4 o el troquel en PDF, SVG o DXF a tamaño real.' },
       ],
       alts: [
         'Panel Caja y tamaño de 3D Box Studio con medidas de ancho, alto y fondo junto a una caja kraft en 3D',
@@ -68,7 +68,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
         { title: 'Diseño sobre el troquel', body: 'Sube PNG, JPG, WebP o SVG y colócalos por fuera y por dentro de la caja, con capas que puedes mover, escalar y girar.' },
         { title: 'Plegado en 3D', body: 'Pasa de la caja plana a la caja cerrada con un solo control y revisa cada cara antes de imprimir.' },
         { title: 'Materiales', body: 'Cartón blanco, kraft, soft touch, mate, brillo y foil para ver cómo cambia el acabado.' },
-        { title: 'PNG y PDF 1:1', body: 'Mockups en PNG para presentaciones y tiendas online, y un PDF del troquel a escala real con sangrado y líneas de corte y hendido.' },
+        { title: 'PNG, MP4 y troquel 1:1', body: 'Mockups en PNG y un vídeo MP4 de la caja plegándose para tiendas online y redes, un PDF del troquel a escala real con sangrado, y la plantilla de corte en SVG o DXF.' },
         { title: 'Guardar y compartir', body: 'Tus proyectos se guardan en tu cuenta y puedes enviar un enlace 3D de solo lectura a clientes o compañeros.' },
       ],
     },
@@ -77,9 +77,9 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Preguntas frecuentes',
       items: [
         { question: '¿3D Box Studio es gratis?', answer: 'Sí. Es gratuito y funciona en el navegador. Para usar el Studio, guardar y exportar necesitas una cuenta gratuita, que puedes crear con Google o con tu correo.' },
-        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Ahora mismo: estuche de cartón con solapas invertidas, estuche con cierre recto, caja de envío con tapa dividida y caja de pizza. Hay más estructuras en preparación, como la caja de envío (mailer).' },
-        { question: '¿Qué puedo exportar?', answer: 'Mockups en PNG desde la vista 3D y un troquel en PDF vectorial a escala 1:1, de la cara exterior o interior, con sangrado ajustable y líneas de corte y hendido.' },
-        { question: '¿El troquel está listo para producción?', answer: 'Sirve para pruebas y revisión del diseño. Antes de fabricar, confirma con tu imprenta el grosor del cartón, las tolerancias, las zonas de pegado y sus requisitos.' },
+        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Estuche con solapas invertidas, estuche con cierre recto, caja de envío con tapa dividida, caja de pizza, caja mailer (FEFCO 0427), caja con funda y caja rígida con tapa y base. Puedes ajustar el tamaño de cada solapa. La caja de cajón llegará pronto.' },
+        { question: '¿Qué puedo exportar?', answer: 'Mockups en PNG desde la vista 3D, un vídeo MP4 de unos 10 segundos de la caja plegándose y girando, un troquel en PDF vectorial a escala 1:1 (cara exterior o interior, con sangrado y líneas de corte y hendido) y la plantilla de corte en SVG o DXF.' },
+        { question: '¿El troquel está listo para producción?', answer: 'Es una plantilla de corte real a escala 1:1, calculada a partir de tus medidas y del grosor del cartón, útil para pruebas, muestras y presupuestos. Antes de fabricar, confirma con tu imprenta sus tolerancias y su utillaje.' },
         { question: '¿Está en español?', answer: 'Esta página sí; el editor está en inglés por ahora, pero es muy visual y se basa en tres pasos: Caja, Diseño y Vista previa.' },
       ],
     },
@@ -92,7 +92,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     ogLocale: 'es_MX',
     nativeName: 'Español (México)',
     title: 'Diseñador de cajas 3D y empaques gratis | 3D Box Studio',
-    description: 'Crea cajas en 3D gratis en línea: medidas exactas, diseño sobre el suaje, vista 3D que se arma y exportación en PNG y PDF a escala 1:1. Cuenta gratuita.',
+    description: 'Crea cajas en 3D gratis en línea: medidas exactas, diseño sobre el suaje, vista 3D que se arma, video MP4 y suaje en PDF, SVG o DXF a escala 1:1. Cuenta gratuita.',
     nav: { features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Ir al contenido', openMenu: 'Abrir menú', closeMenu: 'Cerrar menú' },
     hero: {
       badge: 'Generador de cajas 3D y mockups de empaque gratis',
@@ -110,7 +110,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       items: [
         { title: '1. Caja', body: 'Elige la estructura, captura ancho, alto y fondo en milímetros o pulgadas y selecciona el material.' },
         { title: '2. Diseño', body: 'Coloca tu arte sobre el suaje extendido, por fuera y por dentro, con guías de corte, doblez y rebase. La vista 3D se actualiza al momento.' },
-        { title: '3. Vista previa y descarga', body: 'Arma la caja de extendida a cerrada, gírala en 3D y exporta un mockup en PNG o el suaje en PDF a tamaño real.' },
+        { title: '3. Vista previa y descarga', body: 'Arma la caja de extendida a cerrada, gírala en 3D y exporta un mockup en PNG, un video MP4 o el suaje en PDF, SVG o DXF a tamaño real.' },
       ],
       alts: [
         'Panel de caja y tamaño de 3D Box Studio con medidas de ancho, alto y fondo junto a una caja kraft en 3D',
@@ -126,7 +126,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
         { title: 'Diseño sobre el suaje', body: 'Sube PNG, JPG, WebP o SVG y colócalos por fuera y por dentro de la caja, en capas que puedes mover, escalar y rotar.' },
         { title: 'Armado en 3D', body: 'Pasa de la caja extendida a la caja cerrada con un solo control y revisa cada cara antes de mandar a imprimir.' },
         { title: 'Materiales', body: 'Cartulina blanca, kraft, soft touch, mate, brillante y foil para ver cómo cambia el acabado.' },
-        { title: 'PNG y PDF 1:1', body: 'Mockups en PNG para presentaciones y tiendas en línea, y un PDF del suaje a escala real con rebase y líneas de corte y doblez.' },
+        { title: 'PNG, MP4 y suaje 1:1', body: 'Mockups en PNG y un video MP4 de la caja armándose para tiendas en línea y redes, un PDF del suaje a escala real con rebase, y la plantilla de corte en SVG o DXF.' },
         { title: 'Guarda y comparte', body: 'Tus proyectos se guardan en tu cuenta y puedes mandar un enlace 3D de solo lectura a clientes o a tu equipo.' },
       ],
     },
@@ -135,9 +135,9 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Preguntas frecuentes',
       items: [
         { question: '¿3D Box Studio es gratis?', answer: 'Sí. Es gratis y funciona en el navegador. Para usar el Studio, guardar y exportar necesitas una cuenta gratuita, que puedes crear con Google o con tu correo.' },
-        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Por ahora: caja plegadiza con cierre invertido, caja plegadiza con cierre recto, caja de envío con tapa dividida y caja para pizza. Estamos preparando más estructuras, como la caja de envío (mailer).' },
-        { question: '¿Qué puedo exportar?', answer: 'Mockups en PNG desde la vista 3D y el suaje en PDF vectorial a escala 1:1, del lado exterior o interior, con rebase ajustable y líneas de corte y doblez.' },
-        { question: '¿El suaje está listo para producción?', answer: 'Sirve para pruebas y revisión del diseño. Antes de producir, confirma con tu imprenta el calibre del cartón, las tolerancias, las pestañas de pegado y sus requisitos.' },
+        { question: '¿Qué tipos de caja puedo diseñar?', answer: 'Caja plegadiza con cierre invertido, caja con cierre recto, caja de envío con tapa dividida, caja de pizza, caja mailer (FEFCO 0427), caja con funda y caja rígida con tapa y base. Puedes ajustar el tamaño de cada solapa. La caja tipo cajón llegará pronto.' },
+        { question: '¿Qué puedo exportar?', answer: 'Mockups en PNG desde la vista 3D, un video MP4 de unos 10 segundos de la caja armándose y girando, el suaje en PDF vectorial a escala 1:1 (cara exterior o interior, con rebase y líneas de corte y doblez) y la plantilla de corte en SVG o DXF.' },
+        { question: '¿El suaje está listo para producción?', answer: 'Es una plantilla de corte real a escala 1:1, calculada con tus medidas y el calibre del cartón, útil para pruebas, muestras y cotizaciones. Antes de fabricar, confirma con tu imprenta sus tolerancias y herramental.' },
         { question: '¿Está en español?', answer: 'Esta página sí; el editor está en inglés por ahora, pero es muy visual y funciona en tres pasos: Caja, Diseño y Vista previa.' },
       ],
     },
@@ -150,7 +150,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     ogLocale: 'fr_FR',
     nativeName: 'Français',
     title: 'Créateur de boîtes 3D et mockups gratuit | 3D Box Studio',
-    description: 'Créateur de boîtes 3D gratuit en ligne : dimensions exactes, design sur le tracé de découpe, pliage en 3D et export PNG ou PDF à l’échelle 1:1. Compte gratuit.',
+    description: 'Créateur de boîtes 3D gratuit en ligne : dimensions exactes, design sur le tracé de découpe, pliage en 3D, vidéo MP4 et tracé PDF, SVG ou DXF à l’échelle 1:1. Compte gratuit.',
     nav: { features: 'Fonctionnalités', templates: 'Modèles de boîtes', faq: 'FAQ', guides: 'Guides', openStudio: 'Ouvrir le Studio', languages: 'Langue', skip: 'Aller au contenu', openMenu: 'Ouvrir le menu', closeMenu: 'Fermer le menu' },
     hero: {
       badge: 'Générateur de boîtes 3D et mockups gratuit',
@@ -168,7 +168,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       items: [
         { title: '1. Boîte', body: 'Choisissez la structure, saisissez largeur, hauteur et profondeur en millimètres ou en pouces, puis la matière.' },
         { title: '2. Design', body: 'Placez vos visuels sur le tracé à plat, à l’extérieur comme à l’intérieur, avec repères de coupe, de rainage et de fond perdu. La 3D se met à jour en direct.' },
-        { title: '3. Aperçu et export', body: 'Pliez la boîte d’à plat à fermée, faites-la pivoter en 3D, puis exportez un mockup PNG ou le tracé PDF en taille réelle.' },
+        { title: '3. Aperçu et export', body: 'Pliez la boîte d’à plat à fermée, faites-la pivoter en 3D, puis exportez un mockup PNG, une vidéo MP4 ou le tracé en PDF, SVG ou DXF en taille réelle.' },
       ],
       alts: [
         'Panneau Boîte et taille de 3D Box Studio avec largeur, hauteur et profondeur à côté d’une boîte kraft en 3D',
@@ -184,7 +184,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
         { title: 'Design sur le tracé', body: 'Importez des PNG, JPG, WebP ou SVG et placez-les à l’extérieur et à l’intérieur, en calques à déplacer, redimensionner et pivoter.' },
         { title: 'Pliage en 3D', body: 'Passez de la boîte à plat à la boîte fermée avec un seul curseur et vérifiez chaque face avant l’impression.' },
         { title: 'Matières', body: 'Carton blanc, kraft, soft touch, mat, brillant et dorure pour juger le rendu de la finition.' },
-        { title: 'PNG et PDF 1:1', body: 'Mockups PNG pour présentations et boutiques en ligne, et tracé PDF à l’échelle réelle avec fond perdu, coupe et rainage.' },
+        { title: 'PNG, MP4 et tracé 1:1', body: 'Mockups PNG et vidéo MP4 de la boîte qui se plie pour boutiques en ligne et réseaux sociaux, tracé PDF à l’échelle réelle avec fond perdu, et gabarit de découpe en SVG ou DXF.' },
         { title: 'Enregistrer et partager', body: 'Vos projets sont enregistrés dans votre compte et vous pouvez envoyer un lien 3D en lecture seule à vos clients.' },
       ],
     },
@@ -193,9 +193,9 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Questions fréquentes',
       items: [
         { question: '3D Box Studio est-il gratuit ?', answer: 'Oui. Il est gratuit et fonctionne dans le navigateur. Un compte gratuit, créé avec Google ou par e-mail, est nécessaire pour utiliser le Studio, enregistrer et exporter.' },
-        { question: 'Quels types de boîtes puis-je créer ?', answer: 'Actuellement : étui à fermeture inversée, étui à fermeture droite, caisse américaine à rabats et boîte à pizza. D’autres structures sont en préparation, comme la boîte d’expédition.' },
-        { question: 'Que puis-je exporter ?', answer: 'Des mockups PNG depuis la vue 3D et un tracé de découpe PDF vectoriel à l’échelle 1:1, face extérieure ou intérieure, avec fond perdu réglable et traits de coupe et de rainage.' },
-        { question: 'Le tracé est-il prêt pour la production ?', answer: 'Il sert aux épreuves et à la validation du design. Avant fabrication, vérifiez avec votre imprimeur l’épaisseur du carton, les tolérances, les zones de collage et ses exigences.' },
+        { question: 'Quels types de boîtes puis-je créer ?', answer: 'Étui à fermeture inversée, étui à fermeture droite, caisse américaine à rabats, boîte à pizza, boîte d’expédition mailer (FEFCO 0427), boîte à fourreau et coffret rigide couvercle et fond. La taille de chaque rabat est réglable. La boîte tiroir arrive bientôt.' },
+        { question: 'Que puis-je exporter ?', answer: 'Des mockups PNG depuis la vue 3D, une vidéo MP4 d’environ 10 secondes de la boîte qui se plie et tourne, un tracé de découpe PDF vectoriel à l’échelle 1:1 (face extérieure ou intérieure, avec fond perdu et traits de coupe et de rainage) et le gabarit de découpe en SVG ou DXF.' },
+        { question: 'Le tracé est-il prêt pour la production ?', answer: 'C’est un vrai gabarit de découpe à l’échelle 1:1, calculé à partir de vos dimensions et de l’épaisseur du carton, utile pour les épreuves, les échantillons et les devis. Avant fabrication, faites valider les tolérances et l’outillage par votre imprimeur.' },
         { question: 'Le site est-il en français ?', answer: 'Cette page oui ; l’éditeur est pour l’instant en anglais, mais il est très visuel et suit trois étapes : Boîte, Design et Aperçu.' },
       ],
     },
@@ -208,7 +208,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     ogLocale: 'pt_BR',
     nativeName: 'Português (Brasil)',
     title: 'Criador de caixas 3D e mockups grátis | 3D Box Studio',
-    description: 'Crie caixas em 3D grátis online: medidas exatas, arte sobre a faca de corte, montagem em 3D e exportação em PNG e PDF na escala 1:1. Conta gratuita.',
+    description: 'Crie caixas em 3D grátis online: medidas exatas, arte sobre a faca de corte, montagem em 3D, vídeo MP4 e faca em PDF, SVG ou DXF na escala 1:1. Conta gratuita.',
     nav: { features: 'Recursos', templates: 'Modelos de caixa', faq: 'Perguntas', guides: 'Guias', openStudio: 'Abrir o Studio', languages: 'Idioma', skip: 'Pular para o conteúdo', openMenu: 'Abrir menu', closeMenu: 'Fechar menu' },
     hero: {
       badge: 'Gerador de caixas 3D e mockups grátis',
@@ -226,7 +226,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       items: [
         { title: '1. Caixa', body: 'Escolha a estrutura, informe largura, altura e profundidade em milímetros ou polegadas e selecione o material.' },
         { title: '2. Arte', body: 'Posicione suas imagens sobre a faca aberta, por fora e por dentro, com guias de corte, vinco e sangria. A visualização 3D se atualiza na hora.' },
-        { title: '3. Visualizar e baixar', body: 'Monte a caixa de aberta a fechada, gire em 3D e exporte um mockup em PNG ou a faca em PDF em tamanho real.' },
+        { title: '3. Visualizar e baixar', body: 'Monte a caixa de aberta a fechada, gire em 3D e exporte um mockup em PNG, um vídeo MP4 ou a faca em PDF, SVG ou DXF em tamanho real.' },
       ],
       alts: [
         'Painel Caixa e tamanho do 3D Box Studio com largura, altura e profundidade ao lado de uma caixa kraft em 3D',
@@ -242,7 +242,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
         { title: 'Arte sobre a faca', body: 'Envie PNG, JPG, WebP ou SVG e posicione por fora e por dentro da caixa, em camadas que você move, redimensiona e gira.' },
         { title: 'Montagem em 3D', body: 'Passe da caixa aberta para a fechada com um único controle e confira cada face antes de imprimir.' },
         { title: 'Materiais', body: 'Papel cartão branco, kraft, soft touch, fosco, brilho e hot stamping para ver como o acabamento muda.' },
-        { title: 'PNG e PDF 1:1', body: 'Mockups em PNG para apresentações e lojas virtuais, e a faca em PDF na escala real com sangria e linhas de corte e vinco.' },
+        { title: 'PNG, MP4 e faca 1:1', body: 'Mockups em PNG e um vídeo MP4 da caixa se montando para lojas virtuais e redes sociais, a faca em PDF na escala real com sangria, e o gabarito de corte em SVG ou DXF.' },
         { title: 'Salve e compartilhe', body: 'Seus projetos ficam salvos na sua conta e você pode enviar um link 3D somente leitura para clientes ou para a equipe.' },
       ],
     },
@@ -251,9 +251,9 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Perguntas frequentes',
       items: [
         { question: 'O 3D Box Studio é grátis?', answer: 'Sim. É gratuito e funciona no navegador. Para usar o Studio, salvar e exportar, você precisa de uma conta gratuita, criada com Google ou e-mail.' },
-        { question: 'Quais tipos de caixa posso criar?', answer: 'No momento: cartucho com abas invertidas, cartucho com fechamento reto, caixa de papelão com abas e caixa de pizza. Outras estruturas estão a caminho, como a caixa de envio (mailer).' },
-        { question: 'O que posso exportar?', answer: 'Mockups em PNG a partir da visualização 3D e a faca de corte em PDF vetorial na escala 1:1, do lado externo ou interno, com sangria ajustável e linhas de corte e vinco.' },
-        { question: 'A faca está pronta para produção?', answer: 'Ela serve para provas e aprovação do design. Antes de produzir, confirme com a gráfica a espessura do papelão, as tolerâncias, as abas de colagem e os requisitos dela.' },
+        { question: 'Quais tipos de caixa posso criar?', answer: 'Cartucho com abas invertidas, cartucho com fechamento reto, caixa de papelão com abas divididas, caixa de pizza, caixa mailer (FEFCO 0427), caixa com luva e caixa rígida com tampa e fundo. Dá para ajustar o tamanho de cada aba. A caixa gaveta chega em breve.' },
+        { question: 'O que posso exportar?', answer: 'Mockups em PNG a partir da visualização 3D, um vídeo MP4 de cerca de 10 segundos da caixa se montando e girando, a faca de corte em PDF vetorial na escala 1:1 (face externa ou interna, com sangria e linhas de corte e vinco) e o gabarito de corte em SVG ou DXF.' },
+        { question: 'A faca está pronta para produção?', answer: 'É um gabarito de corte real na escala 1:1, calculado a partir das suas medidas e da espessura do papelão, útil para provas, amostras e orçamentos. Antes de produzir, confirme com sua gráfica as tolerâncias e o ferramental.' },
         { question: 'O site está em português?', answer: 'Esta página sim; o editor está em inglês por enquanto, mas é bem visual e segue três passos: Caixa, Arte e Visualização.' },
       ],
     },
@@ -266,7 +266,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     ogLocale: 'de_DE',
     nativeName: 'Deutsch',
     title: 'Kostenloser 3D-Box-Generator & Mockups | 3D Box Studio',
-    description: 'Kostenloser 3D-Box-Generator im Browser: exakte Maße, Gestaltung auf der Stanzkontur, Faltung in 3D und Export als PNG oder PDF im Maßstab 1:1. Kostenloses Konto.',
+    description: 'Kostenloser 3D-Box-Generator im Browser: exakte Maße, Gestaltung auf der Stanzkontur, Faltung in 3D, MP4-Video und Stanzkontur als PDF, SVG oder DXF im Maßstab 1:1. Kostenloses Konto.',
     nav: { features: 'Funktionen', templates: 'Schachtelvorlagen', faq: 'FAQ', guides: 'Ratgeber', openStudio: 'Studio öffnen', languages: 'Sprache', skip: 'Zum Inhalt springen', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen' },
     hero: {
       badge: 'Kostenloser 3D-Box-Generator und Mockup-Tool',
@@ -284,7 +284,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       items: [
         { title: '1. Box', body: 'Wähle die Konstruktion, gib Breite, Höhe und Tiefe in Millimetern oder Zoll ein und wähle das Material.' },
         { title: '2. Design', body: 'Platziere deine Motive auf der flachen Stanzkontur, außen und innen, mit Schnitt-, Rill- und Beschnitthilfslinien. Die 3D-Ansicht aktualisiert sich sofort.' },
-        { title: '3. Vorschau & Download', body: 'Falte die Box von flach bis geschlossen, drehe sie in 3D und exportiere ein PNG-Mockup oder die Stanzkontur als PDF in Originalgröße.' },
+        { title: '3. Vorschau & Download', body: 'Falte die Box von flach bis geschlossen, drehe sie in 3D und exportiere ein PNG-Mockup, ein MP4-Video oder die Stanzkontur als PDF, SVG oder DXF in Originalgröße.' },
       ],
       alts: [
         'Box-und-Größe-Bereich von 3D Box Studio mit Breite, Höhe und Tiefe neben einer Kraft-Schachtel in 3D',
@@ -300,7 +300,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
         { title: 'Design auf der Stanzkontur', body: 'Lade PNG, JPG, WebP oder SVG hoch und platziere sie außen und innen als Ebenen, die du verschieben, skalieren und drehen kannst.' },
         { title: 'Faltung in 3D', body: 'Mit einem Regler von der flachen zur geschlossenen Box – und jede Seite vor dem Druck prüfen.' },
         { title: 'Materialien', body: 'Weißer Karton, Kraft, Soft-Touch, matt, glänzend und Folienprägung, um die Wirkung der Veredelung zu sehen.' },
-        { title: 'PNG und PDF 1:1', body: 'PNG-Mockups für Präsentationen und Onlineshops sowie eine PDF-Stanzkontur in Originalgröße mit Beschnitt, Schnitt- und Rilllinien.' },
+        { title: 'PNG, MP4 und Stanzkontur 1:1', body: 'PNG-Mockups und ein MP4-Video der sich faltenden Box für Onlineshops und Social Media, eine PDF-Stanzkontur in Originalgröße mit Beschnitt und die Schneidvorlage als SVG oder DXF.' },
         { title: 'Speichern & teilen', body: 'Projekte werden in deinem Konto gespeichert, und du kannst Kunden einen 3D-Link zum Ansehen schicken.' },
       ],
     },
@@ -309,9 +309,9 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: 'Häufige Fragen',
       items: [
         { question: 'Ist 3D Box Studio kostenlos?', answer: 'Ja. Es ist kostenlos und läuft im Browser. Zum Gestalten, Speichern und Exportieren brauchst du ein kostenloses Konto, das du mit Google oder per E-Mail erstellst.' },
-        { question: 'Welche Schachteltypen kann ich gestalten?', answer: 'Derzeit: Faltschachtel mit gegenläufigem Steckverschluss, Faltschachtel mit geradem Steckverschluss, Wellpappe-Versandkarton mit Klappen und Pizzakarton. Weitere Konstruktionen wie der Versandkarton sind in Vorbereitung.' },
-        { question: 'Was kann ich exportieren?', answer: 'PNG-Mockups aus der 3D-Ansicht und eine vektorielle PDF-Stanzkontur im Maßstab 1:1, für die Außen- oder Innenseite, mit einstellbarem Beschnitt sowie Schnitt- und Rilllinien.' },
-        { question: 'Ist die Stanzkontur produktionsreif?', answer: 'Sie dient für Proofs und die Designfreigabe. Kläre vor der Produktion Kartonstärke, Toleranzen, Klebelaschen und Vorgaben mit deiner Druckerei.' },
+        { question: 'Welche Schachteltypen kann ich gestalten?', answer: 'Faltschachtel mit gegenläufigem Steckverschluss, Faltschachtel mit gleichläufigem Steckverschluss, Versandkarton mit geteiltem Deckel, Pizzakarton, Mailerbox (FEFCO 0427), Schiebeschachtel mit Hülse und feste Stülpdeckelschachtel. Jede Lasche ist in der Größe einstellbar. Die Schubladenbox folgt bald.' },
+        { question: 'Was kann ich exportieren?', answer: 'PNG-Mockups aus der 3D-Ansicht, ein etwa 10 Sekunden langes MP4-Video der sich faltenden und drehenden Box, eine vektorielle PDF-Stanzkontur im Maßstab 1:1 (Außen- oder Innenseite, mit Beschnitt sowie Schneid- und Rilllinien) und die Schneidvorlage als SVG oder DXF.' },
+        { question: 'Ist die Stanzkontur produktionsreif?', answer: 'Sie ist eine echte Schneidvorlage im Maßstab 1:1, berechnet aus deinen Maßen und der Kartonstärke, und eignet sich für Proofs, Muster und Angebote. Kläre vor der Produktion Toleranzen und Werkzeuge mit deiner Druckerei.' },
         { question: 'Gibt es die Seite auf Deutsch?', answer: 'Diese Seite ja; der Editor ist derzeit auf Englisch, aber sehr visuell und folgt drei Schritten: Box, Design und Vorschau.' },
       ],
     },
@@ -324,7 +324,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
     ogLocale: 'zh_CN',
     nativeName: '简体中文',
     title: '免费 3D 包装盒设计与效果图生成器 | 3D Box Studio',
-    description: '免费在线 3D 包装盒生成器：输入精确尺寸，在刀版图上排版，实时 3D 折叠预览，并导出 PNG 效果图或 1:1 PDF 刀版图。需注册免费账户。',
+    description: '免费在线 3D 包装盒生成器：输入精确尺寸，在刀版图上排版，实时 3D 折叠预览，导出 PNG 效果图、MP4 视频，以及 1:1 的 PDF、SVG 或 DXF 刀版图。需注册免费账户。',
     nav: { features: '功能', templates: '盒型模板', faq: '常见问题', guides: '指南', openStudio: '打开 Studio', languages: '语言', skip: '跳到正文', openMenu: '打开菜单', closeMenu: '关闭菜单' },
     hero: {
       badge: '免费 3D 包装盒生成器与效果图工具',
@@ -342,7 +342,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       items: [
         { title: '1. 盒型', body: '选择盒型结构，以毫米或英寸输入长、宽、高，并选择材质。' },
         { title: '2. 设计', body: '在展开的刀版图内外两面摆放图片，带有裁切线、压痕线和出血参考线，3D 预览实时同步。' },
-        { title: '3. 预览与下载', body: '将盒子从展开折叠到闭合，360° 旋转查看，然后导出 PNG 效果图或原尺寸 PDF 刀版图。' },
+        { title: '3. 预览与下载', body: '将盒子从展开折叠到闭合，360° 旋转查看，然后导出 PNG 效果图、MP4 视频，或 1:1 的 PDF、SVG、DXF 刀版图。' },
       ],
       alts: [
         '3D Box Studio 盒型与尺寸面板，旁边是一个牛皮纸 3D 盒子',
@@ -358,7 +358,7 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
         { title: '在刀版图上设计', body: '上传 PNG、JPG、WebP 或 SVG，放置在盒子内外两面，图层可移动、缩放和旋转。' },
         { title: '3D 折叠预览', body: '一个滑块即可从展开状态折叠到闭合，印刷前逐面检查。' },
         { title: '材质', body: '白卡、牛皮纸、触感膜、哑光、亮光和烫金，直观对比不同工艺效果。' },
-        { title: 'PNG 与 1:1 PDF', body: '导出用于提案和电商详情页的 PNG 效果图，以及带出血、裁切线和压痕线的原尺寸 PDF 刀版图。' },
+        { title: 'PNG、MP4 与 1:1 刀版', body: '导出用于电商详情页和社交媒体的 PNG 效果图与盒子折叠的 MP4 视频，带出血的原尺寸 PDF 刀版图，以及 SVG 或 DXF 格式的切割模板。' },
         { title: '保存与分享', body: '项目保存在你的账户中，还可以发送只读的 3D 预览链接给客户或同事。' },
       ],
     },
@@ -367,9 +367,9 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       title: '常见问题',
       items: [
         { question: '3D Box Studio 免费吗？', answer: '免费，并且直接在浏览器中使用。使用 Studio、保存和导出需要注册免费账户，可用 Google 或邮箱注册。' },
-        { question: '可以设计哪些盒型？', answer: '目前支持：反向插舌折叠纸盒、同向插舌折叠纸盒、开槽瓦楞纸箱和披萨盒。邮寄盒等更多盒型正在开发中。' },
-        { question: '可以导出哪些文件？', answer: '可从 3D 视图导出 PNG 效果图，也可导出 1:1 矢量 PDF 刀版图（外面或内面），出血可调，并带裁切线和压痕线。' },
-        { question: '刀版图可以直接用于生产吗？', answer: '它适用于打样和设计审核。正式生产前，请与印刷厂确认纸板厚度、公差、粘口位置及其工艺要求。' },
+        { question: '可以设计哪些盒型？', answer: '反向插舌折叠纸盒、同向插舌折叠纸盒、对开盖瓦楞纸箱、披萨盒、飞机盒（FEFCO 0427）、套盒，以及天地盖礼盒。每个折翼的尺寸都可以单独调整。抽屉盒即将推出。' },
+        { question: '可以导出哪些文件？', answer: '可从 3D 视图导出 PNG 效果图，导出约 10 秒的盒子折叠并旋转的 MP4 视频，导出 1:1 矢量 PDF 刀版图（外侧或内侧，含出血、裁切线和压痕线），以及 SVG 或 DXF 格式的切割模板。' },
+        { question: '刀版图可以直接用于生产吗？', answer: '这是根据你的尺寸和纸板厚度生成的 1:1 真实刀版，适用于打样、样品和报价。正式生产前，请与印刷厂确认公差和刀模工艺。' },
         { question: '有中文界面吗？', answer: '本页面为中文；编辑器目前为英文，但操作直观，按“盒型、设计、预览”三步完成。' },
       ],
     },

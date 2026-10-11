@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
+import { defaultOgImage } from '@/lib/site';
 import Link from 'next/link';
 import { ArrowUpRight, BookOpen } from 'lucide-react';
 import { ContentHero, ContentPageShell } from '@/components/content-page-shell';
 import { CONTACT_PAGE_DESCRIPTION, CONTACT_PAGE_TITLE } from '@/content/contact';
 import { ContactForm, ContactTopicButtons } from '@/components/contact-form';
 
-export const metadata: Metadata = { title: { absolute: CONTACT_PAGE_TITLE }, description: CONTACT_PAGE_DESCRIPTION, alternates: { canonical: '/contact' } };
+export const metadata: Metadata = { title: { absolute: CONTACT_PAGE_TITLE }, description: CONTACT_PAGE_DESCRIPTION, alternates: { canonical: '/contact' }, openGraph: { title: CONTACT_PAGE_TITLE, description: CONTACT_PAGE_DESCRIPTION, url: '/contact', type: 'website', images: [defaultOgImage] } };
 
 export default function ContactPage() {
   return <ContentPageShell>

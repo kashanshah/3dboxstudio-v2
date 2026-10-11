@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
 import { menuKeyDown,useDialogFocus,useMenuFocus } from './use-dialog-focus';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,Clapperboard,MoreHorizontal,ChevronDown,Pencil,Trash2,Move,ExternalLink,ArrowRight,X } from 'lucide-react';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,MoreHorizontal,ChevronDown,Pencil,Trash2,Move,ExternalLink,ArrowRight,X,Copy } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
@@ -89,6 +89,18 @@ export function StudioHome({
      setFavoriteOverrides(current=>({...current,[design.id]:next}));
      setActionMessage(next?'Added to favorites':'Removed from favorites');
    }catch(error){setActionMessage(error instanceof Error?error.message:'Could not update favorite.');}
+   finally{setActionBusy(false);}
+ };
+
+ const duplicateDesign=async(design:WorkspaceDesign)=>{
+   setActionBusy(true);setOpenMenuId(null);
+   try{
+     const response=await fetch(`/api/projects/${encodeURIComponent(design.id)}`,{method:'POST'});
+     const result=await response.json().catch(()=>({error:t("workspace.could_not_duplicate")}));
+     if(!response.ok)throw new Error(result.error||t("workspace.could_not_duplicate"));
+     setActionMessage(t("workspace.duplicated_as",{name:result.project.name}));
+     router.refresh();
+   }catch(error){setActionMessage(error instanceof Error?error.message:t("workspace.could_not_duplicate"));}
    finally{setActionBusy(false);}
  };
 
@@ -185,10 +197,6 @@ export function StudioHome({
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
          <span><strong>{t("workspace.new_box_design")}</strong><small>{t("workspace.choose_a_box_add_artwork_preview_it_in_3d")}</small></span>
        </Link>
-       <div className="studio-create-action is-coming-soon" aria-disabled="true">
-         <span className="studio-create-action-icon"><Clapperboard size={22}/></span>
-         <span><strong>{t("workspace.scene") + " "}<em>{t("workspace.coming_soon")}</em></strong><small>{t("workspace.product_photography_lighting_backgrounds_and_multi_box_compositions_are_pla")}</small></span>
-       </div>
      </div>
    </section>
    {!user.emailVerified&&<aside className="studio-demo-note"><MailNotice/></aside>}
@@ -314,6 +322,7 @@ export function StudioHome({
             {design.href&&<Link role="menuitem" href={design.href} target="_blank" rel="noopener noreferrer" onClick={()=>setOpenMenuId(null)}><ExternalLink size={16}/><span><strong>{t("workspace.open_in_new_tab")}</strong><small>{design.legacy?t("workspace.open_and_convert_in_v2"):t("workspace.continue_editing")}</small></span></Link>}
             {!design.legacy&&<>
               <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>{setOpenMenuId(null);setRenameDesign(design);setDesignName(design.name);setDesignError('');}}><Pencil size={16}/><span><strong>Rename</strong><small>Change the design name</small></span></button>
+              <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>void duplicateDesign(design)}><Copy size={16}/><span><strong>{t("workspace.duplicate")}</strong><small>{t("workspace.make_a_copy_in_this_project")}</small></span></button>
               <button type="button" role="menuitem" disabled={actionBusy} onClick={()=>void toggleDesignFavorite(design)}><Star size={16} fill={design.favorite?'currentColor':'none'}/><span><strong>{design.favorite?t("workspace.remove_from_favorites"):t("workspace.add_to_favorites")}</strong><small>{t("workspace.keep_important_designs_handy")}</small></span></button>
               <button type="button" role="menuitem" disabled={actionBusy||projects.length<2} onClick={()=>{setOpenMenuId(null);setMoveDesign(design);}}><Move size={16}/><span><strong>{t("workspace.move_to_project")}</strong><small>{projects.length<2?t("workspace.create_another_project_first"):t("workspace.organize_this_design")}</small></span></button>
               <span className="studio-card-menu-separator" aria-hidden="true"/>
@@ -334,7 +343,7 @@ export function StudioHome({
         </div>
         {design.href?<Link className="studio-card-open" href={design.href}>{t("workspace.open") + " "}<ArrowRight size={15}/></Link>:<span className="studio-legacy-label">{t("workspace.preserved_conversion_pending")}</span>}
       </div>
-    </article>)}</div>:<div className="studio-library-empty"><Box/><h3>{search?t("workspace.no_matching_designs"):activeProject?t("workspace.no_designs_in_this_project_yet"):t("workspace.your_first_design_starts_here")}</h3><p>{search?t("workspace.try_a_different_search"):activeProject?t("workspace.create_a_design_here_and_it_will_stay_grouped_with_this_project"):t("workspace.create_a_design_and_save_it_to_see_it_in_this_library")}</p>{search&&<Link className="button button-primary" href={activeProjectId?`/studio?workspace=${encodeURIComponent(activeProjectId)}`:'/studio'}>{t("workspace.clear_search")}</Link>}</div>}
+    </article>)}</div>:<div className="studio-library-empty"><Box/><h3>{search?t("workspace.no_matching_designs"):activeProject?t("workspace.no_designs_in_this_project_yet"):t("workspace.your_first_design_starts_here")}</h3><p>{search?t("workspace.try_a_different_search"):activeProject?t("workspace.create_a_design_here_and_it_will_stay_grouped_with_this_project"):t("workspace.create_a_design_and_save_it_to_see_it_in_this_library")}</p>{search?<Link className="button button-primary" href={activeProjectId?`/studio?workspace=${encodeURIComponent(activeProjectId)}`:'/studio'}>{t("workspace.clear_search")}</Link>:<a className="button button-primary" href="#template-heading"><FilePlus2 size={16}/>{" " + t("workspace.choose_a_box_template")}</a>}</div>}
     {total>24&&<nav className="studio-pagination" aria-label={t("workspace.design_pages")}>{page>1&&<Link href={pageLink(page-1)}>{t("workspace.previous")}</Link>}<span>{t("workspace.page") + " "}{page}{" " + t("workspace.of") + " "}{Math.ceil(total/24)}</span>{page*24<total&&<Link href={pageLink(page+1)}>{t("workspace.next_2")}</Link>}</nav>}
    </section>
 
@@ -373,7 +382,7 @@ export function StudioHome({
    <section className="studio-templates" aria-labelledby="template-heading"><div className="studio-section-heading"><div><p>{t("workspace.start_from_structure")}</p><h2 id="template-heading">{t("workspace.packaging_templates")}</h2></div></div>
     <div className="studio-template-grid">{readyTemplates.map(templateCard)}</div>
     {upcomingTemplates.length>0&&<>
-      <button type="button" className="studio-templates-more" aria-expanded={showUpcomingTemplates} aria-controls="upcoming-templates" onClick={()=>setShowUpcomingTemplates(open=>!open)}><ChevronDown size={16}/>More structures coming<span>{upcomingTemplates.length}</span></button>
+      <button type="button" className="studio-templates-more" aria-expanded={showUpcomingTemplates} aria-controls="upcoming-templates" onClick={()=>setShowUpcomingTemplates(open=>!open)}><ChevronDown size={16}/>{t("workspace.more_structures_coming")}<span>{upcomingTemplates.length}</span></button>
       {showUpcomingTemplates&&<div id="upcoming-templates" className="studio-template-grid is-upcoming">{upcomingTemplates.map(templateCard)}</div>}
     </>}
    </section>

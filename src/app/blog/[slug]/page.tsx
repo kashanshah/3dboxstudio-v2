@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFoundMetadata } from '@/lib/not-found-metadata';
 import Link from 'next/link';
+import { inlineLinks } from '@/components/inline-links';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
@@ -43,13 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-function inlineText(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\(\/[^)]+\))/g);
-  return parts.map((part, index) => {
-    const match = /^\[([^\]]+)\]\((\/[^)]+)\)$/.exec(part);
-    return match ? <Link key={index} href={match[2]}>{match[1]}</Link> : part;
-  });
-}
+const inlineText = inlineLinks;
 
 function headingId(text: string, index: number) {
   return `${text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${index}`;
@@ -127,7 +122,7 @@ export default async function BlogPostPage({ params }: Props) {
       <ul>
         <li><Link href="/3d-box-mockup-generator"><strong>3D box mockup generator</strong><span>Turn your artwork into a 3D box mockup from real dimensions.</span></Link></li>
         <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Generate a flat dieline with cut, crease and bleed guides.</span></Link></li>
-        <li><Link href="/box-templates"><strong>Box templates</strong><span>Reverse and straight tuck end cartons, split-top shipping boxes and pizza boxes.</span></Link></li>
+        <li><Link href="/box-templates"><strong>Box templates</strong><span>Tuck end cartons, mailer, pizza, split-top shipping, sleeve and rigid lid and base boxes.</span></Link></li>
         <li><Link href="/pacdora-alternative"><strong>Pacdora alternative</strong><span>A free browser workflow for dieline-to-3D packaging previews.</span></Link></li>
       </ul>
     </nav>

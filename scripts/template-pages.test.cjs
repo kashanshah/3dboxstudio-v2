@@ -13,6 +13,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
 }).outputText, file);
 const { BOX_TEMPLATE_PAGES } = require('../src/content/box-template-pages.ts');
+const { BOX_TEMPLATE_SLUGS } = require('../src/content/box-template-slugs.ts');
 const { templatePreviewGeometry } = require('../src/lib/packaging/template-preview.ts');
 const { getTemplateExportGeometry } = require('../src/lib/packaging/template-runtime.ts');
 const { getPackagingTemplate } = require('../src/lib/packaging/template-registry.ts');
@@ -32,6 +33,24 @@ test('every template page points at a ready template and every preset draws', ()
       assert.deepEqual(preview, getTemplateExportGeometry(page.templateId, dimensions), `${page.slug} ${preset.label}`);
     }
   }
+});
+
+test('every preset is within its template\'s size limits', () => {
+  for (const page of BOX_TEMPLATE_PAGES) {
+    const template = getPackagingTemplate(page.templateId);
+    for (const preset of page.presets) {
+      for (const key of ['width', 'height', 'depth']) {
+        const limits = template.parameters.find(parameter => parameter.key === key);
+        const mm = toMm(preset[key], preset.unit);
+        assert.ok(mm >= (limits?.min ?? 1) - 1e-9, `${page.slug} ${preset.label} ${key} ${mm} < ${limits?.min}`);
+        assert.ok(mm <= (limits?.max ?? 3000) + 1e-9, `${page.slug} ${preset.label} ${key} ${mm} > ${limits?.max}`);
+      }
+    }
+  }
+});
+
+test('the Studio links each template to its page', () => {
+  assert.deepEqual(Object.fromEntries(BOX_TEMPLATE_PAGES.map(page => [page.templateId, page.slug]).sort()), Object.fromEntries(Object.entries(BOX_TEMPLATE_SLUGS).sort()));
 });
 
 test('studio links carry the template and size, and survive the sign-in redirect', () => {

@@ -61,7 +61,7 @@ export const FR_BLOG_POSTS: BlogLocaleCatalog = {
       {
         question: "Puis-je exporter le mockup en PNG ?",
         answer:
-          "Oui. Exportez un PNG du viewport pour présentations, pages produit et relecture client. Vous pouvez aussi enregistrer une courte vidéo du viewport de l’animation d’ouverture, ou télécharger une sauvegarde JSON du design.",
+          "Oui. Exportez un PNG de la vue 3D (jusqu’en 4K, fond transparent) pour présentations, pages produit et relecture client, ou une vidéo MP4 d’environ 10 secondes où la boîte se plie puis tourne. Le tracé de découpe se télécharge en PDF 1:1 avec votre visuel, ou en SVG et DXF.",
       },
       {
         question: "Ai-je besoin d’une découpe (dieline) d’emballage ?",
@@ -181,7 +181,7 @@ export const FR_BLOG_POSTS: BlogLocaleCatalog = {
       },
       {
         type: "p",
-        text: "L’illustration est étirée en UV pour remplir chaque face rectangulaire. Il n’y a pas aujourd’hui de contrôle de recadrage ou de panoramique séparé — exportez des panneaux de face qui correspondent déjà au ratio d’aspect de chaque côté pour le résultat le plus propre. Pour un flat composite avec plusieurs panneaux dans un fichier, découpez ou exportez chaque panneau comme image séparée avant l’import.",
+        text: "Placez un visuel complet ou des éléments séparés sur le tracé de découpe, puis recadrez, redimensionnez, faites pivoter et ordonnez les calques. Les champs de position et de taille acceptent des valeurs exactes, et l’aperçu 3D se met à jour en direct.",
       },
       {
         type: "p",
@@ -193,7 +193,7 @@ export const FR_BLOG_POSTS: BlogLocaleCatalog = {
       },
       {
         type: "callout",
-        text: "L’illustration intérieure n’est pas éditable dans le Studio 3D aujourd’hui. Quand vous ouvrez un couvercle ou des rabats, vous pouvez toujours voir dans la cavité et juger combien d’intérieur est visible à différents degrés d’ouverture — utile pour la présentation et le cadrage d’unboxing. Préparez toute impression intérieure séparément pour votre imprimeur ou façonneur ; le Studio n’applique pas d’illustration intérieure au modèle 3D.",
+        text: "Chaque modèle a une face extérieure et une face intérieure : passez l’étape Design sur « Intérieur » pour placer un visuel à l’intérieur, puis ouvrez le couvercle ou les rabats en 3D pour vérifier l’unboxing. L’export PDF imprime l’une ou l’autre face.",
       },
       {
         type: "p",
@@ -244,7 +244,7 @@ export const FR_BLOG_POSTS: BlogLocaleCatalog = {
       },
       {
         type: "p",
-        text: "Quand l’aperçu est bon, exportez un PNG du viewport pour decks, pages produit, posts sociaux, validations d’emballage et supports de pitch. Vous pouvez aussi enregistrer une courte vidéo du viewport de l’animation d’ouverture pour le contexte unboxing, ou télécharger une sauvegarde JSON pour recharger le design plus tard.",
+        text: "Quand l’aperçu est bon, exportez un PNG de la vue 3D pour decks, pages produit, posts sociaux, validations d’emballage et supports de pitch, ou une courte vidéo MP4 de la boîte qui se plie et tourne. Enregistrez le design dans votre compte pour le reprendre plus tard, et partagez un lien de prévisualisation en lecture seule.",
       },
       {
         type: "p",
@@ -308,7 +308,7 @@ export const FR_BLOG_POSTS: BlogLocaleCatalog = {
       },
       {
         type: "p",
-        text: "3D Box Studio ne génère pas de dielines structurelles prêtes pour la production. Utilisez-le tôt pour le look and feel et l’alignement des parties prenantes ; utilisez le CAD d’emballage ou les templates de votre façonneur quand vous êtes prêts à plaquer. Pour les flux d’équipe autour de la simulation vs CAD, lisez [simulation de boîte 3D pour les équipes packaging](/blog/3d-box-simulation-for-packaging-teams). Si vous comparez des outils visuels gratuits à des plateformes plus complètes, voir notre [aperçu d’alternative à Pacdora](/blog/free-pacdora-alternative-3d-box-mockups).",
+        text: "3D Box Studio génère le tracé de découpe de chaque modèle à l’échelle 1:1 à partir de vos dimensions et de l’épaisseur du carton, et l’exporte en PDF avec votre visuel ou en SVG et DXF. Utilisez-le pour le look and feel, l’alignement des parties prenantes, les épreuves et les devis ; avant la production, votre façonneur valide la forme de découpe pour son carton et son outillage. Pour les flux d’équipe autour de la simulation vs CAD, lisez [simulation de boîte 3D pour les équipes packaging](/blog/3d-box-simulation-for-packaging-teams). Si vous comparez des outils visuels gratuits à des plateformes plus complètes, voir notre [aperçu d’alternative à Pacdora](/blog/free-pacdora-alternative-3d-box-mockups).",
       },
       {
         type: "h2",

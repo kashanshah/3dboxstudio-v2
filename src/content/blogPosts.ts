@@ -309,7 +309,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Step-by-step workflow for using a 3D box design maker to turn Illustrator exports into an interactive carton preview your client can approve.",
     published: "2025-06-22",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 7,
     keywords: [
       "3d box design maker",
@@ -360,7 +360,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Export a viewport PNG for email or slide decks. Save the design to your account so you can reopen and revise it, and send a view-only share link when a colleague needs to inspect the package interactively. Use Print / Save PDF for the current flat layout when useful for discussion.",
+        text: "Export a viewport PNG for email or slide decks. Save the design to your account so you can reopen and revise it, and send a view-only share link when a colleague needs to inspect the package interactively. Download a 1:1 PDF of the dieline with your artwork and bleed when the printer needs the flat layout.",
       },
       {
         type: "h2",
@@ -555,7 +555,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "DTC brands and subscription box companies can simulate mailer openings, insert visibility, and branded interiors before the first fulfillment run.",
     published: "2025-07-22",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 5,
     keywords: [
       "subscription box mockup",
@@ -604,7 +604,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Open 3D Box Studio, choose the split top box (a dedicated mailer template is planned), and place outside and inside artwork on the flat layout. Send a PNG or view-only preview link to your team for feedback on the next seasonal box refresh.",
+        text: "Open 3D Box Studio, choose the [mailer box](/box-templates/mailer-box), and place outside and inside artwork on the flat layout. Send a PNG or view-only preview link to your team for feedback on the next seasonal box refresh.",
       },
     ],
   },
@@ -614,7 +614,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Independent packaging designers can deliver interactive 3D carton previews to clients without Esko licenses or template subscriptions eating into project margins.",
     published: "2025-07-29",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 6,
     keywords: [
       "freelance packaging designer",
@@ -655,7 +655,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Export viewport PNGs for the deck and share a view-only link for interactive review. Save the project to your account so you can reopen it later. The flat layout can also be prepared through Print / Save PDF; validate production files separately.",
+        text: "Export viewport PNGs for the deck and share a view-only link for interactive review. Save the project to your account so you can reopen it later. Download a 1:1 PDF of the dieline with your artwork and bleed, and have your printer confirm it before production.",
       },
       {
         type: "h2",
@@ -732,7 +732,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Crowdfunding creators can show backers realistic box mockups in campaign pages and updates—before tooling and print minimums are committed.",
     published: "2025-08-12",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 5,
     keywords: [
       "kickstarter packaging",
@@ -773,7 +773,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Use the interactive opening preview to plan the reveal, and export PNGs of open and closed states for your storyboard. Share a view-only link for team review. Built-in video output is not part of the current V2 launch.",
+        text: "Use the interactive opening preview to plan the reveal, and export PNGs of open and closed states for your storyboard. Share a view-only link for team review, or export a short MP4 of the box folding closed and turning for social posts.",
       },
       {
         type: "h2",
@@ -849,15 +849,15 @@ export const BLOG_POSTS: BlogPost[] = [
     title: "Free Pacdora Alternative for Focused 3D Box Mockups",
     seoTitle: "Pacdora Alternative — Free 3D Box Mockups, Dimensions & Dielines | 3D Box Studio",
     description:
-      "Compare 3D Box Studio as a focused Pacdora alternative for custom box dimensions, dieline artwork, interactive 3D previews, project saving, share links, and PNG export.",
+      "Compare 3D Box Studio as a free Pacdora alternative for custom box dimensions, adjustable flaps, dieline artwork, interactive 3D previews, PNG and MP4 export, and PDF, SVG and DXF dielines.",
     published: "2025-07-06",
-    updated: "2026-09-30",
+    updated: "2026-10-11",
     readMinutes: 7,
     keywords: ["pacdora alternative","free pacdora alternative","3d packaging mockup","box mockup generator"],
     imagePath: "/images/blog/free-pacdora-alternative-3d-box-mockups.webp",
     relatedSlugs: ["free-3d-box-maker-online","3d-box-generator-with-dimensions","packaging-mockup-without-photoshop"],
     faqs: [
-      { question: "Is 3D Box Studio the same as Pacdora?", answer: "No. 3D Box Studio is a separate product with a narrower focus on browser-based box setup, dieline artwork, 3D preview, saving, sharing, and PNG export." },
+      { question: "Is 3D Box Studio the same as Pacdora?", answer: "No. 3D Box Studio is a separate product with a narrower focus on browser-based box setup, dieline artwork, 3D preview, saving, sharing, and PNG, MP4, PDF, SVG and DXF export." },
       { question: "Is 3D Box Studio free?", answer: "Yes. It runs in your browser and only needs a free account." },
       { question: "Does it support custom dimensions?", answer: "Yes, supported structures can use editable finished dimensions and units." },
       { question: "Does it replace structural packaging CAD?", answer: "No. It is for design and visualization. Final production geometry and printer requirements still need structural and print validation." },
@@ -881,9 +881,9 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Why a narrower tool can still be useful" },
       { type: "p", text: "For a designer who mainly needs to validate panel artwork and box proportions, a focused workflow can reduce friction. The value is not 'more features'; it is getting from the flat packaging design to a reviewable 3D proof with fewer conceptual steps." },
       { type: "h2", text: "Dielines: useful for design, validate for production" },
-      { type: "p", text: "3D Box Studio can generate or use flat layouts for supported structures so artwork can be planned against the actual panels. Dimensional and production accuracy is still being improved, so final manufacturing files should be checked for bleed, fold/cut tolerances, material behavior, glue areas, and printer-specific requirements." },
+      { type: "p", text: "3D Box Studio can generate or use flat layouts for supported structures so artwork can be planned against the actual panels. The dieline is drawn at 1:1 from your inside size and board thickness, so it is ready for proofs, samples and quotes; your printer still confirms the final die for their board, creasing rules and tooling." },
       { type: "h2", text: "Which should you choose?" },
-      { type: "p", text: "Choose based on the task, not the brand name. If you need a focused browser box designer with dimensions, dieline artwork, 3D review, saving, sharing, and PNG export, try 3D Box Studio. If you need a broader packaging platform or a feature unique to another product, evaluate that requirement directly." },
+      { type: "p", text: "Choose based on the task, not the brand name. If you need a free browser box designer with dimensions, dieline artwork, 3D review, saving, sharing, and PNG, MP4 and dieline export, try 3D Box Studio. If you need a broader packaging platform or a feature unique to another product, evaluate that requirement directly." },
       { type: "cta", label: "Try 3D Box Studio", href: "/studio" },
       { type: "faq" }
     ],
@@ -895,7 +895,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Create a custom 3D box mockup online using your own dimensions, artwork and branding. Learn how to design each side, preview your packaging in 3D and export your final mockup.",
     published: "2025-09-02",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 12,
     keywords: [
       "3d box mockup",
@@ -943,7 +943,7 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I design the inside of a box?",
         answer:
-          "Not yet as editable interior artwork. When you open a lid or flaps, you can inspect the cavity, but the inside liner is a fixed unprinted surface. Use the studio to validate exterior branding and opening behavior; prepare interior print separately with your converter or printer.",
+          "Yes. Every template has an outside and an inside surface: switch the Design step to Inside and place artwork there, then open the lid or flaps in 3D to check the unboxing view. The PDF export prints either side.",
       },
       {
         question: "Can I preview the box open?",
@@ -953,17 +953,17 @@ export const BLOG_POSTS: BlogPost[] = [
       {
         question: "Can I create a clothing packaging mockup?",
         answer:
-          "Yes. Start from the split top box or pizza box (a mailer template is planned) with custom apparel-box dimensions, upload lid and side branding, set a lid opening, and export open and closed PNG frames for e-commerce or unboxing decks.",
+          "Yes. Start from the [mailer box](/box-templates/mailer-box) or the [rigid lid and base box](/box-templates/rigid-box) with custom apparel-box dimensions, upload lid and side branding, set a lid opening, and export open and closed PNG frames for e-commerce or unboxing decks.",
       },
       {
         question: "Can I export the mockup as PNG?",
         answer:
-          "Yes. Export a viewport PNG for presentations, product pages, and client review. Save designs to your account for later revisions and share a view-only interactive preview. Use Print / Save PDF to prepare the current flat layout; validate production output with your printer.",
+          "Yes. Export a viewport PNG for presentations, product pages, and client review. Save designs to your account for later revisions and share a view-only interactive preview. Download the dieline as a 1:1 PDF with your artwork, or as SVG or DXF for your box maker, and have your printer confirm it.",
       },
       {
         question: "Do I need a packaging dieline?",
         answer:
-          "For manufacturing and print production, yes—you still need a structural dieline from your converter or packaging CAD tool. A 3D box mockup is for visual validation and presentation. Use both: mockup early for look and feel, dieline later for cuts, folds, and bleed.",
+          "For printing, yes, and 3D Box Studio makes one: every template draws its dieline at 1:1 from your size and board thickness. Download it as a PDF with your artwork and bleed, or as SVG or DXF with cut and crease lines on separate layers. Have your printer confirm the die for their board and tooling.",
       },
       {
         question: "Is 3D Box Studio a packaging CAD tool?",
@@ -1148,11 +1148,11 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "When the preview looks right, export a viewport PNG for decks, product-page drafts, social posts, packaging approvals, and pitch materials. Save the project to your account for later revisions and share a view-only link when stakeholders need an interactive review. Print / Save PDF prepares the current flat layout for discussion and separate production validation.",
+        text: "When the preview looks right, export a viewport PNG for decks, product-page drafts, social posts, packaging approvals, and pitch materials. Save the project to your account for later revisions and share a view-only link when stakeholders need an interactive review. Preview & Download also gives you a short MP4 of the box folding closed, a 1:1 PDF of the dieline with your artwork for the printer, and the cutting template as SVG or DXF.",
       },
       {
         type: "p",
-        text: "PNG export captures the current viewport (including lighting and framing). There is no separate transparent-background export option. Cloud save and view-only preview links help you share an interactive review instead of emailing static files alone—useful for [e-commerce product listing mockups](/blog/ecommerce-product-listing-box-mockups) and client rounds.",
+        text: "PNG export captures the current 3D view, with its lighting and framing, at up to 4K on a transparent background, so it drops straight onto a product page or slide. Cloud save and view-only preview links help you share an interactive review instead of emailing static files alone—useful for [e-commerce product listing mockups](/blog/ecommerce-product-listing-box-mockups) and client rounds.",
       },
       {
         type: "cta",
@@ -1171,7 +1171,7 @@ export const BLOG_POSTS: BlogPost[] = [
         type: "ol",
         items: [
           "Open the Studio and start a new project.",
-          "Start from the split top box, the closest shipper available today (a mailer template is planned), and enter exact cm sizes from the carton quote.",
+          "Start from the [mailer box](/box-templates/mailer-box) (FEFCO 0427), or the [split top box](/box-templates/split-top-box) for a plain shipper, and enter exact cm sizes from the carton quote.",
           "Confirm the lid-from-back opening and set open amount to about 35–50% for a mid-open hero shot.",
           "Choose white folding carton or kraft depending on brand positioning.",
           "Upload lid (top) artwork with the logo centered; upload side and front panels with brand color fields.",
@@ -1212,7 +1212,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "3D Box Studio does not generate production-ready structural dielines. Use it early for look-and-feel and stakeholder alignment; use packaging CAD or your converter’s templates when you are ready to plate. For team workflows around simulation versus CAD, read [3D box simulation for packaging teams](/blog/3d-box-simulation-for-packaging-teams). If you are comparing free visual tools to fuller platforms, see our [Pacdora alternative overview](/blog/free-pacdora-alternative-3d-box-mockups).",
+        text: "3D Box Studio generates the dieline for every template at 1:1 from your size and board thickness, and exports it as a PDF with your artwork or as SVG and DXF cutting templates. Use it for look-and-feel, stakeholder alignment, proofs and quotes; when you are ready to plate, your converter confirms the die for their board and tooling. For team workflows around simulation versus CAD, read [3D box simulation for packaging teams](/blog/3d-box-simulation-for-packaging-teams). If you are comparing free visual tools to fuller platforms, see our [Pacdora alternative overview](/blog/free-pacdora-alternative-3d-box-mockups).",
       },
       {
         type: "h2",
@@ -1244,7 +1244,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "You now have a path from a supported template and dimensions to flat-layout artwork, interactive 3D review, and PNG export. Save the design to your account and share a view-only link with your team. Confirm final production files with your printer or converter.",
+        text: "You now have a path from a supported template and dimensions to flat-layout artwork, interactive 3D review, and PNG, MP4, PDF, SVG and DXF exports. Save the design to your account and share a view-only link with your team. Confirm final production files with your printer or converter.",
       },
       {
         type: "cta",
@@ -1360,7 +1360,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Review the supported template’s lid opening interactively, then export PNGs of key open and closed states for campaign storyboards or buyer presentations. Pair the previews with flat artwork. Video export is outside the current V2 launch scope.",
+        text: "Review the supported template’s lid opening interactively, then export PNGs of key open and closed states for campaign storyboards or buyer presentations. Pair the previews with flat artwork, and export a short MP4 of the box folding closed and turning for reels and product pages.",
       },
       {
         type: "h2",
@@ -1654,7 +1654,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Create a free mailer box mockup online—set custom dimensions, upload branding, and export PNGs for DTC launches, Amazon FBA, and wholesale presentations.",
     published: "2025-10-28",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 5,
     keywords: [
       "mailer box mockup",
@@ -1695,7 +1695,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "A dedicated mailer template is planned; today, use the split top box as your shipper. Enter width × height × depth in inches or millimeters, and select Kraft or White board for visual review. Position logo and side artwork on the flat layout, then export a PNG for your operations discussion or listing draft.",
+        text: "Start from the [mailer box template](/box-templates/mailer-box), the self-locking FEFCO 0427 roll end tuck top mailer. Enter width × height × depth in inches or millimeters, and select Kraft or White board for visual review. Position logo and side artwork on the flat layout, then export a PNG for your operations discussion or listing draft.",
       },
       {
         type: "h2",
@@ -2052,7 +2052,7 @@ export const BLOG_POSTS: BlogPost[] = [
     description:
       "Skip Photoshop smart objects and paid template packs. Learn how to create packaging mockups without Photoshop using a free browser-based 3D box maker.",
     published: "2025-12-16",
-    updated: "2026-10-01",
+    updated: "2026-10-11",
     readMinutes: 5,
     keywords: [
       "packaging mockup without photoshop",
@@ -2085,7 +2085,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "3D Box Studio focuses on visual validation: supported structures, dimensions, materials, dieline artwork, opening previews, saving, sharing, and PNG output. The flat layout can be prepared through Print / Save PDF, but production dielines and print proofs still need validation by the responsible packaging workflow.",
+        text: "3D Box Studio focuses on visual validation: supported structures, dimensions, materials, dieline artwork, opening previews, saving, sharing, and PNG and MP4 output. The dieline downloads as a 1:1 PDF with your artwork, or as SVG or DXF, and production dielines and print proofs should still be confirmed by your printer.",
       },
       {
         type: "h2",

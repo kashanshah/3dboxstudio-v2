@@ -22,6 +22,8 @@ export type BoxTemplatePage = {
   sections: BoxTemplateSection[];
   faqs: { question: string; answer: string }[];
   guides: string[];
+  /** Gallery filters; the first is shown on the card. */
+  tags: string[];
   updated: string;
 };
 
@@ -37,11 +39,11 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
     intro: 'Enter the finished size of your carton and the dieline below redraws instantly: front, back and side panels, a tapered glue flap, tuck tongues and dust flaps. Open it in the Studio to place artwork on the flat layout, fold it in 3D and export a 1:1 PDF dieline.',
     fields: { width: 'Width (front)', height: 'Height', depth: 'Depth (side)' },
     presets: [
-      { label: 'Lip balm / small tube', note: 'Narrow cosmetic carton', width: 25, height: 80, depth: 25, unit: 'mm' },
+      { label: 'Lip balm / small tube', note: 'Narrow cosmetic carton', width: 30, height: 80, depth: 25, unit: 'mm' },
       { label: 'Perfume 50 ml', note: 'Tall square carton', width: 55, height: 120, depth: 55, unit: 'mm' },
       { label: 'Supplement bottle', note: 'Square bottle carton', width: 70, height: 130, depth: 70, unit: 'mm' },
       { label: 'Tea or food carton', note: 'Flat retail carton', width: 120, height: 180, depth: 55, unit: 'mm' },
-      { label: 'Soap bar', note: 'Low, wide carton', width: 95, height: 35, depth: 65, unit: 'mm' },
+      { label: 'Soap bar', note: 'Low, wide carton', width: 95, height: 40, depth: 65, unit: 'mm' },
     ],
     geometryNote: 'Cutting template: tuck tongues with slit locks, shouldered dust flaps, the glue flap and a thumb notch are added for you. Width, depth and height are inside sizes; panels are creased one board thickness wider. Ask your printer to confirm the allowances for their board.',
     sections: [
@@ -63,7 +65,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
       {
         title: 'Reverse tuck vs straight tuck',
-        body: 'In a straight tuck end (STE) box both closures hinge from the same face, usually the back, which gives an uninterrupted front panel at the top and bottom. A reverse tuck end box puts the closures on opposite faces. That layout nests better on the press sheet, so it usually costs less to print, and it is the default choice unless the design needs a clean front edge. 3D Box Studio supports both: choose the straight tuck end box for closures on the same face.',
+        body: 'In a straight tuck end (STE) box both closures hinge from the same face. In 3D Box Studio that is the front, so both lids fold over from the front edge and tuck in at the back. A reverse tuck end box puts the closures on opposite faces. That layout nests better on the press sheet, so it usually costs less to print, and it is the default choice unless the design needs a clean front edge. 3D Box Studio supports both: see the [straight tuck end box](/box-templates/straight-tuck-end-box) template for closures on the same face.',
       },
       {
         title: 'How to measure for a tuck end box',
@@ -82,6 +84,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Can I use inches?', answer: 'Yes. Switch the unit to inches in the size picker; the Studio keeps the same unit when you open the template.' },
     ],
     guides: ['how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'tuck-end-folding-carton-mockup', 'box-dieline-svg-dxf-export', 'box-template-svg-cricut-laser-cutter'],
+    tags: ['Folding cartons', 'Retail'],
     updated: '2026-10-11',
   },
   {
@@ -133,6 +136,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a 1:1 PDF cutting template with your artwork, cut and crease lines, and adjustable bleed. The cutting template on its own downloads as SVG or DXF for your box maker.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'food-beverage-carton-shelf-preview'],
+    tags: ['Corrugated', 'Food'],
     updated: '2026-10-11',
   },
   {
@@ -186,6 +190,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Can I download the mailer dieline as SVG or DXF?', answer: 'Yes. Preview & Download in the Studio saves the cutting template at 1:1 in millimetres as SVG or DXF, with cut and crease lines on separate layers, for your box maker or cutting table.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'packaging-bleed-safe-zone-dieline', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'box-dieline-svg-dxf-export'],
+    tags: ['Corrugated', 'E-commerce', 'Gift'],
     updated: '2026-10-11',
   },
   {
@@ -234,6 +239,110 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF for your box maker.' },
     ],
     guides: ['rigid-box-lid-and-base-template', 'gift-box-packaging-luxury-preview', 'jewelry-packaging-box-mockup', 'box-dieline-svg-dxf-export'],
+    tags: ['Rigid', 'Gift'],
+    updated: '2026-10-11',
+  },
+  {
+    slug: 'straight-tuck-end-box',
+    templateId: 'base-box',
+    name: 'Straight tuck end box',
+    title: 'Straight Tuck End Box Template & Dieline (Free) | 3D Box Studio',
+    description: 'Free straight tuck end box template. Enter your size to draw the dieline with both lids on the front, tuck flaps, dust flaps and glue flap, then design it and fold it in 3D.',
+    eyebrow: 'Box template',
+    h1: 'Straight tuck end box template',
+    intro: 'Enter the finished size of your carton and the dieline below redraws instantly: four body panels, a tapered glue flap, and top and bottom lids that both fold over from the front, with tuck tongues and dust flaps. Open it in the Studio to design it, fold it in 3D and export the dieline as a 1:1 PDF, SVG or DXF.',
+    fields: { width: 'Width (front)', height: 'Height', depth: 'Depth (side)' },
+    presets: [
+      { label: 'Candle or jar', note: 'Square gift carton', width: 80, height: 100, depth: 80, unit: 'mm' },
+      { label: 'Tea tin', note: 'Tall square carton', width: 65, height: 160, depth: 65, unit: 'mm' },
+      { label: 'Cosmetic tube', note: 'Slim carton', width: 40, height: 150, depth: 40, unit: 'mm' },
+      { label: 'Toy or game', note: 'Flat retail carton', width: 180, height: 220, depth: 60, unit: 'mm' },
+      { label: '3 × 3 × 6 in', note: 'US retail carton', width: 3, height: 6, depth: 3, unit: 'in' },
+    ],
+    geometryNote: 'Cutting template: both lids hinge on the front and tuck in at the back, with slit-locked tucks, shouldered dust flaps, a 15° glue flap and a thumb notch. Width, depth and height are inside sizes; panels are creased one board thickness wider. Ask your printer to confirm the allowances for their board.',
+    sections: [
+      {
+        title: 'What is a straight tuck end box?',
+        body: 'A straight tuck end (STE) box is a folding carton whose top and bottom closures hinge from the same face. Both lids fold over from the front edge, so the front panel has clean folded edges at the top and bottom and the tucks slide in at the back. It is a common choice for gift cartons, candles, tea and products where the front should look seamless.',
+      },
+      {
+        title: 'What is on the dieline',
+        body: 'The template draws every panel from your three measurements.',
+        bullets: [
+          'Four body panels in one strip: front, side, back, side.',
+          'A glue flap with 15° tapered ends.',
+          'Top and bottom lids on the front panel, each with a tuck tongue and slit locks.',
+          'Shouldered dust flaps that fold in under each lid.',
+          'Adjustable glue flap, tuck and dust flap sizes in the Studio.',
+          'Cut lines and crease lines kept separate, as in the PDF, SVG and DXF exports.',
+        ],
+      },
+      {
+        title: 'Straight tuck vs reverse tuck',
+        body: 'A reverse tuck end box puts its closures on opposite faces, which nests better on the press sheet and usually costs a little less to print. Choose a straight tuck end box when you want the same clean front edge at the top and bottom, or when the box opens from the front on a shelf. The [reverse tuck end box](/box-templates/reverse-tuck-end-box) template is next door if you want to compare.',
+      },
+      {
+        title: 'Opening styles',
+        body: 'In the Studio you can also hinge the top lid on another wall or open the front as doors, and watch each option open in 3D before you decide.',
+      },
+    ],
+    faqs: [
+      { question: 'Is the straight tuck end template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Which side do the lids hinge on?', answer: 'Both lids hinge on the front, so the top and bottom tuck in at the back. In the Studio you can move the top lid to another wall or open the front as doors.' },
+      { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. Each panel is creased one board thickness wider for the caliper you set, so the folded carton keeps the inside size you enter.' },
+      { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers.' },
+    ],
+    guides: ['tuck-end-folding-carton-mockup', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'box-template-svg-cricut-laser-cutter'],
+    tags: ['Folding cartons', 'Retail', 'Gift'],
+    updated: '2026-10-11',
+  },
+  {
+    slug: 'sleeve-box',
+    templateId: 'sleeve-box',
+    name: 'Sleeve box',
+    title: 'Sleeve Box Template & Packaging Sleeve Dieline | 3D Box Studio',
+    description: 'Free packaging sleeve template. Enter the size of your tray or product to draw an open-ended sleeve with a glue flap, design the wrap and preview it in 3D.',
+    eyebrow: 'Box template',
+    h1: 'Sleeve box template',
+    intro: 'A sleeve is a printed band that slides over a tray, a box or the product itself. Enter the inside size of the opening and the sleeve’s length, and the dieline below redraws: four walls and a glue flap, glued into a tube with both ends open. Open it in the Studio to design the wrap and preview it in 3D.',
+    fields: { width: 'Width (opening)', height: 'Length', depth: 'Depth (opening)' },
+    presets: [
+      { label: 'Soap bar band', note: 'Narrow belly band', width: 95, height: 40, depth: 35, unit: 'mm' },
+      { label: 'Chocolate bar', note: 'Slim wrap', width: 80, height: 160, depth: 12, unit: 'mm' },
+      { label: 'Gift box sleeve', note: 'Over a tray', width: 180, height: 120, depth: 60, unit: 'mm' },
+      { label: 'Food tray', note: 'Ready-meal sleeve', width: 190, height: 140, depth: 45, unit: 'mm' },
+      { label: 'Candle sleeve', note: 'Square band', width: 80, height: 60, depth: 80, unit: 'mm' },
+    ],
+    geometryNote: 'Cutting template: four walls and a 15° glue flap, both ends cut flush and left open. Width and depth are the inside of the opening and length runs along the sleeve. Each wall is creased one board wider so the folded sleeve keeps that inside. Ask your printer to confirm the allowances for their board.',
+    sections: [
+      {
+        title: 'What is a packaging sleeve?',
+        body: 'A sleeve (also called a belly band or wrap) is a printed tube with open ends. It slides over a plain tray, box or product and carries the branding, so one stock tray can be relabelled for every product or season. It is common for soap, chocolate, ready meals, apparel and gift sets.',
+      },
+      {
+        title: 'What is on the dieline',
+        body: 'The template draws the sleeve as one strip from your measurements.',
+        bullets: [
+          'Four walls: left, front, right and back.',
+          'A glue flap with 15° tapered ends, glued to the inside of the back.',
+          'Both ends cut flush and left open.',
+          'An adjustable glue flap in the Studio.',
+          'Cut lines and crease lines kept separate, as in the PDF, SVG and DXF exports.',
+        ],
+      },
+      {
+        title: 'Measuring for a sleeve',
+        body: 'Measure the outside of the tray or product the sleeve goes over and add a millimetre or two so it slides on easily: those are the width and depth of the opening. The length is how much of the tray the sleeve covers, from a narrow band to the full length of the box.',
+      },
+    ],
+    faqs: [
+      { question: 'Is the sleeve template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'What size should the sleeve be?', answer: 'The opening should be the outside size of the tray or product plus a little play, so it slides on without catching. Enter that as width and depth, and the length you want the sleeve to cover.' },
+      { question: 'Can I print the inside of the sleeve?', answer: 'Yes. Every panel has an outside and an inside surface in the Studio, and the PDF exports either side.' },
+      { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF.' },
+    ],
+    guides: ['how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'box-dieline-svg-dxf-export'],
+    tags: ['Folding cartons', 'Food'],
     updated: '2026-10-11',
   },
   {
@@ -285,6 +394,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Can I download the cutting template?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers.' },
     ],
     guides: ['standard-box-sizes-carton-mailer-shipping', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'corrugated-shipping-box-branding', 'subscription-box-unboxing-preview'],
+    tags: ['Corrugated', 'Shipping', 'E-commerce'],
     updated: '2026-10-11',
   },
 ];

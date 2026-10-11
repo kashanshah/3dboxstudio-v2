@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ensureV2Schema,getSql } from './db';
 import type { SavedStudioProject } from '@/lib/studio-project';
 import { validProjectState } from '@/lib/studio-project';
@@ -18,6 +19,16 @@ export function cleanDesignName(value:unknown){
 export async function renameDesign(userId:string,id:string,name:string){
  await ensureV2Schema();
  const rows=await getSql()`UPDATE projects SET name=${name},updated_at=NOW() WHERE id=${id} AND user_id=${userId} RETURNING id,name,revision` as {id:string;name:string;revision:number}[];
+ return rows[0]??null;
+}
+
+// A copy of one of the user's own designs, in the same project, named
+// "<name> copy". Images stay shared: they already belong to this user.
+export async function duplicateOwnDesign(userId:string,id:string){
+ await ensureV2Schema();
+ const rows=await getSql()`INSERT INTO projects(id,user_id,name,studio_state,preview_image_key,workspace_project_id)
+  SELECT ${randomUUID()},user_id,LEFT(name,115)||' copy',studio_state,preview_image_key,workspace_project_id FROM projects WHERE id=${id} AND user_id=${userId}
+  RETURNING id,name` as {id:string;name:string}[];
  return rows[0]??null;
 }
 

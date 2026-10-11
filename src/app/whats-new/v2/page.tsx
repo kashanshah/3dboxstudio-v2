@@ -22,15 +22,15 @@ const faqs=[
   ['Does my existing 3DBoxStudio account still work?','Yes. Existing users can sign in with their current account and continue using the V2 Studio.'],
   ['What is a Project compared with a Box Design?','A Project is the workspace for a packaging job. A Box Design is an individual package design inside that Project. Projects let related packaging work stay together instead of becoming disconnected files.'],
   ['Can I save multiple boxes in one Project?','Yes. A Project can contain multiple Box Designs, which is useful for product variants, sizes, related SKUs, or alternative packaging directions.'],
-  ['Can I share and export designs?','Yes. Saved designs can be shared through view-only preview links, and the current Studio supports PNG export. The Design workspace also exposes print / PDF output for the flat layout.'],
-  ['Are more box templates and dielines coming?','Yes. The built-in library will expand with many more ready-to-use packaging structures and dielines supplied by 3DBoxStudio. This is separate from importing your own dieline.'],
+  ['Can I share and export designs?','Yes. Saved designs can be shared through view-only preview links. Preview & Download exports PNG images, a short MP4 of the box folding closed, a 1:1 PDF of the dieline with your artwork, and the cutting template as SVG or DXF.'],
+  ['Are more box templates and dielines coming?','Yes. Since launch the library has added the mailer box, sleeve box and rigid lid and base box, and the drawer box is next. This is separate from importing your own dieline.'],
   ['Are Scenes available now?','Not yet. Scenes are coming soon. The intended workflow is to take multiple saved Box Designs from a Project and compose them together in a Scene for staged product-shot and presentation workflows.']
 ] as const;
 
 const workflow=[
   {number:'01',eyebrow:'Box',title:'Set the structure, size, and finish.',body:'Choose a supported package, enter finished dimensions, control board thickness, then preview materials and finishes before you touch the artwork.',image:'/images/v2-launch/studio-box-size.png',alt:'3DBoxStudio V2 Box & Size workspace with dimensions and live 3D box preview'},
   {number:'02',eyebrow:'Design',title:'Work on the dieline and see the package update.',body:'Add artwork to the flat layout, organize it in layers, and keep a live 3D preview beside the design canvas so panel placement is easier to judge.',image:'/images/v2-launch/studio-design-artwork.png',alt:'3DBoxStudio V2 dieline artwork workspace with multiple artwork layers and live 3D preview'},
-  {number:'03',eyebrow:'Preview & Download',title:'Review the assembled box, then move the work forward.',body:'Orbit the package, inspect the assembled result, scrub through the open / close state, export a PNG, or copy a view-only share link.',image:'/images/v2-launch/studio-preview-3d.png',alt:'3DBoxStudio V2 Preview & Download workspace showing a branded package in 3D'}
+  {number:'03',eyebrow:'Preview & Download',title:'Review the assembled box, then move the work forward.',body:'Orbit the package, inspect the assembled result, scrub through the open / close state, export a PNG or MP4, download the dieline, or copy a view-only share link.',image:'/images/v2-launch/studio-preview-3d.png',alt:'3DBoxStudio V2 Preview & Download workspace showing a branded package in 3D'}
 ] as const;
 
 export default function V2WhatsNewPage(){
@@ -96,7 +96,7 @@ export default function V2WhatsNewPage(){
         <div className={styles.detailCopy}>
           <span className={styles.eyebrow}>Download & share</span>
           <h2>Move the review forward.</h2>
-          <p>Download the current 3D camera view as a PNG, create a view-only interactive share link, or use the flat-layout print / PDF workflow from the Design workspace.</p>
+          <p>Download the 3D view as a PNG or a short MP4, the dieline as a 1:1 PDF, SVG or DXF, or create a view-only interactive share link.</p>
         </div>
         <div className={styles.portraitMedia}><ZoomImage src="/images/v2-launch/studio-download.png" alt="Download and Share panel in 3DBoxStudio V2" width={1066} height={2022} sizes="(max-width: 820px) 90vw, 38vw"/></div>
       </article>
@@ -127,7 +127,7 @@ export default function V2WhatsNewPage(){
           <span className={styles.comingSoon}>Coming soon</span>
           <LayoutGrid/>
           <h3>Many more templates & dielines</h3>
-          <p>We are expanding the built-in library with many more packaging structures and ready-to-use dielines supplied by 3DBoxStudio.</p>
+          <p>The mailer, sleeve and rigid lid and base boxes have shipped since launch, each with adjustable flap sizes. The drawer box is next, with more structures to follow.</p>
         </article>
         <article>
           <span className={styles.comingSoon}>Coming soon</span>

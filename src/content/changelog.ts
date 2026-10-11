@@ -36,6 +36,19 @@ export const releases: Release[] = [
     },
   },
   {
+    id: 'mp4-video-camera-angles',
+    date: '2026-10-09',
+    title: 'MP4 video export and more camera angles',
+    summary: 'Download a short video of your box folding closed and turning, ready for product pages, ads and social posts.',
+    tags: ['New', 'Improved'],
+    highlights: [
+      'Preview & Download → Video renders a clip of about 10 seconds in your browser: the box folds from flat to closed, then turns once.',
+      'Videos are 1080p MP4 (720p on phones) and use your artwork, material and lighting.',
+      'New camera angles: Hero (low angle), Back angle and Overhead.',
+      'The fold button now runs at an even pace, so each stage of the fold reads clearly.',
+    ],
+  },
+  {
     id: 'v2',
     date: '2026-10-01',
     version: 'V2',
