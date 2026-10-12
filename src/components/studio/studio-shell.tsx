@@ -2766,6 +2766,9 @@ function Inspector(props: {
       </>}
 
       {structureTab === 'size' ? <>
+      {/* Every measurement together: the box size above, then its flaps and tucks. */}
+      <AdjustableSizesCard templateId={props.selectedTemplateId} dimensions={props.dimensions} setDimensions={props.setDimensions} options={{openingMode:props.openingMode,splitTopHingeSide:props.splitTopHingeSide}} unit={props.measurementUnit}/>
+
       <div className="pro-card-section pro-box-thickness-card">
         <SectionTitle title={t("studio.board_thickness")} meta="Box & size" />
         <div className="pro-thickness-control-row">
@@ -2795,8 +2798,6 @@ function Inspector(props: {
         />
         <p className="pro-help">{t("studio.controls_the_visible_board_edge_and_the_distance_between_the_outside_and_in")}</p>
       </div>
-
-      <AdjustableSizesCard templateId={props.selectedTemplateId} dimensions={props.dimensions} setDimensions={props.setDimensions} options={{openingMode:props.openingMode,splitTopHingeSide:props.splitTopHingeSide}} unit={props.measurementUnit}/>
 
       <button className="pro-next-step-button" type="button" onClick={()=>props.onOpenMediaLibrary(undefined,'upload')}>
         <span><strong>{t("studio.next_add_your_design")}</strong><small>{t("studio.upload_artwork_and_place_it_on_your_box")}</small></span>
