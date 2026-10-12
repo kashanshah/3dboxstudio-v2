@@ -818,8 +818,15 @@ test('solid board: inside faces meet at creases, edges only on cut sides, covere
   const front=corners(closed.find(mesh=>mesh.panel==='Interior Front'));
   const left=corners(closed.find(mesh=>mesh.panel==='Interior Left'));
   const insideBends=closed.filter(mesh=>mesh.bend==='inside').map(corners);
+  // A face corner joins a bend when it lies on one of the bend's edges (the
+  // bend may run on past it into a corner the panel folds on both sides).
+  const onSegment=(p,a,b)=>{
+    const ab=b.map((v,i)=>v-a[i]),ap=p.map((v,i)=>v-a[i]);
+    const k=Math.max(0,Math.min(1,ab.reduce((sum,v,i)=>sum+v*ap[i],0)/Math.max(1e-12,ab.reduce((sum,v)=>sum+v*v,0))));
+    return dist(p,a.map((v,i)=>v+ab[i]*k))<1e-3;
+  };
   for(const face of [front,left]){
-    const joined=face.filter(p=>insideBends.some(bend=>bend.some(q=>dist(p,q)<1e-3)));
+    const joined=face.filter(p=>insideBends.some(bend=>bend.some((q,i)=>onSegment(p,q,bend[(i+1)%4]))));
     assert.ok(joined.length>=2,'inside faces continue into the bend at the corner');
   }
   // The side walls stop under the closed lid: they fold into dust flaps there.
@@ -844,6 +851,27 @@ test('solid board: inside faces meet at creases, edges only on cut sides, covere
   const flatStrips=solidify(flat,mailer.thickness).filter(mesh=>mesh.doubleSided&&!mesh.panel&&!mesh.bend).length;
   const panels=flat.filter(mesh=>mesh.panel&&!mesh.panel.startsWith('Interior ')).length;
   assert.ok(flatStrips<panels*4,'fold lines between panels are not drawn as cut edges');
+});
+
+test('a carton front closes its top corners: the lid and side bends both reach the corner',()=>{
+  // Front folds both its lid crease and its side creases, so neither bend
+  // stops half a bend short of the corner and leaves a slot there.
+  const options={templateId:'base-box',formation:100,openingMode:'closed'};
+  const carton={width:65,height:160,depth:65,thickness:.5};
+  const meshes=buildMeshes(carton,0,[1,1,1],[.8,.8,.8],options);
+  const front=meshes.find(mesh=>mesh.panel==='Front');
+  const frontCorners=[0,1,2,5].map(i=>Array.from(front.vertices.slice(i*8,i*8+3)));
+  const outsideBends=meshes.filter(mesh=>mesh.bend==='outside'&&mesh.sourcePanel==='Front');
+  const extent=(mesh,axis)=>{const values=[];for(let i=0;i<mesh.vertices.length;i+=8)values.push(mesh.vertices[i+axis]);return [Math.min(...values),Math.max(...values)];};
+  // The lid's bend on the front runs the front's full width.
+  const frontX=[Math.min(...frontCorners.map(p=>p[0])),Math.max(...frontCorners.map(p=>p[0]))];
+  const lidBend=outsideBends.filter(mesh=>{const [lo,hi]=extent(mesh,1);return lo>Math.max(...frontCorners.map(p=>p[1]))-1e-3&&hi-lo<5;});
+  assert.ok(lidBend.length>0,'the front carries part of the lid bend');
+  const t=carton.thickness*1.1;
+  for(const mesh of lidBend){
+    const [lo,hi]=extent(mesh,0);
+    assert.ok(lo<frontX[0]-t*0.9&&hi>frontX[1]+t*0.9,'the lid bend reaches into both top corners');
+  }
 });
 
 test('cut edges of printed board carry the print along them; corrugated edges show flutes',()=>{
