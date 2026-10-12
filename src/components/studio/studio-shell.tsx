@@ -11,6 +11,8 @@ import { useDialogFocus } from '@/components/auth/use-dialog-focus';
 import { DEFAULT_TEXT_SPEC, renderTextArtwork, textLayerName, type TextSpec } from '@/lib/packaging/text-artwork';
 import { TextLayerEditor } from './text-layer-editor';
 import { PanelColourCard } from './panel-colour-card';
+import { GraphicLayerEditor } from './graphic-layer-editor';
+import { DEFAULT_BARCODE, DEFAULT_QR, DEFAULT_SHAPE, defaultGraphicSize, defaultShapeSize, graphicLayerName, isGraphicSpec, renderGraphic, type GraphicSpec } from '@/lib/packaging/graphic-artwork';
 import { fillUrl, panelFillLayer } from '@/lib/packaging/panel-fill';
 import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
@@ -29,7 +31,7 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type,
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type, Shapes, QrCode, Barcode,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -1414,17 +1416,21 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   // Edits keep the letters the same size on the sheet and the layer centred
   // where it was; only the newest edit of a layer is applied.
   const textEditSequence = useRef(new Map<string, number>());
+  // New text and graphics go on the face people see first (the lid of a
+  // mailer or rigid box, the front of a carton), turned to read upright there.
+  const heroFace = () => {
+    const geometry = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide});
+    const bounds = geometry.bounds;
+    const face = ['LID TOP', 'TOP', 'FRONT'].map(label => geometry.panels.find(panel => panel.label === label && panel.kind === 'body')).find(Boolean)
+      ?? geometry.panels.find(panel => panel.kind === 'body');
+    const area = face ?? { x: 0, y: 0, width: bounds.width, height: bounds.height, artworkRotation: 0 as const };
+    return { bounds, face, area };
+  };
   const addTextLayer = async () => {
     const scope = artworkScope;
     try {
       const rendered = await renderTextArtwork(DEFAULT_TEXT_SPEC);
-      const geometry = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide});
-      const bounds = geometry.bounds;
-      // New text goes on the face people see first (the lid of a mailer or
-      // rigid box, the front of a carton), turned to read upright there.
-      const face = ['LID TOP', 'TOP', 'FRONT'].map(label => geometry.panels.find(panel => panel.label === label && panel.kind === 'body')).find(Boolean)
-        ?? geometry.panels.find(panel => panel.kind === 'body');
-      const area = face ?? { x: 0, y: 0, width: bounds.width, height: bounds.height, artworkRotation: 0 as const };
+      const { bounds, face, area } = heroFace();
       let heightMm = Math.max(6, Math.min(40, Math.min(area.width, area.height) * 0.22));
       let widthMm = heightMm * rendered.aspectRatio;
       if (widthMm > area.width * 0.85) { heightMm *= area.width * 0.85 / widthMm; widthMm = area.width * 0.85; }
@@ -1484,6 +1490,72 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setter(current => [panelFillLayer(id, panel, name, geometry.bounds, color), ...current]);
     setMessage(`${name} coloured`);
   };
+
+  // Shapes, QR codes and barcodes: the image is drawn from the settings.
+  // Shapes are drawn at their size on the sheet so outlines keep their
+  // thickness; QR codes and barcodes keep their module size on edit.
+  const addGraphicLayer = (spec: GraphicSpec) => {
+    const scope = artworkScope;
+    const { bounds, face, area } = heroFace();
+    const size = defaultGraphicSize(spec);
+    const fit = Math.min(1, area.width * 0.85 / size.width, area.height * 0.85 / size.height);
+    const widthMm = size.width * fit, heightMm = size.height * fit;
+    const rendered = renderGraphic(spec, { width: widthMm, height: heightMm });
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `layer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const layer: FullDielineArtworkLayer = {
+      id, name: graphicLayerName(spec), url: rendered.url, aspectRatio: rendered.aspectRatio, graphic: spec,
+      transform: {
+        x: (area.x + area.width / 2) / bounds.width * 100, y: (area.y + area.height / 2) / bounds.height * 100,
+        width: widthMm / bounds.width * 100, height: heightMm / bounds.height * 100,
+        rotation: face?.artworkRotation === 180 ? 180 : 0,
+      },
+    };
+    if (scope === 'inside') { setInsideDielineLayers(current => [...current, layer]); setSelectedInsideLayerId(id); }
+    else { setOutsideDielineLayers(current => [...current, layer]); setSelectedOutsideLayerId(id); }
+    setMessage(`${layer.name} added to the ${scope} design`);
+  };
+  const updateGraphicLayer = (scope: 'outside' | 'inside', layerId: string, patch: Partial<GraphicSpec>) => {
+    const bounds = getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds;
+    const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
+    setter(current => current.map(layer => {
+      if (layer.id !== layerId || !layer.graphic) return layer;
+      const next = { ...layer.graphic, ...patch } as GraphicSpec;
+      if (next.kind !== layer.graphic.kind || !isGraphicSpec(next)) return layer;
+      let widthMm = layer.transform.width / 100 * bounds.width, heightMm = layer.transform.height / 100 * bounds.height;
+      if (next.kind === 'shape' && layer.graphic.kind === 'shape') {
+        // Switching between a line and a filled shape changes the box's height.
+        const linear = (shape: string) => shape === 'line' || shape === 'arrow';
+        if (linear(next.shape) !== linear(layer.graphic.shape)) heightMm = linear(next.shape) ? defaultShapeSize(next.shape).height : widthMm;
+      } else {
+        const previous = renderGraphic(layer.graphic), drawn = renderGraphic(next);
+        widthMm *= drawn.width / previous.width;
+        heightMm *= drawn.height / previous.height;
+      }
+      const rendered = renderGraphic(next, { width: widthMm, height: heightMm });
+      return { ...layer, graphic: next, name: graphicLayerName(next), url: rendered.url, aspectRatio: rendered.aspectRatio,
+        transform: { ...layer.transform, width: widthMm / bounds.width * 100, height: heightMm / bounds.height * 100 } };
+    }));
+  };
+  // A resized shape is redrawn at its new proportions once the resize pauses.
+  const sheetBounds = useMemo(() => getTemplateGeometry(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide}).bounds, [selectedTemplateId,dimensions,openingMode,splitTopHingeSide]);
+  useEffect(() => {
+    const redraw = (layer: FullDielineArtworkLayer) => {
+      if (layer.graphic?.kind !== 'shape') return null;
+      const width = layer.transform.width / 100 * sheetBounds.width, height = layer.transform.height / 100 * sheetBounds.height;
+      if (!(width > 0 && height > 0) || Math.abs(width / height / layer.aspectRatio - 1) < 0.005) return null;
+      return { ...layer, ...renderGraphic(layer.graphic, { width, height }) };
+    };
+    const stale = (layers: FullDielineArtworkLayer[]) => layers.some(layer => redraw(layer));
+    if (!stale(outsideDielineLayers) && !stale(insideDielineLayers)) return;
+    const timer = window.setTimeout(() => {
+      const update = (current: FullDielineArtworkLayer[]) => current.some(layer => redraw(layer))
+        ? current.map(layer => { const next = redraw(layer); return next ? { ...layer, url: next.url, aspectRatio: next.aspectRatio } : layer; })
+        : current;
+      setOutsideDielineLayers(update);
+      setInsideDielineLayers(update);
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [outsideDielineLayers, insideDielineLayers, sheetBounds]);
 
   const duplicateFullDielineLayer = (scope: 'outside' | 'inside', layerId: string) => {
     const setter = scope === 'inside' ? setInsideDielineLayers : setOutsideDielineLayers;
@@ -2191,6 +2263,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onAddText={() => void addTextLayer()}
           onFillPanel={(panelId, color) => fillPanel(artworkScope, panelId, color)}
           onUpdateText={(layerId, patch) => void updateTextLayer(artworkScope, layerId, patch)}
+          onAddGraphic={addGraphicLayer}
+          onUpdateGraphic={(layerId, patch) => updateGraphicLayer(artworkScope, layerId, patch)}
           onRemoveLayer={(layerId) => removeFullDielineLayer(artworkScope, layerId)}
           onMoveLayer={(layerId, direction) => moveFullDielineLayer(artworkScope, layerId, direction)}
           onReorderLayer={(layerId, targetId) => reorderFullDielineLayer(artworkScope, layerId, targetId)}
@@ -2979,6 +3053,8 @@ function DielinePrototype({
   onDuplicateLayer,
   onAddText,
   onUpdateText,
+  onAddGraphic,
+  onUpdateGraphic,
   onFillPanel,
   onRemoveLayer,
   onMoveLayer,
@@ -3027,6 +3103,8 @@ function DielinePrototype({
   onAddText:()=>void;
   onFillPanel:(panelId:string,color:string)=>void;
   onUpdateText:(id:string,patch:Partial<TextSpec>)=>void;
+  onAddGraphic:(spec:GraphicSpec)=>void;
+  onUpdateGraphic:(id:string,patch:Partial<GraphicSpec>)=>void;
   onRemoveLayer:(id:string)=>void;
   onMoveLayer:(id:string,direction:-1|1)=>void;
   onReorderLayer:(id:string,targetId:string)=>void;
@@ -3504,6 +3582,8 @@ function DielinePrototype({
       const maxHeight = rect.height * 3;
       const handle = gesture.handle;
       const isCorner = handle.length === 2;
+      // Side handles stretch shapes freely; corners keep the proportions.
+      const freeSides = event.shiftKey || layers.find(layer => layer.id === gesture.layerId)?.graphic?.kind === 'shape';
       let newWidth = startWidth;
       let newHeight = startHeight;
       let centerLocalX = 0;
@@ -3543,7 +3623,7 @@ function DielinePrototype({
         const movingX = anchorX + dirX * newWidth;
         centerLocalX = (anchorX + movingX) / 2;
 
-        if (!event.shiftKey) {
+        if (!freeSides) {
           const scale = newWidth / startWidth;
           newHeight = Math.max(minHeight, Math.min(maxHeight, startHeight * scale));
         }
@@ -3554,7 +3634,7 @@ function DielinePrototype({
         const movingY = anchorY + dirY * newHeight;
         centerLocalY = (anchorY + movingY) / 2;
 
-        if (!event.shiftKey) {
+        if (!freeSides) {
           const scale = newHeight / startHeight;
           newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth * scale));
         }
@@ -3662,11 +3742,17 @@ function DielinePrototype({
             <button className="pro-primary pro-design-add-artwork" onClick={onChooseFullLayout}><ImageIcon size={17}/>{" " + t("studio.add_artwork")}</button>
             <button type="button" className="pro-secondary-button pro-design-add-text" onClick={onAddText}><Type size={17}/>{" " + t("studio.add_text")}</button>
           </div>
+          <div className="pro-design-add-graphics" role="group" aria-label={t("studio.add_to_design")}>
+            <button type="button" className="pro-secondary-button" onClick={()=>onAddGraphic(DEFAULT_SHAPE)}><Shapes size={16}/>{" " + t("studio.add_shape")}</button>
+            <button type="button" className="pro-secondary-button" onClick={()=>onAddGraphic(DEFAULT_QR)}><QrCode size={16}/>{" " + t("studio.add_qr_code")}</button>
+            <button type="button" className="pro-secondary-button" onClick={()=>onAddGraphic(DEFAULT_BARCODE)}><Barcode size={16}/>{" " + t("studio.add_barcode")}</button>
+          </div>
 
           {selectedLayer?.text && <TextLayerEditor key={selectedLayer.id} spec={selectedLayer.text} onChange={patch=>onUpdateText(selectedLayer.id,patch)}/>}
+          {selectedLayer?.graphic && <GraphicLayerEditor key={selectedLayer.id} spec={selectedLayer.graphic} onChange={patch=>onUpdateGraphic(selectedLayer.id,patch)}/>}
           {selectedLayer?.fill && selectedLayer.panels?.length===1
             ? <PanelColourCard key={selectedLayer.id} panels={colourablePanels} editing={{panelId:selectedLayer.panels[0],color:selectedLayer.fill.color}} onFill={onFillPanel}/>
-            : !selectedLayer?.text && <PanelColourCard key={`new-${selectedPanel}`} panels={colourablePanels} initialPanel={cartonPanels.find(panel=>panel.label.toLowerCase()===selectedPanel.toLowerCase())?.id} onFill={onFillPanel}/>}
+            : !selectedLayer?.text && !selectedLayer?.graphic && <PanelColourCard key={`new-${selectedPanel}`} panels={colourablePanels} initialPanel={cartonPanels.find(panel=>panel.label.toLowerCase()===selectedPanel.toLowerCase())?.id} onFill={onFillPanel}/>}
 
           <aside className="pro-dieline-layers-panel pro-design-left-layers" aria-label={`${artworkScope} artwork layers`}>
             <div className="pro-dieline-layers-heading">

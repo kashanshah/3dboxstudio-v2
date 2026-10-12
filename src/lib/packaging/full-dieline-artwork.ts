@@ -2,6 +2,7 @@ import type { CartonDimensions } from './reverse-tuck';
 import { getTemplateGeometry, type TemplateGeometryOptions } from './template-runtime';
 import { defaultArtworkPlacement, type ArtworkByPanel } from './artwork';
 import type { TextSpec } from './text-artwork';
+import type { GraphicSpec } from './graphic-artwork';
 
 export type FullDielineTransform = {
   x: number;
@@ -29,6 +30,8 @@ export type FullDielineArtworkLayer = {
   text?: TextSpec;
   /** Set on panel colour layers: a solid colour filling the panels it prints on. */
   fill?: { color: string };
+  /** Set on shape, QR code and barcode layers: what the image is drawn from. */
+  graphic?: GraphicSpec;
 };
 
 /** Overlaps thinner than this (millimetres) are rounding, not artwork. */

@@ -14,6 +14,19 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'shapes-qr-barcodes',
+    date: '2026-10-12',
+    title: 'Shapes, QR codes and barcodes',
+    summary: 'Add shapes, a QR code or a retail barcode to any box from the Design panel, with no other tool needed.',
+    tags: ['New'],
+    highlights: [
+      'Seven shapes: rectangle, rounded rectangle, ellipse, triangle, star, line and arrow, with a fill colour, an outline or both. Side handles stretch a shape and its outline keeps its thickness.',
+      'QR codes for a link or any text, in your colour, on a light background or a transparent one.',
+      'EAN-13, UPC-A and Code 128 barcodes. The check digit is added for you and checked if you type it, and barcodes are placed at 100% size.',
+      'Like text, they stay editable after saving and print in the 3D view, the PNG and MP4 downloads and the 1:1 PDF.',
+    ],
+  },
+  {
     id: 'snapping-panel-colour',
     date: '2026-10-11',
     title: 'Snapping, align buttons and panel colours',
