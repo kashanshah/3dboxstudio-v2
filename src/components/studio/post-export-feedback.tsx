@@ -10,7 +10,7 @@ const LAST_PROMPT_KEY = "3dbs_feedback_last_prompt_v1";
 const RATED_KEY = "3dbs_feedback_rated_v1";
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
-type ExportDetail = { format?: string; templateId?: string };
+type ExportDetail = { format?: string; templateId?: string; projectId?: string };
 function getStorage(key: string): string | null {
   try { return window.localStorage.getItem(key); } catch { return null; }
 }
@@ -18,7 +18,8 @@ function store(key: string, value: string) {
   try { window.localStorage.setItem(key, value); } catch { /* Storage may be unavailable. */ }
 }
 
-export function PostExportFeedback() {
+/** `projectId`: the saved design being exported, recorded with the rating. */
+export function PostExportFeedback({ projectId }: { projectId?: string } = {}) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -30,13 +31,16 @@ export function PostExportFeedback() {
   const context = useRef<ExportDetail>({});
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
+  const currentProject = useRef(projectId);
+
+  useEffect(() => { currentProject.current = projectId; }, [projectId]);
 
   useEffect(() => {
     const onExport = (event: Event) => {
       if (getStorage(RATED_KEY)) return;
       const last = Number(getStorage(LAST_PROMPT_KEY) || "0");
       if (last > 0 && Date.now() - last < THIRTY_DAYS) return;
-      context.current = (event as CustomEvent<ExportDetail>).detail ?? {};
+      context.current = { ...(event as CustomEvent<ExportDetail>).detail, projectId: currentProject.current };
       store(LAST_PROMPT_KEY, String(Date.now()));
       previousFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       window.setTimeout(() => { setRating(null); setFeedback(""); setSubmitted(false); setSaveState("idle"); setCommentError(""); savePromise.current=null; setOpen(true); }, 450);
@@ -65,7 +69,7 @@ export function PostExportFeedback() {
     return fetch("/api/feedback/export", {
       method:"POST",headers:{"Content-Type":"application/json"},
       credentials:"same-origin",keepalive:true,
-      body:JSON.stringify({rating:value,format:context.current.format??"png",templateId:context.current.templateId??"unknown",editKey:key}),
+      body:JSON.stringify({rating:value,format:context.current.format??"png",templateId:context.current.templateId??"unknown",projectId:context.current.projectId??null,editKey:key}),
     }).then(async response=>{
       if(!response.ok)throw Error("Could not save rating");
       const result=await response.json() as {id:string};

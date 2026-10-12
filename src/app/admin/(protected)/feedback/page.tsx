@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { adminDesignHref, adminUserHref } from '@/lib/admin-media';
 import { AdminPageHeader } from '@/components/admin-page-header';
 import { getExportFeedbackStats,listExportFeedback } from '@/server/export-feedback';
 export const metadata:Metadata={title:'Admin — Feedback'};
@@ -16,6 +18,10 @@ export default async function FeedbackPage(){
       <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>{[stats.one,stats.two,stats.three,stats.four,stats.five].map((count,i)=><span key={i}>{i+1} ★: <strong>{count}</strong></span>)}</div>
     </div>
     <div className="admin-panel"><div className="admin-panel-header"><h2>Recent submissions</h2><p>{items.length} most recent</p></div>
-      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Date</th><th>Rating</th><th>Feedback</th><th>Export</th><th>Template</th><th>User</th></tr></thead>
-      <tbody>{items.length?items.map(item=><tr key={item.id}><td>{new Date(item.createdAt).toLocaleString()}</td><td>{'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}</td><td className="admin-message">{item.comment||'—'}</td><td>{item.format.toUpperCase()}</td><td>{item.templateId}</td><td>{item.email||'Guest'}</td></tr>):<tr><td colSpan={6}>No feedback yet.</td></tr>}</tbody></table></div></div></>;
+      <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Date</th><th>Rating</th><th>Feedback</th><th>Export</th><th>Template</th><th>Design</th><th>User</th></tr></thead>
+      <tbody>{items.length?items.map(item=><tr key={item.id}><td>{new Date(item.createdAt).toLocaleString()}</td><td>{'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}</td><td className="admin-message">{item.comment||'—'}</td><td>{item.format.toUpperCase()}</td><td>{item.templateId}</td>
+        <td>{item.projectId
+          ? <Link href={adminDesignHref(item.projectId)} title={item.projectName??undefined}>View design</Link>
+          : item.userId ? <Link href={`/admin/designs?user=${encodeURIComponent(item.userId)}`}>Their designs</Link> : '—'}</td>
+        <td>{item.userId&&item.email?<Link href={adminUserHref(item.userId)}>{item.email}</Link>:item.email||'Guest'}</td></tr>):<tr><td colSpan={7}>No feedback yet.</td></tr>}</tbody></table></div></div></>;
 }
