@@ -4,6 +4,7 @@ import type { FullDielineArtworkLayer } from './packaging/full-dieline-artwork';
 import { getPackagingTemplate } from './packaging/template-registry';
 import { isTextSpec } from './packaging/text-artwork';
 import { isFill } from './packaging/panel-fill';
+import { isGraphicSpec } from './packaging/graphic-artwork';
 
 export type LegacyOpeningMode =
  | 'closed'
@@ -75,7 +76,7 @@ export function validProjectState(value:unknown):value is StudioProjectState{
   /^\/api\/admin\/designs\/[A-Za-z0-9._~%-]+\/legacy-media\/[A-Za-z][A-Za-z0-9]*$/.test(item.url) ||
   /^https:\/\//.test(item.url)
  )))return false;
- // Text layers keep the settings their image is drawn from.
- if(![...s.outsideArtworkLayers,...s.insideArtworkLayers].every(layer=>(layer.text===undefined||isTextSpec(layer.text))&&(layer.fill===undefined||isFill(layer.fill))))return false;
+ // Text, panel colour and graphic layers keep the settings their image is drawn from.
+ if(![...s.outsideArtworkLayers,...s.insideArtworkLayers].every(layer=>(layer.text===undefined||isTextSpec(layer.text))&&(layer.fill===undefined||isFill(layer.fill))&&(layer.graphic===undefined||isGraphicSpec(layer.graphic))))return false;
  return ['material','custom'].includes(s.outsideColorMode)&&['material','custom'].includes(s.insideColorMode)&&[s.outsideCustomColor,s.insideCustomColor].every(color=>typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color));
 }

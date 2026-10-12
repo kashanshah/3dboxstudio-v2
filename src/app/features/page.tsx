@@ -47,6 +47,7 @@ const sections = [
       "Artwork upload and replace",
       "Text in 9 fonts, with colour, alignment and spacing",
       "Panel colours, snapping and align buttons",
+      "Shapes, QR codes and EAN-13, UPC-A and Code 128 barcodes",
       "Layer ordering",
       "Exact transforms",
       "Outside/inside artwork where supported",
