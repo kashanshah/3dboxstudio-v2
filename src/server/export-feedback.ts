@@ -1,11 +1,16 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { ensureV2Schema, getSql } from '@/server/db';
 
-export async function saveExportRating(input:{rating:number;format:string;templateId:string;userId:string|null;editKey:string}) {
+export async function saveExportRating(input:{rating:number;format:string;templateId:string;userId:string|null;editKey:string;projectId?:string|null}) {
   await ensureV2Schema();
   const id=randomUUID();
   const db=getSql();
-  await db`INSERT INTO export_feedback(id,user_id,edit_key_hash,rating,export_format,template_id) VALUES (${id},${input.userId},${createHash('sha256').update(input.editKey).digest('hex')},${input.rating},${input.format},${input.templateId})`;
+  // Only a design the signed-in account owns is recorded against the rating.
+  const owned=input.projectId&&input.userId
+    ? await db`SELECT id FROM projects WHERE id=${input.projectId} AND user_id=${input.userId} LIMIT 1` as {id:string}[]
+    : [];
+  const projectId=owned[0]?.id??null;
+  await db`INSERT INTO export_feedback(id,user_id,edit_key_hash,rating,export_format,template_id,project_id) VALUES (${id},${input.userId},${createHash('sha256').update(input.editKey).digest('hex')},${input.rating},${input.format},${input.templateId},${projectId})`;
   return id;
 }
 export async function saveExportComment(id:string,comment:string,editKey:string) {
@@ -17,11 +22,14 @@ export async function saveExportComment(id:string,comment:string,editKey:string)
 export async function listExportFeedback(limit=250) {
   await ensureV2Schema();
   const db=getSql();
-  const rows=await db`SELECT f.id,f.rating,f.comment,f.export_format,f.template_id,f.created_at,u.email
-    FROM export_feedback f LEFT JOIN users u ON u.id=f.user_id ORDER BY f.created_at DESC LIMIT ${limit}` as {id:string;rating:number;comment:string|null;export_format:string;template_id:string;created_at:string;email:string|null}[];
+  // The design is listed only while it still exists.
+  const rows=await db`SELECT f.id,f.rating,f.comment,f.export_format,f.template_id,f.created_at,u.id AS user_id,u.email,p.id AS project_id,p.name AS project_name
+    FROM export_feedback f LEFT JOIN users u ON u.id=f.user_id LEFT JOIN projects p ON p.id=f.project_id
+    ORDER BY f.created_at DESC LIMIT ${limit}` as {id:string;rating:number;comment:string|null;export_format:string;template_id:string;created_at:string;user_id:string|null;email:string|null;project_id:string|null;project_name:string|null}[];
   return rows.map(row=>({id:String(row.id),rating:Number(row.rating),comment:row.comment as string|null,
     format:String(row.export_format),templateId:String(row.template_id),createdAt:String(row.created_at),
-    email:row.email as string|null}));
+    userId:row.user_id as string|null,email:row.email as string|null,
+    projectId:row.project_id as string|null,projectName:row.project_name as string|null}));
 }
 export async function getExportFeedbackStats() {
   await ensureV2Schema();

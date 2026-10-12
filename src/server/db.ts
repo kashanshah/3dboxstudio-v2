@@ -26,6 +26,8 @@ const V2_SCHEMA = [
     )
   `,
   `CREATE INDEX IF NOT EXISTS idx_export_feedback_created ON export_feedback(created_at DESC)`,
+  // The saved design the rating was given on, when there is one.
+  `ALTER TABLE export_feedback ADD COLUMN IF NOT EXISTS project_id TEXT`,
   `
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,

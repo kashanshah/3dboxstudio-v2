@@ -2073,7 +2073,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const conflictDialogRef = useDialogFocus<HTMLElement>(saveConflictOpen, () => setSaveConflictOpen(false), saving);
   const deleteDialogRef = useDialogFocus<HTMLElement>(deleteModalOpen, () => setDeleteModalOpen(false), deleting, fileMenuTriggerRef);
 
-  return <><PostExportFeedback/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" translate="no" style={boxStyle}>
+  return <><PostExportFeedback projectId={projectId}/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" translate="no" style={boxStyle}>
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
