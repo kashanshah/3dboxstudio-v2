@@ -14,6 +14,18 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'snapping-panel-colour',
+    date: '2026-10-11',
+    title: 'Snapping, align buttons and panel colours',
+    summary: 'Line artwork up with the box in one drag, and colour any panel without making an image for it.',
+    tags: ['New'],
+    highlights: [
+      'Dragged artwork and text snap their edges and centres to every panel and to the sheet, with guide lines. Hold Alt to move freely.',
+      'Align buttons line the selected artwork up with the panel it sits on: left, centre, right, top, middle or bottom.',
+      'Panel colour fills any panel with a solid colour, including its bleed, under your artwork, in 3D and in every export.',
+    ],
+  },
+  {
     id: 'text-tool',
     date: '2026-10-11',
     title: 'Add text to your box',

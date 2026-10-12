@@ -46,6 +46,7 @@ const sections = [
     bullets: [
       "Artwork upload and replace",
       "Text in 9 fonts, with colour, alignment and spacing",
+      "Panel colours, snapping and align buttons",
       "Layer ordering",
       "Exact transforms",
       "Outside/inside artwork where supported",

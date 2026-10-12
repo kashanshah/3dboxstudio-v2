@@ -4649,3 +4649,10 @@ body{font-size:var(--type-body)}
 .pro-align-controls>div{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
 .pro-align-controls button{height:34px;display:grid;place-items:center;padding:0;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
 .pro-align-controls button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Panel colour: fill one panel with a solid colour. */
+.pro-panel-colour{display:grid;gap:8px;margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.pro-panel-colour-title{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.pro-panel-colour select{width:100%;height:36px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}
+.pro-panel-colour-row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.pro-panel-colour .pro-panel-colour-apply{display:flex;align-items:center;justify-content:center;gap:6px;height:38px;border-radius:10px;font-weight:700}
