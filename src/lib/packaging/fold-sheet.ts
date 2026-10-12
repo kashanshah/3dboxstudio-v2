@@ -87,7 +87,7 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
 
   const world = new Map<string, Mat4>();
   const trims = new Map<string, { edge: number; depth: number }[]>();
-  const pendingBends: { parent: SheetPanel; child: SheetPanel; q0: Vec3; q1: Vec3; along: Vec3; across: Vec3; angle: number; shift: number; matrix: Mat4; childMatrix: Mat4 }[] = [];
+  const pendingBends: { parent: SheetPanel; child: SheetPanel; q0: Vec3; q1: Vec3; along: Vec3; across: Vec3; angle: number; shift: number; matrix: Mat4; childMatrix: Mat4; parentTrimmed: boolean }[] = [];
   const flat = (point: Vec2): Vec3 => [point.x, -point.y, 0];
 
   const visit = (id: string, matrix: Mat4) => {
@@ -112,11 +112,12 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
       // small part of that edge, where the bend simply tucks in.
       const parentEdge = shared.parentEdge;
       const parentLength = distance2(parent.outline[parentEdge], parent.outline[(parentEdge + 1) % parent.outline.length]);
-      if (distance2(shared.start, shared.end) >= parentLength * 0.75) addTrim(trims, parent.id, parentEdge, shift + half);
+      const parentTrimmed = distance2(shared.start, shared.end) >= parentLength * 0.75;
+      if (parentTrimmed) addTrim(trims, parent.id, parentEdge, shift + half);
       addTrim(trims, child.id, shared.childEdge, Math.max(0, half - shift));
       const childMatrix = multiply(matrix, local);
       if (!parent.hidden && !child.hidden) {
-        pendingBends.push({ parent, child, q0, q1, along, across, angle: hinge.angle, shift, matrix, childMatrix });
+        pendingBends.push({ parent, child, q0, q1, along, across, angle: hinge.angle, shift, matrix, childMatrix, parentTrimmed });
       }
       visit(child.id, childMatrix);
     }
@@ -146,10 +147,15 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
   }
   // A crease stops where the neighbouring creases begin, so two bends never
   // overlap in a corner (the slot a real dieline cuts there).
-  const bends = pendingBends.flatMap(bend => bendMeshes({
+  const built = pendingBends.map(bend => bendMeshes({
     ...bend, half: crease / 2, t, input,
-    limit: overlap(spanAlong(trimmedOutline(bend.parent), bend.q0, bend.along), spanAlong(trimmedOutline(bend.child), bend.q0, bend.along)),
+    limit: creaseLimit(bend, trimmedOutline, crease / 2),
   }));
+  const ends = built.flatMap(bend => bend.ends);
+  const bends = [
+    ...built.flatMap(bend => bend.meshes), ...cornerMeshes(ends, input), ...rollEndCaps(ends, input),
+    ...uncreasedEdges(pendingBends, trimmedOutline, crease / 2, t, input),
+  ];
 
   const meshes: Mesh[] = [];
   for (const panel of input.panels) {
@@ -207,20 +213,35 @@ function hingeFrame(q0: Vec3, along: Vec3, across: Vec3, angle: number, a: numbe
   return multiply(translation(origin), multiply(rotation, translation(scale(q0, -1))));
 }
 
+/** Where a bend ends: the axis point there and the bend's start and end directions, in the scene. */
+type BendEnd = {
+  centre: Vec3;
+  /** Signed bend radius in scene units, and the board's thickness. */
+  radius: number;
+  thickness: number;
+  angle: number;
+  /** Outward directions where the bend leaves the parent and meets the child. */
+  directions: [Vec3, Vec3];
+  /** The panel whose print each direction's side carries, with its texture coordinates there. */
+  print: [{ panel: SheetPanel; uv: number[] }, { panel: SheetPanel; uv: number[] }];
+  /** The crease's direction, and the bend's inside surface across this end, from the parent to the child. */
+  axis: Vec3;
+  inner: Vec3[];
+};
+
 function bendMeshes(args: {
   parent: SheetPanel; child: SheetPanel; q0: Vec3; q1: Vec3; along: Vec3; across: Vec3;
   angle: number; shift: number; half: number; t: number; matrix: Mat4; childMatrix: Mat4; input: FoldSheetInput; limit: [number, number];
-}): Mesh[] {
+}): { meshes: Mesh[]; ends: BendEnd[] } {
   const { parent, child, along, across, angle, shift, half, t, matrix, input } = args;
   // Arc coordinates run from the score's centre; the cut line is at +shift.
   const q0 = sub(args.q0, scale(across, shift));
   const a = half, b = half;
   const n: Vec3 = [0, 0, 1];
   const L = a + b;
-  const w0 = 0, w1 = distance3(args.q1, q0);
-  // Only the stretch of crease both panels share bends.
-  const from = Math.max(w0, args.limit[0]), to = Math.min(w1, args.limit[1]);
-  if (to - from < 1e-6) return [];
+  // The stretch that bends (see creaseLimit).
+  const [from, to] = args.limit;
+  if (to - from < 1e-6) return { meshes: [], ends: [] };
   const pointAt = (s: number, w: number, depth: number): Vec3 => {
     if (Math.abs(angle) < 1e-5) return add(add(add(q0, scale(along, w)), scale(across, s)), scale(n, -depth));
     const R = L / angle;
@@ -292,6 +313,205 @@ function bendMeshes(args: {
     const inner = [flatAt(shift, from, t), flatAt(shift, to, t), flatAt(b, to, t), flatAt(b, from, t)];
     const back = scale(normal, -1);
     meshes.push(smoothQuad(inner.map(placeChild), [back, back, back, back], [uvs[3], uvs[2], uvs[1], uvs[0]].map(insideUv), input.interiorColor, `Interior ${parent.name}`, true, size));
+  }
+  // Ends that can meet another bend's end in a rounded corner: any fold bent
+  // far enough to have a clear axis.
+  const ends: BendEnd[] = [];
+  if (Math.abs(angle) > 0.2) {
+    const unit = distance3(place([0, 0, 0]), place([1, 0, 0]));
+    const radius = L / angle;
+    for (const w of [from, to]) {
+      const flatPoint = (s: number) => { const p = add(add(q0, scale(along, w)), scale(across, s)); return { x: p[0], y: -p[1] }; };
+      ends.push({
+        centre: place(pointAt(0, w, radius)), radius: radius * unit, thickness: t * unit, angle: Math.abs(angle),
+        directions: [placeNormal(normalAt(-a)), placeNormal(normalAt(b))],
+        print: [{ panel: parent, uv: panelUv(parent, flatPoint(-a)) }, { panel: child, uv: panelUv(child, flatPoint(b)) }],
+        axis: normalize(sub(place(along), place([0, 0, 0]))),
+        inner: Array.from({ length: BEND_SEGMENTS + 1 }, (_, i) => place(pointAt(-a + L * i / BEND_SEGMENTS, w, t))),
+      });
+    }
+  }
+  return { meshes, ends };
+}
+
+const CORNER_SEGMENTS = 6;
+
+/**
+ * Where two bends meet at a corner of the box, their ends share an axis point
+ * and a direction (the panel both leave or one passes to the other). The gap
+ * between them is filled with the matching piece of a sphere, as a rounded
+ * box corner, so the corner reads closed instead of as a notch into the box.
+ */
+function cornerMeshes(ends: BendEnd[], input: FoldSheetInput): Mesh[] {
+  const meshes: Mesh[] = [];
+  const made: { centre: Vec3; directions: Vec3[] }[] = [];
+  const same = (a: Vec3, b: Vec3) => dot(a, b) > 0.995;
+  for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) {
+    const e1 = ends[i], e2 = ends[j];
+    const size = Math.abs(e1.radius);
+    // Folds closed to slightly different angles still meet; the corner follows their average.
+    if (distance3(e1.centre, e2.centre) > 0.1 * size + 1e-6 || Math.abs(e1.radius - e2.radius) > 0.1 * size || Math.abs(e1.angle - e2.angle) > 0.2) continue;
+    let shared = -1, other = -1;
+    for (let k = 0; k < 2 && shared < 0; k++) for (let m = 0; m < 2; m++) if (same(e1.directions[k], e2.directions[m])) { shared = k; other = m; break; }
+    if (shared < 0) continue;
+    const corner = [e1.directions[shared], e1.directions[1 - shared], e2.directions[1 - other]];
+    if (same(corner[1], corner[2]) || dot(corner[1], corner[2]) < -0.5) continue;
+    if (made.some(item => distance3(item.centre, e1.centre) < 0.1 * size + 1e-6 && corner.every(d => item.directions.some(e => same(d, e))))) continue;
+    made.push({ centre: e1.centre, directions: corner });
+    const centre = scale(add(e1.centre, e2.centre), 0.5);
+    meshes.push(...spherePatch(centre, (e1.radius + e2.radius) / 2, e1.thickness, corner, (e1.angle + e2.angle) / 2, e1.print[shared], input));
+  }
+  return meshes;
+}
+
+/** The outside and inside of a sphere's triangle between three unit directions, as board `thickness` thick. */
+function spherePatch(centre: Vec3, radius: number, thickness: number, corner: Vec3[], angle: number, print: { panel: SheetPanel; uv: number[] }, input: FoldSheetInput): Mesh[] {
+  const n = CORNER_SEGMENTS;
+  // Weights that move evenly along each edge, so the edges match the bends' segments.
+  const direction = (i: number, j: number) => {
+    const b = [(n - i - j) / n, i / n, j / n];
+    return normalize(corner.reduce((sum, d, k) => add(sum, scale(d, Math.sin(b[k] * angle))), [0, 0, 0] as Vec3));
+  };
+  const box = boundsOf(print.panel.outline);
+  const size: [number, number] = [box.width, box.height];
+  const surface = (depth: number, inside: boolean) => {
+    const vertices: number[] = [];
+    const point = (d: Vec3) => add(centre, scale(d, radius - depth));
+    const uv = inside ? insideUv(print.uv) : print.uv;
+    const triangle = (a: Vec3, b: Vec3, c: Vec3) => {
+      const outward = normalize(add(add(a, b), c));
+      const want = inside ? scale(outward, -1) : outward;
+      let order = [a, b, c];
+      const [pa, pb, pc] = order.map(point);
+      if (dot(cross(sub(pb, pa), sub(pc, pa)), want) < 0) order = [a, c, b];
+      for (const d of order) vertices.push(...point(d), ...(inside ? scale(d, -1) : d), uv[0], uv[1]);
+    };
+    for (let i = 0; i < n; i++) for (let j = 0; j < n - i; j++) {
+      triangle(direction(i, j), direction(i + 1, j), direction(i, j + 1));
+      if (i + j < n - 1) triangle(direction(i + 1, j), direction(i + 1, j + 1), direction(i, j + 1));
+    }
+    const mesh: Mesh = {
+      vertices: new Float32Array(vertices), useTexture: true, color: inside ? input.interiorColor : input.color,
+      sourcePanel: inside ? `Interior ${print.panel.name}` : print.panel.name, uvSize: size, faceAspect: size[0] / size[1],
+      bend: inside ? 'inside' : 'outside',
+    };
+    return mesh;
+  };
+  return [surface(0, false), surface(thickness, true)];
+}
+
+type CreaseBend = { parent: SheetPanel; child: SheetPanel; q0: Vec3; q1: Vec3; along: Vec3; across: Vec3; shift: number; matrix: Mat4; parentTrimmed: boolean };
+
+/**
+ * The stretch of a crease that bends. A score runs the whole edge it is cut
+ * along, so where the bend carries only the parent's board (a flap set back
+ * from the edge, or the crease at the edge itself) it runs the parent's edge
+ * even past a narrower flap; otherwise it bends only where both panels meet.
+ */
+function creaseLimit(bend: CreaseBend, trimmedOutline: (panel: SheetPanel) => Vec2[], half: number): [number, number] {
+  const parent = spanAlong(trimmedOutline(bend.parent), bend.q0, bend.along);
+  if (bend.parentTrimmed && bend.shift >= half - 1e-9) return parent;
+  const shared = overlap(parent, spanAlong(trimmedOutline(bend.child), bend.q0, bend.along));
+  return [Math.max(0, shared[0]), Math.min(distance3(bend.q1, bend.q0), shared[1])];
+}
+
+/**
+ * Where a side is folded double over a narrow strip (a mailer's rolled side
+ * wall), the hollow inside the roll shows at each end as a hole into the box.
+ * Real board is crushed tight there, so the end of the roll is closed with
+ * a cut face of board.
+ */
+function rollEndCaps(ends: BendEnd[], input: FoldSheetInput): Mesh[] {
+  const meshes: Mesh[] = [];
+  for (const first of ends) for (const second of ends) {
+    if (first.print[1].panel.id !== second.print[0].panel.id || first === second) continue;
+    // A U turn: the panel before the strip and the one after it face apart.
+    if (dot(first.directions[0], second.directions[1]) > -0.9) continue;
+    const a = first.inner[first.inner.length - 1], b = second.inner[0];
+    if (Math.abs(dot(first.axis, sub(b, a))) > 0.05 * first.thickness) continue;
+    // Only a tight roll: the layers sit a few boards apart at most.
+    const gap = distance3(first.inner[0], second.inner[second.inner.length - 1]);
+    if (gap > 4 * first.thickness) continue;
+    const outline = [...first.inner, ...second.inner];
+    const centre = scale(outline.reduce(add, [0, 0, 0] as Vec3), 1 / outline.length);
+    const vertices: number[] = [];
+    const normal = first.axis;
+    for (let i = 0; i < outline.length; i++) {
+      for (const point of [centre, outline[i], outline[(i + 1) % outline.length]]) vertices.push(...point, ...normal, 0, 0);
+    }
+    const cap: Mesh = { vertices: new Float32Array(vertices), useTexture: false, color: input.color.map(value => value * 0.86) as Vec3, bend: 'edge', doubleSided: true };
+    meshes.push(cap);
+  }
+  return meshes;
+}
+
+/**
+ * Where a flap is narrower than the edge it folds from (a lid's tuck or side
+ * flaps), the panel's board runs flat to its cut line beyond the crease, as
+ * on the real sheet, instead of stopping where the bend begins and leaving a
+ * notch at the corner. Corners cut back by two such edges are filled too.
+ */
+function uncreasedEdges(
+  bends: CreaseBend[],
+  trimmedOutline: (panel: SheetPanel) => Vec2[], half: number, t: number, input: FoldSheetInput,
+): Mesh[] {
+  const meshes: Mesh[] = [];
+  const corners: { panel: SheetPanel; matrix: Mat4; cut: Vec2; inner: Vec2 }[] = [];
+  const point = (bend: { q0: Vec3; along: Vec3; across: Vec3 }, w: number, s: number): Vec2 => {
+    const p = add(add(bend.q0, scale(bend.along, w)), scale(bend.across, s));
+    return { x: p[0], y: -p[1] };
+  };
+  for (const bend of bends) {
+    // A flap set well back from the edge takes the strip beyond its score
+    // down with it, so there is no flat board to continue there.
+    if (!bend.parentTrimmed || bend.parent.hidden || bend.shift > half + 1e-6) continue;
+    const span = spanAlong(trimmedOutline(bend.parent), bend.q0, bend.along);
+    const [from, to] = creaseLimit(bend, trimmedOutline, half);
+    const depth = bend.shift + half;
+    const pieces: [number, number][] = to - from > 1e-6 ? [[span[0], Math.min(from, span[1])], [Math.max(to, span[0]), span[1]]] : [span];
+    for (const [lo, hi] of pieces) {
+      if (hi - lo < 1e-3) continue;
+      // Corners: trimmed (inner) corner of the panel, and the cut line point beside it.
+      const outline = [point(bend, lo, 0), point(bend, hi, 0), point(bend, hi, -depth), point(bend, lo, -depth)];
+      meshes.push(...flatPiece(bend.parent, bend.matrix, outline, [0], t, input));
+      if (Math.abs(lo - span[0]) < 1e-6) corners.push({ panel: bend.parent, matrix: bend.matrix, cut: outline[0], inner: outline[3] });
+      if (Math.abs(hi - span[1]) < 1e-6) corners.push({ panel: bend.parent, matrix: bend.matrix, cut: outline[1], inner: outline[2] });
+    }
+  }
+  for (let i = 0; i < corners.length; i++) for (let j = i + 1; j < corners.length; j++) {
+    const c1 = corners[i], c2 = corners[j];
+    if (c1.panel !== c2.panel || distance2(c1.inner, c2.inner) > 1e-3 || distance2(c1.cut, c2.cut) < 1e-3) continue;
+    const corner = { x: c1.cut.x + c2.cut.x - c1.inner.x, y: c1.cut.y + c2.cut.y - c1.inner.y };
+    meshes.push(...flatPiece(c1.panel, c1.matrix, [c1.cut, corner, c2.cut, c1.inner], [0, 1], t, input));
+  }
+  return meshes;
+}
+
+/** A flat piece of a panel's board (outside, inside, and the cut faces along the given edges). */
+function flatPiece(panel: SheetPanel, matrix: Mat4, outline: Vec2[], cutEdges: number[], t: number, input: FoldSheetInput): Mesh[] {
+  const place = (p: Vec3) => apply(input.placement, apply(matrix, p));
+  const outer = outline.map(p => place([p.x, -p.y, 0]));
+  const inner = outline.map(p => place([p.x, -p.y, -t]));
+  const normal = normalize(sub(place([0, 0, 1]), place([0, 0, 0])));
+  const order = dot(faceNormal(outer) as Vec3, normal) < 0 ? [3, 2, 1, 0] : [0, 1, 2, 3];
+  const uv = outline.map(p => panelUv(panel, p));
+  const box = boundsOf(panel.outline);
+  const size: [number, number] = [box.width, box.height];
+  const back = scale(normal, -1);
+  const meshes = [
+    smoothQuad(order.map(i => outer[i]), [normal, normal, normal, normal], order.map(i => uv[i]), input.color, panel.name, false, size),
+    smoothQuad([...order].reverse().map(i => inner[i]), [back, back, back, back], [...order].reverse().map(i => insideUv(uv[i])), input.interiorColor, `Interior ${panel.name}`, true, size),
+  ];
+  const printed = t < CORRUGATED_THICKNESS;
+  for (const edge of cutEdges) {
+    const i = edge, j = (edge + 1) % outline.length;
+    const strip = [outer[i], outer[j], inner[j], inner[i]];
+    const edgeNormal = faceNormal(strip) as Vec3;
+    const uvs = printed ? [uv[i], uv[j], uv[j], uv[i]] : [[0, 0], [1, 0], [1, 1], [0, 1]];
+    const face = smoothQuad(strip, [edgeNormal, edgeNormal, edgeNormal, edgeNormal], uvs, input.color.map(value => value * 0.86) as Vec3, null, false);
+    face.doubleSided = true;
+    if (printed) printedEdge(face, panel.name, size);
+    meshes.push(face);
   }
   return meshes;
 }
