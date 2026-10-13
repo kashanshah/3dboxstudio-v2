@@ -417,10 +417,13 @@ test('split-top is a regular slotted container with slots between its flaps',()=
         }
       }
       // The long walls' flaps meet in the middle of the box (FEFCO 0201),
-      // and with the outer flaps on the ends, those meet too (0204).
-      near(p.topFront.height*2,d.depth+d.thickness);
-      near(p.bottomRight.height*2,d.depth+d.thickness);
-      near(p.topRight.height*2,side==='side_a'?d.width+d.thickness:d.depth+d.thickness);
+      // and with the outer flaps on the ends, those meet too (0204). The
+      // outer pairs, folding over the inner ones, are cut a board longer.
+      const t=d.thickness;
+      near(p.topFront.height*2,d.depth+t+(side==='side_b'?2*t:0));
+      near(p.bottomFront.height*2,d.depth+3*t);
+      near(p.bottomRight.height*2,d.depth+t);
+      near(p.topRight.height*2,side==='side_a'?d.width+3*t:d.depth+t);
     }
   }
 });

@@ -554,7 +554,7 @@ test('adjustable sizes replace the template’s own, within their limits, and ev
   }
 });
 
-test('every split top flap pair is a size of its own, and an outer pair cut a board longer closes in 3D',()=>{
+test('every split top flap pair is a size of its own, and the outer pairs close in 3D',()=>{
   const split=getTemplateRuntime('split-top-box');
   const d={width:400,height:300,depth:300,thickness:3};
   for(const side of ['side_a','side_b']){
@@ -565,10 +565,14 @@ test('every split top flap pair is a size of its own, and an outer pair cut a bo
     assert.deepEqual(split.getAdjustedPanels(d,'topEndFlap',options).sort(),['topLeft','topRight']);
     assert.deepEqual(split.getAdjustedPanels(d,'bottomLongFlap',options).sort(),['bottomBack','bottomFront']);
     assert.deepEqual(split.getAdjustedPanels(d,'bottomEndFlap',options).sort(),['bottomLeft','bottomRight']);
-    // The pairs that meet in the middle, folded closed at their longest.
+    // The pairs that meet in the middle, cut a board longer, folded closed:
+    // they can grow no further, so their tips never run into each other.
     const outerTop=side==='side_a'?['Top Left','Top Right',0]:['Top Front','Top Back',2];
-    const longest={...d,adjustments:{topLongFlap:1e6,topEndFlap:1e6,bottomLongFlap:1e6}};
-    const meshes=split.buildMeshes({dimensions:longest,formation:100,opening:0,openingMode:'top_split_meet_center',splitTopHingeSide:side,color:[1,1,1],interiorColor:[1,1,1]});
+    for(const key of ['topLongFlap','topEndFlap','bottomLongFlap']){
+      const size=split.getAdjustableSizes(d,options).find(item=>item.key===key);
+      if(key==='bottomLongFlap'||(side==='side_a')===(key==='topEndFlap'))assert.equal(size.max,size.defaultValue,`${side} ${key}`);
+    }
+    const meshes=split.buildMeshes({dimensions:d,formation:100,opening:0,openingMode:'top_split_meet_center',splitTopHingeSide:side,color:[1,1,1],interiorColor:[1,1,1]});
     const span=(name,axis)=>{
       const mesh=meshes.find(item=>item.panel===name),m=mesh.model,values=[];
       for(const i of [0,1,2,5]){
