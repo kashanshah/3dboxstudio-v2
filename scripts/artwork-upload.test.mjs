@@ -94,6 +94,7 @@ function mediaServer({ objects, rows }) {
     '@/server/db': { ensureV2Schema: async () => {}, getSql: () => sql },
     '@/server/env': { optionalEnv: (_name, fallback = '') => fallback, requireEnv: () => 'test' },
     '@/lib/artwork-upload': upload,
+    './media-response-headers': { inlineContentDisposition: (name) => `inline; filename="${name}"` },
   });
   return { media, deleted, inserted };
 }
@@ -147,12 +148,34 @@ test('presigned artwork upload URLs carry no precomputed body checksum', async (
     '@/server/db': { ensureV2Schema: async () => {}, getSql: () => async () => [] },
     '@/server/env': { optionalEnv: (name, fallback = '') => env[name] ?? fallback, requireEnv: (name) => env[name] },
     '@/lib/artwork-upload': upload,
+    './media-response-headers': { inlineContentDisposition: (name) => `inline; filename="${name}"` },
   });
   const prepared = await media.createMediaUpload('u1', { name: 'art.png', mimeType: 'image/png', byteSize: 65_000 });
   const params = new URL(prepared.uploadUrl).searchParams;
   assert.equal(params.get('x-amz-checksum-crc32'), null);
   assert.equal(params.get('x-amz-sdk-checksum-algorithm'), null);
   assert.ok(params.get('X-Amz-Signature'));
+});
+
+test('admin read links are stable for the hour and carry the file type and name', async () => {
+  const env = { AWS_REGION: 'us-east-1', AWS_S3_BUCKET: 'bucket', AWS_ACCESS_KEY_ID: 'AKIDEXAMPLE', AWS_SECRET_ACCESS_KEY: 'secret' };
+  const media = loadTs('src/server/media-assets.ts', {
+    '@aws-sdk/client-s3': require('@aws-sdk/client-s3'),
+    '@aws-sdk/s3-request-presigner': require('@aws-sdk/s3-request-presigner'),
+    '@/server/db': { ensureV2Schema: async () => {}, getSql: () => async () => [] },
+    '@/server/env': { optionalEnv: (name, fallback = '') => env[name] ?? fallback, requireEnv: (name) => env[name] },
+    '@/lib/artwork-upload': upload,
+    './media-response-headers': { inlineContentDisposition: (name) => `inline; filename="${name}"` },
+  });
+  const first = await media.presignedReadUrl('v2/uploads/a b.png', { contentType: 'image/png', fileName: 'a b.png' });
+  const second = await media.presignedReadUrl('v2/uploads/a b.png', { contentType: 'image/png', fileName: 'a b.png' });
+  assert.equal(first, second);
+  const url = new URL(first);
+  assert.equal(url.searchParams.get('response-content-type'), 'image/png');
+  assert.equal(url.searchParams.get('response-content-disposition'), 'inline; filename="a b.png"');
+  assert.equal(url.searchParams.get('X-Amz-Expires'), '7200');
+  const signedAt = url.searchParams.get('X-Amz-Date');
+  assert.match(signedAt, /^\d{8}T\d{2}0000Z$/);
 });
 
 test('upload errors keep the failing stage and status for analytics', () => {

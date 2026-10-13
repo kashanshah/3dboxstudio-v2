@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { launchCampaignDefaults, type Campaign, type ImportJob, type Segment } from '@/lib/email-campaigns';
 import { AdminCampaignEditor } from './admin-campaign-editor';
 import { AdminCampaignSegments } from './admin-campaign-segments';
@@ -17,12 +17,16 @@ export function AdminCampaigns() {
   const [tab,setTab] = useState<'campaigns'|'segments'|'setup'>('campaigns');
   const [selected,setSelected] = useState<Campaign|null>(null);
   const [notice,setNotice] = useState('');
+  // The quick list load and the slower metrics refresh both fill the page;
+  // once a refresh has landed, a list load that finishes later must not
+  // overwrite its fresher figures.
+  const refreshedPage = useRef(0);
   const load = useCallback(async()=>{ const result = await campaignApi<CampaignDashboard>(`?page=${page}`); setData(result); },[page]);
   const loadSegments = useCallback(async()=>{ try { const result = await campaignApi<{segments:Segment[]}>('?view=segments'); setSegments(result.segments); setSegmentError(''); } catch(e) { setSegmentError((e as Error).message); } },[]);
-  useEffect(()=>{ let alive=true; campaignApi<CampaignDashboard>(`?page=${page}`).then(result=>{if(alive){setData(result);setError('');}}).catch(e=>alive&&setError(e.message)); return()=>{alive=false;}; },[page]);
+  useEffect(()=>{ let alive=true; campaignApi<CampaignDashboard>(`?page=${page}`).then(result=>{if(alive&&refreshedPage.current!==page){setData(result);setError('');}}).catch(e=>alive&&setError(e.message)); return()=>{alive=false;}; },[page]);
   useEffect(()=>{
     let alive=true, refreshing=false;
-    const refresh=async()=>{if(refreshing)return;refreshing=true;try{const result=await campaignApi<CampaignDashboard>('',{action:'refresh-overview',page});if(alive){setData(result);setError('');}}catch(e){if(alive)setError((e as Error).message);}finally{refreshing=false;}};
+    const refresh=async()=>{if(refreshing)return;refreshing=true;try{const result=await campaignApi<CampaignDashboard>('',{action:'refresh-overview',page});if(alive){refreshedPage.current=page;setData(result);setError('');}}catch(e){if(alive)setError((e as Error).message);}finally{refreshing=false;}};
     void refresh();
     const timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh();},60_000);
     return()=>{alive=false;clearInterval(timer);};

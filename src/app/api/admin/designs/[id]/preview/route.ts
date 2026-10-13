@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/server/admin/auth';
 import { getDesignPreviewSource } from '@/server/admin/catalog';
-import { readStoredObjectBytes } from '@/server/media-assets';
+import { presignedReadUrl } from '@/server/media-assets';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -20,7 +20,12 @@ export async function GET(_req: Request, { params }: Params) {
   try {
     const source = await getDesignPreviewSource(id);
     if (!source) return new NextResponse('Not found', { status: 404 });
-    const image = 'dataUrl' in source ? dataUrlBytes(source.dataUrl) : await readStoredObjectBytes(source.storageKey).then((object) => object ? { bytes: object.bytes, contentType: object.contentType || 'image/png' } : null);
+    // A stored preview loads straight from S3; only an inline (data URL)
+    // preview is sent from here.
+    if (!('dataUrl' in source)) {
+      return NextResponse.redirect(await presignedReadUrl(source.storageKey), { status: 302, headers: { 'Cache-Control': 'private, max-age=600' } });
+    }
+    const image = dataUrlBytes(source.dataUrl);
     if (!image) return new NextResponse('Not found', { status: 404 });
     const body = image.bytes.buffer.slice(image.bytes.byteOffset, image.bytes.byteOffset + image.bytes.byteLength) as ArrayBuffer;
     return new NextResponse(body, {

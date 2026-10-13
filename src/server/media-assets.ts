@@ -1,3 +1,4 @@
+import { inlineContentDisposition } from './media-response-headers';
 import { createHash, randomUUID } from 'node:crypto';
 import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -283,6 +284,20 @@ export async function readStoredObjectBytes(storageKey:string){
   const object=await s3().send(new GetObjectCommand({Bucket:bucket(),Key:storageKey}));
   if(!object.Body)return null;
   return {bytes:await object.Body.transformToByteArray(),contentType:object.ContentType||'application/octet-stream'};
+}
+
+/**
+ * A short-lived link that lets the browser load a stored object straight from
+ * S3. It is signed from the start of the current hour, so the same object
+ * gets the same link for the hour and the browser can cache it.
+ */
+export async function presignedReadUrl(storageKey:string,options:{contentType?:string|null;fileName?:string}={}):Promise<string>{
+  const hour=new Date(Math.floor(Date.now()/3600000)*3600000);
+  return getSignedUrl(s3(),new GetObjectCommand({
+    Bucket:bucket(),Key:storageKey,
+    ...(options.contentType?{ResponseContentType:options.contentType}:{}),
+    ...(options.fileName?{ResponseContentDisposition:inlineContentDisposition(options.fileName)}:{}),
+  }),{expiresIn:2*3600,signingDate:hour});
 }
 
 /** Content-Length when S3 reported it; otherwise the response is chunked. */

@@ -5,7 +5,6 @@ import { notFound } from 'next/navigation';
 import { AdminMediaBrowser } from '@/components/admin/admin-media-browser';
 import { AdminPageHeader } from '@/components/admin-page-header';
 import { formatAdminDateTime } from '@/lib/admin-time-zone';
-import { decodeRouteParam } from '@/lib/route-params';
 import { getDesign } from '@/server/admin/catalog';
 import { getCurrentUser } from '@/server/auth/session';
 
@@ -16,10 +15,10 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ copy?: s
 export default async function AdminDesignPage({ params, searchParams }: Props) {
   const { id: rawId } = await params;
   const { copy } = await searchParams;
-  const design = await getDesign(decodeRouteParam(rawId));
-  if (!design) notFound();
   // The copy goes to whichever Studio account is signed in on this browser.
-  const studioUser = await getCurrentUser();
+  // getDesign decodes the route parameter itself.
+  const [design, studioUser] = await Promise.all([getDesign(rawId), getCurrentUser()]);
+  if (!design) notFound();
 
   return (
     <>

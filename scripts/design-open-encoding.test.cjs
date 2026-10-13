@@ -26,6 +26,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
 const { decodeRouteParam } = require('../src/lib/route-params.ts');
 const { getWorkspaceDesigns, getStudioProject } = require('../src/server/projects.ts');
 const { getDesign } = require('../src/server/admin/catalog.ts');
+const { ADMIN_READ_MODEL_SCHEMA } = require('../src/server/admin/read-model-schema.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
 
 test('decodeRouteParam normalizes legacy design ids from listing links', () => {
@@ -76,7 +77,9 @@ test('admin design detail resolves percent-encoded legacy ids from listing links
       CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, byte_size bigint, storage_key text, created_at timestamptz default now());
       CREATE TABLE admin_media_sizes(storage_key text primary key, byte_size bigint, checked_at timestamptz default now());
-      CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz);`);
+      CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz, view_count bigint not null default 0);
+      CREATE TABLE export_feedback(id text primary key, user_id text, project_id text);`);
+    for (const statement of ADMIN_READ_MODEL_SCHEMA) await db.exec(statement);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google')");
     await db.query("INSERT INTO legacy_records(source,entity_type,source_id,payload,source_hash) VALUES('v1','shared_designs',$1,$2,'hash')", ['d1', JSON.stringify({

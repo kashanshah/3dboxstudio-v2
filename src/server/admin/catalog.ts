@@ -41,42 +41,96 @@ export type AdminPage<T> = { items: T[]; total: number; page: number; pageSize: 
 
 const PAGE_SIZE = 24;
 
-const mediaUsages = `
-legacy_faces AS (
-  SELECT img.value->>'s3Key' AS storage_key,
-    COALESCE(NULLIF(img.value->>'name',''), NULLIF(img.key,''), 'Artwork') AS name,
-    NULLIF(img.value->>'mime','') AS mime_type,
-    NULL::bigint AS byte_size,
-    (payload->>'created_at')::timestamptz AS created_at,
-    NULLIF(payload->>'user_id','') AS user_id,
-    source || ':' || source_id AS design_id,
-    COALESCE(NULLIF(payload->>'name',''), 'Untitled') AS design_name
-  FROM legacy_records
-  CROSS JOIN LATERAL jsonb_each(CASE WHEN jsonb_typeof(payload->'images')='object' THEN payload->'images' ELSE '{}'::jsonb END) AS img(key, value)
-  WHERE entity_type='shared_designs' AND deleted_at IS NULL AND NULLIF(img.value->>'s3Key','') IS NOT NULL
-),
-legacy_previews AS (
-  SELECT payload->>'og_image_key' AS storage_key,
-    COALESCE(NULLIF(regexp_replace(payload->>'og_image_key', '^.*/', ''), ''), 'Preview') AS name,
-    'image/png' AS mime_type,
-    NULL::bigint AS byte_size,
-    (payload->>'created_at')::timestamptz AS created_at,
-    NULLIF(payload->>'user_id','') AS user_id,
-    source || ':' || source_id AS design_id,
-    COALESCE(NULLIF(payload->>'name',''), 'Untitled') AS design_name
-  FROM legacy_records
-  WHERE entity_type='shared_designs' AND deleted_at IS NULL AND NULLIF(payload->>'og_image_key','') IS NOT NULL
-),
-native_uses AS (
-  SELECT m.storage_key, m.name, m.mime_type, NULLIF(m.byte_size, 0) AS byte_size, m.created_at, m.user_id, p.id AS design_id, p.name AS design_name
-  FROM media_assets m
-  LEFT JOIN projects p ON position(m.id in p.studio_state::text) > 0
-),
-usages AS (
-  SELECT * FROM legacy_faces
-  UNION ALL SELECT * FROM legacy_previews
-  UNION ALL SELECT * FROM native_uses
-)`;
+// A legacy design's id is `source:source_id`; looking it up by those two
+// columns uses the primary key instead of scanning every legacy design.
+function legacyKey(id: string): { source: string; sourceId: string } {
+  const at = id.indexOf(':');
+  return at > 0 ? { source: id.slice(0, at), sourceId: id.slice(at + 1) } : { source: '', sourceId: '' };
+}
+
+const LEGACY_DESIGN = `lr.entity_type='shared_designs' AND lr.deleted_at IS NULL`;
+const LEGACY_IMAGES = `jsonb_each(CASE WHEN jsonb_typeof(lr.payload->'images')='object' THEN lr.payload->'images' ELSE '{}'::jsonb END)`;
+
+/**
+ * Every design, V2 and legacy, as one row shape. `nativeWhere` and
+ * `legacyWhere` filter each side before the union (aliases p and lr), so a
+ * filter by owner or id uses that side's indexes.
+ */
+function designsSql(nativeWhere: string, legacyWhere: string) {
+  return `
+    SELECT p.id, p.name, false AS legacy, p.created_at, p.updated_at, p.user_id, 0::bigint AS views,
+      NULL::text AS public_id, NULL::text AS preview_token,
+      (NULLIF(p.preview_image_key, '') IS NOT NULL) AS has_preview,
+      NULL::text AS legacy_source, NULL::text AS legacy_source_id
+    FROM projects p WHERE ${nativeWhere}
+    UNION ALL
+    SELECT lr.source || ':' || lr.source_id,
+      COALESCE(NULLIF(lr.payload->>'name',''), 'Untitled'),
+      true,
+      admin_ts(lr.payload->>'created_at'),
+      COALESCE(admin_ts(lr.payload->>'updated_at'), admin_ts(lr.payload->>'created_at')),
+      NULLIF(lr.payload->>'user_id',''),
+      COALESCE(admin_bigint(lr.payload->>'view_count'), 0),
+      lr.source_id, NULLIF(lr.payload->>'preview_token',''),
+      (NULLIF(COALESCE(lr.payload->>'v2_og_image_key', lr.payload->>'og_image_key'), '') IS NOT NULL),
+      lr.source, lr.source_id
+    FROM legacy_records lr WHERE ${LEGACY_DESIGN} AND ${legacyWhere}`;
+}
+
+/**
+ * For one design row `d` of designsSql: its distinct images and the newest
+ * one, from the media its saved state points at, or a legacy design's faces
+ * and preview.
+ */
+const IMAGE_LATERAL = `
+  LEFT JOIN LATERAL (
+    SELECT COUNT(DISTINCT k.storage_key)::int AS image_count,
+      (array_agg(k.storage_key ORDER BY k.created_at DESC NULLS LAST, k.storage_key))[1] AS thumb_storage_key
+    FROM (
+      SELECT m.storage_key, m.created_at
+      FROM projects p
+      CROSS JOIN LATERAL jsonb_array_elements_text(COALESCE(p.media_refs, '[]'::jsonb)) r(ref)
+      JOIN media_assets m ON m.id = regexp_replace(r.ref, '^/api/media/', '')
+      WHERE NOT d.legacy AND p.id = d.id
+      UNION ALL
+      SELECT img.value->>'s3Key', admin_ts(lr.payload->>'created_at')
+      FROM legacy_records lr CROSS JOIN LATERAL ${LEGACY_IMAGES} img
+      WHERE d.legacy AND lr.source = d.legacy_source AND lr.entity_type = 'shared_designs' AND lr.source_id = d.legacy_source_id
+        AND NULLIF(img.value->>'s3Key','') IS NOT NULL
+      UNION ALL
+      SELECT lr.payload->>'og_image_key', admin_ts(lr.payload->>'created_at')
+      FROM legacy_records lr
+      WHERE d.legacy AND lr.source = d.legacy_source AND lr.entity_type = 'shared_designs' AND lr.source_id = d.legacy_source_id
+        AND NULLIF(lr.payload->>'og_image_key','') IS NOT NULL
+    ) k
+  ) img ON true`;
+
+const DESIGN_IMAGES = `${IMAGE_LATERAL}
+  LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id = d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at > NOW())`;
+
+const DESIGN_COLUMNS = `d.id, d.name, d.legacy, d.created_at, d.updated_at, d.has_preview, d.public_id, d.preview_token,
+  CASE WHEN d.legacy THEN d.views ELSE COALESCE(s.view_count, 0) END AS views,
+  s.id AS share_id, s.preview_token AS share_preview_token,
+  COALESCE(img.image_count, 0) AS image_count, img.thumb_storage_key,
+  d.user_id, d.user_name, d.user_email`;
+
+/** One user's projects, designs and distinct images (`id` is the user id expression). */
+function userCountsSql(id: string) {
+  return `
+    SELECT
+      (SELECT COUNT(*)::int FROM workspace_projects wp WHERE wp.user_id = ${id}) AS project_count,
+      (SELECT COUNT(*)::int FROM projects p WHERE p.user_id = ${id})
+        + (SELECT COUNT(*)::int FROM legacy_records lr WHERE ${LEGACY_DESIGN} AND lr.payload->>'user_id' = ${id}) AS design_count,
+      (SELECT COUNT(DISTINCT k)::int FROM (
+        SELECT m.storage_key AS k FROM media_assets m WHERE m.user_id = ${id}
+        UNION ALL
+        SELECT img.value->>'s3Key' FROM legacy_records lr CROSS JOIN LATERAL ${LEGACY_IMAGES} img
+        WHERE ${LEGACY_DESIGN} AND lr.payload->>'user_id' = ${id} AND NULLIF(img.value->>'s3Key','') IS NOT NULL
+        UNION ALL
+        SELECT lr.payload->>'og_image_key' FROM legacy_records lr
+        WHERE ${LEGACY_DESIGN} AND lr.payload->>'user_id' = ${id} AND NULLIF(lr.payload->>'og_image_key','') IS NOT NULL
+      ) keys) AS media_count`;
+}
 
 type MediaQueryRow = {
   storage_key: string;
@@ -205,7 +259,7 @@ const USER_SORT_SQL: Record<(typeof USER_SORTS)[number], string> = {
 const DESIGN_SORT_SQL: Record<(typeof DESIGN_SORTS)[number], string> = {
   name: `lower(COALESCE(NULLIF(d.name,''), 'Untitled'))`,
   owner: `lower(COALESCE(NULLIF(u.name,''), u.email, ''))`,
-  images: `image_count`,
+  images: `img.image_count`,
   source: `CASE WHEN d.legacy THEN 'legacy' ELSE 'v2' END`,
   updated: `d.updated_at`,
 };
@@ -319,46 +373,40 @@ export async function listUsers(input: { q?: string; page?: number; sort?: strin
   const offset = (page - 1) * PAGE_SIZE;
   const sort = parseAdminSort(input.sort, USER_SORTS, 'joined');
   const dir = parseAdminDir(input.dir, 'desc');
+  // Counts are worked out for the page's users only, unless the list is
+  // sorted by one of them.
+  const countSort = sort === 'projects' || sort === 'designs' || sort === 'media';
+  const order = orderSql(USER_SORT_SQL[sort], dir, 'u.id');
   const rows = await getSql().query(`
-    WITH ${mediaUsages},
-    design_rows AS (
-      SELECT id, user_id FROM projects
-      UNION ALL
-      SELECT source || ':' || source_id, NULLIF(payload->>'user_id','')
-      FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
+    WITH page AS (
+      SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
+        ${countSort ? 'c.project_count, c.design_count, c.media_count,' : ''}
+        COUNT(*) OVER()::int AS total, ROW_NUMBER() OVER (ORDER BY ${order}) AS ord
+      FROM users u
+      ${countSort ? `CROSS JOIN LATERAL (${userCountsSql('u.id')}) c` : ''}
+      WHERE $1='' OR strpos(lower(COALESCE(u.name,'')), lower($1))>0 OR strpos(lower(u.email), lower($1))>0
+      ORDER BY ${order}
+      LIMIT $2 OFFSET $3
     )
-    SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
-      (SELECT COUNT(*)::int FROM workspace_projects wp WHERE wp.user_id=u.id) AS project_count,
-      (SELECT COUNT(*)::int FROM design_rows d WHERE d.user_id=u.id) AS design_count,
-      (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE user_id=u.id) AS media_count,
-      COUNT(*) OVER()::int AS total
-    FROM users u
-    WHERE $1='' OR strpos(lower(COALESCE(u.name,'')), lower($1))>0 OR strpos(lower(u.email), lower($1))>0
-    ORDER BY ${orderSql(USER_SORT_SQL[sort], dir, 'u.id')}
-    LIMIT $2 OFFSET $3
+    SELECT page.*${countSort ? '' : ', c.project_count, c.design_count, c.media_count'}
+    FROM page ${countSort ? '' : `CROSS JOIN LATERAL (${userCountsSql('page.id')}) c`}
+    ORDER BY page.ord
   `, [q, PAGE_SIZE, offset]) as Array<Parameters<typeof presentUser>[0] & { total: number }>;
   return { items: rows.map(presentUser), total: Number(rows[0]?.total ?? 0), page, pageSize: PAGE_SIZE };
 }
 
 export async function getUser(id: string, list?: { sort?: string; dir?: string }): Promise<AdminUserDetail | null> {
   await ensureV2Schema();
-  const rows = await getSql().query(`
-    WITH ${mediaUsages},
-    design_rows AS (
-      SELECT id, user_id FROM projects
-      UNION ALL
-      SELECT source || ':' || source_id, NULLIF(payload->>'user_id','')
-      FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
-    )
-    SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
-      (SELECT COUNT(*)::int FROM workspace_projects wp WHERE wp.user_id=u.id) AS project_count,
-      (SELECT COUNT(*)::int FROM design_rows d WHERE d.user_id=u.id) AS design_count,
-      (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE user_id=u.id) AS media_count
-    FROM users u WHERE u.id=$1 LIMIT 1
-  `, [id]) as Parameters<typeof presentUser>[0][];
+  const [rows, designs] = await Promise.all([
+    getSql().query(`
+      SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at, c.*
+      FROM users u CROSS JOIN LATERAL (${userCountsSql('u.id')}) c
+      WHERE u.id=$1 LIMIT 1
+    `, [id]).then((result) => result as Parameters<typeof presentUser>[0][]),
+    listDesigns({ userId: id, page: 1, pageSize: 100, sort: list?.sort, dir: list?.dir }),
+  ]);
   const user = rows[0];
   if (!user) return null;
-  const designs = await listDesigns({ userId: id, page: 1, pageSize: 100, sort: list?.sort, dir: list?.dir });
   return { ...presentUser(user), designs: designs.items };
 }
 
@@ -376,49 +424,10 @@ export type AdminUserDesignItem = {
 };
 
 export async function listUserDesigns(userId: string, input: { page?: number; pageSize?: number } = {}): Promise<AdminPage<AdminUserDesignItem>> {
-  await ensureV2Schema();
   const page = input.page && Number.isInteger(input.page) && input.page > 0 ? input.page : 1;
   const pageSize = input.pageSize && Number.isInteger(input.pageSize) ? Math.min(100, Math.max(1, input.pageSize)) : 100;
-  const offset = (page - 1) * pageSize;
-  const rows = await getSql().query(`
-    WITH ${mediaUsages},
-    designs AS (
-      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views,
-        (NULLIF(preview_image_key, '') IS NOT NULL) AS has_preview,
-        NULL::text AS public_id, NULL::text AS preview_token
-      FROM projects
-      UNION ALL
-      SELECT source || ':' || source_id,
-        COALESCE(NULLIF(payload->>'name',''), 'Untitled'),
-        true,
-        (payload->>'created_at')::timestamptz,
-        COALESCE((payload->>'updated_at')::timestamptz, (payload->>'created_at')::timestamptz),
-        NULLIF(payload->>'user_id',''),
-        COALESCE((payload->>'view_count')::bigint, 0),
-        (NULLIF(COALESCE(payload->>'v2_og_image_key', payload->>'og_image_key'), '') IS NOT NULL),
-        source_id, NULLIF(payload->>'preview_token','')
-      FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
-    )
-    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
-      d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
-      (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
-      (SELECT storage_key FROM usages WHERE design_id=d.id ORDER BY created_at DESC NULLS LAST, storage_key LIMIT 1) AS thumb_storage_key,
-      COUNT(*) OVER()::int AS total
-    FROM designs d
-    LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
-    WHERE d.user_id=$1
-    ORDER BY d.updated_at DESC NULLS LAST, d.id
-    LIMIT $2 OFFSET $3
-  `, [userId, pageSize, offset]) as DesignQueryRow[];
-  return {
-    items: rows.map((row) => ({
-      ...presentDesign(row),
-      href: adminDesignHref(row.id),
-    })),
-    total: Number(rows[0]?.total ?? 0),
-    page,
-    pageSize,
-  };
+  const designs = await listDesigns({ userId, page, pageSize, sort: 'updated', dir: 'desc' });
+  return { ...designs, items: designs.items.map((item) => ({ ...item, href: adminDesignHref(item.id) })) };
 }
 
 export type AdminUserProjectItem = {
@@ -438,21 +447,14 @@ export async function listUserProjects(userId: string, input: { page?: number; p
   const pageSize = input.pageSize && Number.isInteger(input.pageSize) ? Math.min(100, Math.max(1, input.pageSize)) : 100;
   const offset = (page - 1) * pageSize;
   const rows = await getSql().query(`
-    SELECT
-      wp.id, wp.name, wp.is_default, wp.created_at,
-      GREATEST(
-        wp.updated_at,
-        COALESCE(MAX(d.updated_at), wp.updated_at),
-        COALESCE(MAX(s.updated_at), wp.updated_at)
-      ) AS updated_at,
-      COUNT(DISTINCT d.id)::int AS design_count,
-      COUNT(DISTINCT s.id)::int AS scene_count,
+    SELECT wp.id, wp.name, wp.is_default, wp.created_at,
+      GREATEST(wp.updated_at, COALESCE(d.updated_at, wp.updated_at), COALESCE(sc.updated_at, wp.updated_at)) AS updated_at,
+      COALESCE(d.count, 0) AS design_count, COALESCE(sc.count, 0) AS scene_count,
       COUNT(*) OVER()::int AS total
     FROM workspace_projects wp
-    LEFT JOIN projects d ON d.workspace_project_id=wp.id
-    LEFT JOIN scenes s ON s.workspace_project_id=wp.id
+    LEFT JOIN LATERAL (SELECT COUNT(*)::int AS count, MAX(p.updated_at) AS updated_at FROM projects p WHERE p.user_id=wp.user_id AND p.workspace_project_id=wp.id) d ON true
+    LEFT JOIN LATERAL (SELECT COUNT(*)::int AS count, MAX(x.updated_at) AS updated_at FROM scenes x WHERE x.user_id=wp.user_id AND x.workspace_project_id=wp.id) sc ON true
     WHERE wp.user_id=$1
-    GROUP BY wp.id
     ORDER BY wp.is_default DESC, updated_at DESC NULLS LAST, wp.id
     LIMIT $2 OFFSET $3
   `, [userId, pageSize, offset]) as {
@@ -486,18 +488,19 @@ export async function getDesignPreviewSource(id: string): Promise<{ dataUrl: str
   await ensureV2Schema();
   const designId = decodeRouteParam(id).slice(0, 200);
   if (!designId) return null;
+  const legacy = legacyKey(designId);
   const rows = await getSql().query(`
-    SELECT preview, legacy FROM (
-      SELECT preview_image_key AS preview, false AS legacy, 0 AS ord FROM projects WHERE id=$1
+    SELECT preview FROM (
+      SELECT preview_image_key AS preview, 0 AS ord FROM projects WHERE id=$1
       UNION ALL
-      SELECT COALESCE(NULLIF(payload->>'v2_og_image_key',''), NULLIF(payload->>'og_image_key','')), true, 1
+      SELECT COALESCE(NULLIF(payload->>'v2_og_image_key',''), NULLIF(payload->>'og_image_key','')), 1
       FROM legacy_records
-      WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
+      WHERE source=$2 AND entity_type='shared_designs' AND source_id=$3 AND deleted_at IS NULL
     ) sources
     WHERE NULLIF(preview, '') IS NOT NULL
     ORDER BY ord
     LIMIT 1
-  `, [designId]) as { preview: string; legacy: boolean }[];
+  `, [designId, legacy.source, legacy.sourceId]) as { preview: string }[];
   const preview = rows[0]?.preview?.trim();
   if (!preview) return null;
   if (preview.startsWith('data:image/')) return { dataUrl: preview };
@@ -514,38 +517,24 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
   const userId = input.userId ?? '';
   const sort = parseAdminSort(input.sort, DESIGN_SORTS, 'updated');
   const dir = parseAdminDir(input.dir, 'desc');
+  const order = orderSql(DESIGN_SORT_SQL[sort], dir, 'd.id');
+  // The page is chosen first; images, thumbnails and shares are then looked
+  // up for its rows only (images for every row only when sorting by them).
   const rows = await getSql().query(`
-    WITH ${mediaUsages},
-    designs AS (
-      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views,
-        NULL::text AS public_id, NULL::text AS preview_token,
-        (NULLIF(preview_image_key, '') IS NOT NULL) AS has_preview
-      FROM projects
-      UNION ALL
-      SELECT source || ':' || source_id,
-        COALESCE(NULLIF(payload->>'name',''), 'Untitled'),
-        true,
-        (payload->>'created_at')::timestamptz,
-        COALESCE((payload->>'updated_at')::timestamptz, (payload->>'created_at')::timestamptz),
-        NULLIF(payload->>'user_id',''),
-        COALESCE((payload->>'view_count')::bigint, 0),
-        source_id, NULLIF(payload->>'preview_token',''),
-        (NULLIF(COALESCE(payload->>'v2_og_image_key', payload->>'og_image_key'), '') IS NOT NULL)
-      FROM legacy_records WHERE entity_type='shared_designs' AND deleted_at IS NULL
+    WITH designs AS (${designsSql(`($1='' OR p.user_id=$1)`, `($1='' OR lr.payload->>'user_id'=$1)`)}),
+    d AS (
+      SELECT d.*, u.name AS user_name, u.email AS user_email,
+        COUNT(*) OVER()::int AS total, ROW_NUMBER() OVER (ORDER BY ${order}) AS ord
+      FROM designs d
+      LEFT JOIN users u ON u.id=d.user_id
+      ${sort === 'images' ? IMAGE_LATERAL : ''}
+      WHERE $2='' OR strpos(lower(COALESCE(d.name,'')), lower($2))>0 OR strpos(lower(COALESCE(u.name,'')), lower($2))>0 OR strpos(lower(COALESCE(u.email,'')), lower($2))>0
+      ORDER BY ${order}
+      LIMIT $3 OFFSET $4
     )
-    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
-      d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
-      (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
-      (SELECT storage_key FROM usages WHERE design_id=d.id ORDER BY created_at DESC NULLS LAST, storage_key LIMIT 1) AS thumb_storage_key,
-      d.user_id, u.name AS user_name, u.email AS user_email,
-      COUNT(*) OVER()::int AS total
-    FROM designs d
-    LEFT JOIN users u ON u.id=d.user_id
-    LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
-    WHERE ($1='' OR d.user_id=$1)
-      AND ($2='' OR strpos(lower(COALESCE(d.name,'')), lower($2))>0 OR strpos(lower(COALESCE(u.name,'')), lower($2))>0 OR strpos(lower(COALESCE(u.email,'')), lower($2))>0)
-    ORDER BY ${orderSql(DESIGN_SORT_SQL[sort], dir, 'd.id')}
-    LIMIT $3 OFFSET $4
+    SELECT ${DESIGN_COLUMNS}, d.total
+    FROM d ${DESIGN_IMAGES}
+    ORDER BY d.ord
   `, [userId, q, pageSize, offset]) as DesignQueryRow[];
   return { items: rows.map(presentDesign), total: Number(rows[0]?.total ?? 0), page, pageSize };
 }
@@ -553,39 +542,21 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
 export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
   await ensureV2Schema();
   const designId = decodeRouteParam(id);
-  const rows = await getSql().query(`
-    WITH ${mediaUsages},
-    designs AS (
-      SELECT id, name, false AS legacy, created_at, updated_at, user_id, 0::bigint AS views,
-        (NULLIF(preview_image_key, '') IS NOT NULL) AS has_preview,
-        NULL::text AS public_id, NULL::text AS preview_token
-      FROM projects WHERE id=$1
-      UNION ALL
-      SELECT source || ':' || source_id,
-        COALESCE(NULLIF(payload->>'name',''), 'Untitled'),
-        true,
-        (payload->>'created_at')::timestamptz,
-        COALESCE((payload->>'updated_at')::timestamptz, (payload->>'created_at')::timestamptz),
-        NULLIF(payload->>'user_id',''),
-        COALESCE((payload->>'view_count')::bigint, 0),
-        (NULLIF(COALESCE(payload->>'v2_og_image_key', payload->>'og_image_key'), '') IS NOT NULL),
-        source_id, NULLIF(payload->>'preview_token','')
-      FROM legacy_records
-      WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
-    )
-    SELECT d.id, d.name, d.legacy, d.created_at, d.updated_at, d.views, d.has_preview,
-      d.public_id, d.preview_token, s.id AS share_id, s.preview_token AS share_preview_token,
-      (SELECT COUNT(DISTINCT storage_key)::int FROM usages WHERE design_id=d.id) AS image_count,
-      (SELECT storage_key FROM usages WHERE design_id=d.id ORDER BY created_at DESC NULLS LAST, storage_key LIMIT 1) AS thumb_storage_key,
-      d.user_id, u.name AS user_name, u.email AS user_email
-    FROM designs d
-    LEFT JOIN users u ON u.id=d.user_id
-    LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id=d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at>NOW())
-    LIMIT 1
-  `, [designId]) as DesignQueryRow[];
+  const legacy = legacyKey(designId);
+  const [rows, media] = await Promise.all([
+    getSql().query(`
+      WITH d AS (
+        SELECT d.*, u.name AS user_name, u.email AS user_email
+        FROM (${designsSql('p.id=$1', 'lr.source=$2 AND lr.source_id=$3')}) d
+        LEFT JOIN users u ON u.id=d.user_id
+        LIMIT 1
+      )
+      SELECT ${DESIGN_COLUMNS} FROM d ${DESIGN_IMAGES}
+    `, [designId, legacy.source, legacy.sourceId]).then((result) => result as DesignQueryRow[]),
+    listMedia({ designId, page: 1, pageSize: 100 }),
+  ]);
   const design = rows[0];
   if (!design) return null;
-  const media = await listMedia({ designId, page: 1, pageSize: 100 });
   return { ...presentDesign(design), images: media.items };
 }
 
@@ -613,12 +584,13 @@ export async function getAdminDesignView(id: string): Promise<AdminDesignView | 
       state: rewriteAdminMediaUrls(project.studio_state, project.id),
     };
   }
+  const key = legacyKey(designId);
   const legacyRows = await sql.query(`
     SELECT source, source_id, payload
     FROM legacy_records
-    WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
+    WHERE source=$1 AND entity_type='shared_designs' AND source_id=$2 AND deleted_at IS NULL
     LIMIT 1
-  `, [designId]) as { source: string; source_id: string; payload: unknown }[];
+  `, [key.source, key.sourceId]) as { source: string; source_id: string; payload: unknown }[];
   const legacy = legacyRows[0];
   if (!legacy) return null;
   const converted = legacyDesignToStudioProject({
@@ -663,12 +635,13 @@ export async function getAdminDesignLegacyMedia(id: string, faceId: string): Pro
   if (!designId || !FACE_ID.test(faceId)) return null;
   await ensureV2Schema();
   const sql = getSql();
+  const key = legacyKey(designId);
   const legacyRows = await sql.query(`
     SELECT source, source_id, payload
     FROM legacy_records
-    WHERE entity_type='shared_designs' AND deleted_at IS NULL AND source || ':' || source_id=$1
+    WHERE source=$1 AND entity_type='shared_designs' AND source_id=$2 AND deleted_at IS NULL
     LIMIT 1
-  `, [designId]) as { source: string; source_id: string; payload: unknown }[];
+  `, [key.source, key.sourceId]) as { source: string; source_id: string; payload: unknown }[];
   const legacy = legacyRows[0];
   if (!legacy) return null;
   const payload = jsonRecord(legacy.payload);
@@ -703,10 +676,54 @@ export async function listMedia(input: { q?: string; page?: number; pageSize?: n
   const offset = (page - 1) * pageSize;
   const userId = input.userId ?? '';
   const designId = input.designId ?? '';
+  const legacy = legacyKey(designId);
   const sort = parseAdminSort(input.sort, MEDIA_SORTS, 'added');
   const dir = parseAdminDir(input.dir, 'desc');
+  // Which designs use each image is looked up for the page only, unless the
+  // list is sorted or searched by them.
+  const designsFirst = sort === 'designs' || q !== '';
+  const order = orderSql(MEDIA_SORT_SQL[sort], dir, 'g.storage_key');
+  const designsOf = (g: string) => `
+    SELECT ${g}.legacy_designs || COALESCE((
+      SELECT jsonb_agg(DISTINCT jsonb_build_object('id', p.id, 'name', p.name))
+      FROM projects p
+      WHERE cardinality(${g}.asset_ids) > 0
+        AND p.media_refs ?| (${g}.asset_ids || ARRAY(SELECT '/api/media/' || a FROM unnest(${g}.asset_ids) a))
+    ), '[]'::jsonb) AS designs`;
   const rows = await getSql().query(`
-    WITH ${mediaUsages},
+    WITH legacy_keys AS (
+      SELECT img.value->>'s3Key' AS storage_key,
+        COALESCE(NULLIF(img.value->>'name',''), NULLIF(img.key,''), 'Artwork') AS name,
+        NULLIF(img.value->>'mime','') AS mime_type,
+        admin_ts(lr.payload->>'created_at') AS created_at,
+        NULLIF(lr.payload->>'user_id','') AS user_id,
+        lr.source || ':' || lr.source_id AS design_id,
+        COALESCE(NULLIF(lr.payload->>'name',''), 'Untitled') AS design_name
+      FROM legacy_records lr CROSS JOIN LATERAL ${LEGACY_IMAGES} img(key, value)
+      WHERE ${LEGACY_DESIGN} AND NULLIF(img.value->>'s3Key','') IS NOT NULL
+        AND ($1='' OR lr.payload->>'user_id'=$1) AND ($2='' OR (lr.source=$6 AND lr.source_id=$7))
+      UNION ALL
+      SELECT lr.payload->>'og_image_key',
+        COALESCE(NULLIF(regexp_replace(lr.payload->>'og_image_key', '^.*/', ''), ''), 'Preview'),
+        'image/png', admin_ts(lr.payload->>'created_at'), NULLIF(lr.payload->>'user_id',''),
+        lr.source || ':' || lr.source_id, COALESCE(NULLIF(lr.payload->>'name',''), 'Untitled')
+      FROM legacy_records lr
+      WHERE ${LEGACY_DESIGN} AND NULLIF(lr.payload->>'og_image_key','') IS NOT NULL
+        AND ($1='' OR lr.payload->>'user_id'=$1) AND ($2='' OR (lr.source=$6 AND lr.source_id=$7))
+    ),
+    items AS (
+      SELECT m.storage_key, m.name, m.mime_type, NULLIF(m.byte_size, 0) AS byte_size, m.created_at, m.user_id,
+        m.id AS asset_id, NULL::text AS design_id, NULL::text AS design_name
+      FROM media_assets m
+      WHERE ($1='' OR m.user_id=$1)
+        AND ($2='' OR m.id IN (
+          SELECT regexp_replace(r.ref, '^/api/media/', '')
+          FROM projects p CROSS JOIN LATERAL jsonb_array_elements_text(COALESCE(p.media_refs, '[]'::jsonb)) r(ref)
+          WHERE p.id=$2
+        ))
+      UNION ALL
+      SELECT storage_key, name, mime_type, NULL::bigint, created_at, user_id, NULL, design_id, design_name FROM legacy_keys
+    ),
     grouped AS (
       SELECT storage_key,
         (array_agg(name ORDER BY created_at DESC NULLS LAST))[1] AS name,
@@ -714,22 +731,31 @@ export async function listMedia(input: { q?: string; page?: number; pageSize?: n
         MAX(byte_size) AS byte_size,
         MAX(created_at) AS created_at,
         (array_agg(user_id ORDER BY created_at DESC NULLS LAST) FILTER (WHERE user_id IS NOT NULL))[1] AS user_id,
-        COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', design_id, 'name', design_name)) FILTER (WHERE design_id IS NOT NULL), '[]'::jsonb) AS designs
-      FROM usages
+        COALESCE(array_agg(DISTINCT asset_id) FILTER (WHERE asset_id IS NOT NULL), '{}') AS asset_ids,
+        COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id', design_id, 'name', design_name)) FILTER (WHERE design_id IS NOT NULL), '[]'::jsonb) AS legacy_designs
+      FROM items
       WHERE storage_key IS NOT NULL
       GROUP BY storage_key
+    ),
+    g AS (
+      SELECT g.*${designsFirst ? ', ud.designs' : ''}
+      FROM grouped g ${designsFirst ? `CROSS JOIN LATERAL (${designsOf('g')}) ud` : ''}
+    ),
+    page AS (
+      SELECT g.*, u.name AS user_name, u.email AS user_email,
+        COUNT(*) OVER()::int AS total, ROW_NUMBER() OVER (ORDER BY ${order}) AS ord
+      FROM g
+      LEFT JOIN users u ON u.id=g.user_id
+      WHERE $3='' OR strpos(lower(COALESCE(g.name,'')), lower($3))>0 OR strpos(lower(COALESCE(u.name,'')), lower($3))>0 OR strpos(lower(COALESCE(u.email,'')), lower($3))>0
+        ${designsFirst ? `OR EXISTS (SELECT 1 FROM jsonb_array_elements(g.designs) x WHERE strpos(lower(COALESCE(x->>'name','')), lower($3))>0)` : ''}
+      ORDER BY ${order}
+      LIMIT $4 OFFSET $5
     )
-    SELECT g.storage_key, g.name, g.mime_type, g.byte_size, g.created_at, g.user_id, g.designs,
-      u.name AS user_name, u.email AS user_email, COUNT(*) OVER()::int AS total
-    FROM grouped g
-    LEFT JOIN users u ON u.id=g.user_id
-    WHERE ($1='' OR g.user_id=$1)
-      AND ($2='' OR EXISTS (SELECT 1 FROM jsonb_array_elements(g.designs) d WHERE d->>'id'=$2))
-      AND ($3='' OR strpos(lower(COALESCE(g.name,'')), lower($3))>0 OR strpos(lower(COALESCE(u.name,'')), lower($3))>0 OR strpos(lower(COALESCE(u.email,'')), lower($3))>0
-        OR EXISTS (SELECT 1 FROM jsonb_array_elements(g.designs) d WHERE strpos(lower(COALESCE(d->>'name','')), lower($3))>0))
-    ORDER BY ${orderSql(MEDIA_SORT_SQL[sort], dir, 'g.storage_key')}
-    LIMIT $4 OFFSET $5
-  `, [userId, designId, q, pageSize, offset]) as MediaQueryRow[];
+    SELECT page.storage_key, page.name, page.mime_type, page.byte_size, page.created_at, page.user_id,
+      page.user_name, page.user_email, page.total, ${designsFirst ? 'page.designs' : 'ud.designs'}
+    FROM page ${designsFirst ? '' : `CROSS JOIN LATERAL (${designsOf('page')}) ud`}
+    ORDER BY page.ord
+  `, [userId, designId, q, pageSize, offset, legacy.source, legacy.sourceId]) as MediaQueryRow[];
   const missing = rows.filter((row) => row.byte_size == null);
   const sizes = await resolveMediaSizes(missing.map((row) => row.storage_key));
   for (const row of missing) row.byte_size = sizes.get(row.storage_key) ?? null;
@@ -739,16 +765,26 @@ export async function listMedia(input: { q?: string; page?: number; pageSize?: n
 export async function findListedMedia(storageKey: string): Promise<{ name: string; mimeType: string | null } | null> {
   if (!isCatalogMediaKey(storageKey)) return null;
   await ensureV2Schema();
-  const rows = await getSql().query(`
-    WITH ${mediaUsages}
-    SELECT name, mime_type FROM (
-      SELECT (array_agg(name ORDER BY created_at DESC NULLS LAST))[1] AS name,
-        (array_agg(mime_type ORDER BY created_at DESC NULLS LAST) FILTER (WHERE mime_type IS NOT NULL))[1] AS mime_type,
-        COUNT(*)::int AS found
-      FROM usages WHERE storage_key=$1
-    ) listed WHERE found > 0
+  const sql = getSql();
+  // Uploaded images are found by their indexed key; only a key no upload has
+  // is looked for among legacy designs' faces and previews.
+  const native = await sql.query(`
+    SELECT name, mime_type FROM media_assets WHERE storage_key=$1 ORDER BY created_at DESC NULLS LAST LIMIT 1
   `, [storageKey]) as { name: string | null; mime_type: string | null }[];
-  const row = rows[0];
+  const row = native[0] ?? (await sql.query(`
+    SELECT name, mime_type FROM (
+      SELECT COALESCE(NULLIF(img.value->>'name',''), NULLIF(img.key,''), 'Artwork') AS name, NULLIF(img.value->>'mime','') AS mime_type,
+        admin_ts(lr.payload->>'created_at') AS created_at
+      FROM legacy_records lr CROSS JOIN LATERAL ${LEGACY_IMAGES} img(key, value)
+      WHERE ${LEGACY_DESIGN} AND img.value->>'s3Key'=$1
+      UNION ALL
+      SELECT COALESCE(NULLIF(regexp_replace(lr.payload->>'og_image_key', '^.*/', ''), ''), 'Preview'), 'image/png', admin_ts(lr.payload->>'created_at')
+      FROM legacy_records lr
+      WHERE ${LEGACY_DESIGN} AND lr.payload->>'og_image_key'=$1
+    ) legacy
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 1
+  `, [storageKey]) as { name: string | null; mime_type: string | null }[])[0];
   if (!row) return null;
   return { name: row.name?.trim() || fileName(storageKey), mimeType: row.mime_type };
 }

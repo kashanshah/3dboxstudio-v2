@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { AdminSignupMethod, AdminVerificationStatus } from '@/components/admin/admin-user-status';
 import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
@@ -25,6 +26,8 @@ export default async function AdminUsersPage({ searchParams }: Props) {
   const result = await listUsers({ q, page, sort, dir });
   const filters = { q, sort, dir };
   const href = (next: number) => adminListHref('/admin/users', { ...filters, page: next > 1 ? next : undefined }, { sort: 'joined', dir: 'desc' });
+  // Past the last page (a stale link, or rows deleted since): back to the first.
+  if (!result.items.length && result.page > 1) redirect(href(1));
   const sortHref = (column: string, nextDir: 'asc' | 'desc') => adminListHref('/admin/users', { ...filters, sort: column, dir: nextDir, page: undefined }, { sort: 'joined', dir: 'desc' });
 
   return (

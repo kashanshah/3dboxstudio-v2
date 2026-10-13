@@ -1,4 +1,7 @@
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
+import { readAdminCache, writeAdminCache } from './admin-cache';
+
+const STORED_MS=30*60000;
 export type StorageStats={available:boolean;objects:number;bytes:number;last7Days:number;last30Days:number;partial:boolean;message?:string;prefix:string};
 let cache:{expires:number;value:StorageStats}|undefined;
 export async function getStorageStats():Promise<StorageStats>{
@@ -7,6 +10,8 @@ export async function getStorageStats():Promise<StorageStats>{
   if(!bucket||!region||!prefix) return {...empty,message:'Configure AWS_S3_BUCKET, AWS_REGION, and a V2 AWS_S3_PREFIX to show storage usage.'};
   if(!prefix.startsWith('v2/')) return {...empty,message:'Storage reporting requires a V2 prefix.'};
   if(cache&&cache.expires>Date.now())return cache.value;
+  const stored=await readAdminCache<StorageStats>(`storage-stats:${bucket}:${prefix}`);
+  if(stored){cache={expires:Date.now()+5*60000,value:stored};return stored;}
   const client=new S3Client({region});
   try{
     let token:string|undefined;const now=Date.now(),value={...empty,available:true},abortSignal=AbortSignal.timeout(15000);
@@ -15,7 +20,7 @@ export async function getStorageStats():Promise<StorageStats>{
       for(const object of result.Contents??[]){if(!object.Key)continue;value.objects++;value.bytes+=object.Size??0;const age=now-(object.LastModified?.getTime()??0);if(age>=0&&age<30*86400000)value.last30Days++;if(age>=0&&age<7*86400000)value.last7Days++;}
       token=result.IsTruncated?result.NextContinuationToken:undefined;if(!token)break;
     }
-    value.partial=Boolean(token);cache={expires:now+5*60000,value};return value;
+    value.partial=Boolean(token);cache={expires:now+5*60000,value};await writeAdminCache(`storage-stats:${bucket}:${prefix}`,value,STORED_MS);return value;
   }catch{return {...empty,message:'Storage inventory is unavailable. Check AWS configuration and ListBucket permission.'};}
   finally{client.destroy();}
 }

@@ -57,7 +57,14 @@ function mapSummary(row: Record<string, unknown>): SentEmailSummary | null {
 async function resendGet(path: string): Promise<ResendResult<unknown>> {
   const key = process.env.RESEND_API_KEY?.trim();
   if (!key) return { ok: false, error: 'RESEND_API_KEY is not configured.' };
-  const response = await fetch(`${ENDPOINT}${path}`, { headers: { Authorization: `Bearer ${key}` }, cache: 'no-store' });
+  // A slow Resend must not hold the admin page open indefinitely.
+  let response: Response;
+  try {
+    response = await fetch(`${ENDPOINT}${path}`, { headers: { Authorization: `Bearer ${key}` }, cache: 'no-store', signal: AbortSignal.timeout(10000) });
+  } catch (error) {
+    const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
+    return { ok: false, error: timedOut ? 'Resend did not respond in time. Try again.' : 'Could not reach Resend.' };
+  }
   const body = await response.json().catch(() => null) as { message?: unknown } | null;
   if (!response.ok) {
     const message = typeof body?.message === 'string' && body.message.trim() ? body.message : `Resend request failed (${response.status}).`;

@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminListSearch } from '@/components/admin/admin-list-search';
@@ -23,6 +24,8 @@ export default async function AdminMediaPage({ searchParams }: Props) {
   const result = await listMedia({ q, page, userId, designId, sort, dir });
   const filters = { q, user: userId, design: designId, sort, dir };
   const href = (next: number) => adminListHref('/admin/media', { ...filters, page: next > 1 ? next : undefined }, { sort: 'added', dir: 'desc' });
+  // Past the last page (a stale link, or rows deleted since): back to the first.
+  if (!result.items.length && result.page > 1) redirect(href(1));
   const sortHref = (column: string, nextDir: 'asc' | 'desc') => adminListHref('/admin/media', { ...filters, sort: column, dir: nextDir, page: undefined }, { sort: 'added', dir: 'desc' });
   return (
     <>

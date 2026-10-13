@@ -1,5 +1,6 @@
 import { CostExplorerClient, GetCostAndUsageCommand, GetCostForecastCommand } from '@aws-sdk/client-cost-explorer';
 import { optionalEnv } from '@/server/env';
+import { readAdminCache, writeAdminCache } from './admin-cache';
 
 export type AwsServiceCost = { name: string; amount: number };
 export type AwsCostEstimate = {
@@ -40,6 +41,11 @@ export async function getAwsCost(): Promise<AwsCostEstimate> {
   const accessKeyId = optionalEnv('AWS_ACCESS_KEY_ID');
   const secretAccessKey = optionalEnv('AWS_SECRET_ACCESS_KEY');
   if (!accessKeyId || !secretAccessKey) return empty('Configure AWS credentials to show estimated AWS cost.');
+  const stored = await readAdminCache<AwsCostEstimate>('aws-cost');
+  if (stored) {
+    cache = { expires: Date.now() + FAILURE_CACHE_MS, value: stored };
+    return stored;
+  }
 
   const now = new Date();
   const year = now.getUTCFullYear();
@@ -90,6 +96,7 @@ export async function getAwsCost(): Promise<AwsCostEstimate> {
       services,
     };
     cache = { expires: Date.now() + SUCCESS_CACHE_MS, value };
+    await writeAdminCache('aws-cost', value, SUCCESS_CACHE_MS);
     return value;
   } catch (error) {
     console.error('AWS cost estimate failed', error instanceof Error ? error.name : 'error');
