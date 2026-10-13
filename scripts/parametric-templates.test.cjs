@@ -554,6 +554,37 @@ test('adjustable sizes replace the template’s own, within their limits, and ev
   }
 });
 
+test('every split top flap pair is a size of its own, and an outer pair cut a board longer closes in 3D',()=>{
+  const split=getTemplateRuntime('split-top-box');
+  const d={width:400,height:300,depth:300,thickness:3};
+  for(const side of ['side_a','side_b']){
+    const options={openingMode:'top_split_meet_center',splitTopHingeSide:side};
+    const keys=split.getAdjustableSizes(d,options).map(size=>size.key);
+    assert.deepEqual(keys,['joint','topLongFlap','topEndFlap','bottomLongFlap','bottomEndFlap']);
+    assert.deepEqual(split.getAdjustedPanels(d,'topLongFlap',options).sort(),['topBack','topFront']);
+    assert.deepEqual(split.getAdjustedPanels(d,'topEndFlap',options).sort(),['topLeft','topRight']);
+    assert.deepEqual(split.getAdjustedPanels(d,'bottomLongFlap',options).sort(),['bottomBack','bottomFront']);
+    assert.deepEqual(split.getAdjustedPanels(d,'bottomEndFlap',options).sort(),['bottomLeft','bottomRight']);
+    // The pairs that meet in the middle, folded closed at their longest.
+    const outerTop=side==='side_a'?['Top Left','Top Right',0]:['Top Front','Top Back',2];
+    const longest={...d,adjustments:{topLongFlap:1e6,topEndFlap:1e6,bottomLongFlap:1e6}};
+    const meshes=split.buildMeshes({dimensions:longest,formation:100,opening:0,openingMode:'top_split_meet_center',splitTopHingeSide:side,color:[1,1,1],interiorColor:[1,1,1]});
+    const span=(name,axis)=>{
+      const mesh=meshes.find(item=>item.panel===name),m=mesh.model,values=[];
+      for(const i of [0,1,2,5]){
+        const [x,y,z]=[mesh.vertices[i*8],mesh.vertices[i*8+1],mesh.vertices[i*8+2]];
+        values.push(m?[m[0]*x+m[4]*y+m[8]*z+m[12],m[1]*x+m[5]*y+m[9]*z+m[13],m[2]*x+m[6]*y+m[10]*z+m[14]][axis]:[x,y,z][axis]);
+      }
+      return [Math.min(...values),Math.max(...values)];
+    };
+    for(const [a,b,axis] of [outerTop,['Bottom Front','Bottom Back',2]]){
+      const [sa,sb]=[span(a,axis),span(b,axis)];
+      const gap=Math.max(sa[0],sb[0])-Math.min(sa[1],sb[1]);
+      assert.ok(gap>=0&&gap<1,`${side}: ${a} and ${b} meet (gap ${gap.toFixed(2)} mm)`);
+    }
+  }
+});
+
 test('the unadjusted sheets have no overlapping panels either',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
