@@ -4671,3 +4671,18 @@ body{font-size:var(--type-body)}
 .pro-text-editor-swatches .pro-swatch-none{background:linear-gradient(135deg,#fff calc(50% - 1px),#b42318 calc(50% - 1px),#b42318 calc(50% + 1px),#fff calc(50% + 1px))}
 .pro-graphic-check{display:flex;align-items:center;gap:8px;font-size:13px}
 .pro-graphic-check>span{margin:0!important;color:var(--ink)!important;font-size:13px!important;font-weight:500!important;text-transform:none!important;letter-spacing:0!important}
+
+/* When the transform controls are taller than the room left beside the
+   design, they scroll inside their card instead of spilling out of it. Where
+   the whole stack scrolls (a phone with the design sheet open), each panel
+   keeps its full height and the stack scrolls instead. */
+.pro-design-transform-panel.has-selection:not(.is-minimized){overflow-y:auto;overscroll-behavior:contain}
+@media(max-width:760px){
+  .pro-studio-body.has-sheet .pro-design-context-stack>*{flex-shrink:0}
+  /* Too narrow for the title and both buttons side by side: the buttons
+     take their own row under the title, clear of the minimize button. */
+  .pro-design-transform-panel-head{flex-wrap:wrap;row-gap:8px}
+  .pro-design-transform-panel-head>.pro-transform-head-actions{display:flex;flex-wrap:wrap;gap:6px;flex:1 0 100%;margin-right:-34px}
+}
+/* A slider's focus ring hugs its track instead of covering the labels beside it. */
+.pro-studio input[type=range]:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:999px}
