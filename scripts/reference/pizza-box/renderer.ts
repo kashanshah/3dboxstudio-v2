@@ -44,7 +44,7 @@ export const buildPizzaBoxTemplateMeshes: TemplateMeshBuilder = ({ dimensions, f
     leftBackTab: tabs, leftFrontTab: tabs, rightBackTab: tabs, rightFrontTab: tabs,
     frontRoll: rollOver, frontInner: inner,
     top: lid, lidLeft: skirts, lidRight: skirts,
-    lidFront: skirtCurl(skirts, lid, sizes.lidDepth, sizes.lidTuck, t * 3.5),
+    lidFront: skirtCurl(skirts, lid, sizes.lidDepth, sizes.lidTuck, t * 0.8),
   };
   // The front and back walls close outside the side walls' ends and their
   // corner tabs; the lid rests on the walls, its flaps one board inside them
@@ -54,7 +54,7 @@ export const buildPizzaBoxTemplateMeshes: TemplateMeshBuilder = ({ dimensions, f
     front: resting, back: resting,
     // Corner tabs lie flat against the inside of the front and back walls.
     leftBackTab: t * 0.5, leftFrontTab: t * 0.5, rightBackTab: t * 0.5, rightFrontTab: t * 0.5,
-    lidLeft: t * 1.1, lidRight: t * 1.1, lidFront: t * 3.5,
+    lidLeft: t * 1.1, lidRight: t * 1.1, lidFront: t * 0.8,
     top: resting,
   };
   // A score bends through three boards, wider than the two-board roll

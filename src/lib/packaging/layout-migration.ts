@@ -6,6 +6,7 @@ import { baseBoxSheet } from './templates/base-box/geometry';
 import { splitTopSheetV1 } from './templates/split-top/sheet-v1';
 import { splitTopSheet, splitTopSizes } from './templates/split-top/geometry';
 import { pizzaBoxSheetV2 } from './templates/pizza-box/sheet-v2';
+import { pizzaBoxSheetV3 } from './templates/pizza-box/sheet-v3';
 import { pizzaBoxSheet } from './templates/pizza-box/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
@@ -79,6 +80,10 @@ const STEPS: Record<string, Step[]> = {
     // ends, a lid sized to rest on the walls; sheet layers move and stretch
     // to keep the base's and walls' edges.
     state => moveSheetLayers(state, s => pizzaBoxSheetV2(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
+    // 4: the lid is cut a board longer so it reaches the inner front; the
+    // walls and base move down a board on the grid. Sheet layers move with
+    // them, keeping their place from the lid's hinge.
+    state => moveSheetLayers(state, s => pizzaBoxSheetV3(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
   ],
 };
 

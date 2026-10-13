@@ -36,7 +36,7 @@ export function pizzaBoxSizes(d: CartonDimensions) {
   // Corner tabs reach well into the front's double wall.
   const ear = Math.min(0.9 * d.height, d.width / 4);
   // Lid: rests on the walls; its flaps go down inside them.
-  const lidDepth = d.depth - 2 * t;
+  const lidDepth = d.depth - t;
   // The lid's front tuck stops short of the base, whatever the board.
   const lidTuck = d.height - 2 * t - 2;
   const lidFlap = d.height - 2 * t - clearance;
