@@ -76,9 +76,11 @@ export const pizzaBoxDefinition = {
     ['innerInset', 't + clearance'],
     // Corner tabs reach well into the front's double wall.
     ['ear', 'min(0.9 * height, width / 4)'],
-    // Lid: rests on the walls; its flaps go down inside them, and its front
-    // tuck stops short of the base, whatever the board.
-    ['lidDepth', 'depth - 2 * t'],
+    // Lid: rests on the walls and reaches from the back wall's outside to
+    // the inner front, so its tuck slides just inside the double front; its
+    // flaps go down inside the side walls, and the tuck stops short of the
+    // base, whatever the board.
+    ['lidDepth', 'depth - t'],
     ['lidTuck', 'height - 2 * t - 2'],
     ['lidFlap', 'height - 2 * t - clearance'],
     ['backHeight', 'height + t'],
@@ -210,7 +212,7 @@ export const pizzaBoxDefinition = {
       hinge('frontRoll', 'front', 'turnRoll'),
       hinge('frontInner', 'frontRoll', 'turnInner'),
       hinge('top', 'back', 'turnLid', 'resting'),
-      hinge('lidFront', 'top', 'skirtCurl(turnSkirts, turnLid, lidDepth, lidTuck, foldT * 3.5)', 'foldT * 3.5'),
+      hinge('lidFront', 'top', 'skirtCurl(turnSkirts, turnLid, lidDepth, lidTuck, foldT * 0.8)', 'foldT * 0.8'),
       hinge('lidLeft', 'top', 'turnSkirts', 'foldT * 1.1'),
       hinge('lidRight', 'top', 'turnSkirts', 'foldT * 1.1'),
     ],

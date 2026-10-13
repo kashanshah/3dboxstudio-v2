@@ -137,7 +137,7 @@ test('migration runs once, and only for templates whose grid changed', () => {
   assert.equal(layoutVersionFor('split-top-box'), 3);
   assert.equal(layoutVersionFor('base-box'), 2);
   assert.equal(layoutVersionFor('reverse-tuck-carton'), 5);
-  assert.equal(layoutVersionFor('pizza-box'), 3);
+  assert.equal(layoutVersionFor('pizza-box'), 4);
   // A design already on version 2 of the reverse tuck takes only the later steps.
   const bottom = { name: 'b', url: '/api/media/b', mode: 'fill', scale: 100, rotation: 0, alignX: 0, alignY: 0, transform: { x: 20, y: 30, width: 50, height: 50, rotation: 0 } };
   const v2 = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(5, 2), { Bottom: bottom }), layoutVersion: 2 };
@@ -321,12 +321,13 @@ test('split top designs keep their artwork exactly when the outer flaps are cut 
 
 test('pizza box designs keep their artwork on the base and walls of the locking box', () => {
   const { pizzaBoxSheetV2 } = require('../src/lib/packaging/templates/pizza-box/sheet-v2.ts');
+  const { pizzaBoxSheetV3 } = require('../src/lib/packaging/templates/pizza-box/sheet-v3.ts');
   for (const dimensions of [{ width: 305, height: 45, depth: 305, thickness: 1.5 }, { width: 406, height: 51, depth: 406, thickness: 1.5 }]) {
     for (const seed of [8, 51, 999]) {
       const v2 = { ...state(dimensions, randomLayers(seed, 1)), templateId: 'pizza-box', layoutVersion: 2 };
-      const v3 = migrateStudioLayout(v2);
+      const v3 = migrateStudioLayoutTo(v2, 3);
       assert.equal(v3.layoutVersion, 3);
-      const before = pizzaBoxSheetV2(dimensions), after = getTemplateGeometry('pizza-box', dimensions);
+      const before = pizzaBoxSheetV2(dimensions), after = pizzaBoxSheetV3(dimensions);
       for (const panel of after.panels.filter(item => ['bottom', 'left', 'right', 'front', 'back'].includes(item.id))) {
         const old = before.panels.find(item => item.id === panel.id);
         for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
@@ -343,6 +344,33 @@ test('pizza box designs keep their artwork on the base and walls of the locking 
           const t = v2.outsideArtworkLayers[0].transform;
           const mm = Math.hypot((now.u - was.u) * t.width / 100 * before.bounds.width, (now.v - was.v) * t.height / 100 * before.bounds.height);
           assert.ok(mm < near, `${panel.id} artwork moved ${mm.toFixed(3)} mm`);
+        }
+      }
+    }
+  }
+});
+
+test('pizza box designs keep their artwork when the lid is cut a board longer', () => {
+  const { pizzaBoxSheetV3 } = require('../src/lib/packaging/templates/pizza-box/sheet-v3.ts');
+  for (const dimensions of [{ width: 305, height: 45, depth: 305, thickness: 1.5 }, { width: 406, height: 51, depth: 406, thickness: 3 }]) {
+    const before = pizzaBoxSheetV3(dimensions), after = getTemplateGeometry('pizza-box', dimensions);
+    const lid = id => [before, after].map(sheet => sheet.panels.find(panel => panel.id === id));
+    const [oldLid, newLid] = lid('top');
+    assert.ok(Math.abs(newLid.height - oldLid.height - dimensions.thickness) < 1e-9);
+    for (const seed of [8, 51, 999]) {
+      const v3 = { ...state(dimensions, randomLayers(seed, 2)), templateId: 'pizza-box', layoutVersion: 3 };
+      const v4 = migrateStudioLayout(v3);
+      assert.equal(v4.layoutVersion, 4);
+      // Walls, base and lid keep every point of their artwork, measured from
+      // the lid's hinge: the walls and base move down a board on the grid.
+      for (const id of ['bottom', 'left', 'right', 'front', 'back', 'top']) {
+        const [old, panel] = lid(id);
+        const shift = panel.y + panel.height - (old.y + old.height);
+        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
+          const at = { x: old.x + (0.03 + 0.94 * i / 6) * old.width, y: old.y + (0.03 + 0.94 * j / 6) * old.height };
+          const was = imageAt(v3.outsideArtworkLayers, before.bounds, at, id);
+          const now = imageAt(v4.outsideArtworkLayers, after.bounds, { x: at.x, y: at.y + shift }, id);
+          assert.deepEqual(now && { ...now, u: +now.u.toFixed(9), v: +now.v.toFixed(9) }, was && { ...was, u: +was.u.toFixed(9), v: +was.v.toFixed(9) }, `${id} at ${i},${j}`);
         }
       }
     }
