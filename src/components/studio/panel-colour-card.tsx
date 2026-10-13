@@ -9,7 +9,8 @@ const SWATCHES = ['#ffffff', '#111827', '#0f67e8', '#c2410c', '#15803d', '#b91c1
 /**
  * Colours one panel. With `editing` (a panel colour layer is selected) the
  * panel is fixed and the colour applies as it is picked; otherwise the person
- * picks a panel and a colour and fills it.
+ * picks a panel and a colour and fills it. A colour block moved off its panel
+ * is edited with no panel (panelId '').
  */
 export function PanelColourCard({ panels, initialPanel, editing, onFill }: {
   panels: { id: string; name: string }[];
@@ -23,7 +24,7 @@ export function PanelColourCard({ panels, initialPanel, editing, onFill }: {
   const pick = (next: string) => { setColor(next); if (editing) onFill(editing.panelId, next); };
   if (!panels.length) return null;
   return <section className="pro-panel-colour" aria-label={t('studio.panel_colour')}>
-    <span className="pro-panel-colour-title"><PaintBucket size={14} />{editing ? t('studio.panel_colour_of', { panel: panels.find(panel => panel.id === editing.panelId)?.name ?? '' }) : t('studio.panel_colour')}</span>
+    <span className="pro-panel-colour-title"><PaintBucket size={14} />{editing ? editing.panelId ? t('studio.panel_colour_of', { panel: panels.find(panel => panel.id === editing.panelId)?.name ?? '' }) : t('studio.colour') : t('studio.panel_colour')}</span>
     {!editing && <label>
       <span className="sr-only">{t('studio.panel')}</span>
       <select value={panelId} onChange={event => setPanelId(event.target.value)}>

@@ -45,3 +45,17 @@ export function panelFillLayer(
     },
   };
 }
+
+/**
+ * A layer with a new transform. A panel colour stays on its panel only while
+ * it sits where Fill panel put it: once moved, resized or rotated it is a
+ * colour block like any artwork, clipped at the box's outline, not the panel's.
+ */
+export function withTransform(layer: FullDielineArtworkLayer, transform: FullDielineArtworkLayer['transform']): FullDielineArtworkLayer {
+  const before = layer.transform;
+  const moved = (['x', 'y', 'width', 'height', 'rotation'] as const).some(key => Math.abs(before[key] - transform[key]) > 1e-9);
+  if (!layer.fill || !layer.panels || !moved) return { ...layer, transform };
+  const { panels: _panels, ...free } = layer;
+  void _panels;
+  return { ...free, transform };
+}

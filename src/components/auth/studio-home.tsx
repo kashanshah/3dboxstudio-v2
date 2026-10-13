@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect,useRef,useState } from 'react';
 import { menuKeyDown,useDialogFocus,useMenuFocus } from './use-dialog-focus';
-import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,Plus,Layers3,Sparkles,MoreHorizontal,ChevronDown,Pencil,Trash2,Move,ExternalLink,ArrowRight,X,Copy } from 'lucide-react';
+import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,FolderPlus,Plus,Layers3,Sparkles,MoreHorizontal,ChevronDown,Pencil,Trash2,Move,ExternalLink,ArrowRight,X,Copy } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
@@ -190,13 +190,14 @@ export function StudioHome({
        <span>{t("workspace.what_would_you_like_to_create_today")}</span>
      </div>
      <div className="studio-home-welcome-actions">
-      <div className="studio-create-project-link flex justify-end text-end">
-        <button className="button button-secondary" type="button" onClick={openNewProject}><Plus size={17}/>{" " + t("workspace.new_project")}</button>
-      </div>
       <Link className="studio-create-action is-primary" href={createDesignHref}>
          <span className="studio-create-action-icon"><FilePlus2 size={22}/></span>
          <span><strong>{t("workspace.new_box_design")}</strong><small>{t("workspace.choose_a_box_add_artwork_preview_it_in_3d")}</small></span>
        </Link>
+      <button className="studio-create-action studio-create-project-action" type="button" onClick={openNewProject}>
+         <span className="studio-create-action-icon"><FolderPlus size={22}/></span>
+         <span><strong>{t("workspace.new_project")}</strong><small>{t("workspace.keep_related_designs_and_scenes_together_under_one_umbrella")}</small></span>
+       </button>
      </div>
    </section>
    {!user.emailVerified&&<aside className="studio-demo-note"><MailNotice/></aside>}

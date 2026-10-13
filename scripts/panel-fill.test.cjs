@@ -42,3 +42,17 @@ test('saved designs keep panel colours and reject broken ones', () => {
   assert.equal(validProjectState(state), true);
   assert.equal(validProjectState({ ...state, outsideArtworkLayers: [{ ...layer, fill: { color: 'url(x)' } }] }), false);
 });
+
+test('a moved panel colour is clipped by the box outline, not its panel', () => {
+  const { withTransform } = require('../src/lib/packaging/panel-fill.ts');
+  const layer = panelFillLayer('l1', { id: 'front', x: 0, y: 0, width: 100, height: 100 }, 'Front', { width: 300, height: 300 }, '#c2410c');
+  assert.deepEqual(withTransform(layer, { ...layer.transform }).panels, ['front']);
+  for (const key of ['x', 'y', 'width', 'height', 'rotation']) {
+    const moved = withTransform(layer, { ...layer.transform, [key]: layer.transform[key] + 5 });
+    assert.equal(moved.panels, undefined);
+    assert.equal(layerPrintsOn(moved, 'back'), true);
+    assert.deepEqual(moved.fill, { color: '#c2410c' });
+  }
+  const image = { ...layer, fill: undefined, panels: ['front'] };
+  assert.deepEqual(withTransform(image, { ...layer.transform, x: 1 }).panels, ['front']);
+});
