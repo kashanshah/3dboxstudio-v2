@@ -86,7 +86,7 @@ const faqs = [
   },
   {
     "question": "Can 3D Box Studio export animations or video?",
-    "answer": "Yes, a short one. It exports an MP4 of about 10 seconds in which the box folds from flat to closed and turns once, along with PNG images and the PDF, SVG and DXF dieline. Boxshot is stronger for long, custom-animated renders."
+    "answer": "Yes, a short one. It exports a 6, 10 or 15 second MP4 in which the box folds from flat to closed, turns on a turntable, or opens and closes, on a studio, white or colour background, along with PNG images and the PDF, SVG and DXF dieline. Boxshot is stronger for long, custom-animated renders."
   },
   {
     "question": "Can I use the dieline for printing?",

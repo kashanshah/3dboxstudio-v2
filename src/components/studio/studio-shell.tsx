@@ -45,6 +45,7 @@ import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometr
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
+import { DEFAULT_VIDEO_SETTINGS, VIDEO_LENGTHS, VIDEO_MOTIONS, VIDEO_SECONDS, videoColor, type VideoSettings } from '@/lib/packaging/video-timeline';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
 
@@ -413,6 +414,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [pdfExportOptions,setPdfExportOptions] = useState<DielinePdfOptions>(DEFAULT_DIELINE_PDF_OPTIONS);
   const [pdfBusy,setPdfBusy] = useState(false);
   const [videoProgress,setVideoProgress] = useState<number|null>(null);
+  const [videoSettings,setVideoSettings] = useState<VideoSettings>(DEFAULT_VIDEO_SETTINGS);
   const liveMapTokenRef = useRef(0);
   const panelMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
@@ -2064,12 +2066,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       return;
     }
     if (videoProgress !== null) return;
-    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'mp4'};
+    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'mp4', video_motion:videoSettings.motion, video_seconds:VIDEO_SECONDS[videoSettings.length], video_background:videoSettings.background.kind};
     trackEvent('export_clicked', context);
     setVideoProgress(0);
     setMessage('Rendering your video…');
     try {
-      const exported = await engineRef.current?.exportVideo(`3d-box-studio-${selectedTemplateId}.mp4`, fraction => setVideoProgress(fraction));
+      const exported = await engineRef.current?.exportVideo(`3d-box-studio-${selectedTemplateId}.mp4`, videoSettings, fraction => setVideoProgress(fraction));
       trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
       if (exported) window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'mp4',templateId:selectedTemplateId}}));
       setMessage(exported ? 'MP4 video downloaded' : 'Renderer is not ready yet');
@@ -2448,7 +2450,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2668,7 +2670,7 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; onExportVideo:()=>void; videoProgress:number|null; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onExportDieline:(format:'svg'|'dxf')=>void; dielineBusy:boolean; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; onExportVideo:()=>void; videoProgress:number|null; videoSettings:VideoSettings; setVideoSettings:React.Dispatch<React.SetStateAction<VideoSettings>>; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onExportDieline:(format:'svg'|'dxf')=>void; dielineBusy:boolean; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
   renderStyle:RenderStyle; onRenderStyleChange:(style:RenderStyle)=>void; floorShadow:boolean; setFloorShadow:(value:boolean)=>void;
 }) {
   const t = useTranslations();
@@ -3033,8 +3035,9 @@ function Inspector(props: {
     </section> : exportTab==='video' ? <section className="pro-export-tab-panel" role="tabpanel">
       <div className="pro-export-ready">
         <Film size={22}/>
-        <div><strong>{t("studio.mp4_video")}</strong><span>{t("studio.mp4_video_help")}</span></div>
+        <div><strong>{t("studio.mp4_video")}</strong><span>{t(`studio.video_help_${props.videoSettings.motion}`)} {t("studio.mp4_video_help")}</span></div>
       </div>
+      <VideoSettingsPanel settings={props.videoSettings} setSettings={props.setVideoSettings} hasOpeningStage={props.hasOpeningStage} disabled={props.videoProgress!==null}/>
       <button className="pro-primary pro-export-button" disabled={props.videoProgress!==null} onClick={props.onExportVideo}><Download size={16}/>{" " + (props.videoProgress===null ? t("studio.download_mp4") : t("studio.rendering_video", {percent: Math.round(props.videoProgress*100)}))}</button>
       {props.videoProgress!==null && <progress className="pro-video-progress" max={1} value={props.videoProgress} aria-label={t("studio.rendering_video", {percent: Math.round(props.videoProgress*100)})}/>}
     </section> : exportTab==='dieline' ? <section className="pro-export-tab-panel" role="tabpanel">
@@ -3072,6 +3075,38 @@ function Inspector(props: {
     </section>
 
   </div>;
+}
+
+/** What the MP4 shows, how long it runs and what is behind the box. */
+function VideoSettingsPanel({settings,setSettings,hasOpeningStage,disabled}:{settings:VideoSettings;setSettings:React.Dispatch<React.SetStateAction<VideoSettings>>;hasOpeningStage:boolean;disabled:boolean}){
+  const t = useTranslations();
+  const custom = settings.background.kind==='color' && settings.background.color!=='#ffffff';
+  const [color,setColor] = useState(custom && settings.background.kind==='color' ? settings.background.color : '#1f2937');
+  const background = (next:VideoSettings['background']) => setSettings(current=>({...current,background:next}));
+  return <fieldset className="pro-pdf-options pro-video-options" disabled={disabled}>
+    <div className="pro-video-option">
+      <span id="video-motion-label">{t("studio.video_motion")}</span>
+      <div className="pro-pdf-surface" role="group" aria-labelledby="video-motion-label">
+        {VIDEO_MOTIONS.map(motion=><button key={motion} type="button" aria-pressed={settings.motion===motion} onClick={()=>setSettings(current=>({...current,motion}))}>{t(`studio.video_motion_${motion}`)}</button>)}
+      </div>
+      {settings.motion==='open-close' && <p>{hasOpeningStage?t("studio.video_open_close_lid"):t("studio.video_open_close_fold")}</p>}
+    </div>
+    <div className="pro-video-option">
+      <span id="video-length-label">{t("studio.video_length")}</span>
+      <div className="pro-pdf-surface" role="group" aria-labelledby="video-length-label">
+        {VIDEO_LENGTHS.map(length=><button key={length} type="button" aria-pressed={settings.length===length} onClick={()=>setSettings(current=>({...current,length}))}>{t("studio.video_seconds",{seconds:VIDEO_SECONDS[length]})}</button>)}
+      </div>
+    </div>
+    <div className="pro-video-option">
+      <span id="video-background-label">{t("studio.video_background")}</span>
+      <div className="pro-pdf-surface" role="group" aria-labelledby="video-background-label">
+        <button type="button" aria-pressed={settings.background.kind==='studio'} onClick={()=>background({kind:'studio'})}><i className="pro-video-swatch is-studio" aria-hidden="true"/>{t("studio.video_background_studio")}</button>
+        <button type="button" aria-pressed={settings.background.kind==='color'&&!custom} onClick={()=>background({kind:'color',color:'#ffffff'})}><i className="pro-video-swatch" style={{background:'#ffffff'}} aria-hidden="true"/>{t("studio.video_background_white")}</button>
+        <button type="button" aria-pressed={custom} onClick={()=>background({kind:'color',color})}><i className="pro-video-swatch" style={{background:color}} aria-hidden="true"/>{t("studio.video_background_colour")}</button>
+      </div>
+      {custom && <label className="pro-video-colour"><span>{t("studio.video_background_pick")}</span><input type="color" value={color} onChange={event=>{const next=videoColor(event.target.value);if(next){setColor(next);background({kind:'color',color:next});}}}/><code>{color}</code></label>}
+    </div>
+  </fieldset>;
 }
 
 function DielinePrototype({

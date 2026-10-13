@@ -329,10 +329,15 @@ const STUDIO_EYE_DISTANCE = 2.462;
  * closed box (`maxDimension`).
  */
 export function studioFitZoom(maxDimension:number,reach:number,aspect:number){
+  return Math.min(1, studioFitScale(maxDimension, reach, aspect));
+}
+
+/** Like studioFitZoom, but above 1 when there is room to spare. */
+export function studioFitScale(maxDimension:number,reach:number,aspect:number){
   const distance = maxDimension * STUDIO_EYE_DISTANCE;
   const halfAngle = Math.asin(Math.min(0.99, reach / Math.max(1e-6, distance)));
   const room = Math.tan(STUDIO_FOV / 2) * Math.min(1, aspect) * 0.92;
-  return Math.min(1, room / Math.tan(halfAngle));
+  return room / Math.tan(halfAngle);
 }
 
 /** How far the furthest vertex of `meshes` lies from the scene's centre. */

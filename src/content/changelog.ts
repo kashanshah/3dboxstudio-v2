@@ -14,6 +14,18 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'video-options',
+    date: '2026-10-13',
+    title: 'Video options: motion, length and background',
+    summary: 'Choose how your MP4 moves, how long it runs and what sits behind the box.',
+    tags: ['New'],
+    highlights: [
+      'Three motions: fold and turn (flat to closed, then one turn), turntable (the closed box turns once) and open and close (the lid opens while the box turns).',
+      'Turntable and open and close end exactly where they start, so they loop seamlessly on social posts and product pages.',
+      'Pick 6, 10 or 15 seconds, and a studio, white or any colour background.',
+    ],
+  },
+  {
     id: 'delete-account',
     date: '2026-10-13',
     title: 'Delete your account yourself',

@@ -16,6 +16,7 @@ import type { LegacyOpeningMode } from '@/lib/studio-project';
 import { trackEvent } from '@/lib/analytics';
 import { cameraForPreset, clamp, easeInOutCubic, shortestAngleDelta, type RenderStyle } from './carton-scene';
 import type { CartonRenderer } from './carton-renderer';
+import type { VideoSettings } from '@/lib/packaging/video-timeline';
 
 export { buildMeshes, studioViewProjection, type BoxMeshOptions, type RenderStyle } from './carton-scene';
 
@@ -39,7 +40,7 @@ export type CartonEngineHandle = {
   thumbnail: () => string | null;
   exportPng: (filename?: string) => boolean;
   /** Renders and downloads an MP4 of the box assembling and turning. Rejects when video is unsupported. */
-  exportVideo: (filename: string, onProgress?: (fraction: number) => void) => Promise<boolean>;
+  exportVideo: (filename: string, settings: VideoSettings, onProgress?: (fraction: number) => void) => Promise<boolean>;
   resetCamera: () => void;
   /**
    * Draws the box at this formation and opening without waiting for new
@@ -228,12 +229,12 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       link.click();
       return true;
     },
-    async exportVideo(filename, onProgress) {
+    async exportVideo(filename, settings, onProgress) {
       const renderer = rendererRef.current;
       if (!renderer) return false;
       const { recordCartonVideo } = await import('./carton-video');
       const coarse = window.matchMedia?.('(pointer: coarse)').matches;
-      const blob = await recordCartonVideo(renderer, coarse ? { width: 1280, height: 720 } : { width: 1920, height: 1080 }, onProgress);
+      const blob = await recordCartonVideo(renderer, { ...(coarse ? { width: 1280, height: 720 } : { width: 1920, height: 1080 }), settings }, onProgress);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
