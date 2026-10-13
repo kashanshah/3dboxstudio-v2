@@ -47,17 +47,31 @@ export const splitTopDefinition = {
     ['jointEnd', 'depth + t / 2'],
     ['wallHeight', 'height + 2 * t'],
     // Flaps are half the end wall long so the long walls' flaps meet; outer
-    // flaps on the end walls are half the long wall and meet too.
-    ['endTopFlap', 'outerTopIsEnd ? long / 2 : end / 2'],
-    ['top', 'max(endTopFlap, end / 2)'],
+    // flaps on the end walls are half the long wall and meet too. An outer
+    // pair folds over the inner flaps, which takes up about a board, so it is
+    // cut a board longer to meet in the middle. Each pair is a size the
+    // studio lets people change (see adjustable).
+    ['topLongFlap', 'outerTopIsEnd ? end / 2 : end / 2 + t'],
+    ['topEndFlap', 'outerTopIsEnd ? long / 2 + t : end / 2'],
+    ['bottomLongFlap', 'end / 2 + t'],
+    ['bottomEndFlap', 'end / 2'],
+    ['top', 'max(topLongFlap, topEndFlap)'],
     ['bottom', 'top + wallHeight'],
     ['xFront', 'joint'],
     ['xRight', 'xFront + long'],
     ['xBack', 'xRight + end'],
     ['xLeft', 'xBack + long'],
   ],
+  // Sizes the studio lets people change, a pair of opposite flaps at a time.
+  // A pair that meets in the middle stays as it is at most, so its tips never
+  // run into each other; an inner pair that does not meet may grow until it
+  // does.
   adjustable: [
     { key: 'joint', label: 'Glue joint', min: 'max(8, slot)', max: 'max(8, min(60, depth))' },
+    { key: 'topLongFlap', label: 'Top front & back flaps', min: 'min(default, max(10, 2 * slot))', max: 'default' },
+    { key: 'topEndFlap', label: 'Top left & right flaps', min: 'min(default, max(10, 2 * slot))', max: 'outerTopIsEnd ? default : max(default, long / 2)' },
+    { key: 'bottomLongFlap', label: 'Bottom front & back flaps', min: 'min(default, max(10, 2 * slot))', max: 'default' },
+    { key: 'bottomEndFlap', label: 'Bottom left & right flaps', min: 'min(default, max(10, 2 * slot))', max: 'max(default, long / 2)' },
   ],
   panels: [
     { id: 'glue', label: 'GLUE', kind: 'glue', layer: 0, outline: [
@@ -71,10 +85,10 @@ export const splitTopDefinition = {
     // inner ones; the outer top pair depends on the split direction.
     {
       repeat: [
-        { wall: 'front', Wall: 'Front', WALL: 'FRONT', x: 'xFront', width: 'long', endTrim: 'slot / 2', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
-        { wall: 'right', Wall: 'Right', WALL: 'RIGHT', x: 'xRight', width: 'end', endTrim: 'slot / 2', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
-        { wall: 'back', Wall: 'Back', WALL: 'BACK', x: 'xBack', width: 'long', endTrim: 'slot / 2', topFlap: 'end / 2', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0, 1, 0.5] } },
-        { wall: 'left', Wall: 'Left', WALL: 'LEFT', x: 'xLeft', width: 'jointEnd', endTrim: 'slot / 2 - (end - jointEnd)', topFlap: 'endTopFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
+        { wall: 'front', Wall: 'Front', WALL: 'FRONT', x: 'xFront', width: 'long', endTrim: 'slot / 2', topFlap: 'topLongFlap', bottomFlap: 'bottomLongFlap', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0.5, 1, 0.5] } },
+        { wall: 'right', Wall: 'Right', WALL: 'RIGHT', x: 'xRight', width: 'end', endTrim: 'slot / 2', topFlap: 'topEndFlap', bottomFlap: 'bottomEndFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
+        { wall: 'back', Wall: 'Back', WALL: 'BACK', x: 'xBack', width: 'long', endTrim: 'slot / 2', topFlap: 'topLongFlap', bottomFlap: 'bottomLongFlap', topLayer: 'outerTopIsEnd ? 2 : 3', bottomLayer: 3, fallback: { name: 'Bottom', uv: [0, 0, 1, 0.5] } },
+        { wall: 'left', Wall: 'Left', WALL: 'LEFT', x: 'xLeft', width: 'jointEnd', endTrim: 'slot / 2 - (end - jointEnd)', topFlap: 'topEndFlap', bottomFlap: 'bottomEndFlap', topLayer: 'outerTopIsEnd ? 3 : 2', bottomLayer: 2, fallback: null },
       ],
       each: [
         { id: '{{wall}}', label: '{{WALL}}', kind: 'body', layer: 1, rect: ['{{x}}', 'top', '{{width}}', 'wallHeight'] },
@@ -86,7 +100,7 @@ export const splitTopDefinition = {
         // across both outer bottom flaps.
         { id: 'bottom{{Wall}}', label: 'BOTTOM {{WALL}}', kind: 'flap', layer: '{{bottomLayer}}', artworkFallback: '{{fallback}}', outline: [
           ['{{x}} + slot / 2', 'bottom'], ['{{x}} + {{width}} - ({{endTrim}})', 'bottom'],
-          ['{{x}} + {{width}} - ({{endTrim}})', 'bottom + end / 2'], ['{{x}} + slot / 2', 'bottom + end / 2'],
+          ['{{x}} + {{width}} - ({{endTrim}})', 'bottom + {{bottomFlap}}'], ['{{x}} + slot / 2', 'bottom + {{bottomFlap}}'],
         ] },
       ],
     },

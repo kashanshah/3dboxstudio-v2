@@ -4,7 +4,7 @@ import { reverseTuckSheet } from './templates/reverse-tuck/export';
 import { baseBoxSheetV1 } from './templates/base-box/sheet-v1';
 import { baseBoxSheet } from './templates/base-box/geometry';
 import { splitTopSheetV1 } from './templates/split-top/sheet-v1';
-import { splitTopSheet } from './templates/split-top/geometry';
+import { splitTopSheet, splitTopSizes } from './templates/split-top/geometry';
 import { pizzaBoxSheetV2 } from './templates/pizza-box/sheet-v2';
 import { pizzaBoxSheet } from './templates/pizza-box/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
@@ -56,6 +56,19 @@ const STEPS: Record<string, Step[]> = {
       const moved = moveSheetLayers(state, s => splitTopSheetV1(s.dimensions, side), s => splitTopSheet(s.dimensions, side), ['front', 'right', 'back', 'left']);
       return side === 'side_b' ? { ...moved, artworkByPanel: renamePanels(moved.artworkByPanel, { 'Top Left': 'Top Front', 'Top Right': 'Top Back' }) } : moved;
     },
+    // 3: the flap pairs that meet in the middle (the outer pairs) are cut a
+    // board longer so they close; sheet layers move to keep the walls' edges.
+    // The old grid is the new one with those flaps at their old lengths,
+    // unless the design already set them.
+    state => {
+      const side = state.splitTopHingeSide ?? 'side_a';
+      return moveSheetLayers(
+        state,
+        s => splitTopSheet({ ...s.dimensions, adjustments: { ...splitTopFlapsV2(s.dimensions, side), ...s.dimensions.adjustments } }, side),
+        s => splitTopSheet(s.dimensions, side),
+        ['front', 'right', 'back', 'left'],
+      );
+    },
   ],
   'pizza-box': [
     // 2: artwork placed on the front wall, lid or lid front alone is turned to
@@ -86,6 +99,14 @@ export function migrateStudioLayoutTo(state: StudioProjectState, target: number)
   let result = state;
   for (; version < last; version++) result = steps[version - 1](result);
   return { ...result, layoutVersion: version };
+}
+
+/** The split top's outer flap lengths before layout 3: half the wall they reach across. */
+function splitTopFlapsV2(dimensions: StudioProjectState['dimensions'], side: 'side_a' | 'side_b'): Record<string, number> {
+  const { long, end } = splitTopSizes(dimensions, side);
+  return side === 'side_a'
+    ? { topEndFlap: long / 2, bottomLongFlap: end / 2 }
+    : { topLongFlap: end / 2, bottomLongFlap: end / 2 };
 }
 
 type Point = { x: number; y: number };
