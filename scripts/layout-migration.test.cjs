@@ -134,7 +134,7 @@ test('legacy panel placements turn with their panel', () => {
 test('migration runs once, and only for templates whose grid changed', () => {
   const once = migrateStudioLayout(state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(3, 2)));
   assert.deepEqual(migrateStudioLayout(once), once);
-  assert.equal(layoutVersionFor('split-top-box'), 2);
+  assert.equal(layoutVersionFor('split-top-box'), 3);
   assert.equal(layoutVersionFor('base-box'), 2);
   assert.equal(layoutVersionFor('reverse-tuck-carton'), 5);
   assert.equal(layoutVersionFor('pizza-box'), 3);
@@ -241,9 +241,10 @@ test('split top designs keep their artwork on every wall of the slotted box', ()
     for (const dimensions of [{ width: 400, height: 300, depth: 300, thickness: 0.5 }, { width: 240, height: 100, depth: 160, thickness: 2 }]) {
       for (const seed of [5, 23, 404]) {
         const v1 = { ...state(dimensions, randomLayers(seed, 1)), templateId: 'split-top-box', splitTopHingeSide };
-        const v2 = migrateStudioLayout(v1);
+        const v2 = migrateStudioLayoutTo(v1, 2);
         assert.equal(v2.layoutVersion, 2);
-        const before = splitTopSheetV1(dimensions, splitTopHingeSide), after = getTemplateGeometry('split-top-box', dimensions, { splitTopHingeSide });
+        // Layout 2's grid: today's, with the outer flaps at their old lengths.
+        const before = splitTopSheetV1(dimensions, splitTopHingeSide), after = getTemplateGeometry('split-top-box', { ...dimensions, adjustments: splitTopFlapsV2(dimensions, splitTopHingeSide) }, { splitTopHingeSide });
         for (const panel of after.panels.filter(item => ['front', 'right', 'back', 'left'].includes(item.id))) {
           const old = before.panels.find(item => item.id === panel.id);
           for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
@@ -273,6 +274,49 @@ test('split top designs keep their artwork on every wall of the slotted box', ()
   assert.deepEqual(Object.keys(sideB.artworkByPanel).sort(), ['Interior Top Back', 'Top Front']);
   const sideA = migrateStudioLayout({ ...state({ width: 400, height: 300, depth: 300, thickness: 0.5 }, [], { 'Top Left': flap }), templateId: 'split-top-box', splitTopHingeSide: 'side_a' });
   assert.deepEqual(Object.keys(sideA.artworkByPanel), ['Top Left']);
+});
+
+// Layout 2's outer flaps, half the wall each pair reaches across.
+function splitTopFlapsV2(dimensions, side) {
+  const t = dimensions.thickness, long = dimensions.width + t, end = dimensions.depth + t;
+  return side === 'side_a' ? { topEndFlap: long / 2, bottomLongFlap: end / 2 } : { topLongFlap: end / 2, bottomLongFlap: end / 2 };
+}
+
+test('split top designs keep their artwork exactly when the outer flaps are cut a board longer', () => {
+  for (const splitTopHingeSide of ['side_a', 'side_b']) {
+    for (const dimensions of [{ width: 400, height: 300, depth: 300, thickness: 3 }, { width: 240, height: 100, depth: 160, thickness: 0.5 }]) {
+      for (const seed of [5, 23, 404]) {
+        const v2 = { ...state(dimensions, randomLayers(seed, 2)), templateId: 'split-top-box', splitTopHingeSide, layoutVersion: 2 };
+        const v3 = migrateStudioLayout(v2);
+        assert.equal(v3.layoutVersion, 3);
+        const before = getTemplateGeometry('split-top-box', { ...dimensions, adjustments: splitTopFlapsV2(dimensions, splitTopHingeSide) }, { splitTopHingeSide });
+        const after = getTemplateGeometry('split-top-box', dimensions, { splitTopHingeSide });
+        // The outer flaps really are longer now.
+        assert.ok(after.bounds.height > before.bounds.height);
+        // Every wall prints exactly what it printed, and so does every flap
+        // over the length it had before, measured from its crease: a top
+        // flap grows away from its bottom edge, the rest from their top edge.
+        const wallTop = after.panels.find(item => item.id === 'front').y;
+        for (const panel of after.panels) {
+          const old = before.panels.find(item => item.id === panel.id);
+          const anchor = panel.id.startsWith('top') ? panel.y + panel.height - (old.y + old.height) : panel.y - old.y;
+          assert.ok(!panel.id.startsWith('top') || panel.y + panel.height <= wallTop + 1e-9);
+          for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
+            const u = 0.03 + 0.94 * i / 6, v = 0.03 + 0.94 * j / 6;
+            const at = { x: old.x + u * old.width, y: old.y + v * old.height };
+            const shift = { x: panel.x - old.x, y: anchor };
+            const was = imageAt(v2.outsideArtworkLayers, before.bounds, at, panel.id);
+            const now = imageAt(v3.outsideArtworkLayers, after.bounds, { x: at.x + shift.x, y: at.y + shift.y }, panel.id);
+            assert.deepEqual(now && { ...now, u: +now.u.toFixed(9), v: +now.v.toFixed(9) }, was && { ...was, u: +was.u.toFixed(9), v: +was.v.toFixed(9) }, `${splitTopHingeSide} ${panel.id} at ${u},${v}`);
+          }
+        }
+      }
+    }
+  }
+  // A design that already set its flaps keeps them, and its artwork stays put.
+  const set = { ...state({ width: 400, height: 300, depth: 300, thickness: 3, adjustments: { topEndFlap: 180, bottomLongFlap: 140 } }, randomLayers(9, 2)), templateId: 'split-top-box', splitTopHingeSide: 'side_a', layoutVersion: 2 };
+  assert.deepEqual(migrateStudioLayout(set).outsideArtworkLayers.map(layer => layer.transform).map(t => Object.values(t).map(value => +value.toFixed(9))),
+    set.outsideArtworkLayers.map(layer => layer.transform).map(t => Object.values(t).map(value => +value.toFixed(9))));
 });
 
 test('pizza box designs keep their artwork on the base and walls of the locking box', () => {

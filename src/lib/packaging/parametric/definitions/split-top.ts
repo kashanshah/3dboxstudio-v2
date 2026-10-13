@@ -47,11 +47,13 @@ export const splitTopDefinition = {
     ['jointEnd', 'depth + t / 2'],
     ['wallHeight', 'height + 2 * t'],
     // Flaps are half the end wall long so the long walls' flaps meet; outer
-    // flaps on the end walls are half the long wall and meet too. Each pair
-    // is a size the studio lets people change (see adjustable).
-    ['topLongFlap', 'end / 2'],
-    ['topEndFlap', 'outerTopIsEnd ? long / 2 : end / 2'],
-    ['bottomLongFlap', 'end / 2'],
+    // flaps on the end walls are half the long wall and meet too. An outer
+    // pair folds over the inner flaps, which takes up about a board, so it is
+    // cut a board longer to meet in the middle. Each pair is a size the
+    // studio lets people change (see adjustable).
+    ['topLongFlap', 'outerTopIsEnd ? end / 2 : end / 2 + t'],
+    ['topEndFlap', 'outerTopIsEnd ? long / 2 + t : end / 2'],
+    ['bottomLongFlap', 'end / 2 + t'],
     ['bottomEndFlap', 'end / 2'],
     ['top', 'max(topLongFlap, topEndFlap)'],
     ['bottom', 'top + wallHeight'],
@@ -61,16 +63,14 @@ export const splitTopDefinition = {
     ['xLeft', 'xBack + long'],
   ],
   // Sizes the studio lets people change, a pair of opposite flaps at a time.
-  // An outer pair that meets in the middle may be cut up to a board longer:
-  // folding over the inner flaps takes up about that much, so it closes the
-  // gap left between their tips. An inner pair that meets stays as it is at
-  // most, so its tips never run into each other; one that does not meet may
-  // grow until it does.
+  // A pair that meets in the middle stays as it is at most, so its tips never
+  // run into each other; an inner pair that does not meet may grow until it
+  // does.
   adjustable: [
     { key: 'joint', label: 'Glue joint', min: 'max(8, slot)', max: 'max(8, min(60, depth))' },
-    { key: 'topLongFlap', label: 'Top front & back flaps', min: 'min(default, max(10, 2 * slot))', max: 'default + (outerTopIsEnd ? 0 : t)' },
-    { key: 'topEndFlap', label: 'Top left & right flaps', min: 'min(default, max(10, 2 * slot))', max: 'outerTopIsEnd ? default + t : max(default, long / 2)' },
-    { key: 'bottomLongFlap', label: 'Bottom front & back flaps', min: 'min(default, max(10, 2 * slot))', max: 'default + t' },
+    { key: 'topLongFlap', label: 'Top front & back flaps', min: 'min(default, max(10, 2 * slot))', max: 'default' },
+    { key: 'topEndFlap', label: 'Top left & right flaps', min: 'min(default, max(10, 2 * slot))', max: 'outerTopIsEnd ? default : max(default, long / 2)' },
+    { key: 'bottomLongFlap', label: 'Bottom front & back flaps', min: 'min(default, max(10, 2 * slot))', max: 'default' },
     { key: 'bottomEndFlap', label: 'Bottom left & right flaps', min: 'min(default, max(10, 2 * slot))', max: 'max(default, long / 2)' },
   ],
   panels: [
