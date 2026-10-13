@@ -20,7 +20,7 @@ A parametric definition is one plain-data object (JSON-serialisable) that descri
 
 `compileParametricTemplate(definition)` turns a definition into the existing `TemplateRuntime` interface (`src/lib/packaging/template-runtime.ts`), so the studio, PDF export and full-dieline artwork code don't change. The compiler reuses the existing engine:
 
-- `finishExportGeometry` for cut and crease lines: shared panel edges become creases, every other edge is a cut.
+- `finishExportGeometry` for cut and crease lines: shared panel edges become creases, at any angle (the auto-lock bottom's 45° glue tab creases), every other edge is a cut.
 - `foldSheet` for the 3D model.
 
 So a definition produces the dieline and the folded box from one source, as the current templates already do.
@@ -163,11 +163,12 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/tuck-end.ts` | The die every tuck end carton shares, and the tongue-curl formula |
 | `src/lib/packaging/parametric/definitions/base-box.ts` | ECMA A15.20 straight tuck end, with every opening mode (lid on any wall, doors) |
 | `src/lib/packaging/parametric/definitions/reverse-tuck.ts` | ECMA A20.20 reverse tuck end |
+| `src/lib/packaging/parametric/definitions/auto-lock-bottom.ts` | Tuck top auto-lock (crash-lock) bottom: the tuck end die's top, with interlocking bottom flaps and 45° glue tabs |
 | `src/lib/packaging/parametric/definitions/pizza-box.ts` | One-piece corrugated pizza box with a locking double front |
 | `src/lib/packaging/parametric/definitions/sleeve-box.ts` | Open-ended sleeve; the first template written only as a definition |
 | `src/lib/packaging/parametric/definitions/mailer-box.ts` | FEFCO 0427 roll end tuck top mailer: the pizza box's double wall moved to the sides |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 

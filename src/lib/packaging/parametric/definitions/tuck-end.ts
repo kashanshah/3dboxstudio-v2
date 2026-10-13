@@ -15,8 +15,14 @@ import type { LineSpec, OutlineEntry, PanelSpec, ParametricTemplate } from '../f
 // from four values, `topOnFront`, `topOnBack`, `topOnLeft` and `topOnRight`
 // (one of them 1), which a template sets from an option or as constants; the
 // bottom lid's wall is fixed per template. Each template adds its own fold.
+//
+// A crash-lock bottom (`bottom: 'crash-lock'`) replaces the bottom lid: the
+// die then stops at the walls' bottom creases, the side walls one board
+// higher per layer they rest on, and the template adds the bottom flaps.
 
 export type TuckWall = 'front' | 'back' | 'left' | 'right';
+/** The die's bottom: a tuck lid hinged on a wall, or a crash-lock the template draws. */
+export type TuckBottom = TuckWall | 'crash-lock';
 
 const STRIP: TuckWall[] = ['left', 'front', 'right', 'back'];
 const DUST_ORDER: TuckWall[] = ['left', 'right', 'front', 'back'];
@@ -43,12 +49,15 @@ export function tongueCurl(prefold: Expr, lid: Expr, reach: Expr, tongue: Expr, 
 type Corner = [Expr, Expr];
 
 export function tuckEndDie(config: {
-  bottom: TuckWall;
+  bottom: TuckBottom;
   topRotation?: 0 | 180;
   bottomRotation?: 0 | 180;
   notes: ParametricTemplate['notes'];
 }): Pick<ParametricTemplate, 'parameters' | 'derived' | 'adjustable' | 'panels' | 'slits' | 'validations' | 'notes'> {
-  const B = cap(config.bottom);
+  const crash = config.bottom === 'crash-lock';
+  // A crash-lock has no bottom lid; its flaps are added by the template.
+  const bottom: TuckWall = config.bottom === 'crash-lock' ? 'front' : config.bottom;
+  const B = cap(bottom);
   const lid = (end: 'top' | 'bottom', width: string, insideWidth: string, insideLength: string): [string, Expr][] => [
     [`${end}Width`, width],
     [`${end}InsideWidth`, insideWidth],
@@ -78,15 +87,16 @@ export function tuckEndDie(config: {
     // Crease to crease; the back, which the glue flap is stuck to, takes half a board less.
     ['wallFront', 'width + t'], ['wallBack', 'width + t / 2'], ['wallLeft', 'depth + t'], ['wallRight', 'depth + t'],
     ['insideFront', 'width'], ['insideBack', 'width'], ['insideLeft', 'depth'], ['insideRight', 'depth'],
-    ['bodyHeight', 'height + t'],
+    // A crash-lock bottom is three boards thick where its flaps overlap.
+    ['bodyHeight', crash ? 'height + 3 * t' : 'height + t'],
     ['glueSetback', 't + 1'],
     ['glueTaper', 'glue * tan(15 * pi / 180)'],
     ['dustRelief', 't + 0.5'],
     ['tuckInset', 't + 0.5'],
     ...lid('top', topLidWall(wall => `wall${cap(wall)}`), topLidWall(wall => `inside${cap(wall)}`), 'topOnFront || topOnBack ? depth : width'),
-    ...lid('bottom', `wall${B}`, `inside${B}`, config.bottom === 'front' || config.bottom === 'back' ? 'depth' : 'width'),
+    ...(crash ? [] : lid('bottom', `wall${B}`, `inside${B}`, bottom === 'front' || bottom === 'back' ? 'depth' : 'width')),
     ...STRIP.flatMap(wall => dust('top', wall)),
-    ...BESIDE[config.bottom].flatMap(wall => dust('bottom', wall)),
+    ...(crash ? [] : BESIDE[bottom].flatMap(wall => dust('bottom', wall))),
     ['topDust', 'topOnFront || topOnBack ? max(dustTopLeftHeight, dustTopRightHeight) : max(dustTopFrontHeight, dustTopBackHeight)'],
     ['top', 'max(topTongue + topLength, topDust)'],
     ['bottomCrease', 'top + bodyHeight'],
@@ -95,17 +105,20 @@ export function tuckEndDie(config: {
     // board short at an end where it has a dust flap or takes the tuck.
     ...STRIP.flatMap((wall): [string, Expr][] => [
       [`wallTop${cap(wall)}`, `top + (topOn${cap(wall)} ? 0 : t)`],
-      [`wallBottom${cap(wall)}`, wall === config.bottom ? 'bottomCrease' : 'bottomCrease - t'],
+      // A crash-lock's side flaps rest on its front and back flaps and a glue tab.
+      [`wallBottom${cap(wall)}`, crash ? (wall === 'front' || wall === 'back' ? 'bottomCrease' : 'bottomCrease - 2 * t') : wall === bottom ? 'bottomCrease' : 'bottomCrease - t'],
     ]),
     ['topX', topLidWall(wall => `x${cap(wall)}`)],
     ['topHinge', 'top - topLength'],
     ['topTip', 'topHinge - topTongue'],
     ['topL', 'topX + tuckInset'],
     ['topR', 'topX + topWidth - tuckInset'],
-    ['bottomHinge', 'bottomCrease + bottomLength'],
-    ['bottomTip', 'bottomHinge + bottomTongue'],
-    ['bottomL', `x${B} + tuckInset`],
-    ['bottomR', `x${B} + bottomWidth - tuckInset`],
+    ...(crash ? [] : [
+      ['bottomHinge', 'bottomCrease + bottomLength'],
+      ['bottomTip', 'bottomHinge + bottomTongue'],
+      ['bottomL', `x${B} + tuckInset`],
+      ['bottomR', `x${B} + bottomWidth - tuckInset`],
+    ] as [string, Expr][]),
     ['glueTop', 'wallTopLeft + glueSetback'],
     ['glueBottom', 'wallBottomLeft - glueSetback'],
   ];
@@ -148,7 +161,7 @@ export function tuckEndDie(config: {
 
   // A straight shoulder that the tuck's slit catches on, then a taper.
   const dustFlaps = DUST_ORDER.flatMap(wall => ENDS.flatMap((end): PanelSpec[] => {
-    if (end === 'bottom' && !BESIDE[config.bottom].includes(wall)) return [];
+    if (end === 'bottom' && (crash || !BESIDE[bottom].includes(wall))) return [];
     const name = `dust${cap(end)}${cap(wall)}`;
     const sign = end === 'top' ? '-' : '+';
     const h = `${end === 'top' ? 'wallTop' : 'wallBottom'}${cap(wall)}`;
@@ -166,8 +179,10 @@ export function tuckEndDie(config: {
   const slits: LineSpec[] = [
     { from: ['topL', 'topHinge'], to: ['topX + topSlit', 'topHinge'] },
     { from: ['topX + topWidth - topSlit', 'topHinge'], to: ['topR', 'topHinge'] },
-    { from: ['bottomL', 'bottomHinge'], to: [`x${B} + bottomSlit`, 'bottomHinge'] },
-    { from: [`x${B} + bottomWidth - bottomSlit`, 'bottomHinge'], to: ['bottomR', 'bottomHinge'] },
+    ...(crash ? [] : [
+      { from: ['bottomL', 'bottomHinge'], to: [`x${B} + bottomSlit`, 'bottomHinge'] },
+      { from: [`x${B} + bottomWidth - bottomSlit`, 'bottomHinge'], to: ['bottomR', 'bottomHinge'] },
+    ] as LineSpec[]),
   ];
 
   return {
@@ -182,17 +197,17 @@ export function tuckEndDie(config: {
     // across the opening; tucks stay within half the carton's height.
     adjustable: [
       { key: 'glue', label: 'Glue flap', min: 6, max: 'max(6, min(30, width / 2))' },
-      { key: 'tuck', label: 'Tuck flap', targets: ['topTongue', 'bottomTongue'], min: 4, max: 'max(4, min(height / 2, 60))' },
+      { key: 'tuck', label: 'Tuck flap', targets: crash ? ['topTongue'] : ['topTongue', 'bottomTongue'], min: 4, max: 'max(4, min(height / 2, 60))' },
       { key: 'topDustFlap', label: 'Top dust flaps', targets: STRIP.map(wall => `dustTop${cap(wall)}Height`), min: 4, max: 'max(4, topInsideWidth / 2 - t - 1.5)' },
-      { key: 'bottomDustFlap', label: 'Bottom dust flaps', targets: BESIDE[config.bottom].map(wall => `dustBottom${cap(wall)}Height`), min: 4, max: 'max(4, bottomInsideWidth / 2 - t - 1.5)' },
+      ...(crash ? [] : [{ key: 'bottomDustFlap', label: 'Bottom dust flaps', targets: BESIDE[bottom].map(wall => `dustBottom${cap(wall)}Height`), min: 4, max: 'max(4, bottomInsideWidth / 2 - t - 1.5)' }]),
     ],
     panels: [
       panel({ id: 'glue', label: 'GLUE', kind: 'glue', outline: [['glue', 'glueTop'], ['glue', 'glueBottom'], [0, 'glueBottom - glueTaper'], [0, 'glueTop + glueTaper']] }),
       ...walls,
       panel({ id: 'top', label: 'TOP', kind: 'flap', rect: ['topX', 'top - topLength', 'topWidth', 'topLength'], ...(config.topRotation ? { artworkRotation: config.topRotation } : {}) }),
-      panel({ id: 'bottom', label: 'BOTTOM', kind: 'flap', rect: [`x${B}`, 'bottomCrease', 'bottomWidth', 'bottomLength'], ...(config.bottomRotation ? { artworkRotation: config.bottomRotation } : {}) }),
+      ...(crash ? [] : [panel({ id: 'bottom', label: 'BOTTOM', kind: 'flap', rect: [`x${B}`, 'bottomCrease', 'bottomWidth', 'bottomLength'], ...(config.bottomRotation ? { artworkRotation: config.bottomRotation } : {}) })]),
       tuck('top'),
-      tuck('bottom'),
+      ...(crash ? [] : [tuck('bottom')]),
       ...dustFlaps,
     ],
     slits,
@@ -207,8 +222,8 @@ export function tuckEndDie(config: {
 }
 
 /** The hinge holding each dust flap the die has, in die order. */
-export function dustFlapHinges(bottom: TuckWall, angle: (end: 'top' | 'bottom') => Expr, setback: Expr) {
-  return DUST_ORDER.flatMap(wall => ENDS.flatMap(end => (end === 'bottom' && !BESIDE[bottom].includes(wall)
+export function dustFlapHinges(bottom: TuckBottom, angle: (end: 'top' | 'bottom') => Expr, setback: Expr) {
+  return DUST_ORDER.flatMap(wall => ENDS.flatMap(end => (end === 'bottom' && (bottom === 'crash-lock' || !BESIDE[bottom].includes(wall))
     ? []
     : [{ child: `${end}-${wall}-dust`, parent: wall, angle: angle(end), setback }])));
 }

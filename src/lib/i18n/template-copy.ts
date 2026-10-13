@@ -21,6 +21,12 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
     "category": "templates.reverse-tuck-carton.category",
     "description": "templates.reverse-tuck-carton.description"
   },
+  "auto-lock-bottom-box": {
+    "name": "templates.auto-lock-bottom-box.name",
+    "shortName": "templates.auto-lock-bottom-box.shortName",
+    "category": "templates.auto-lock-bottom-box.category",
+    "description": "templates.auto-lock-bottom-box.description"
+  },
   "mailer-box": {
     "name": "templates.mailer-box.name",
     "shortName": "templates.mailer-box.shortName",

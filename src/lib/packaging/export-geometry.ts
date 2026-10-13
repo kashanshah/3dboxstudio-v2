@@ -22,7 +22,7 @@ const near = (a: number, b: number) => Math.abs(a - b) < epsilon;
 function sharedSegment(a: LineMm, b: LineMm): LineMm | null {
   const vertical = near(a.start.x, a.end.x) && near(b.start.x, b.end.x) && near(a.start.x, b.start.x);
   const horizontal = near(a.start.y, a.end.y) && near(b.start.y, b.end.y) && near(a.start.y, b.start.y);
-  if (!vertical && !horizontal) return null;
+  if (!vertical && !horizontal) return slantedSharedSegment(a, b);
   const axis = vertical ? 'y' : 'x';
   const start = Math.max(Math.min(a.start[axis], a.end[axis]), Math.min(b.start[axis], b.end[axis]));
   const end = Math.min(Math.max(a.start[axis], a.end[axis]), Math.max(b.start[axis], b.end[axis]));
@@ -32,12 +32,42 @@ function sharedSegment(a: LineMm, b: LineMm): LineMm | null {
     : { start: { x: start, y: a.start.y }, end: { x: end, y: a.start.y } };
 }
 
+const isAxisAligned = (line: LineMm) => near(line.start.x, line.end.x) || near(line.start.y, line.end.y);
+/** Distance along `line` from its start, and across it, of `point`. */
+function along(line: LineMm, point: PointMm) {
+  const dx = line.end.x - line.start.x, dy = line.end.y - line.start.y;
+  const length = Math.hypot(dx, dy);
+  const ux = dx / length, uy = dy / length;
+  const px = point.x - line.start.x, py = point.y - line.start.y;
+  return { at: px * ux + py * uy, off: Math.abs(px * uy - py * ux), length, point: (at: number) => ({ x: line.start.x + ux * at, y: line.start.y + uy * at }) };
+}
+
+/** The part two slanted edges share (a 45° glue tab's crease), or null. */
+function slantedSharedSegment(a: LineMm, b: LineMm): LineMm | null {
+  if (isAxisAligned(a) || isAxisAligned(b)) return null;
+  const tolerance = 1e-6;
+  const p = along(a, b.start), q = along(a, b.end);
+  if (p.off > tolerance || q.off > tolerance) return null;
+  const start = Math.max(0, Math.min(p.at, q.at)), end = Math.min(p.length, Math.max(p.at, q.at));
+  if (end - start < epsilon) return null;
+  return { start: p.point(start), end: p.point(end) };
+}
+
 function subtract(line: LineMm, folds: LineMm[]): LineMm[] {
   let remaining = [line];
   for (const fold of folds) {
     remaining = remaining.flatMap(part => {
       const overlap = sharedSegment(part, fold);
       if (!overlap) return [part];
+      if (!isAxisAligned(part)) {
+        const a = along(part, overlap.start).at, b = along(part, overlap.end).at;
+        const [lo, hi] = [Math.min(a, b), Math.max(a, b)];
+        const length = along(part, part.end).at;
+        const result: LineMm[] = [];
+        if (lo > epsilon) result.push({ start: part.start, end: along(part, part.start).point(lo) });
+        if (length - hi > epsilon) result.push({ start: along(part, part.start).point(hi), end: part.end });
+        return result;
+      }
       const axis = near(part.start.x, part.end.x) ? 'y' : 'x';
       const [start, end] = part.start[axis] < part.end[axis] ? [part.start, part.end] : [part.end, part.start];
       const result: LineMm[] = [];

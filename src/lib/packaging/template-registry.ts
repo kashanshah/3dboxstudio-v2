@@ -7,6 +7,7 @@ import { pizzaBoxDefinition } from '@/lib/packaging/parametric/definitions/pizza
 import { sleeveBoxDefinition } from '@/lib/packaging/parametric/definitions/sleeve-box';
 import { mailerBoxDefinition } from '@/lib/packaging/parametric/definitions/mailer-box';
 import { rigidLidBaseDefinition } from '@/lib/packaging/parametric/definitions/rigid-lid-base';
+import { autoLockBottomDefinition } from '@/lib/packaging/parametric/definitions/auto-lock-bottom';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -94,6 +95,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(baseBoxDefinition),
   fromDefinition(splitTopDefinition),
   fromDefinition(reverseTuckDefinition),
+  fromDefinition(autoLockBottomDefinition),
 
   // Every template with a parametric definition and catalog entry is ready.
   // The drawer box below stays planned until it has one.

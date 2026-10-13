@@ -308,6 +308,7 @@ test('the tuck end definitions survive a JSON round trip unchanged',()=>{
 const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pizza-box.ts');
 const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions/sleeve-box.ts');
 const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
+const {autoLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/auto-lock-bottom.ts');
 const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
@@ -359,7 +360,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -383,7 +384,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -430,6 +431,51 @@ test('the sleeve folds into an open tube of the entered size',()=>{
     assert.ok(sheet.panels.every(panel=>panel.y>=0&&panel.y+panel.height<=dimensions.height+1e-9));
   }
   assert.throws(()=>sleeve.getExportGeometry({width:15,height:120,depth:60,thickness:0.5}),/at least 20 mm/);
+});
+
+test('the auto-lock bottom creases its glue tabs at 45° and folds its bottom in layers',()=>{
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  const box=getTemplateRuntime('auto-lock-bottom-box');
+  for(const dimensions of [{width:100,height:140,depth:70,thickness:0.5},{width:90,height:320,depth:90,thickness:0.6},{width:30,height:40,depth:20,thickness:0.3},{width:300,height:200,depth:200,thickness:2}]){
+    const t=dimensions.thickness;
+    const sheet=box.getExportGeometry(dimensions);
+    // Each side flap's glue tab folds on a 45° crease from the corner, which is a crease and never a cut.
+    const diagonal=line=>Math.abs(Math.abs(line.end.x-line.start.x)-Math.abs(line.end.y-line.start.y))<1e-6&&Math.abs(line.end.x-line.start.x)>5; // longer than the tabs' 45° corner chamfers
+    assert.equal(sheet.crease.filter(diagonal).length,2,'two 45° glue tab creases');
+    assert.equal(sheet.cut.filter(diagonal).length,0,'no cut along a glue tab crease');
+    for(const wall of ['left','right']){
+      const flap=sheet.panels.find(panel=>panel.id===`bottom-${wall}`),tab=sheet.panels.find(panel=>panel.id===`bottom-${wall}-tab`);
+      assert.ok(flap&&tab,`${wall} flap and tab`);
+      // The tab sits at the corner by the next wall, where the flat carton folds.
+      const wallPanel=sheet.panels.find(panel=>panel.id===wall);
+      within(Math.max(...tab.outline.map(point=>point.x)),wallPanel.x+wallPanel.width,1e-6,`${wall} tab at the corner`);
+    }
+    // The front and back flaps reach past the middle, so the bottom is closed.
+    const reach=id=>{const panel=sheet.panels.find(p=>p.id===id);return Math.max(...panel.outline.map(point=>point.y))-panel.y;};
+    for(const id of ['bottom-front','bottom-back'])assert.ok(reach(id)>dimensions.depth/2,`${id} reaches past the middle`);
+    // Folded: from the outside in, the front and back flaps, the glue tabs, then the side flaps, without crossing.
+    const levels={};
+    for(const mesh of box.buildMeshes({dimensions,formation:100,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]})){
+      if(typeof mesh.panel!=='string'||!/Bottom|(Left|Right) Glue$/.test(mesh.panel))continue;
+      const id=mesh.panel.replace(/^Interior /,'');
+      const level=levels[id]??=[Infinity,-Infinity];
+      for(let i=1;i<mesh.vertices.length;i+=8){level[0]=Math.min(level[0],mesh.vertices[i]);level[1]=Math.max(level[1],mesh.vertices[i]);}
+    }
+    const below=(a,b)=>assert.ok(levels[a][1]<=levels[b][0]+1e-3,`${a} (${levels[a]}) under ${b} (${levels[b]})`);
+    below('Bottom Back','Bottom Front');
+    below('Bottom Front','Left Glue');
+    below('Bottom Front','Right Glue');
+    below('Left Glue','Bottom Left');
+    below('Right Glue','Bottom Right');
+    for(const id of Object.keys(levels))assert.ok(levels[id][1]-levels[id][0]<=t+1e-3,`${id} lies flat`);
+  }
+  assert.throws(()=>box.getExportGeometry({width:100,height:140,depth:15,thickness:0.5}),/at least 20 mm/);
+  // On the design grid the glue tab's name sits inside its triangle, clear of the side flap's.
+  const {panelLabelAnchor}=require('../src/lib/packaging/panel-label.ts');
+  const sheet=box.getExportGeometry({width:100,height:140,depth:70,thickness:0.5});
+  const anchor=panelLabelAnchor(sheet.panels.find(panel=>panel.id==='bottom-left-tab').outline,sheet.panels.find(panel=>panel.id==='bottom-left-tab'));
+  assert.ok(anchor&&anchor.x>0.6&&anchor.y>0.6,'tab name toward its corner');
+  for(const id of ['top-left-dust','glue','top'])assert.equal(panelLabelAnchor(sheet.panels.find(panel=>panel.id===id).outline,sheet.panels.find(panel=>panel.id===id)),null,`${id} name stays centred`);
 });
 
 test('the mailer folds into a box of the entered inside size, every layer in its place',()=>{

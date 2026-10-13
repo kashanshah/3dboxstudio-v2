@@ -14,6 +14,19 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'auto-lock-bottom-box',
+    date: '2026-10-13',
+    title: 'New template: auto lock bottom box',
+    summary: 'A tuck top carton with a crash-lock bottom that locks itself when the carton is opened: the usual choice for bottles, jars and heavier products.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/auto-lock-bottom-box', label: 'See the auto lock bottom box template' },
+    highlights: [
+      'The bottom is folded and glued at the factory. Open the flat carton and the four bottom flaps swing down together and lock, with no tucking by hand.',
+      'The dieline has interlocking front and back flaps, side flaps with 45° glue tabs, and a tuck top with dust flaps and a thumb notch, all drawn from your inside size and board thickness.',
+      'Watch the bottom fold in 3D, adjust the glue flap, tuck and bottom flap sizes, and export the cutting template as a 1:1 PDF, SVG or DXF.',
+    ],
+  },
+  {
     id: 'video-options',
     date: '2026-10-13',
     title: 'Video options: motion, length and background',
