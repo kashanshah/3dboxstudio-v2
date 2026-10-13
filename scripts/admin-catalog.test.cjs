@@ -31,6 +31,7 @@ const { listUsers, listDesigns, listUserDesigns, listUserProjects, getDesignPrev
 const { emailUserHrefs } = require('../src/server/admin/email-users.ts');
 const { mediaFileId, storageKeyFromMediaFileId, formatMediaSize } = require('../src/lib/admin-media.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
+const { ADMIN_READ_MODEL_SCHEMA } = require('../src/server/admin/read-model-schema.ts');
 
 test('admin catalog links media to owners and designs without inventing a design', async () => {
   db = new PGlite();
@@ -42,7 +43,9 @@ test('admin catalog links media to owners and designs without inventing a design
       CREATE TABLE scenes(id text primary key, user_id text, workspace_project_id text, name text, scene_state jsonb, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, byte_size bigint, storage_key text, created_at timestamptz default now());
       CREATE TABLE admin_media_sizes(storage_key text primary key, byte_size bigint, checked_at timestamptz default now());
-      CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz);`);
+      CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz, view_count bigint not null default 0);
+      CREATE TABLE export_feedback(id text primary key, user_id text, project_id text);`);
+    for (const statement of ADMIN_READ_MODEL_SCHEMA) await db.exec(statement);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google'),('u2','no-name@example.com',NULL,NULL,'password')");
     await db.query("INSERT INTO workspace_projects(id,user_id,name,is_default) VALUES('wp1','u1','My Project',TRUE),('wp2','u1','Client work',FALSE),('wp3','u2','My Project',TRUE)");
@@ -159,6 +162,46 @@ test('admin catalog links media to owners and designs without inventing a design
     assert.equal(await findListedMedia('../secrets'), null);
     assert.equal(storageKeyFromMediaFileId(mediaFileId('shares/d1/front.png')), 'shares/d1/front.png');
     assert.equal(storageKeyFromMediaFileId(mediaFileId('https://example.com/secret')), null);
+  } finally {
+    await db.close();
+  }
+});
+
+test('admin lists survive malformed legacy payloads, sort by real image counts, and match media ids exactly', async () => {
+  db = new PGlite();
+  try {
+    await db.exec(LEGACY_SYNC_SCHEMA);
+    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now());
+      CREATE TABLE workspace_projects(id text primary key, user_id text not null, name text not null, is_default boolean not null default false, created_at timestamptz default now(), updated_at timestamptz default now());
+      CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, workspace_project_id text, created_at timestamptz default now(), updated_at timestamptz default now());
+      CREATE TABLE scenes(id text primary key, user_id text, workspace_project_id text, name text, scene_state jsonb, created_at timestamptz default now(), updated_at timestamptz default now());
+      CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, byte_size bigint, storage_key text, created_at timestamptz default now());
+      CREATE TABLE admin_media_sizes(storage_key text primary key, byte_size bigint, checked_at timestamptz default now());
+      CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz, view_count bigint not null default 0);
+      CREATE TABLE export_feedback(id text primary key, user_id text, project_id text);`);
+    for (const statement of ADMIN_READ_MODEL_SCHEMA) await db.exec(statement);
+    await db.query("INSERT INTO users(id,email,name) VALUES('u1','ada@example.com','Ada')");
+    await db.query("INSERT INTO media_assets(id,user_id,name,mime_type,byte_size,storage_key) VALUES('m1','u1','one.png','image/png',10,'v2/uploads/users/u1/artwork/m1/one.png'),('m10','u1','ten.png','image/png',10,'v2/uploads/users/u1/artwork/m10/ten.png'),('m11','u1','eleven.png','image/png',10,'v2/uploads/users/u1/artwork/m11/eleven.png')");
+    // Text and a QR code are artwork layers but not images; m10 must not count as m1.
+    await db.query('INSERT INTO projects(id,name,user_id,studio_state) VALUES($1,$2,$3,$4),($5,$6,$7,$8)', [
+      'p-text', 'Mostly text', 'u1', { outsideArtworkLayers: [{ id: 't1', text: { value: 'Hi' } }, { id: 't2', graphic: { kind: 'qr' } }, { id: 'a', assetId: 'm10', url: '/api/media/m10' }], insideArtworkLayers: [], artworkByPanel: {} },
+      'p-images', 'Two images', 'u1', { outsideArtworkLayers: [{ id: 'a', assetId: 'm1', url: '/api/media/m1' }], insideArtworkLayers: [], artworkByPanel: { Back: { url: '/api/media/m11', name: 'b' } }, mediaAssets: [{ id: 'm1' }] },
+    ]);
+    await db.query("INSERT INTO legacy_records(source,entity_type,source_id,payload,source_hash) VALUES('v1','shared_designs','bad',$1,'h')", [JSON.stringify({ name: 'Broken dates', user_id: 'u1', created_at: 'not a date', updated_at: '2026-13-45', view_count: 'many', images: { front: { s3Key: 'shares/bad/front.png', name: 'front.png' } } })]);
+
+    const designs = await listDesigns({ sort: 'images', dir: 'desc' });
+    assert.deepEqual(designs.items.map((design) => [design.id, design.imageCount]), [['p-images', 2], ['p-text', 1], ['v1:bad', 1]]);
+    const broken = designs.items.find((design) => design.id === 'v1:bad');
+    assert.equal(broken.createdAt, null);
+    assert.equal(broken.views, 0);
+    const media = await listMedia({ designId: 'p-images' });
+    assert.deepEqual(media.items.map((item) => item.name).sort(), ['eleven.png', 'one.png']);
+    const ten = (await listMedia({ q: 'ten' })).items[0];
+    assert.deepEqual(ten.designs.map((design) => design.id), ['p-text']);
+    const users = await listUsers({ sort: 'media', dir: 'desc' });
+    assert.equal(users.items[0].designCount, 3);
+    assert.equal(users.items[0].mediaCount, 4);
+    assert.equal((await getDesign('v1:bad')).name, 'Broken dates');
   } finally {
     await db.close();
   }

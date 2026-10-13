@@ -1,11 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 
 type Job = { jobId: string; keys: string[] };
 export function AdminDeletionCleanup() {
   const [jobs, setJobs] = useState<Job[]>([]), [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const pathname = usePathname();
   useEffect(() => {
     const controller = new AbortController();
     const refresh = () => fetch('/api/admin/deletions?jobs=1', { cache: 'no-store', signal: controller.signal }).then(async res => {
@@ -14,7 +12,7 @@ export function AdminDeletionCleanup() {
     refresh();
     window.addEventListener('admin-deletion-updated', refresh);
     return () => { controller.abort(); window.removeEventListener('admin-deletion-updated', refresh); };
-  }, [pathname]);
+  }, []);
   async function retry() {
     setBusy(true); setError('');
     try {

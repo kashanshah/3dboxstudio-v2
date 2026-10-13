@@ -18,6 +18,7 @@ function loadDb(sql, legacy = legacySchema()) {
     if (name === '@neondatabase/serverless') return {neon:() => sql};
     if (name === './env') return {requireEnv:key => key};
     if (name === './legacy-schema') return {LEGACY_SYNC_SCHEMA:legacy};
+    if (name === './admin/read-model-schema') return {ADMIN_READ_MODEL_SCHEMA:[]};
     throw new Error('unexpected import ' + name);
   }});
   return exports;

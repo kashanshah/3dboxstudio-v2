@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { neon } from '@neondatabase/serverless';
 import { requireEnv } from './env';
+import { ADMIN_READ_MODEL_SCHEMA } from './admin/read-model-schema';
 import { LEGACY_SYNC_SCHEMA } from './legacy-schema';
 
 let sql: ReturnType<typeof neon> | null = null;
@@ -264,6 +265,7 @@ const V2_SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_contact_submissions_created_at ON contact_submissions (created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_contact_submissions_status ON contact_submissions (status)`,
   `CREATE INDEX IF NOT EXISTS idx_contact_submissions_email ON contact_submissions (email)`,
+  ...ADMIN_READ_MODEL_SCHEMA,
   `CREATE TABLE IF NOT EXISTS app_schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 ];
 

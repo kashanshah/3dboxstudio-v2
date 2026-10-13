@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { AdminDeleteButton } from '@/components/admin/admin-delete-button';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -24,6 +25,8 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
   const result = await listDesigns({ q, page, userId, sort, dir });
   const filters = { q, user: userId, sort, dir };
   const href = (next: number) => adminListHref('/admin/designs', { ...filters, page: next > 1 ? next : undefined }, { sort: 'updated', dir: 'desc' });
+  // Past the last page (a stale link, or rows deleted since): back to the first.
+  if (!result.items.length && result.page > 1) redirect(href(1));
   const sortHref = (column: string, nextDir: 'asc' | 'desc') => adminListHref('/admin/designs', { ...filters, sort: column, dir: nextDir, page: undefined }, { sort: 'updated', dir: 'desc' });
 
   return (

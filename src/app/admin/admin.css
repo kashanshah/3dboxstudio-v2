@@ -67,3 +67,22 @@
 
 .admin-user-email{display:inline-flex;align-items:center;gap:8px}.admin-user-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;color:var(--admin-muted);vertical-align:middle;cursor:help}.admin-user-icon.is-verified{color:#4ade80}.admin-user-icon.is-unverified{color:#9ca3af}.admin-user-icon:focus-visible{outline:2px solid var(--admin-accent);outline-offset:4px;border-radius:50%}.admin-email-meta a{color:var(--admin-accent);text-decoration:none}
 .admin-design-copy{display:grid;gap:6px;margin:-4px 0 18px;font-size:14px}.admin-design-copy .admin-muted{font-size:12px}.admin-design-copy .admin-error{margin:0}
+/* Shell: the navigation stays in view on long pages; on narrow screens it is a
+   single scrollable row instead of a tall block of wrapped links. */
+@media(min-width:861px){.admin-sidebar{position:sticky;top:0;height:100dvh;overflow-y:auto}.admin-shell:not(.admin-shell-design-preview){background:linear-gradient(90deg,#0d1117 0 219px,var(--admin-line) 219px 220px,transparent 220px)}}
+@media(max-width:860px){.admin-sidebar{position:sticky;top:0;z-index:20;gap:10px;padding:10px 12px}.admin-nav{flex-wrap:nowrap;overflow-x:auto;gap:4px;scrollbar-width:none}.admin-nav a{white-space:nowrap;flex:none}.admin-sidebar-footer{display:none}}
+.admin-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* Loading skeleton shown the moment a page is opened. */
+.admin-loading{display:grid;gap:14px;max-width:1200px}
+.admin-skeleton{border-radius:8px;background:linear-gradient(90deg,#161b22 0%,#1f2630 50%,#161b22 100%);background-size:200% 100%;animation:admin-shimmer 1.2s ease-in-out infinite}
+.admin-skeleton-title{height:30px;width:220px}
+.admin-skeleton-line{height:14px;width:min(420px,70%)}
+.admin-skeleton-panel{display:grid;gap:10px;padding:16px;border:1px solid var(--admin-line);border-radius:12px}
+.admin-skeleton-row{height:36px}
+@keyframes admin-shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@media(prefers-reduced-motion:reduce){.admin-skeleton{animation:none}}
+.admin-error-panel{max-width:640px}
+/* Tables: columns keep a readable width and scroll sideways rather than
+   squeezing; long values wrap. */
+.admin-table-wrap .admin-table{min-width:720px}
+.admin-table td{overflow-wrap:break-word}
