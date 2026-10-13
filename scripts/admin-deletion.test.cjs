@@ -7,6 +7,8 @@ const Module = require('node:module');
 const ts = require('typescript');
 const { PGlite } = require('@electric-sql/pglite');
 let db, failStorage = false, beforeTransaction = null, authenticated = true;
+let sessionUser = 'u1', cookieCleared = false;
+const accountRows = { u1: { id:'u1', email:'ada@example.com', password_hash:'hash:right', signup_method:'email' }, u2: { id:'u2', email:'bob@example.com', password_hash:null, signup_method:'google' } };
 const deletedKeys = [];
 const query = (text, params = []) => ({ text, params, then(resolve, reject) { return db.query(text, params).then(r => r.rows).then(resolve, reject); } });
 const sql = { query, transaction: async queries => {
@@ -19,6 +21,11 @@ const originalLoad = Module._load, originalResolve = Module._resolveFilename;
 Module._load = function(request, ...args) {
   if (request === '@/server/db') return { ensureV2Schema: async () => {}, getSql: () => sql };
   if (request === '@/server/media-assets') return { deleteStoredObject: async key => { if (failStorage) throw new Error('Mock storage failure'); deletedKeys.push(key); } };
+  if (request === '@/server/auth/session') return { getCurrentUser: async () => sessionUser ? { id: sessionUser } : null, clearSessionCookie: async () => { cookieCleared = true; } };
+  if (request === '@/server/auth/users') return { getUserById: async id => accountRows[id] ?? null, normalizeEmail: email => email.trim().toLowerCase() };
+  if (request === '@/server/auth/password') return { verifyPassword: async (password, hash) => hash === `hash:${password}` };
+  if (request === '@/server/auth/action-request') return { guardAuthAction: () => null };
+  if (request === '@/lib/posthog-server') return { captureServerEvent: async () => {} };
   if (request === '@/server/admin/auth') return { requireAdminApi: async () => authenticated ? null : Response.json({error:'Unauthorized'}, {status:401}) };
   return originalLoad.call(this, request, ...args);
 };
@@ -27,6 +34,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
 const { previewDeletion, executeDeletion, retryDeletionFiles, pendingDeletionJobs } = require('../src/server/admin/deletions.ts');
 const { mediaFileId } = require('../src/lib/admin-media.ts');
 const route = require('../src/app/api/admin/deletions/route.ts');
+const accountRoute = require('../src/app/api/account/delete/route.ts');
 const { LEGACY_SYNC_SCHEMA } = require('../src/server/legacy-schema.ts');
 async function setup() {
   db = new PGlite(); deletedKeys.length = 0; failStorage = false; authenticated = true;
@@ -43,6 +51,8 @@ async function setup() {
     CREATE TABLE email_verification_tokens(token text,user_id text REFERENCES users(id) ON DELETE CASCADE);
     CREATE TABLE password_reset_tokens(token text,user_id text REFERENCES users(id) ON DELETE CASCADE);
     CREATE TABLE legacy_migrations(target_id text);
+    CREATE TABLE export_feedback(id text PRIMARY KEY,user_id text,project_id text,rating int);
+    INSERT INTO export_feedback VALUES('fb1','u1','d1',5),('fb2','u2',NULL,4);
     CREATE TABLE admin_deletion_files(job_id text,storage_key text,created_at timestamptz default now(),PRIMARY KEY(job_id,storage_key));
     INSERT INTO users VALUES('u1','Ada','ada@example.com'),('u2','Bob','bob@example.com');
     INSERT INTO workspace_projects VALUES('f1','u1','Client work',false),('f2','u1','My Project',true),('f3','u2','Other',false);
@@ -115,6 +125,28 @@ test('admin cascade deletion', async t => {
       assert.ok(deletedKeys.includes('v2/uploads/unused.png'));
       assert.equal((await db.query("SELECT id FROM admin_deleted_entities WHERE kind='user'")).rows[0].id,'u1');
     } finally { await db.close(); }
+  });
+  await t.test('people delete their own account after confirming who they are', async () => {
+    await setup(); try {
+      const ask = body => accountRoute.POST(new Request('https://app.example/api/account/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }));
+      sessionUser = null; assert.equal((await ask({ confirm:'DELETE', password:'right' })).status, 401);
+      sessionUser = 'u1'; cookieCleared = false;
+      assert.equal((await ask({ password:'right' })).status, 400);
+      assert.equal((await ask({ confirm:'DELETE', password:'wrong' })).status, 400);
+      assert.equal((await ask({ confirm:'DELETE', email:'ada@example.com' })).status, 400, 'a password account needs its password');
+      assert.equal(await count('users'), 2); assert.equal(cookieCleared, false);
+      const done = await ask({ confirm:'DELETE', password:'right' });
+      assert.equal(done.status, 200); assert.equal(cookieCleared, true);
+      assert.deepEqual((await db.query('SELECT id FROM users')).rows, [{ id:'u2' }]);
+      assert.equal(await count('projects'), 0); assert.equal(await count('media_assets'), 0); assert.equal(await count('sessions'), 0);
+      assert.ok(deletedKeys.includes('v2/uploads/only.png'));
+      assert.deepEqual((await db.query('SELECT id,user_id,project_id FROM export_feedback ORDER BY id')).rows, [{ id:'fb1', user_id:null, project_id:null }, { id:'fb2', user_id:'u2', project_id:null }]);
+      // Google sign-in has no password: the account email confirms instead.
+      sessionUser = 'u2';
+      assert.equal((await ask({ confirm:'DELETE', email:'someone@example.com' })).status, 400);
+      assert.equal((await ask({ confirm:'DELETE', email:' Bob@Example.com ' })).status, 200);
+      assert.equal(await count('users'), 0);
+    } finally { sessionUser = 'u1'; await db.close(); }
   });
   await t.test('rejects stale, forged and raced confirmations without deleting', async () => {
     await setup(); try {

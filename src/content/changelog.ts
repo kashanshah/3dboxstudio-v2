@@ -14,6 +14,17 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'delete-account',
+    date: '2026-10-13',
+    title: 'Delete your account yourself',
+    summary: 'You can now delete your 3D Box Studio account from Account settings, without writing to us.',
+    tags: ['New'],
+    highlights: [
+      'Open Account settings → Password & security → Delete account. Confirm with your password, or your email if you sign in with Google, and type DELETE.',
+      'Your designs, projects, scenes and uploaded images are removed straight away, and every share link you made stops working.',
+    ],
+  },
+  {
     id: 'studio-tour-shortcuts',
     date: '2026-10-13',
     title: 'A quick tour, keyboard shortcuts and a calmer Studio',
