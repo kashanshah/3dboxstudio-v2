@@ -2,7 +2,7 @@ export const PRIVACY_PAGE_TITLE = "Privacy Policy";
 export const PRIVACY_PAGE_DESCRIPTION =
   "How 3D Box Studio collects, uses, and protects your information when you use the free online box designer, create an account, save designs, or contact us.";
 
-export const PRIVACY_EFFECTIVE_DATE = "2026-10-11";
+export const PRIVACY_EFFECTIVE_DATE = "2026-10-13";
 
 export type PrivacySection =
   | { type: "h2"; text: string }
@@ -129,7 +129,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       "Using the Studio requires a free account; you can view a design someone shared with you without one.",
       "You can update your profile name and email from account settings when signed in.",
-      "You can request account deletion or data questions via the contact page.",
+      "You can delete your account yourself from Account settings → Password & security. This permanently removes your designs, projects, uploaded images and share links. Export ratings you gave are kept without your account details. For other data questions, use the contact page.",
       "Depending on where you live, you may have rights to access, correct, delete, or restrict processing of your personal data, or to object to certain processing.",
     ],
   },
