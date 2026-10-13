@@ -13,7 +13,7 @@ import { TextLayerEditor } from './text-layer-editor';
 import { PanelColourCard } from './panel-colour-card';
 import { GraphicLayerEditor } from './graphic-layer-editor';
 import { DEFAULT_BARCODE, DEFAULT_QR, DEFAULT_SHAPE, defaultGraphicSize, defaultShapeSize, graphicLayerName, isGraphicSpec, renderGraphic, type GraphicSpec } from '@/lib/packaging/graphic-artwork';
-import { fillUrl, panelFillLayer } from '@/lib/packaging/panel-fill';
+import { fillUrl, panelFillLayer, withTransform } from '@/lib/packaging/panel-fill';
 import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
@@ -683,10 +683,12 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const isBoardTarget=(target:EventTarget|null)=>{
       if(!(target instanceof Element))return false;
 
-      // UI chrome keeps its normal gestures. Everywhere else in the
-      // central workspace belongs to the active design canvas.
+      // UI chrome keeps its normal gestures. Panels are excluded whole (every
+      // floating panel is an <aside> or sits in the context stack), so a wheel
+      // anywhere over one scrolls it, not just over its buttons and inputs.
+      // Everywhere else in the central workspace belongs to the design canvas.
       return !target.closest(
-        '.pro-canvas-top,.pro-canvas-control-bar,.pro-2d-side-panels,.pro-status-bar,.pro-face-action,button,input,select,textarea'
+        'aside,[role=dialog],.pro-design-context-stack,.pro-canvas-top,.pro-canvas-control-bar,.pro-2d-side-panels,.pro-status-bar,.pro-face-action,button,input,select,textarea'
       );
     };
 
@@ -2251,7 +2253,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onSelectLayer={artworkScope === 'inside' ? setSelectedInsideLayerId : setSelectedOutsideLayerId}
           onUpdateLayer={(layerId, transform, meta) => {
             const setter=artworkScope==='inside'?setInsideDielineLayers:setOutsideDielineLayers;
-            setter(current=>current.map(layer=>layer.id===layerId?{...layer,transform,...meta}:layer));
+            setter(current=>current.map(layer=>layer.id===layerId?{...withTransform(layer,transform),...meta}:layer));
           }}
           onDuplicateLayer={(layerId) => duplicateFullDielineLayer(artworkScope, layerId)}
           onAddText={() => void addTextLayer()}
@@ -3093,7 +3095,7 @@ function DielinePrototype({
   layers:FullDielineArtworkLayer[];
   selectedLayerId:string|null;
   onSelectLayer:(id:string|null)=>void;
-  onUpdateLayer:(id:string,transform:FullDielineTransform,meta?:{visible?:boolean;opacity?:number})=>void;
+  onUpdateLayer:(id:string,transform:FullDielineTransform,meta?:{visible?:boolean;opacity?:number;fill?:{color:string};url?:string})=>void;
   onDuplicateLayer:(id:string)=>void;
   onAddText:()=>void;
   onFillPanel:(panelId:string,color:string)=>void;
@@ -3747,6 +3749,8 @@ function DielinePrototype({
           {selectedLayer?.graphic && <GraphicLayerEditor key={selectedLayer.id} spec={selectedLayer.graphic} onChange={patch=>onUpdateGraphic(selectedLayer.id,patch)}/>}
           {selectedLayer?.fill && selectedLayer.panels?.length===1
             ? <PanelColourCard key={selectedLayer.id} panels={colourablePanels} editing={{panelId:selectedLayer.panels[0],color:selectedLayer.fill.color}} onFill={onFillPanel}/>
+            : selectedLayer?.fill
+            ? <PanelColourCard key={selectedLayer.id} panels={colourablePanels} editing={{panelId:'',color:selectedLayer.fill.color}} onFill={(_panelId,color)=>onUpdateLayer(selectedLayer.id,selectedLayer.transform,{fill:{color},url:fillUrl(color)})}/>
             : !selectedLayer?.text && !selectedLayer?.graphic && <PanelColourCard key={`new-${selectedPanel}`} panels={colourablePanels} initialPanel={cartonPanels.find(panel=>panel.label.toLowerCase()===selectedPanel.toLowerCase())?.id} onFill={onFillPanel}/>}
 
           <aside className="pro-dieline-layers-panel pro-design-left-layers" aria-label={`${artworkScope} artwork layers`}>

@@ -4503,9 +4503,11 @@ body{font-size:var(--type-body)}
   .pro-studio-body.has-sheet .pro-design-context-stack{overflow:auto;overscroll-behavior:contain}
 }
 
-/* My Images tiles: the thumbnail box keeps its proportions with padding, not
-   aspect-ratio, so every browser sizes the grid rows to the whole tile and
-   rows never overlap. */
+/* My Images tiles. The grid scrolls inside a fixed-height library, and each
+   tile clips its content, so an auto row may shrink below its tile to fit
+   that height: with enough images the rows collapse and the tiles overlap.
+   max-content rows always hold the whole tile. */
+.pro-media-grid{grid-auto-rows:max-content}
 .pro-media-grid .pro-media-tile,
 .pro-media-unified-grid .pro-media-tile{aspect-ratio:auto;display:flex;flex-direction:column;align-self:start;min-width:0}
 .pro-media-tile-thumb{position:relative;display:block;width:100%;height:0;padding-top:78%;background:#fff;overflow:hidden}
