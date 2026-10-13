@@ -4704,3 +4704,32 @@ body{font-size:var(--type-body)}
   .pro-studio input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]),
   .pro-studio select,.pro-studio textarea{font-size:var(--fs-body)!important}
 }
+
+/* First-run tour: the highlighted part stays clickable; the card sits beside it. */
+.pro-tour{position:fixed;inset:0;z-index:90;pointer-events:none}
+.pro-tour-spotlight{position:fixed;border-radius:12px;box-shadow:0 0 0 2px var(--accent),0 0 0 9999px rgba(15,23,42,.45);transition:top .2s,left .2s,width .2s,height .2s}
+.pro-tour-dim{position:fixed;inset:0;background:rgba(15,23,42,.45)}
+.pro-tour-card{position:fixed;width:min(340px,calc(100vw - 24px));padding:16px;border-radius:14px;background:#fff;color:var(--ink);box-shadow:0 18px 48px rgba(15,23,42,.28);pointer-events:auto;font-size:var(--fs-body)}
+.pro-tour-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pro-tour-head>span{color:var(--muted);font-size:var(--fs-caption);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.pro-tour-close{width:30px;height:30px;display:grid;place-items:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--muted)}
+.pro-tour-close:hover{background:var(--paper);color:var(--ink)}
+.pro-tour-card h2{margin:0 0 6px;font-size:var(--fs-title);font-weight:700}
+.pro-tour-card p{margin:0;color:var(--muted);font-size:var(--fs-body);line-height:1.5}
+.pro-tour-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:14px}
+.pro-tour-actions .pro-primary,.pro-tour-actions .pro-secondary-button{min-height:36px;padding:0 14px;border-radius:9px;font-size:var(--fs-body)}
+.pro-tour-actions .pro-secondary-button{width:auto;height:36px}
+.pro-tour-skip{padding:0;border:0;background:none;color:var(--muted);font-size:var(--fs-body);text-decoration:underline;text-underline-offset:3px}
+
+/* Keyboard shortcuts list. */
+.pro-shortcuts-dialog{width:min(480px,calc(100vw - 24px));max-height:min(80dvh,640px);overflow:auto;padding:18px 20px 20px;border-radius:16px;background:#fff;color:var(--ink);box-shadow:0 24px 60px rgba(15,23,42,.3);font-size:var(--fs-body)}
+.pro-shortcuts-dialog header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pro-shortcuts-dialog h2{margin:0;font-size:var(--fs-panel);font-weight:700}
+.pro-shortcuts-dialog h3{margin:14px 0 6px;color:var(--muted);font-size:var(--fs-caption);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.pro-shortcuts-dialog dl{margin:0;display:grid;gap:2px}
+.pro-shortcuts-dialog dl>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)}
+.pro-shortcuts-dialog dt{color:var(--ink)}
+.pro-shortcuts-dialog dd{margin:0;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;flex:none}
+.pro-shortcuts-dialog dd>span{display:inline-flex;align-items:center;gap:3px}
+.pro-shortcuts-dialog dd i{font-style:normal;color:var(--muted);font-size:var(--fs-meta);margin-right:3px}
+.pro-shortcuts-dialog kbd{min-width:24px;height:24px;display:inline-grid;place-items:center;padding:0 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--paper);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:var(--fs-meta);font-weight:600}

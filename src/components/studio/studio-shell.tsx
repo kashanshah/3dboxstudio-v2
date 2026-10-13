@@ -12,6 +12,7 @@ import { DEFAULT_TEXT_SPEC, renderTextArtwork, textLayerName, type TextSpec } fr
 import { TextLayerEditor } from './text-layer-editor';
 import { PanelColourCard } from './panel-colour-card';
 import { GraphicLayerEditor } from './graphic-layer-editor';
+import { ShortcutsDialog, StudioTour, tourSeen } from './studio-guide';
 import { DEFAULT_BARCODE, DEFAULT_QR, DEFAULT_SHAPE, defaultGraphicSize, defaultShapeSize, graphicLayerName, isGraphicSpec, renderGraphic, type GraphicSpec } from '@/lib/packaging/graphic-artwork';
 import { fillUrl, panelFillLayer } from '@/lib/packaging/panel-fill';
 import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
@@ -31,7 +32,7 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
-  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type, Shapes, QrCode, Barcode,
+  Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type, Shapes, QrCode, Barcode, Compass, Keyboard,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -2008,6 +2009,33 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onSaveShortcut);
   }, [saveDesign, saving]);
 
+  // First-run tour, once per browser, when nothing else is open; ? lists the shortcuts.
+  const [tourOpen, setTourOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useEffect(() => {
+    if (tourSeen()) return;
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      if (Date.now() - started > 120000) { window.clearInterval(timer); return; }
+      if (modalIsOpen() || !document.querySelector('.pro-workflow-nav')) return;
+      window.clearInterval(timer);
+      setTourOpen(true);
+    }, 800);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    const onHelpKey = (event: KeyboardEvent) => {
+      if (event.key !== '?' || event.ctrlKey || event.metaKey || event.altKey || modalIsOpen()) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])')) return;
+      event.preventDefault();
+      setTourOpen(false);
+      setShortcutsOpen(true);
+    };
+    window.addEventListener('keydown', onHelpKey);
+    return () => window.removeEventListener('keydown', onHelpKey);
+  }, []);
+
   const changeRenderStyle = (next: RenderStyle) => {
     if (next === renderStyle) return;
     setRenderStyle(next);
@@ -2074,6 +2102,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const deleteDialogRef = useDialogFocus<HTMLElement>(deleteModalOpen, () => setDeleteModalOpen(false), deleting, fileMenuTriggerRef);
 
   return <><PostExportFeedback projectId={projectId}/><input ref={fileRef} hidden multiple type="file" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" onChange={e=>{ void handleArtworkFiles(Array.from(e.target.files ?? [])); e.currentTarget.value=''; }}/><main className="pro-studio" translate="no" style={boxStyle}>
+    {tourOpen && <StudioTour onClose={()=>setTourOpen(false)}/>}
+    {shortcutsOpen && <ShortcutsDialog onClose={()=>setShortcutsOpen(false)} returnTo={fileMenuTriggerRef}/>}
     <header className="pro-studio-header">
       <div className="pro-project">
         <Brand />
@@ -2089,6 +2119,9 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             <button type="button" role="menuitem" disabled={!projectId||saving||shareBusy} onClick={()=>void shareDesign()}><Share2 size={15}/><span><strong>{t("studio.share_link")}</strong><small>{projectId?t("studio.create_a_view_only_review_link"):t("studio.save_this_design_first")}</small></span></button>
             <button type="button" role="menuitem" disabled={!projectId} onClick={()=>void toggleFavorite()}><Star size={15} fill={favorite?'currentColor':'none'}/><span><strong>{favorite?t("studio.remove_from_favourites"):t("studio.add_to_favourites")}</strong><small>{projectId?t("studio.keep_important_files_handy"):t("studio.save_this_design_first")}</small></span></button>
             <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);setRenaming(true);window.requestAnimationFrame(()=>{projectNameRef.current?.focus();projectNameRef.current?.select();});}}><Pencil size={15}/><span><strong>{t("studio.rename")}</strong><small>{t("studio.edit_the_file_name")}</small></span></button>
+            <span className="pro-file-menu-separator" aria-hidden="true"/>
+            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);setShortcutsOpen(false);setTourOpen(true);}}><Compass size={15}/><span><strong>{t("studio.take_the_tour")}</strong><small>{t("studio.take_the_tour_help")}</small></span></button>
+            <button type="button" role="menuitem" onClick={()=>{setFileMenuOpen(false);setShortcutsOpen(true);}}><Keyboard size={15}/><span><strong>{t("studio.keyboard_shortcuts")}</strong><small>{t("studio.keyboard_shortcuts_help")}</small></span></button>
             <span className="pro-file-menu-separator" aria-hidden="true"/>
             <button type="button" role="menuitem" className="is-danger" disabled={!projectId} onClick={()=>{setFileMenuOpen(false);setDeleteModalOpen(true);}}><Trash2 size={18}/><span><strong>{t("studio.delete")}</strong><small>{projectId?t("studio.permanently_delete_this_design"):t("studio.nothing_saved_yet")}</small></span></button>
           </div>}

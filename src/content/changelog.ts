@@ -14,6 +14,18 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'studio-tour-shortcuts',
+    date: '2026-10-13',
+    title: 'A quick tour, keyboard shortcuts and a calmer Studio',
+    summary: 'New to the Studio? A one-minute tour shows you around, and every keyboard shortcut is one key away.',
+    tags: ['New', 'Improved'],
+    highlights: [
+      'The first time you open the Studio, a six-step tour points out the three steps, the size and flap controls, the 3D view, the design tools and the downloads. Skip it any time, or take it again from the file menu.',
+      'Press ? for the keyboard shortcuts: save, undo and redo, moving the view, nudging artwork by 1 or 10 mm, and the keys that change how dragging, resizing and rotating behave.',
+      'The Studio uses a smaller, consistent set of text sizes, so the box gets more of the screen and panels show more at once.',
+    ],
+  },
+  {
     id: 'shapes-qr-barcodes',
     date: '2026-10-12',
     title: 'Shapes, QR codes and barcodes',
