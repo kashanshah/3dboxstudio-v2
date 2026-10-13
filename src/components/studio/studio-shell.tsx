@@ -48,6 +48,7 @@ import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packa
 import { DEFAULT_VIDEO_SETTINGS, VIDEO_LENGTHS, VIDEO_MOTIONS, VIDEO_SECONDS, videoColor, type VideoSettings } from '@/lib/packaging/video-timeline';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
+import { panelLabelAnchor } from '@/lib/packaging/panel-label';
 
 // Number fields that apply on blur: Enter applies too, and an emptied field
 // leaves the value as it was instead of setting it to zero.
@@ -4052,6 +4053,7 @@ function DielinePrototype({
           const explicitArtwork=artworkByPanel[artworkScope==='inside'? `Interior ${panelName}`:panelName];
           const hasArtwork=!!explicitArtwork || layers.length>0;
           const shape=item.outline ? `polygon(${item.outline.map(point=>`${cssPercent((point.x-item.x)/item.width*100)} ${cssPercent((point.y-item.y)/item.height*100)}`).join(',')})` : undefined;
+          const anchor=item.outline ? panelLabelAnchor(item.outline,item) : null;
           return <div
             key={item.id}
             className={`dl-live dl-${item.kind} ${hasArtwork?'has-artwork':''} ${explicitArtwork?'has-explicit-artwork':''} ${shape?'is-shaped':''}${highlighted.includes(item.id)?' is-size-highlight':''} pro-dieline-panel-guide`}
@@ -4060,7 +4062,7 @@ function DielinePrototype({
             data-panel={panelName}
           >
             {explicitArtwork ? <PanelArtwork panel={item} artwork={explicitArtwork}/> : null}
-            <span className="dl-label">{item.label}</span>
+            <span className={`dl-label${anchor?' is-anchored':''}`} style={anchor?{left:cssPercent(anchor.x*100),top:cssPercent(anchor.y*100)}:undefined}>{item.label}</span>
           </div>;
         })}
 

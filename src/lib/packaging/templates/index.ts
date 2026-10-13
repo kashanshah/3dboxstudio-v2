@@ -5,6 +5,7 @@ import { pizzaBoxRuntime } from './pizza-box/runtime';
 import { sleeveBoxRuntime } from './sleeve-box/runtime';
 import { mailerBoxRuntime } from './mailer-box/runtime';
 import { rigidLidBaseRuntime } from './rigid-lid-base/runtime';
+import { autoLockBottomRuntime } from './auto-lock-bottom/runtime';
 
 export const BUILT_IN_TEMPLATE_RUNTIMES=[
   baseBoxRuntime,
@@ -14,4 +15,5 @@ export const BUILT_IN_TEMPLATE_RUNTIMES=[
   sleeveBoxRuntime,
   mailerBoxRuntime,
   rigidLidBaseRuntime,
+  autoLockBottomRuntime,
 ] as const;

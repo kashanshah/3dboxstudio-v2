@@ -126,7 +126,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "overview",
     question: "What box types can I design?",
     answer:
-      "Seven box templates are ready: the reverse tuck end carton, straight tuck end box, split top shipping box (FEFCO 0201/0204), pizza box, mailer box (FEFCO 0427), sleeve box, and rigid lid and base box. Each one takes your own size and board thickness, and you can adjust individual flap and panel sizes. The drawer box is next. See them all under Box templates.",
+      "Eight box templates are ready: the reverse tuck end carton, straight tuck end box, auto lock bottom (crash lock) box, split top shipping box (FEFCO 0201/0204), pizza box, mailer box (FEFCO 0427), sleeve box, and rigid lid and base box. Each one takes your own size and board thickness, and you can adjust individual flap and panel sizes. The drawer box is next. See them all under Box templates.",
   },
   {
     id: "svg-dxf-dieline",

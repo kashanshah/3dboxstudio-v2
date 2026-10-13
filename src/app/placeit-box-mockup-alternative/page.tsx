@@ -81,7 +81,7 @@ const faqs = [
   },
   {
     "question": "Which boxes are supported?",
-    "answer": "Reverse tuck end and straight tuck end cartons, pizza boxes, split top boxes, mailer boxes and sleeves."
+    "answer": "Reverse tuck end, straight tuck end and auto lock bottom cartons, pizza boxes, split top boxes, mailer boxes and sleeves."
   },
   {
     "question": "Can I use mockups commercially?",
