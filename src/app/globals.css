@@ -4733,3 +4733,13 @@ body{font-size:var(--type-body)}
 .pro-shortcuts-dialog dd>span{display:inline-flex;align-items:center;gap:3px}
 .pro-shortcuts-dialog dd i{font-style:normal;color:var(--muted);font-size:var(--fs-meta);margin-right:3px}
 .pro-shortcuts-dialog kbd{min-width:24px;height:24px;display:inline-grid;place-items:center;padding:0 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--paper);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:var(--fs-meta);font-weight:600}
+.pro-video-options{margin:14px 0 18px;padding:0;border:0;min-width:0}
+.pro-video-options:disabled{opacity:.6}
+.pro-video-option{display:grid;gap:6px}
+.pro-video-option>span{color:#26354a;font-size:var(--fs-meta);font-weight:600}
+.pro-video-option .pro-pdf-surface button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:8px 6px;font-size:var(--fs-meta)}
+.pro-video-swatch{flex:none;width:12px;height:12px;border:1px solid #c5cfdc;border-radius:50%}
+.pro-video-swatch.is-studio{background:linear-gradient(#f4f7f9,#dfe5eb)}
+.pro-video-colour{display:flex;align-items:center;gap:9px;font-size:var(--fs-meta);color:#526175}
+.pro-video-colour input{width:36px;height:28px;padding:0;border:1px solid #d6deea;border-radius:6px;background:#fff;cursor:pointer}
+.pro-video-colour code{font-size:var(--fs-meta);color:#26354a}

@@ -492,12 +492,12 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     currentScene() {
       return capture ? capture.liveScene : scene;
     },
-    /** Start drawing frames at a fixed video size on an opaque studio backdrop. */
-    beginCapture(width: number, height: number) {
+    /** Start drawing frames at a fixed video size on an opaque backdrop: the studio gradient, or a `#rrggbb` colour. */
+    beginCapture(width: number, height: number, color: string | null = null) {
       if (capture) return;
       capture = { width, height, liveScene: scene };
-      backdrop ??= backdropTexture();
-      world.background = backdrop;
+      if (color) world.background = new Color(color);
+      else world.background = backdrop ??= backdropTexture();
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
     },

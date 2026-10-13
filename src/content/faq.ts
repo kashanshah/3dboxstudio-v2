@@ -119,7 +119,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "export",
     question: "What file formats can I export?",
     answer:
-      "The 3D view exports PNG images and an MP4 video of about 10 seconds in which the box folds from flat to closed and turns once (1080p, made in your browser). Preview & Download also exports the dieline as a 1:1 vector PDF with your artwork, bleed and cut and crease lines, and the cutting template on its own as SVG (for Illustrator, Inkscape and Affinity) or DXF (for CAD programs, die makers and cutting tables), with cut and crease lines on separate layers. Validate production files with your printer before manufacturing.",
+      "The 3D view exports PNG images and an MP4 video of 6, 10 or 15 seconds in which the box folds from flat to closed, turns on a turntable, or opens and closes (1080p, made in your browser). Preview & Download also exports the dieline as a 1:1 vector PDF with your artwork, bleed and cut and crease lines, and the cutting template on its own as SVG (for Illustrator, Inkscape and Affinity) or DXF (for CAD programs, die makers and cutting tables), with cut and crease lines on separate layers. Validate production files with your printer before manufacturing.",
   },
   {
     id: "box-types",
@@ -217,7 +217,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "export",
     question: "Can I record an unboxing video or export an MP4?",
     answer:
-      "Yes. Preview & Download → Video exports an MP4 video of about 10 seconds in which the box folds from flat to closed and turns once (1080p, made in your browser). It uses your artwork, material and lighting, so you can drop it into a product page, an ad or a social post. Custom camera paths and longer unboxing sequences are not available yet.",
+      "Yes. Preview & Download → Video exports an MP4 video of 6, 10 or 15 seconds (1080p, made in your browser). Choose fold and turn (flat to closed, then one turn), turntable, or open and close (the lid opens as the box turns), on a studio, white or any colour background. Turntable and open and close loop seamlessly. It uses your artwork, material and lighting, so you can drop it into a product page, an ad or a social post. Custom camera paths are not available yet.",
   },
   {
     id: "material-presets",

@@ -1,7 +1,9 @@
 import { ArrayBufferTarget, Muxer } from 'mp4-muxer';
-import { templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
+import { DEFAULT_VIDEO_SETTINGS, VIDEO_SECONDS, videoPose, type VideoSettings } from '@/lib/packaging/video-timeline';
 import type { CartonRenderer } from './carton-renderer';
-import type { Scene } from './carton-scene';
+import { buildMeshes, studioFitScale, type Scene } from './carton-scene';
+import type { Mesh } from '@/lib/packaging/template-mesh';
 
 // A short product video, rendered frame by frame (never in real time, so it
 // is smooth on any device) and encoded in the browser as H.264 MP4.
@@ -13,33 +15,7 @@ export class VideoExportUnsupportedError extends Error {
   }
 }
 
-export type VideoOptions = { width: number; height: number; fps?: number };
-
-const TIMELINE = {
-  holdFlat: 0.6,
-  assemble: 3.6,
-  holdClosed: 0.6,
-  turn: 4.2,
-  holdEnd: 0.5,
-};
-
-/** Seconds into the clip → what the carton and camera are doing. */
-export function videoPose(time: number, start: { yaw: number; pitch: number }) {
-  const { holdFlat, assemble, holdClosed, turn } = TIMELINE;
-  const assembleEnd = holdFlat + assemble;
-  const turnStart = assembleEnd + holdClosed;
-  const progress = 100 * easeInOutSine(clamp01((time - holdFlat) / assemble));
-  // Drift a little while it assembles, then make one full turn.
-  const drift = 0.35 * easeInOutSine(clamp01(time / assembleEnd));
-  const spin = 2 * Math.PI * easeInOutSine(clamp01((time - turnStart) / turn));
-  // Start wide enough for the flat sheet, then push in on the finished box.
-  const zoom = 78 + 22 * easeInOutSine(progress / 100);
-  return { progress, yaw: start.yaw - 0.35 + drift + spin, pitch: start.pitch, zoom };
-}
-
-export function videoDuration() {
-  return Object.values(TIMELINE).reduce((sum, value) => sum + value, 0);
-}
+export type VideoOptions = { width: number; height: number; fps?: number; settings?: VideoSettings };
 
 // H.264 plays everywhere. Browsers built without an H.264 encoder (some
 // Chromium builds) fall back to VP9 in the same MP4 container.
@@ -63,7 +39,7 @@ async function pickCodec(width: number, height: number, fps: number, bitrate: nu
   throw new VideoExportUnsupportedError();
 }
 
-export async function recordCartonVideo(renderer: CartonRenderer, { width, height, fps = 30 }: VideoOptions, onProgress?: (fraction: number) => void) {
+export async function recordCartonVideo(renderer: CartonRenderer, { width, height, fps = 30, settings = DEFAULT_VIDEO_SETTINGS }: VideoOptions, onProgress?: (fraction: number) => void) {
   const bitrate = Math.round(width * height * fps * 0.14);
   const { codec, container } = await pickCodec(width, height, fps, bitrate);
   const live: Scene = renderer.currentScene();
@@ -75,15 +51,18 @@ export async function recordCartonVideo(renderer: CartonRenderer, { width, heigh
   });
   encoder.configure({ codec, width, height, bitrate, framerate: fps });
 
-  const frames = Math.round(videoDuration() * fps);
+  const duration = VIDEO_SECONDS[settings.length];
+  const { hasOpeningStage } = getTemplateAssemblyState(live.templateId, { formation: 100, opening: 0, openingMode: live.openingMode });
+  const frames = Math.round(duration * fps);
   const frameDuration = 1_000_000 / fps;
-  renderer.beginCapture(width, height);
+  const zoomAt = framing(live, width / height);
+  renderer.beginCapture(width, height, settings.background.kind === 'color' ? settings.background.color : null);
   try {
     for (let index = 0; index < frames; index++) {
       if (failure) throw failure;
-      const pose = videoPose(index / fps, live);
+      const pose = videoPose(index / fps, duration, settings.motion, live, hasOpeningStage);
       const assembly = templateAssemblyValuesForProgress(live.templateId, pose.progress, live.openingMode);
-      const canvas = renderer.captureFrame({ ...assembly, yaw: pose.yaw, pitch: pose.pitch, zoom: pose.zoom, viewPan: { x: 0, y: 0 } });
+      const canvas = renderer.captureFrame({ ...assembly, yaw: pose.yaw, pitch: pose.pitch, zoom: zoomAt(pose.progress), viewPan: { x: 0, y: 0 } });
       const frame = new VideoFrame(canvas, { timestamp: Math.round(index * frameDuration), duration: Math.round(frameDuration) });
       encoder.encode(frame, { keyFrame: index % (fps * 2) === 0 });
       frame.close();
@@ -105,10 +84,57 @@ export async function recordCartonVideo(renderer: CartonRenderer, { width, heigh
   return new Blob([muxer.target.buffer], { type: 'video/mp4' });
 }
 
-function easeInOutSine(value: number) {
-  return 0.5 - 0.5 * Math.cos(Math.PI * value);
+const FIT_SAMPLES = 40;
+/** The closest the camera comes: the finished box filling the frame. */
+const CLOSE_ZOOM = 100;
+/** The zoom at which a fit scale of 1 just frames the box (the Studio's default). */
+const DEFAULT_ZOOM = 82;
+
+/**
+ * Assembly progress → camera zoom that keeps the whole box in frame: wide for
+ * the flat sheet and a raised lid, close on the finished box. Reach is
+ * sampled once per clip (the turn does not change it, so the zoom never
+ * pulses as the box spins); each sample takes the largest of its neighbours so
+ * a lid that jumps up between samples is never cut off.
+ */
+function framing(scene: Scene, aspect: number) {
+  const maxDimension = Math.max(scene.dimensions.width, scene.dimensions.height, scene.dimensions.depth);
+  const raw = Array.from({ length: FIT_SAMPLES + 1 }, (_, i) => {
+    const values = templateAssemblyValuesForProgress(scene.templateId, 100 * i / FIT_SAMPLES, scene.openingMode);
+    try {
+      return screenReach(buildMeshes(scene.dimensions, values.opening, [1, 1, 1], [1, 1, 1], { templateId: scene.templateId, formation: values.formation, openingMode: scene.openingMode, splitTopHingeSide: scene.splitTopHingeSide }), scene.pitch, aspect);
+    } catch {
+      return 0;
+    }
+  });
+  const reach = raw.map((value, i) => Math.max(raw[i - 1] ?? value, value, raw[i + 1] ?? value));
+  return (progress: number) => {
+    const position = Math.min(1, Math.max(0, progress / 100)) * FIT_SAMPLES;
+    const below = Math.floor(position), above = Math.min(FIT_SAMPLES, below + 1);
+    const reachNow = reach[below] + (reach[above] - reach[below]) * (position - below);
+    if (!(maxDimension > 0) || !(reachNow > 0)) return CLOSE_ZOOM;
+    return Math.min(CLOSE_ZOOM, DEFAULT_ZOOM * studioFitScale(maxDimension, reachNow, aspect));
+  };
 }
 
-function clamp01(value: number) {
-  return Math.min(1, Math.max(0, value));
+/**
+ * The radius a sphere would need to fill the frame like these meshes do,
+ * seen from `pitch` above at any turn: a flat sheet is wide but low, so it
+ * can be framed much closer than its farthest corner suggests.
+ */
+function screenReach(meshes: Mesh[], pitch: number, aspect: number) {
+  let across = 0, up = 0;
+  const sin = Math.abs(Math.sin(pitch)), cos = Math.abs(Math.cos(pitch));
+  for (const mesh of meshes) {
+    const v = mesh.vertices, m = mesh.model;
+    for (let i = 0; i < v.length; i += 8) {
+      const [x, y, z] = m
+        ? [m[0]*v[i]+m[4]*v[i+1]+m[8]*v[i+2]+m[12], m[1]*v[i]+m[5]*v[i+1]+m[9]*v[i+2]+m[13], m[2]*v[i]+m[6]*v[i+1]+m[10]*v[i+2]+m[14]]
+        : [v[i], v[i+1], v[i+2]];
+      const flat = Math.hypot(x, z);
+      across = Math.max(across, flat);
+      up = Math.max(up, Math.abs(y) * cos + flat * sin);
+    }
+  }
+  return Math.max(up, across / Math.max(1, aspect));
 }
