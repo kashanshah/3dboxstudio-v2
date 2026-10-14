@@ -16,6 +16,7 @@ import { ShortcutsDialog, StudioTour, tourSeen } from './studio-guide';
 import { DEFAULT_BARCODE, DEFAULT_QR, DEFAULT_SHAPE, defaultGraphicSize, defaultShapeSize, graphicLayerName, isGraphicSpec, renderGraphic, type GraphicSpec } from '@/lib/packaging/graphic-artwork';
 import { fillUrl, panelFillLayer, withTransform } from '@/lib/packaging/panel-fill';
 import { keepArtworkOnResize } from '@/lib/packaging/resize-artwork';
+import { placeSizeHandles } from '@/lib/packaging/size-handles';
 import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
@@ -28,7 +29,7 @@ import { panForAnchoredZoom, scaleStudioZoom, wheelStudioZoom } from '@/lib/stud
 import { attachTouchPinch } from '@/lib/touch-pinch';
 import { shortcutKey } from '@/lib/shortcut-key';
 import type { LegacyOpeningMode, SavedStudioProject, StudioProjectState } from '@/lib/studio-project';
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   AlertTriangle, ArrowDown, ArrowUp, Box, Boxes, Camera, Check, ChevronDown, CirclePlay, Copy, Download,
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
@@ -3263,99 +3264,103 @@ function DielinePrototype({
   },[panelSizes,cartonPanels]);
   const sizeDrivenPanels=hoveredSizeKey&&panelSizes?panelSizes.filter(entry=>entry.x?.key===hoveredSizeKey||entry.y?.key===hoveredSizeKey).map(entry=>entry.panel):[];
   const highlighted=sizeDrivenPanels.length?sizeDrivenPanels:highlightedPanels;
-  // Drag handles, one per size. A flap size sits on the free edge of the
-  // largest flap it drives (the edge facing away from the box's body
-  // panels). The box's width, height and depth sit on the largest body
-  // panel they drive, on the edge that moves when that size grows. Dragging
-  // a handle outwards makes the size bigger, one for one.
+  // Drag handles for the box's sizes and the flap sizes (size-handles.ts).
   const sizeHandles=useMemo(()=>{
     if(!panelSizes) return [];
-    const bodies=cartonPanels.filter(panel=>panel.kind==='body');
-    if(!bodies.length) return [];
-    const centre={x:bodies.reduce((sum,panel)=>sum+panel.x+panel.width/2,0)/bodies.length,y:bodies.reduce((sum,panel)=>sum+panel.y+panel.height/2,0)/bodies.length};
-    const rank=(panel:typeof cartonPanels[number])=>(panel.kind==='body'?1e12:0)+panel.width*panel.height;
-    const best=new Map<string,{panel:typeof cartonPanels[number];axis:'x'|'y';size:MeasuredSize}>();
-    for(const entry of panelSizes)for(const axis of ['x','y'] as const){
-      const size=entry[axis];
-      if(!size||size.max-size.min<0.5)continue;
-      const panel=cartonPanels.find(item=>item.id===entry.panel);
-      if(!panel)continue;
-      const current=best.get(size.key);
-      if(!current||rank(panel)>=rank(current.panel))best.set(size.key,{panel,axis,size});
-    }
     const options={openingMode,splitTopHingeSide};
-    return [...best.values()].map(({panel,axis,size})=>{
-      let low=axis==='x'?panel.x+panel.width/2<centre.x:panel.y+panel.height/2<centre.y;
-      if(size.kind==='dimension'){
-        // Which of the panel's two edges moves out when the size grows.
-        const grown=size.value+1<=size.max?size.value+1:size.value-1;
-        const moved=getTemplateGeometry(selectedTemplateId,{...dimensions,[size.key]:grown},options).panels.find(item=>item.id===panel.id);
-        if(moved){
-          const lowShift=axis==='x'?panel.x-moved.x:panel.y-moved.y;
-          const highShift=axis==='x'?moved.x+moved.width-panel.x-panel.width:moved.y+moved.height-panel.y-panel.height;
-          low=Math.abs(lowShift)>Math.abs(highShift);
-        }
-      }
-      const direction=low?-1:1;
-      return axis==='x'
-        ?{size,axis,direction,x:low?panel.x:panel.x+panel.width,y:panel.y+panel.height/2}
-        :{size,axis,direction,x:panel.x+panel.width/2,y:low?panel.y:panel.y+panel.height};
+    return placeSizeHandles(cartonPanels,panelSizes,size=>{
+      const grown=size.value+1<=size.max?size.value+1:size.value-1;
+      try{return getTemplateGeometry(selectedTemplateId,{...dimensions,[size.key]:grown},options).panels;}
+      catch{return null;}
     });
   },[panelSizes,cartonPanels,selectedTemplateId,dimensions,openingMode,splitTopHingeSide]);
   type SizeHandle=(typeof sizeHandles)[number];
-  // The sheet lays itself out again (and the view refits it) as a size
-  // changes, so a drag reads the handles and the sheet as last drawn.
-  const drawnSheet=useRef({sizeHandles,bounds,onSetMeasuredSize});
-  useEffect(()=>{drawnSheet.current={sizeHandles,bounds,onSetMeasuredSize};});
+  const setSizeNow=useRef(onSetMeasuredSize);
+  useLayoutEffect(()=>{setSizeNow.current=onSetMeasuredSize;});
   const [draggingSize,setDraggingSize]=useState<string|null>(null);
+  // While a handle is dragged, the far edge of its panel stays where it is
+  // on screen (the sheet is centred, so it would otherwise move too) and the
+  // dragged edge follows the pointer.
+  const sizeDragAnchor=useRef<{layer:HTMLElement;panel:string;axis:'x'|'y';direction:1|-1;screen:number;laidOut:string}|null>(null);
+  useLayoutEffect(()=>{
+    const anchor=sizeDragAnchor.current;
+    const panel=anchor&&cartonPanels.find(item=>item.id===anchor.panel);
+    if(!anchor||!panel)return;
+    // Once for each new layout of the sheet.
+    const laidOut=[bounds.width,bounds.height,panel.x,panel.y,panel.width,panel.height].join();
+    if(anchor.laidOut===laidOut)return;
+    anchor.laidOut=laidOut;
+    const rect=anchor.layer.getBoundingClientRect(),scale=rect.width/bounds.width;
+    if(!(scale>0))return;
+    const edge=anchor.axis==='x'?(anchor.direction>0?panel.x:panel.x+panel.width):(anchor.direction>0?panel.y:panel.y+panel.height);
+    const delta=anchor.screen-((anchor.axis==='x'?rect.left:rect.top)+edge*scale);
+    if(Math.abs(delta)<0.5)return;
+    // The pan is in screen pixels, applied before the zoom.
+    setCanvasPan(pan=>anchor.axis==='x'?{...pan,x:pan.x+delta}:{...pan,y:pan.y+delta});
+  },[cartonPanels,bounds,setCanvasPan]);
   const beginSizeDrag=(event:React.PointerEvent<HTMLButtonElement>,handle:SizeHandle)=>{
     event.preventDefault();
     event.stopPropagation();
     const target=event.currentTarget;
     const layer=target.parentElement;
     if(!layer)return;
+    const rect=layer.getBoundingClientRect(),scale=rect.width/bounds.width;
+    if(!(scale>0))return;
     target.setPointerCapture(event.pointerId);
-    const key=handle.size.key;
-    // Where on the handle the pointer took hold, so the edge does not jump to it.
-    const grip={x:event.clientX,y:event.clientY};
-    {
-      const rect=layer.getBoundingClientRect(),scale=rect.width/bounds.width;
-      if(!(scale>0))return;
-      grip.x-=rect.left+handle.x*scale;grip.y-=rect.top+handle.y*scale;
-    }
-    let frame:number|null=null,pointer={x:event.clientX,y:event.clientY};
-    setDraggingSize(key);
-    setHoveredSizeKey(key);
+    const id=handle.id;
+    const start={x:event.clientX,y:event.clientY};
+    const startPan=canvasPan;
+    sizeDragAnchor.current={layer,panel:handle.panel,axis:handle.axis,direction:handle.direction,screen:(handle.axis==='x'?rect.left:rect.top)+handle.anchor*scale,laidOut:''};
+    let frame:number|null=null,latest=handle.size.value;
+    setDraggingSize(id);
+    setHoveredSizeKey(handle.size.key);
     setHeldScale({visual:visualScale,mobile:mobileFit});
-    // Move the edge under the pointer: the gap between them, in millimetres
-    // of the sheet as drawn now, is how much the size changes.
-    const apply=()=>{
-      frame=null;
-      const drawn=drawnSheet.current,current=drawn.sizeHandles.find(item=>item.size.key===key);
-      if(!current)return;
-      const rect=layer.getBoundingClientRect(),scale=rect.width/drawn.bounds.width;
-      if(!(scale>0))return;
-      const gap=current.axis==='x'?(pointer.x-grip.x-rect.left)/scale-current.x:(pointer.y-grip.y-rect.top)/scale-current.y;
-      const next=Math.min(current.size.max,Math.max(current.size.min,Math.round((current.size.value+gap*current.direction)*2)/2));
-      if(Math.abs(next-current.size.value)>=0.5)drawn.onSetMeasuredSize(current.size,next);
-    };
+    // The sheet keeps its scale and the panel's far edge stays put, so the
+    // size changes by as much as the pointer has moved, one for one.
+    const apply=()=>{frame=null;setSizeNow.current(handle.size,latest);};
     const move=(moveEvent:PointerEvent)=>{
-      pointer={x:moveEvent.clientX,y:moveEvent.clientY};
+      const moved=(handle.axis==='x'?moveEvent.clientX-start.x:moveEvent.clientY-start.y)/scale*handle.direction;
+      const next=Math.min(handle.size.max,Math.max(handle.size.min,Math.round((handle.size.value+moved)*2)/2));
+      if(next===latest)return;
+      latest=next;
       if(frame===null)frame=requestAnimationFrame(apply);
     };
     const end=()=>{
-      target.removeEventListener('pointermove',move);
-      target.removeEventListener('pointerup',end);
-      target.removeEventListener('pointercancel',end);
+      window.removeEventListener('pointermove',move);
+      window.removeEventListener('pointerup',end);
+      window.removeEventListener('pointercancel',end);
       if(frame!==null){cancelAnimationFrame(frame);apply();}
+      // The sheet refits and centres itself again.
+      sizeDragAnchor.current=null;
+      setCanvasPan(startPan);
       setDraggingSize(null);
       setHeldScale(null);
       setHoveredSizeKey(null);
     };
-    target.addEventListener('pointermove',move);
-    target.addEventListener('pointerup',end);
-    target.addEventListener('pointercancel',end);
+    window.addEventListener('pointermove',move);
+    window.addEventListener('pointerup',end);
+    window.addEventListener('pointercancel',end);
   };
+  // A handle under a size label slides along its edge until it is clear.
+  const sizeHandlesRef=useRef<HTMLDivElement>(null);
+  const sizeLabelsRef=useRef<HTMLDivElement>(null);
+  useLayoutEffect(()=>{
+    const layer=sizeHandlesRef.current;
+    if(!layer)return;
+    const labels=[...(sizeLabelsRef.current?.querySelectorAll<HTMLElement>('.dl-sizes')??[])].map(item=>item.getBoundingClientRect());
+    const zoomed=layer.getBoundingClientRect().width/Math.max(1,layer.offsetWidth);
+    for(const button of layer.querySelectorAll<HTMLElement>('.dl-size-handle')){
+      button.style.removeProperty('--slide');
+      if(!labels.length||!(zoomed>0))continue;
+      const box=button.getBoundingClientRect(),vertical=button.classList.contains('is-x');
+      const hit=labels.find(label=>box.left<label.right+3&&box.right>label.left-3&&box.top<label.bottom+3&&box.bottom>label.top-3);
+      if(!hit)continue;
+      // Slide the shorter way out, past the label and a small gap.
+      const before=vertical?hit.top-3-box.bottom:hit.left-3-box.right;
+      const after=vertical?hit.bottom+3-box.top:hit.right+3-box.left;
+      button.style.setProperty('--slide',`${(Math.abs(before)<Math.abs(after)?before:after)/zoomed}px`);
+    }
+  });
   // Arrow keys move a focused handle by a millimetre (ten with Shift).
   const nudgeSizeHandle=(event:React.KeyboardEvent<HTMLButtonElement>,handle:SizeHandle)=>{
     const keys=handle.axis==='x'?{ArrowLeft:-1,ArrowRight:1}:{ArrowUp:-1,ArrowDown:1};
@@ -4134,20 +4139,20 @@ function DielinePrototype({
           </g>)}
         </svg>}
 
-        {sizeHandles.length>0 && <div className="pro-dieline-size-handles">
-          {sizeHandles.map(handle=><button key={handle.size.key} type="button"
-            className={`dl-size-handle is-${handle.axis}${draggingSize===handle.size.key?' is-dragging':''}`}
+        {sizeHandles.length>0 && <div ref={sizeHandlesRef} className="pro-dieline-size-handles">
+          {sizeHandles.map(handle=><button key={handle.id} type="button" data-size-handle={handle.id}
+            className={`dl-size-handle is-${handle.axis}${draggingSize===handle.id?' is-dragging':''}`}
             style={{left:cssPercent(handle.x/bounds.width*100),top:cssPercent(handle.y/bounds.height*100)}}
             title={`${handle.size.label}: drag to resize`}
             aria-label={`${handle.size.label} ${formatDimension(handle.size.value,measurementUnit)} ${measurementUnit}. Drag, or use the arrow keys, to resize`}
             onPointerEnter={()=>setHoveredSizeKey(handle.size.key)}
-            onPointerLeave={()=>{if(draggingSize!==handle.size.key)setHoveredSizeKey(null);}}
+            onPointerLeave={()=>{if(draggingSize!==handle.id)setHoveredSizeKey(null);}}
             onPointerDown={event=>beginSizeDrag(event,handle)}
             onKeyDown={event=>nudgeSizeHandle(event,handle)}
-          >{draggingSize===handle.size.key&&<span className="dl-size-handle-value">{handle.size.label} {formatDimension(handle.size.value,measurementUnit)} {measurementUnit}</span>}</button>)}
+          >{draggingSize===handle.id&&<span className="dl-size-handle-value">{handle.size.label} {formatDimension(handle.size.value,measurementUnit)} {measurementUnit}</span>}</button>)}
         </div>}
 
-        {showSizeChips && sizePlacements && <div className="pro-dieline-sizes">
+        {showSizeChips && sizePlacements && <div ref={sizeLabelsRef} className="pro-dieline-sizes">
           {sizePlacements.map(({panel,sizes})=><span key={panel.id} className={`dl-sizes${sizes.every(size=>size.kind==='adjustment')?' is-flap':''}`} style={{left:cssPercent((panel.x+panel.width/2)/bounds.width*100),top:cssPercent((panel.y+panel.height/2)/bounds.height*100)}}>
             {sizes.map(size=><SizeChip key={size.key} size={size} unit={measurementUnit} onCommit={onSetMeasuredSize} onHover={setHoveredSizeKey}/>)}
           </span>)}

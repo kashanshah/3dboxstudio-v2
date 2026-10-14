@@ -4593,8 +4593,8 @@ body{font-size:var(--type-body)}
 /* Flap drag handles: a grip on each flap's free edge. */
 .pro-dieline-size-handles{position:absolute;inset:0;z-index:31;pointer-events:none}
 .pro-dieline-size-handles .dl-size-handle{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;padding:0;border:1.5px solid #fff;border-radius:999px;background:#d97706;box-shadow:0 1px 3px rgba(15,23,42,.3);touch-action:none}
-.pro-dieline-size-handles .dl-size-handle.is-x{width:8px;height:26px;cursor:ew-resize}
-.pro-dieline-size-handles .dl-size-handle.is-y{width:26px;height:8px;cursor:ns-resize}
+.pro-dieline-size-handles .dl-size-handle.is-x{width:8px;height:26px;cursor:ew-resize;transform:translate(-50%,calc(-50% + var(--slide,0px)))}
+.pro-dieline-size-handles .dl-size-handle.is-y{width:26px;height:8px;cursor:ns-resize;transform:translate(calc(-50% + var(--slide,0px)),-50%)}
 .pro-dieline-size-handles .dl-size-handle:is(:hover,:focus-visible,.is-dragging){background:#b45309;outline:2px solid rgba(217,119,6,.35);outline-offset:1px}
 .pro-dieline-size-handles .dl-size-handle-value{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);padding:3px 8px;border-radius:6px;background:#1f2937;color:#fff;font-size:11px;font-weight:650;white-space:nowrap;pointer-events:none}
 .dl-size-handle.is-y .pro-dieline-size-handles .dl-size-handle-value{bottom:calc(100% + 6px)}
