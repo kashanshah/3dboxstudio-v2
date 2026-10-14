@@ -46,6 +46,7 @@ import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometr
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { PACKAGING_TEMPLATES, STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
+import { DEFAULT_IMAGE_SETTINGS, IMAGE_FORMATS, IMAGE_LONG_SIDE, IMAGE_LONG_SIDE_COARSE, IMAGE_SIZES, imageBackground, type ImageBackground, type ImageSettings } from '@/lib/packaging/image-export';
 import { DEFAULT_VIDEO_SETTINGS, VIDEO_LENGTHS, VIDEO_MOTIONS, VIDEO_SECONDS, videoColor, type VideoSettings } from '@/lib/packaging/video-timeline';
 import { artboardSize, artboardTransform, createFullDielineTransform, layerPrintsOn, placeFullDielineArtwork, rasterizeFullDielineLayers, rasterizePanelArtwork, type FullDielineArtworkLayer, type FullDielineTransform } from '@/lib/packaging/full-dieline-artwork';
 import { cssPercent, svgLine, svgPoints } from '@/lib/svg-number';
@@ -419,6 +420,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [pdfBusy,setPdfBusy] = useState(false);
   const [videoProgress,setVideoProgress] = useState<number|null>(null);
   const [videoSettings,setVideoSettings] = useState<VideoSettings>(DEFAULT_VIDEO_SETTINGS);
+  const [imageSettings,setImageSettings] = useState<ImageSettings>(DEFAULT_IMAGE_SETTINGS);
+  const [imageBusy,setImageBusy] = useState(false);
   const liveMapTokenRef = useRef(0);
   const panelMapTokenRef = useRef(0);
   const [mediaAssets, setMediaAssets] = useState<LocalMediaAsset[]>(initial?.mediaAssets ?? []);
@@ -2062,22 +2065,27 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     trackEvent('studio_render_style_changed', { render_style: next });
   };
 
-  const exportPng = () => {
+  const exportImage = async () => {
     if (workflowStep !== 'preview' || mode !== '3d') {
       goToWorkflowStep('preview','export');
       setMessage('Preview is ready — download from the output panel');
       return;
     }
-    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:'png', export_resolution:'4k'};
+    if (imageBusy) return;
+    const context = {template_id:selectedTemplateId, app_version:'v2', export_format:imageSettings.format, export_resolution:imageSettings.size, image_background:imageBackground(imageSettings).kind, image_angles:imageSettings.angles, floor_shadow:floorShadow&&renderStyle!=='flat'};
     trackEvent('export_clicked', context);
+    setImageBusy(true);
+    setMessage(imageSettings.angles==='set' ? 'Rendering the four views…' : 'Rendering your image…');
     try {
-      const exported = engineRef.current?.exportPng(`3d-box-studio-${selectedTemplateId}.png`);
+      const exported = await engineRef.current?.exportImage(imageSettings);
       trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
-      if (exported) if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:'png',templateId:selectedTemplateId}}));
-      setMessage(exported ? 'High-resolution PNG downloaded' : 'Renderer is not ready yet');
+      if (exported) window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:imageSettings.format,templateId:selectedTemplateId}}));
+      setMessage(exported ? (imageSettings.angles==='set' ? 'Four views downloaded as a ZIP' : `${imageSettings.format.toUpperCase()} image downloaded`) : 'Renderer is not ready yet');
     } catch {
       trackEvent('export_failed', {...context, failure_category:'render_error'});
-      setMessage('Could not export the PNG. Please try again.');
+      setMessage('Could not export the image. Please try again.');
+    } finally {
+      setImageBusy(false);
     }
   };
 
@@ -2472,7 +2480,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={()=>void exportImage()} imageSettings={imageSettings} setImageSettings={setImageSettings} imageBusy={imageBusy} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2692,7 +2700,7 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; onExportVideo:()=>void; videoProgress:number|null; videoSettings:VideoSettings; setVideoSettings:React.Dispatch<React.SetStateAction<VideoSettings>>; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onExportDieline:(format:'svg'|'dxf')=>void; dielineBusy:boolean; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; imageSettings:ImageSettings; setImageSettings:React.Dispatch<React.SetStateAction<ImageSettings>>; imageBusy:boolean; onExportVideo:()=>void; videoProgress:number|null; videoSettings:VideoSettings; setVideoSettings:React.Dispatch<React.SetStateAction<VideoSettings>>; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onExportDieline:(format:'svg'|'dxf')=>void; dielineBusy:boolean; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
   renderStyle:RenderStyle; onRenderStyleChange:(style:RenderStyle)=>void; floorShadow:boolean; setFloorShadow:(value:boolean)=>void;
 }) {
   const t = useTranslations();
@@ -3051,9 +3059,10 @@ function Inspector(props: {
     {exportTab==='image' ? <section className="pro-export-tab-panel" role="tabpanel">
       <div className="pro-export-ready">
         <ImageIcon size={22}/>
-        <div><strong>{t("studio.png_image")}</strong><span>{t("studio.downloads_the_current_3d_camera_view")}</span></div>
+        <div><strong>{t("studio.image_title")}</strong><span>{t(props.imageSettings.angles==='set'?"studio.image_help_set":"studio.image_help_current")}</span></div>
       </div>
-      <button className="pro-primary pro-export-button" onClick={props.onExport}><Download size={16}/>{" " + t("studio.download_png")}</button>
+      <ImageSettingsPanel settings={props.imageSettings} setSettings={props.setImageSettings} disabled={props.imageBusy} floorShadow={props.floorShadow} setFloorShadow={props.setFloorShadow} flat={props.renderStyle==='flat'}/>
+      <button className="pro-primary pro-export-button" disabled={props.imageBusy} onClick={props.onExport}><Download size={16}/>{" " + (props.imageBusy ? t("studio.rendering_image") : t(props.imageSettings.angles==='set'?"studio.download_views":"studio.download_image",{format:props.imageSettings.format.toUpperCase()}))}</button>
     </section> : exportTab==='video' ? <section className="pro-export-tab-panel" role="tabpanel">
       <div className="pro-export-ready">
         <Film size={22}/>
@@ -3102,9 +3111,6 @@ function Inspector(props: {
 /** What the MP4 shows, how long it runs and what is behind the box. */
 function VideoSettingsPanel({settings,setSettings,hasOpeningStage,disabled}:{settings:VideoSettings;setSettings:React.Dispatch<React.SetStateAction<VideoSettings>>;hasOpeningStage:boolean;disabled:boolean}){
   const t = useTranslations();
-  const custom = settings.background.kind==='color' && settings.background.color!=='#ffffff';
-  const [color,setColor] = useState(custom && settings.background.kind==='color' ? settings.background.color : '#1f2937');
-  const background = (next:VideoSettings['background']) => setSettings(current=>({...current,background:next}));
   return <fieldset className="pro-pdf-options pro-video-options" disabled={disabled}>
     <div className="pro-video-option">
       <span id="video-motion-label">{t("studio.video_motion")}</span>
@@ -3119,15 +3125,58 @@ function VideoSettingsPanel({settings,setSettings,hasOpeningStage,disabled}:{set
         {VIDEO_LENGTHS.map(length=><button key={length} type="button" aria-pressed={settings.length===length} onClick={()=>setSettings(current=>({...current,length}))}>{t("studio.video_seconds",{seconds:VIDEO_SECONDS[length]})}</button>)}
       </div>
     </div>
-    <div className="pro-video-option">
-      <span id="video-background-label">{t("studio.video_background")}</span>
-      <div className="pro-pdf-surface" role="group" aria-labelledby="video-background-label">
-        <button type="button" aria-pressed={settings.background.kind==='studio'} onClick={()=>background({kind:'studio'})}><i className="pro-video-swatch is-studio" aria-hidden="true"/>{t("studio.video_background_studio")}</button>
-        <button type="button" aria-pressed={settings.background.kind==='color'&&!custom} onClick={()=>background({kind:'color',color:'#ffffff'})}><i className="pro-video-swatch" style={{background:'#ffffff'}} aria-hidden="true"/>{t("studio.video_background_white")}</button>
-        <button type="button" aria-pressed={custom} onClick={()=>background({kind:'color',color})}><i className="pro-video-swatch" style={{background:color}} aria-hidden="true"/>{t("studio.video_background_colour")}</button>
-      </div>
-      {custom && <label className="pro-video-colour"><span>{t("studio.video_background_pick")}</span><input type="color" value={color} onChange={event=>{const next=videoColor(event.target.value);if(next){setColor(next);background({kind:'color',color:next});}}}/><code>{color}</code></label>}
+    <BackgroundPicker id="video-background-label" value={settings.background} onChange={background=>setSettings(current=>({...current,background:background as VideoSettings['background']}))}/>
+  </fieldset>;
+}
+
+/** The studio gradient, white, a picked colour or, for images, nothing. */
+function BackgroundPicker({id,value,onChange,transparent}:{id:string;value:ImageBackground;onChange:(next:ImageBackground)=>void;transparent?:{allowed:boolean}}){
+  const t = useTranslations();
+  const custom = value.kind==='color' && value.color!=='#ffffff';
+  const [color,setColor] = useState(custom && value.kind==='color' ? value.color : '#1f2937');
+  return <div className="pro-video-option">
+    <span id={id}>{t("studio.video_background")}</span>
+    <div className="pro-pdf-surface" role="group" aria-labelledby={id}>
+      {transparent && <button type="button" disabled={!transparent.allowed} aria-pressed={value.kind==='transparent'} onClick={()=>onChange({kind:'transparent'})}><i className="pro-video-swatch is-transparent" aria-hidden="true"/>{t("studio.image_background_transparent")}</button>}
+      <button type="button" aria-pressed={value.kind==='studio'} onClick={()=>onChange({kind:'studio'})}><i className="pro-video-swatch is-studio" aria-hidden="true"/>{t("studio.video_background_studio")}</button>
+      <button type="button" aria-pressed={value.kind==='color'&&!custom} onClick={()=>onChange({kind:'color',color:'#ffffff'})}><i className="pro-video-swatch" style={{background:'#ffffff'}} aria-hidden="true"/>{t("studio.video_background_white")}</button>
+      <button type="button" aria-pressed={custom} onClick={()=>onChange({kind:'color',color})}><i className="pro-video-swatch" style={{background:color}} aria-hidden="true"/>{t("studio.video_background_colour")}</button>
     </div>
+    {custom && <label className="pro-video-colour"><span>{t("studio.video_background_pick")}</span><input type="color" value={color} onChange={event=>{const next=videoColor(event.target.value);if(next){setColor(next);onChange({kind:'color',color:next});}}}/><code>{color}</code></label>}
+  </div>;
+}
+
+/** The image's size, format, background, shadow and views. */
+function ImageSettingsPanel({settings,setSettings,disabled,floorShadow,setFloorShadow,flat}:{settings:ImageSettings;setSettings:React.Dispatch<React.SetStateAction<ImageSettings>>;disabled:boolean;floorShadow:boolean;setFloorShadow:(value:boolean)=>void;flat:boolean}){
+  const t = useTranslations();
+  const [coarse] = useState(()=>typeof window!=='undefined'&&Boolean(window.matchMedia?.('(pointer: coarse)').matches));
+  const jpg = settings.format==='jpg';
+  // A JPG cannot be transparent: it goes on white, and transparency comes back with PNG.
+  const background = jpg && settings.background.kind==='transparent' ? {kind:'color' as const,color:'#ffffff'} : settings.background;
+  return <fieldset className="pro-pdf-options pro-video-options" disabled={disabled}>
+    <div className="pro-video-option">
+      <span id="image-angles-label">{t("studio.image_angles")}</span>
+      <div className="pro-pdf-surface" role="group" aria-labelledby="image-angles-label">
+        {(['current','set'] as const).map(angles=><button key={angles} type="button" aria-pressed={settings.angles===angles} onClick={()=>setSettings(current=>({...current,angles}))}>{t(`studio.image_angles_${angles}`)}</button>)}
+      </div>
+    </div>
+    <div className="pro-video-option">
+      <span id="image-size-label">{t("studio.image_size")}</span>
+      <div className="pro-pdf-surface" role="group" aria-labelledby="image-size-label">
+        {IMAGE_SIZES.map(size=><button key={size} type="button" aria-pressed={settings.size===size} onClick={()=>setSettings(current=>({...current,size}))}>{t(`studio.image_size_${size}`)}</button>)}
+      </div>
+      <p>{t("studio.image_size_help",{pixels:Math.min(IMAGE_LONG_SIDE[settings.size],coarse?IMAGE_LONG_SIDE_COARSE:Infinity)})}{coarse&&settings.size==='4k'?" "+t("studio.image_size_phone"):""}</p>
+    </div>
+    <div className="pro-video-option">
+      <span id="image-format-label">{t("studio.image_format")}</span>
+      <div className="pro-pdf-surface" role="group" aria-labelledby="image-format-label">
+        {IMAGE_FORMATS.map(format=><button key={format} type="button" aria-pressed={settings.format===format} onClick={()=>setSettings(current=>({...current,format}))}>{format.toUpperCase()}</button>)}
+      </div>
+      {jpg && <p>{t("studio.image_jpg_help")}</p>}
+    </div>
+    <BackgroundPicker id="image-background-label" value={background} transparent={{allowed:!jpg}} onChange={next=>setSettings(current=>({...current,background:next}))}/>
+    <label><input type="checkbox" checked={floorShadow&&!flat} disabled={flat} onChange={event=>setFloorShadow(event.target.checked)}/><span>{t("studio.scene_floor_shadow")}</span></label>
+    {flat && <p>{t("studio.image_shadow_flat")}</p>}
   </fieldset>;
 }
 

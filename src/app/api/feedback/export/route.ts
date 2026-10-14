@@ -10,7 +10,7 @@ export async function POST(req:Request) {
   if(limited)return limited;
   const body=await req.json().catch(()=>null);
   if(!body || !Number.isInteger(body.rating) || body.rating<1 || body.rating>5 ||
-    typeof body.format!=='string' || !['png','pdf','mp4'].includes(body.format) ||
+    typeof body.format!=='string' || !['png','jpg','pdf','mp4'].includes(body.format) ||
     typeof body.templateId!=='string' || body.templateId.length>120 ||
     typeof body.editKey!=='string' || !/^[0-9a-f-]{36}$/.test(body.editKey) ||
     (body.projectId!==undefined && body.projectId!==null && (typeof body.projectId!=='string' || body.projectId.length>200)))

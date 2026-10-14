@@ -14,6 +14,18 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'image-export-options',
+    date: '2026-10-14',
+    title: 'Image options: size, format, background and product shots',
+    summary: 'Choose the size, file type and background of your 3D image, or download four standard product shots at once.',
+    tags: ['New'],
+    highlights: [
+      'Download the current view, or a front, three-quarter, back and top shot together in one ZIP, each square and framed to fit the box.',
+      'Pick HD, 2K or 4K, as a PNG or a smaller JPG.',
+      'Put the box on a transparent, studio, white or any colour background, with or without its floor shadow.',
+    ],
+  },
+  {
     id: 'snap-lock-bottom-box',
     date: '2026-10-14',
     title: 'New template: snap lock bottom box',
