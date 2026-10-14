@@ -5,6 +5,7 @@ export const BOX_TEMPLATE_SLUGS: Record<string, string> = {
   'reverse-tuck-carton': 'reverse-tuck-end-box',
   'base-box': 'straight-tuck-end-box',
   'auto-lock-bottom-box': 'auto-lock-bottom-box',
+  'snap-lock-bottom-box': 'snap-lock-bottom-box',
   'pizza-box': 'pizza-box',
   'mailer-box': 'mailer-box',
   'rigid-lid-base': 'rigid-box',
