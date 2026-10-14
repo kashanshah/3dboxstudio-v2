@@ -75,8 +75,8 @@ const sections = [
   },
   {
     title: "Export, save, and share",
-    body: "Download transparent PNG images up to 4K, a 10-second MP4 of the box folding closed and turning, the dieline as a 1:1 PDF with your artwork, or the cutting template as SVG or DXF. Save projects to your account, duplicate designs, and create view-only share links for review.",
-    bullets: ["PNG export up to 4K", "MP4 fold-and-turn video", "1:1 PDF dieline with artwork", "SVG and DXF cutting templates", "Projects, duplicates and share links"],
+    body: "Download PNG or JPG images up to 4K on a transparent, studio or colour background, four standard product shots in one go, an MP4 of the box folding, turning or opening, the dieline as a 1:1 PDF with your artwork, or the cutting template as SVG or DXF. Save projects to your account, duplicate designs, and create view-only share links for review.",
+    bullets: ["PNG and JPG up to 4K, plus product shots", "MP4 fold, turntable and open-close video", "1:1 PDF dieline with artwork", "SVG and DXF cutting templates", "Projects, duplicates and share links"],
   },
 ];
 const faqs = [

@@ -17,12 +17,11 @@ import { trackEvent } from '@/lib/analytics';
 import { cameraForPreset, clamp, easeInOutCubic, shortestAngleDelta, type RenderStyle } from './carton-scene';
 import type { CartonRenderer } from './carton-renderer';
 import type { VideoSettings } from '@/lib/packaging/video-timeline';
+import { zipFiles, type ImageSettings } from '@/lib/packaging/image-export';
 
 export { buildMeshes, studioViewProjection, type BoxMeshOptions, type RenderStyle } from './carton-scene';
 
 /** Longest side of an exported PNG. Phones get a size their GPU memory can hold. */
-const EXPORT_LONG_SIDE = 3840;
-const EXPORT_LONG_SIDE_COARSE = 2560;
 
 const THUMBNAIL_WIDTHS = [320, 240, 180, 120];
 // Under the server's 250,000-character limit for a saved preview, with headroom.
@@ -38,7 +37,7 @@ function reportRenderFailure(reason: 'unavailable' | 'lost' | 'load_failed', tem
 
 export type CartonEngineHandle = {
   thumbnail: () => string | null;
-  exportPng: (filename?: string) => boolean;
+  exportImage: (settings: ImageSettings) => Promise<boolean>;
   /** Renders and downloads an MP4 of the box assembling and turning. Rejects when video is unsupported. */
   exportVideo: (filename: string, settings: VideoSettings, onProgress?: (fraction: number) => void) => Promise<boolean>;
   resetCamera: () => void;
@@ -219,14 +218,19 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       }
       return preview;
     },
-    exportPng(filename = '3d-box-studio-carton.png') {
+    async exportImage(settings) {
       const renderer = rendererRef.current;
-      if (!renderer) return false;
-      const coarse = window.matchMedia?.('(pointer: coarse)').matches;
-      const link = document.createElement('a');
-      link.href = renderer.snapshot(coarse ? EXPORT_LONG_SIDE_COARSE : EXPORT_LONG_SIDE);
-      link.download = filename;
-      link.click();
+      const canvas = canvasRef.current;
+      if (!renderer || !canvas) return false;
+      const { renderCartonImages } = await import('./carton-image');
+      const coarse = Boolean(window.matchMedia?.('(pointer: coarse)').matches);
+      const images = await renderCartonImages(renderer, settings, { aspect: Math.max(1, canvas.clientWidth) / Math.max(1, canvas.clientHeight), coarse });
+      if (!images.length) return false;
+      if (images.length === 1) downloadBlob(images[0].blob, images[0].name);
+      else {
+        const files = await Promise.all(images.map(async image => ({ name: image.name, data: new Uint8Array(await image.blob.arrayBuffer()) })));
+        downloadBlob(new Blob([zipFiles(files)], { type: 'application/zip' }), `3d-box-studio-${renderer.currentScene().templateId}-views.zip`);
+      }
       return true;
     },
     async exportVideo(filename, settings, onProgress) {
@@ -235,12 +239,7 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       const { recordCartonVideo } = await import('./carton-video');
       const coarse = window.matchMedia?.('(pointer: coarse)').matches;
       const blob = await recordCartonVideo(renderer, { ...(coarse ? { width: 1280, height: 720 } : { width: 1920, height: 1080 }), settings }, onProgress);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.click();
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      downloadBlob(blob, filename);
       return true;
     },
     resetCamera,
@@ -466,3 +465,12 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     </span>)}
   </div>}{!measures && measuresHint && <div className="carton-engine-measures-hint" role="status">{measuresHint}</div>}</>;
 });
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

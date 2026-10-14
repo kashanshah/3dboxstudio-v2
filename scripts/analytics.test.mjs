@@ -131,16 +131,25 @@ function callback(name,context={}) {
   return {handler:sandbox.exports.handler,events};
 }
 
-test('PNG completion follows a successful renderer download; failure and preview navigation are distinct',()=>{
+test('image completion follows a successful renderer download; failure and preview navigation are distinct',async()=>{
+  const settings={size:'2k',format:'jpg',background:{kind:'transparent'},angles:'set'};
   for (const outcome of [true,false,'throw']) {
-    const {handler,events}=callback('exportPng',{workflowStep:'preview',mode:'3d',selectedTemplateId:'reverse-tuck',setMessage:()=>{},engineRef:{current:{exportPng:()=>{if(outcome==='throw')throw Error('Canvas');return outcome;}}}});
-    handler();
+    const dispatched=[];
+    const {handler,events}=callback('exportImage',{workflowStep:'preview',mode:'3d',selectedTemplateId:'reverse-tuck',setMessage:()=>{},imageSettings:settings,imageBusy:false,setImageBusy:()=>{},floorShadow:true,renderStyle:'realistic',
+      imageBackground:value=>value.format==='jpg'&&value.background.kind==='transparent'?{kind:'color',color:'#ffffff'}:value.background,
+      POST_EXPORT_FEEDBACK_EVENT:'feedback',CustomEvent:class{constructor(type,init){this.type=type;this.detail=init.detail;}},window:{dispatchEvent:event=>dispatched.push(event)},
+      engineRef:{current:{exportImage:async received=>{assert.equal(received,settings);if(outcome==='throw')throw Error('Canvas');return outcome;}}}});
+    await handler();
     assert.equal(events[0][0],'export_clicked');
     assert.equal(events[1][0],outcome===true?'export_completed':'export_failed');
-    assert.equal(events[1][1].export_format,'png');
+    assert.equal(events[1][1].export_format,'jpg');
+    assert.equal(events[1][1].export_resolution,'2k');
+    assert.equal(events[1][1].image_background,'color');
+    assert.equal(events[1][1].image_angles,'set');
+    assert.equal(dispatched.length,outcome===true?1:0);
   }
-  const pending=callback('exportPng',{workflowStep:'design',mode:'dieline',goToWorkflowStep:()=>{},setMessage:()=>{}});
-  pending.handler();
+  const pending=callback('exportImage',{workflowStep:'design',mode:'dieline',goToWorkflowStep:()=>{},setMessage:()=>{}});
+  await pending.handler();
   assert.equal(pending.events.length,0);
 });
 
