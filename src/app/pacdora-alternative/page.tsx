@@ -15,7 +15,7 @@ const rows = [
   { label: "Box sizing", ours: "Exact width, height and depth in mm or inches, plus board thickness", theirs: "Custom dimensions on its templates" },
   { label: "Flap and panel sizes", ours: "Adjust each flap and panel on the dieline or the 3D box, with drag handles", theirs: "Depends on the template" },
   { label: "Dieline export", ours: "1:1 PDF with artwork and bleed, plus SVG and DXF with cut and crease layers, free", theirs: "Dieline downloads in several formats; limits depend on plan" },
-  { label: "3D preview", ours: "Real-time fold and open, orbit, transparent PNG up to 4K and a 10-second MP4", theirs: "Photoreal mockups, animations and video" },
+  { label: "3D preview", ours: "Real-time fold and open, orbit, PNG or JPG up to 4K with product shots, and an MP4 up to 15 seconds", theirs: "Photoreal mockups, animations and video" },
   { label: "Template range", ours: "9 box structures: tuck end, auto lock and snap lock bottom cartons, mailer, pizza, shipping, sleeve and rigid boxes", theirs: "Large library of boxes plus bags, bottles, cans and other packaging" },
   { label: "Sharing", ours: "View-only interactive 3D link", theirs: "Share links and exported files" },
 ];

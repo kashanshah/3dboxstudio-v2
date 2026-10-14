@@ -34,6 +34,7 @@ import {
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
+import type { ImageBackground } from '@/lib/packaging/image-export';
 import { CORRUGATED_THICKNESS, type Mesh } from '@/lib/packaging/template-mesh';
 import { requireTemplateRuntime } from '@/lib/packaging/template-runtime';
 import {
@@ -492,16 +493,17 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     currentScene() {
       return capture ? capture.liveScene : scene;
     },
-    /** Start drawing frames at a fixed video size on an opaque backdrop: the studio gradient, or a `#rrggbb` colour. */
-    beginCapture(width: number, height: number, color: string | null = null) {
+    /** Start drawing frames at a fixed size, for a video or image, on the studio gradient, a colour or (images only) nothing. */
+    beginCapture(width: number, height: number, background: ImageBackground = { kind: 'studio' }) {
       if (capture) return;
       capture = { width, height, liveScene: scene };
-      if (color) world.background = new Color(color);
-      else world.background = backdrop ??= backdropTexture();
+      if (background.kind === 'color') world.background = new Color(background.color);
+      else if (background.kind === 'studio') world.background = backdrop ??= backdropTexture();
+      else world.background = null;
       renderer.setPixelRatio(1);
       renderer.setSize(width, height, false);
     },
-    /** Draw one video frame: the live scene with these fields changed. */
+    /** Draw one frame: the live scene with these fields changed. */
     captureFrame(overrides: Partial<Scene>) {
       if (!capture) throw new Error('Video capture has not started.');
       const previous = scene;
@@ -522,25 +524,10 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       syncMeshes();
       render();
     },
-    /** A PNG of the current view with its longest side at `longSide` pixels. */
-    snapshot(longSide: number) {
-      const width = Math.max(1, canvas.clientWidth);
-      const height = Math.max(1, canvas.clientHeight);
-      const limit = Math.min(renderer.capabilities.maxTextureSize, renderer.getContext().getParameter(renderer.getContext().MAX_RENDERBUFFER_SIZE) as number);
-      const target = Math.min(longSide, limit);
-      const ratio = target / Math.max(width, height);
-      renderer.setPixelRatio(ratio);
-      renderer.setSize(width, height, false);
-      try {
-        const eye = updateCamera();
-        stageLights(eye);
-        renderer.render(world, camera);
-        return canvas.toDataURL('image/png');
-      } finally {
-        renderer.setPixelRatio(pixelRatio);
-        renderer.setSize(width, height, false);
-        render();
-      }
+    /** The largest frame side the GPU can draw. */
+    captureLimit() {
+      const gl = renderer.getContext();
+      return Math.min(renderer.capabilities.maxTextureSize, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number);
     },
     dispose() {
       for (const object of objects) {
