@@ -1669,8 +1669,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     const control = selectedTemplate.parameters.find(parameter => parameter.key === key);
     return { key, kind: 'dimension', label: control?.label ?? key[0].toUpperCase() + key.slice(1), value: dimensions[key], min: Math.max(MIN_BOX_MM, control?.min ?? 1), max: Math.min(MAX_BOX_MM, control?.max ?? Infinity) };
   };
+  // Sizes are edited in the Box and Design steps; Preview shows the box alone.
+  const sizesOnBox = showSizes && workflowStep !== 'preview';
   // On the 3D box once it's fully formed; an open lid is measured closed.
-  const boxMeasures = showSizes && mode === '3d' && formation >= 99.5 ? {
+  const boxMeasures = sizesOnBox && mode === '3d' && formation >= 99.5 ? {
     x: <SizeChip size={boxSize('width')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
     y: <SizeChip size={boxSize('height')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
     z: <SizeChip size={boxSize('depth')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
@@ -1682,7 +1684,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   // Flap sizes on the 3D box: each on the largest of its flaps that can be
   // seen, named as the 3D model names panels ("Top Tuck").
   const flapCandidates = useMemo(() => {
-    if (!showSizes || !panelSizes) return [];
+    if (!sizesOnBox || !panelSizes) return [];
     const panels = getTemplateGeometry(selectedTemplateId, dimensions, { openingMode, splitTopHingeSide }).panels;
     const byKey = new Map<string, { size: MeasuredSize; flaps: { name: string; area: number }[] }>();
     for (const entry of panelSizes) for (const size of [entry.x, entry.y]) {
@@ -1694,7 +1696,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       byKey.set(size.key, group);
     }
     return [...byKey.values()].map(({ size, flaps }) => ({ size, panels: flaps.sort((a, b) => b.area - a.area).map(flap => flap.name) }));
-  }, [showSizes, panelSizes, selectedTemplateId, dimensions, openingMode, splitTopHingeSide]);
+  }, [sizesOnBox, panelSizes, selectedTemplateId, dimensions, openingMode, splitTopHingeSide]);
   const flapMeasures = flapCandidates.length ? flapCandidates.map(({ size, panels }) => ({
     key: size.key, panels, node: <SizeChip size={size} unit={measurementUnit} onCommit={setMeasuredSize}/>,
   })) : null;
@@ -2246,7 +2248,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             ref={engineRef}
             measures={boxMeasures}
             flapMeasures={mode === '3d' ? flapMeasures : null}
-            measuresHint={showSizes && mode === '3d' && formation < 99.5 ? t('studio.show_sizes_assemble_hint') : null}
+            measuresHint={sizesOnBox && mode === '3d' && formation < 99.5 ? t('studio.show_sizes_assemble_hint') : null}
             dimensions={dimensions}
             templateId={selectedTemplateId}
             opening={opening}
@@ -2433,13 +2435,13 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
               <span className="pro-canvas-bar-label">{t("studio.closed")}</span>
               <span className="pro-canvas-bar-divider" />
             </>}
-            <button
+            {workflowStep!=='preview' && <button
               className={`pro-canvas-bar-icon${showSizes ? ' is-active' : ''}`}
               title={t("studio.show_sizes")}
               aria-label={t("studio.show_sizes")}
               aria-pressed={showSizes}
               onClick={() => setShowSizes(value => !value)}
-            ><Ruler size={18}/></button>
+            ><Ruler size={18}/></button>}
             <button
               className="pro-canvas-bar-icon"
               title={t("studio.fit_view")}
