@@ -515,9 +515,9 @@ test('dimension changes flow through each ready template runtime',()=>{
     // to a board thickness wider, and a slotted box two boards taller. A
     // mailer's front is as wide as its base, cut wider so the double side
     // walls stand inside it; a rigid box's, a board each side for the turn-ins.
-    // An auto-lock bottom's walls are three boards taller for its layered floor.
+    // An auto-lock or snap-lock bottom's walls are three boards taller for its layered floor.
     const widthAllowance={'mailer-box':5.5,'rigid-lid-base':1}[template.id]??0;
-    const heightAllowance={'auto-lock-bottom-box':2}[template.id]??0;
+    const heightAllowance={'auto-lock-bottom-box':2,'snap-lock-bottom-box':2}[template.id]??0;
     within(front.width,changed.width+widthAllowance*changed.thickness,changed.thickness,`${template.id} front width`);
     within(front.height,changed.height+heightAllowance*changed.thickness,2*changed.thickness,`${template.id} front height`);
   }
@@ -580,6 +580,7 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'mailer-box':'mailer-box',
     'rigid-lid-base':'rigid-lid-base',
     'auto-lock-bottom-box':'auto-lock-bottom',
+    'snap-lock-bottom-box':'snap-lock-bottom',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];

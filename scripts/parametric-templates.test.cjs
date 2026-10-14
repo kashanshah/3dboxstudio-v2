@@ -309,6 +309,7 @@ const {pizzaBoxDefinition}=require('../src/lib/packaging/parametric/definitions/
 const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions/sleeve-box.ts');
 const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
 const {autoLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/auto-lock-bottom.ts');
+const {snapLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/snap-lock-bottom.ts');
 const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
@@ -360,7 +361,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -384,7 +385,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -476,6 +477,36 @@ test('the auto-lock bottom creases its glue tabs at 45° and folds its bottom in
   const anchor=panelLabelAnchor(sheet.panels.find(panel=>panel.id==='bottom-left-tab').outline,sheet.panels.find(panel=>panel.id==='bottom-left-tab'));
   assert.ok(anchor&&anchor.x>0.6&&anchor.y>0.6,'tab name toward its corner');
   for(const id of ['top-left-dust','glue','top'])assert.equal(panelLabelAnchor(sheet.panels.find(panel=>panel.id===id).outline,sheet.panels.find(panel=>panel.id===id)),null,`${id} name stays centred`);
+});
+
+test('the snap-lock bottom folds closed 1-2-3: side flaps inside, then the back flap, then the front',()=>{
+  const box=getTemplateRuntime('snap-lock-bottom-box');
+  for(const dimensions of [{width:90,height:130,depth:60,thickness:0.5},{width:30,height:40,depth:20,thickness:0.3},{width:300,height:200,depth:200,thickness:2}]){
+    const t=dimensions.thickness;
+    const sheet=box.getExportGeometry(dimensions);
+    const panel=id=>sheet.panels.find(p=>p.id===id);
+    const reach=id=>Math.max(...panel(id).outline.map(point=>point.y))-panel(id).y;
+    // The front flap's tongue reaches past the back flap's edge but stops short of the back wall.
+    const front=reach('bottom-front'),back=reach('bottom-back');
+    assert.ok(front+back>dimensions.depth+t,'the tongue tucks under the back flap');
+    assert.ok(front<dimensions.depth,'the tongue stops short of the back wall');
+    // The back flap has a notch cut into its edge for the tongue.
+    assert.ok(panel('bottom-back').outline.some(point=>point.y<panel('bottom-back').y+back-1),'half-moon notch');
+    // Folded, from the outside in: the front flap, the back flap, the side flaps, without crossing.
+    const levels={};
+    for(const mesh of box.buildMeshes({dimensions,formation:100,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]})){
+      if(typeof mesh.panel!=='string'||!/Bottom/.test(mesh.panel))continue;
+      const id=mesh.panel.replace(/^Interior /,'');
+      const level=levels[id]??=[Infinity,-Infinity];
+      for(let i=1;i<mesh.vertices.length;i+=8){level[0]=Math.min(level[0],mesh.vertices[i]);level[1]=Math.max(level[1],mesh.vertices[i]);}
+    }
+    const below=(a,b)=>assert.ok(levels[a][1]<=levels[b][0]+1e-3,`${a} (${levels[a]}) under ${b} (${levels[b]})`);
+    below('Bottom Front','Bottom Back');
+    below('Bottom Back','Bottom Left');
+    below('Bottom Back','Bottom Right');
+    for(const id of Object.keys(levels))assert.ok(levels[id][1]-levels[id][0]<=t+1e-3,`${id} lies flat`);
+  }
+  assert.throws(()=>box.getExportGeometry({width:20,height:140,depth:60,thickness:0.5}),/at least 30 mm/);
 });
 
 test('the mailer folds into a box of the entered inside size, every layer in its place',()=>{

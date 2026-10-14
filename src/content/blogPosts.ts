@@ -2417,7 +2417,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Crash lock vs snap lock vs tuck end" },
       { type: "ul", items: [
         "Tuck end bottom ([straight tuck](/box-templates/straight-tuck-end-box) or [reverse tuck](/box-templates/reverse-tuck-end-box)): a lid with a tuck tongue, closed by hand. Cheapest to make and fine for light products, but the tuck can open under weight.",
-        "Snap lock or 1-2-3 bottom: four interlocking flaps folded closed by hand in order, with no glue. Stronger than a tuck and a little cheaper than a crash lock, but slower on a packing line.",
+        "[Snap lock or 1-2-3 bottom](/box-templates/snap-lock-bottom-box): four interlocking flaps folded closed by hand in order, with no glue. Stronger than a tuck and a little cheaper than a crash lock, but slower on a packing line.",
         "Crash lock or auto lock bottom: pre-glued, forms itself when the carton is opened. The fastest to set up and the strongest of the three, which is why it is used for bottles, jars, candles, electronics and gift sets. It needs a gluer that can apply the extra glue, so it costs a little more per carton."
       ] },
       { type: "p", text: "Most cartons with a crash lock bottom close at the top with a tuck lid, so the packer opens the carton, drops the product in from the top and tucks the lid closed. That combination is often listed as tuck top auto bottom." },

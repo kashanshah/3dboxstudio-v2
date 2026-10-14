@@ -14,6 +14,19 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'snap-lock-bottom-box',
+    date: '2026-10-14',
+    title: 'New template: snap lock bottom box',
+    summary: 'A tuck top carton with a 1-2-3 snap-lock bottom that closes by hand with no glue: stronger than a tuck end, cheaper than a crash lock.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/snap-lock-bottom-box', label: 'See the snap lock bottom box template' },
+    highlights: [
+      'The bottom closes in three moves: fold in the side flaps, fold the back flap over them, then fold the front flap and push its tongue in under the back flap until it snaps.',
+      'The dieline has tapered side flaps, a back flap with a half-moon notch and a front flap with a lock tongue, plus a tuck top with dust flaps and a thumb notch, all drawn from your inside size and board thickness.',
+      'Watch the bottom close 1-2-3 in 3D, adjust the side flaps and lock tongue, and export the cutting template as a 1:1 PDF, SVG or DXF.',
+    ],
+  },
+  {
     id: 'auto-lock-bottom-box',
     date: '2026-10-13',
     title: 'New template: auto lock bottom box',
