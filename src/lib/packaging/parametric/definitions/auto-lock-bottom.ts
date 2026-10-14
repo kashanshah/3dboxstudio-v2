@@ -98,18 +98,20 @@ export const autoLockBottomDefinition = {
     { require: 'width >= 30', message: 'The width is too small for the bottom\'s side flaps and glue tabs. Use a width of at least 30 mm.' },
   ],
   // Folded from the cutting template: the body wraps round with the glue flap
-  // stuck inside the back. At the bottom the glue tabs turn under their side
-  // flaps first, as the gluer folds them; then the front and back flaps come
-  // in (the front a board above the back where they overlap), and the side
-  // flaps close over them. The top closes like the straight tuck end's.
+  // stuck inside the back. At the bottom every flap swings up from below, so
+  // they close from the inside layer out: the glue tabs turn under their side
+  // flaps, as the gluer folds them, the side flaps close, then the front flap
+  // and last the back, outermost where the two overlap. The top closes like
+  // the straight tuck end's.
   fold: {
     ...TUCK_END_FOLD,
     motions: [
       ['turnWalls', 'stage(formation, 0, 0.6) * (pi / 2)'],
       ['turnBack', 'stage(formation, 0.15, 0.75) * (pi / 2)'],
-      ['turnTabs', 'stage(formation, 0.4, 0.58) * pi'],
-      ['turnLock', 'stage(formation, 0.55, 0.75) * (pi / 2)'],
-      ['turnSides', 'stage(formation, 0.62, 0.82) * (pi / 2)'],
+      ['turnTabs', 'stage(formation, 0.38, 0.54) * pi'],
+      ['turnSides', 'stage(formation, 0.5, 0.68) * (pi / 2)'],
+      ['turnFront', 'stage(formation, 0.6, 0.78) * (pi / 2)'],
+      ['turnBackFlap', 'stage(formation, 0.66, 0.84) * (pi / 2)'],
       ['turnTopDust', 'stage(formation, 0.78, 0.88) * (pi / 2)'],
       ['turnTopPrefold', 'stage(formation, 0.88, 0.94) * (pi / 2)'],
       ['turnTop', 'stage(formation, 0.9, 1) * (pi / 2)'],
@@ -124,8 +126,8 @@ export const autoLockBottomDefinition = {
       { child: 'top', parent: 'front', angle: 'turnTop' },
       { child: 'top-tuck', parent: 'top', angle: tongueCurl('turnTopPrefold', 'turnTop', 'depth', 'topTongue', 'topClear'), setback: 'topClear' },
       ...dustFlapHinges('crash-lock', () => 'turnTopDust', 'foldT * 1.1'),
-      { child: 'bottom-front', parent: 'front', angle: 'turnLock', setback: 'foldT' },
-      { child: 'bottom-back', parent: 'back', angle: 'turnLock' },
+      { child: 'bottom-front', parent: 'front', angle: 'turnFront', setback: 'foldT' },
+      { child: 'bottom-back', parent: 'back', angle: 'turnBackFlap' },
       // The side flaps rest above the glue tabs turned under them, which take
       // a board and the bend's own thickness.
       { child: 'bottom-left', parent: 'left', angle: 'turnSides', setback: 'foldT * 2.6' },
