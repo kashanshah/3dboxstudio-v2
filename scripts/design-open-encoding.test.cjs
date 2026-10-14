@@ -73,12 +73,14 @@ test('admin design detail resolves percent-encoded legacy ids from listing links
   db = new PGlite();
   try {
     await db.exec(LEGACY_SYNC_SCHEMA);
-    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now());
-      CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, created_at timestamptz default now(), updated_at timestamptz default now());
+    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now(), utm_source text, utm_campaign text, signup_landing_page text, signup_landing_type text, signup_referrer text, migrated_from text);
+      CREATE TABLE sessions(token text primary key, user_id text, created_at timestamptz default now());
+      CREATE TABLE workspace_projects(id text primary key, user_id text, name text);
+      CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, workspace_project_id text, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE media_assets(id text primary key, user_id text, name text, mime_type text, byte_size bigint, storage_key text, created_at timestamptz default now());
       CREATE TABLE admin_media_sizes(storage_key text primary key, byte_size bigint, checked_at timestamptz default now());
       CREATE TABLE design_shares(id text primary key, project_id text, preview_token text, revoked_at timestamptz, expires_at timestamptz, view_count bigint not null default 0);
-      CREATE TABLE export_feedback(id text primary key, user_id text, project_id text);`);
+      CREATE TABLE export_feedback(id text primary key, user_id text, project_id text, rating smallint, comment text, export_format text, template_id text, created_at timestamptz default now());`);
     for (const statement of ADMIN_READ_MODEL_SCHEMA) await db.exec(statement);
     const now = new Date().toISOString();
     await db.query("INSERT INTO users(id,email,name,email_verified_at,signup_method) VALUES('u1','ada@example.com','Ada',NOW(),'google')");
