@@ -11,11 +11,20 @@ export type AdminUserRow = {
   name: string;
   email: string;
   verified: boolean;
+  verifiedAt: string | null;
   signupMethod: string;
   createdAt: string | null;
   projectCount: number;
   designCount: number;
   mediaCount: number;
+  /** Where the signup came from: UTM source, else the referrer's host. */
+  source: string | null;
+  campaign: string | null;
+  landing: string | null;
+  migrated: boolean;
+  /** Latest design save or sign-in. */
+  lastActiveAt: string | null;
+  recentDesigns: { id: string; name: string; thumbnailUrl: string | null }[];
 };
 
 export type AdminDesignRow = {
@@ -28,7 +37,15 @@ export type AdminDesignRow = {
   views: number;
   previewHref: string;
   thumbnailUrl: string | null;
-  user: { id: string; name: string; href: string } | null;
+  user: { id: string; name: string; email: string | null; href: string } | null;
+  /** Box template id; a legacy design is mapped to the template it opens as. */
+  templateId: string | null;
+  /** Width × height × depth as saved, e.g. "120 × 80 × 40 mm". */
+  size: string | null;
+  /** The Studio project (folder) a V2 design is in. */
+  folder: string | null;
+  sharedLink: boolean;
+  rating: { average: number; count: number } | null;
 };
 
 export type AdminDesignDetail = AdminDesignRow & { images: AdminMediaItem[] };
@@ -106,13 +123,43 @@ const IMAGE_LATERAL = `
   ) img ON true`;
 
 const DESIGN_IMAGES = `${IMAGE_LATERAL}
-  LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id = d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at > NOW())`;
+  LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id = d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at > NOW())
+  LEFT JOIN LATERAL (
+    SELECT p.studio_state->>'templateId' AS template_id, p.studio_state->'dimensions' AS dims, 'mm' AS unit, wp.name AS folder
+    FROM projects p LEFT JOIN workspace_projects wp ON wp.id = p.workspace_project_id
+    WHERE NOT d.legacy AND p.id = d.id
+    UNION ALL
+    SELECT CASE WHEN lr.payload->'config'->>'opening' ILIKE '%split%' THEN 'split-top-box' ELSE 'base-box' END,
+      lr.payload->'config'->'dims', COALESCE(NULLIF(lr.payload->'config'->>'unit', ''), 'cm'), NULL
+    FROM legacy_records lr
+    WHERE d.legacy AND lr.source = d.legacy_source AND lr.entity_type = 'shared_designs' AND lr.source_id = d.legacy_source_id
+  ) dm ON true
+  LEFT JOIN LATERAL (
+    SELECT ROUND(AVG(f.rating)::numeric, 1) AS rating_avg, COUNT(*)::int AS rating_count
+    FROM export_feedback f WHERE NOT d.legacy AND f.project_id = d.id
+  ) fb ON true`;
 
 const DESIGN_COLUMNS = `d.id, d.name, d.legacy, d.created_at, d.updated_at, d.has_preview, d.public_id, d.preview_token,
   CASE WHEN d.legacy THEN d.views ELSE COALESCE(s.view_count, 0) END AS views,
   s.id AS share_id, s.preview_token AS share_preview_token,
   COALESCE(img.image_count, 0) AS image_count, img.thumb_storage_key,
+  dm.template_id, dm.dims, dm.unit, dm.folder, fb.rating_avg, fb.rating_count,
   d.user_id, d.user_name, d.user_email`;
+
+/** One user's latest activity and three newest designs (`id` is the user id expression). */
+function userActivitySql(id: string) {
+  return `
+    SELECT GREATEST(
+        (SELECT MAX(p.updated_at) FROM projects p WHERE p.user_id = ${id}),
+        (SELECT MAX(se.created_at) FROM sessions se WHERE se.user_id = ${id})
+      ) AS last_active_at,
+      (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', r.id, 'name', r.name, 'preview', r.has_preview) ORDER BY r.updated_at DESC NULLS LAST), '[]'::jsonb)
+       FROM (SELECT * FROM (${designsSql(`p.user_id = ${id}`, `lr.payload->>'user_id' = ${id}`)}) x ORDER BY x.updated_at DESC NULLS LAST LIMIT 3) r
+      ) AS recent_designs`;
+}
+
+const USER_FIELDS = `u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
+  u.utm_source, u.utm_campaign, u.signup_landing_page, u.signup_landing_type, u.signup_referrer, u.migrated_from`;
 
 /** One user's projects, designs and distinct images (`id` is the user id expression). */
 function userCountsSql(id: string) {
@@ -162,6 +209,12 @@ type DesignQueryRow = {
   share_preview_token?: string | null;
   has_preview?: boolean;
   thumb_storage_key?: string | null;
+  template_id?: string | null;
+  dims?: unknown;
+  unit?: string | null;
+  folder?: string | null;
+  rating_avg?: number | string | null;
+  rating_count?: number | null;
   total?: number;
 };
 
@@ -323,6 +376,15 @@ function presentMedia(row: MediaQueryRow): AdminMediaItem {
   };
 }
 
+function sizeLabel(dims: unknown, unit: string | null | undefined): string | null {
+  const value = jsonRecord(typeof dims === 'string' ? (() => { try { return JSON.parse(dims) as unknown; } catch { return null; } })() : dims);
+  const read = (key: string) => { const n = Number(value[key]); return Number.isFinite(n) && n > 0 ? n : null; };
+  const width = read('width'), height = read('height'), depth = read('depth') ?? read('length');
+  if (width == null || height == null || depth == null) return null;
+  const round = (n: number) => Number(n.toFixed(1)).toString();
+  return `${round(width)} × ${round(height)} × ${round(depth)} ${unit || 'mm'}`;
+}
+
 function presentDesign(row: DesignQueryRow): AdminDesignRow {
   return {
     id: row.id,
@@ -337,32 +399,65 @@ function presentDesign(row: DesignQueryRow): AdminDesignRow {
     user: row.user_id ? {
       id: row.user_id,
       name: row.user_name?.trim() || row.user_email || 'Unknown user',
+      email: row.user_email ?? null,
       href: adminUserHref(row.user_id),
     } : null,
+    templateId: row.template_id?.trim() || null,
+    size: sizeLabel(row.dims, row.unit),
+    folder: row.folder?.trim() || null,
+    sharedLink: Boolean(row.legacy ? (row.preview_token || row.public_id) : row.share_id),
+    rating: Number(row.rating_count) > 0 ? { average: Number(row.rating_avg), count: Number(row.rating_count) } : null,
   };
 }
 
-function presentUser(row: {
+type UserQueryRow = {
   id: string;
   name: string | null;
   email: string;
   email_verified_at: string | Date | null;
   signup_method: string | null;
   created_at: string | Date | null;
+  utm_source?: string | null;
+  utm_campaign?: string | null;
+  signup_landing_page?: string | null;
+  signup_landing_type?: string | null;
+  signup_referrer?: string | null;
+  migrated_from?: string | null;
+  last_active_at?: string | Date | null;
+  recent_designs?: unknown;
   project_count: number;
   design_count: number;
   media_count: number;
-}): AdminUserRow {
+};
+
+function referrerHost(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try { return new URL(value).hostname.replace(/^www\./, '') || null; } catch { return null; }
+}
+
+function presentUser(row: UserQueryRow): AdminUserRow {
+  const recent = Array.isArray(row.recent_designs) ? row.recent_designs as { id?: unknown; name?: unknown; preview?: unknown }[] : [];
   return {
     id: row.id,
     name: row.name?.trim() || row.email,
     email: row.email,
     verified: Boolean(row.email_verified_at),
+    verifiedAt: iso(row.email_verified_at),
     signupMethod: row.signup_method?.trim() || 'Unknown',
     createdAt: iso(row.created_at),
     projectCount: Number(row.project_count || 0),
     designCount: Number(row.design_count || 0),
     mediaCount: Number(row.media_count || 0),
+    source: row.utm_source?.trim() || referrerHost(row.signup_referrer),
+    campaign: row.utm_campaign?.trim() || null,
+    landing: row.signup_landing_page?.trim() || row.signup_landing_type?.trim() || null,
+    migrated: Boolean(row.migrated_from),
+    lastActiveAt: iso(row.last_active_at),
+    recentDesigns: recent.flatMap((item) => typeof item.id === 'string' ? [{
+      id: item.id,
+      name: typeof item.name === 'string' && item.name.trim() ? item.name.trim() : 'Untitled',
+      thumbnailUrl: item.preview === true ? `/api/admin/designs/${encodeURIComponent(item.id)}/preview` : null,
+    }] : []),
   };
 }
 
@@ -379,7 +474,7 @@ export async function listUsers(input: { q?: string; page?: number; sort?: strin
   const order = orderSql(USER_SORT_SQL[sort], dir, 'u.id');
   const rows = await getSql().query(`
     WITH page AS (
-      SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
+      SELECT ${USER_FIELDS},
         ${countSort ? 'c.project_count, c.design_count, c.media_count,' : ''}
         COUNT(*) OVER()::int AS total, ROW_NUMBER() OVER (ORDER BY ${order}) AS ord
       FROM users u
@@ -388,10 +483,11 @@ export async function listUsers(input: { q?: string; page?: number; sort?: strin
       ORDER BY ${order}
       LIMIT $2 OFFSET $3
     )
-    SELECT page.*${countSort ? '' : ', c.project_count, c.design_count, c.media_count'}
+    SELECT page.*${countSort ? '' : ', c.project_count, c.design_count, c.media_count'}, a.last_active_at, a.recent_designs
     FROM page ${countSort ? '' : `CROSS JOIN LATERAL (${userCountsSql('page.id')}) c`}
+    CROSS JOIN LATERAL (${userActivitySql('page.id')}) a
     ORDER BY page.ord
-  `, [q, PAGE_SIZE, offset]) as Array<Parameters<typeof presentUser>[0] & { total: number }>;
+  `, [q, PAGE_SIZE, offset]) as Array<UserQueryRow & { total: number }>;
   return { items: rows.map(presentUser), total: Number(rows[0]?.total ?? 0), page, pageSize: PAGE_SIZE };
 }
 
@@ -399,10 +495,10 @@ export async function getUser(id: string, list?: { sort?: string; dir?: string }
   await ensureV2Schema();
   const [rows, designs] = await Promise.all([
     getSql().query(`
-      SELECT u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at, c.*
-      FROM users u CROSS JOIN LATERAL (${userCountsSql('u.id')}) c
+      SELECT ${USER_FIELDS}, c.*, a.*
+      FROM users u CROSS JOIN LATERAL (${userCountsSql('u.id')}) c CROSS JOIN LATERAL (${userActivitySql('u.id')}) a
       WHERE u.id=$1 LIMIT 1
-    `, [id]).then((result) => result as Parameters<typeof presentUser>[0][]),
+    `, [id]).then((result) => result as UserQueryRow[]),
     listDesigns({ userId: id, page: 1, pageSize: 100, sort: list?.sort, dir: list?.dir }),
   ]);
   const user = rows[0];
