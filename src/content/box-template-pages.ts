@@ -346,9 +346,9 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. Each panel is creased one board thickness wider for the caliper you set, and the walls are three boards taller for the layered bottom, so the folded carton keeps the inside size you enter.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers. Ask your printer to confirm the glue tabs and allowances for their board and gluer.' },
     ],
-    guides: ['tuck-end-folding-carton-mockup', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'packaging-bleed-safe-zone-dieline', 'box-template-svg-cricut-laser-cutter'],
+    guides: ['auto-lock-bottom-box-crash-lock', 'tuck-end-folding-carton-mockup', 'how-to-measure-a-box-inside-vs-outside-dimensions', 'box-dieline-svg-dxf-export'],
     tags: ['Folding cartons', 'Retail', 'Heavy products'],
-    updated: '2026-10-13',
+    updated: '2026-10-14',
   },
   {
     slug: 'sleeve-box',

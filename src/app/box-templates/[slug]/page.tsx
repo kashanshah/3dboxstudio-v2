@@ -9,7 +9,7 @@ import { BOX_TEMPLATE_PAGES, getBoxTemplatePage } from '@/content/box-template-p
 import { getBlogPostBySlug } from '@/content/blogPosts';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import { notFoundMetadata } from '@/lib/not-found-metadata';
-import { site, defaultOgImage } from '@/lib/site';
+import { site } from '@/lib/site';
 import '../../box-template-page.css';
 import { inlineLinks } from '@/components/inline-links';
 
@@ -22,12 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = getBoxTemplatePage((await params).slug);
   if (!page) return notFoundMetadata;
   const path = `/box-templates/${page.slug}`;
+  // Rendered per page by scripts/render-template-og.cjs.
+  const image = { url: `/og/templates/${page.slug}.png`, width: 1200, height: 630, alt: `${page.h1}: the dieline and the box folded in 3D` };
   return {
     title: { absolute: page.title },
     description: page.description,
     alternates: { canonical: path },
-    openGraph: { images: [defaultOgImage], title: page.title, description: page.description, type: 'website', url: path },
-    twitter: { card: 'summary_large_image', title: page.title, description: page.description, images: [defaultOgImage.url] },
+    openGraph: { images: [image], title: page.title, description: page.description, type: 'website', url: path },
+    twitter: { card: 'summary_large_image', title: page.title, description: page.description, images: [image.url] },
   };
 }
 

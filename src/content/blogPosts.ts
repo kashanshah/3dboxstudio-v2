@@ -108,6 +108,7 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "packaging-bleed-safe-zone-dieline": "tools",
   "dieline-in-illustrator-vs-online-generator": "tools",
   "rigid-box-lid-and-base-template": "tools",
+  "auto-lock-bottom-box-crash-lock": "tools",
   "box-dieline-svg-dxf-export": "tools",
   "box-template-svg-cricut-laser-cutter": "tools",
 };
@@ -1513,7 +1514,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "A tuck end box is a paperboard carton where the top and bottom flaps tuck into the body without glue on the closing panels. Variations include reverse tuck, straight tuck, and auto-bottom styles. For visual preview purposes, the key is proportion and face layout—not engineering every glue tab.",
+        text: "A tuck end box is a paperboard carton where the top and bottom flaps tuck into the body without glue on the closing panels. Variations include reverse tuck, straight tuck, and [auto lock (crash lock) bottom](/blog/auto-lock-bottom-box-crash-lock) styles. For visual preview purposes, the key is proportion and face layout—not engineering every glue tab.",
       },
       {
         type: "h2",
@@ -2380,6 +2381,73 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: "p", text: "When the layout is right, download the cutting template on its own as an [SVG or DXF](/blog/box-dieline-svg-dxf-export): red cut lines and blue dashed crease lines on separate layers, at actual size in millimetres." },
       { type: "callout", text: "A common workflow is to generate the dieline, design and approve the artwork in 3D, then open the exported SVG or PDF in Illustrator for final production edits." },
       { type: "cta", label: "Generate a dieline from your size", href: "/box-dieline-generator" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "auto-lock-bottom-box-crash-lock",
+    title: "Auto Lock Bottom Box: How a Crash Lock Bottom Works",
+    seoTitle: "Auto Lock Bottom (Crash Lock) Box Template & Dieline | 3D Box Studio",
+    description: "What an auto lock bottom (crash lock) box is, how its pre-glued bottom locks itself, how it compares with tuck end and snap lock (1-2-3) bottoms, and how to make the dieline in your size and fold it in 3D for free.",
+    published: "2026-10-14",
+    readMinutes: 7,
+    keywords: ["auto lock bottom box","crash lock bottom box","crash lock box template","auto bottom box dieline","auto lock bottom dieline","crash lock vs snap lock","1-2-3 bottom box","tuck top auto bottom"],
+    imageAlt: "An auto lock bottom carton dieline with 45° glue tabs on the bottom flaps, next to the folded carton",
+    relatedSlugs: ["tuck-end-folding-carton-mockup","how-to-measure-a-box-inside-vs-outside-dimensions","box-dieline-svg-dxf-export"],
+    faqs: [
+      { question: "What is an auto lock bottom box?", answer: "A folding carton whose bottom is folded and glued by the carton maker. It ships flat, and when you open it the four bottom flaps swing down together and lock, so it is ready to fill straight away. It is also called a crash lock or auto bottom box." },
+      { question: "Is a crash lock bottom the same as an auto lock bottom?", answer: "Yes. Crash lock, auto lock, auto bottom and automatic bottom are names for the same pre-glued bottom. Some makers also call it a Himes lock." },
+      { question: "What is the difference between a crash lock and a snap lock (1-2-3) bottom?", answer: "A crash lock bottom is glued at the factory and forms itself when the carton is opened. A snap lock, or 1-2-3, bottom is not glued: the packer folds its four flaps in order by hand. Snap lock costs a little less to make; crash lock is faster to pack and holds more weight." },
+      { question: "Is there a free auto lock bottom box template?", answer: "Yes. The auto lock bottom box template in 3D Box Studio is free. Enter your inside size and it draws the dieline with the tuck top, the interlocking bottom flaps and the glue tabs, and folds it in 3D. Designing and exporting need a free account." },
+      { question: "Can I download the crash lock dieline?", answer: "Yes. Export a 1:1 PDF with your artwork, bleed and cut and crease lines, or the cutting template on its own as SVG or DXF. Ask your printer to confirm the glue tabs and allowances for their board and gluer before production." },
+    ],
+    sections: [
+      { type: "p", text: "Open a carton of wine glasses, a candle or a bottle of supplements and the bottom is often already there: you pull the flat carton open, the bottom flaps drop into place and lock, and the box is ready to fill. That is an auto lock bottom, also called a crash lock. It is one of the most common folding carton styles for anything heavier than a tube of lip balm." },
+      { type: "p", text: "This guide explains how the bottom works, when to choose it over a tuck end or a snap lock bottom, and how to make the dieline in your own size with the free [auto lock bottom box template](/box-templates/auto-lock-bottom-box)." },
+      { type: "h2", text: "How a crash lock bottom works" },
+      { type: "p", text: "The carton is cut from one printed sheet, like any folding carton: four walls in a strip, a glue flap, a tuck lid at the top and four flaps at the bottom. What makes it automatic is what happens on the gluing machine:" },
+      { type: "ol", items: [
+        "Each side wall's bottom flap carries a small triangular glue tab, past a 45° crease at the corner where the flat carton will fold.",
+        "The gluer folds each tab back along that crease and glues it to the inside of the front or back flap beside it.",
+        "The carton is folded flat with the bottom tucked inside, and the side seam is glued.",
+        "When the flat carton is opened, the corners square up and pull on the glue tabs. The tabs swing all four bottom flaps down together into the bottom of the box.",
+        "The front and back flaps are cut with a stepped edge, so as they come down each lies over the other on one side and they lock."
+      ] },
+      { type: "callout", text: "You can watch this happen in the Studio: open the [auto lock bottom template](/box-templates/auto-lock-bottom-box), drag the fold slider from flat to closed, and turn the box over to see the glue tabs fold under and the flaps lock." },
+      { type: "h2", text: "Crash lock vs snap lock vs tuck end" },
+      { type: "ul", items: [
+        "Tuck end bottom ([straight tuck](/box-templates/straight-tuck-end-box) or [reverse tuck](/box-templates/reverse-tuck-end-box)): a lid with a tuck tongue, closed by hand. Cheapest to make and fine for light products, but the tuck can open under weight.",
+        "Snap lock or 1-2-3 bottom: four interlocking flaps folded closed by hand in order, with no glue. Stronger than a tuck and a little cheaper than a crash lock, but slower on a packing line.",
+        "Crash lock or auto lock bottom: pre-glued, forms itself when the carton is opened. The fastest to set up and the strongest of the three, which is why it is used for bottles, jars, candles, electronics and gift sets. It needs a gluer that can apply the extra glue, so it costs a little more per carton."
+      ] },
+      { type: "p", text: "Most cartons with a crash lock bottom close at the top with a tuck lid, so the packer opens the carton, drops the product in from the top and tucks the lid closed. That combination is often listed as tuck top auto bottom." },
+      { type: "h2", text: "The sizes that matter" },
+      { type: "ul", items: [
+        "Inside width, depth and height: the space your product needs. Width is the front, depth the side. The template takes inside sizes and builds the panels outward for the board thickness you set.",
+        "Board thickness: folding carton board is usually 0.4 to 0.6 mm. The bottom is three boards thick where its flaps overlap, so the walls are cut a little taller to keep the inside height.",
+        "Bottom side flaps: they carry the glue tabs. Larger flaps give more glue area; the template keeps them clear of each other across the width, and you can change their size in the Studio.",
+        "Glue flap, top tuck and top dust flaps: the same as on a tuck end carton, and adjustable too.",
+        "Minimum size: a crash lock needs room to lock. The template asks for a depth of at least 20 mm and a width of at least 30 mm."
+      ] },
+      { type: "callout", text: "Measuring the product, not the box? Add a few millimetres of clearance on each side. See [inside vs outside box dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions)." },
+      { type: "h2", text: "Make the auto lock bottom dieline in your size" },
+      { type: "ol", items: [
+        "Open the [auto lock bottom box template](/box-templates/auto-lock-bottom-box) and pick a preset (wine bottle, supplement jar, candle set, small appliance) or type your inside size in millimetres or inches.",
+        "Open it in the Studio and set the board thickness.",
+        "Adjust the bottom side flaps, glue flap, tuck and dust flaps in the Sizes panel if you need to. The dieline and the 3D carton redraw as you type.",
+        "Place artwork on the front, back, sides and top. The bottom's front and back flaps are the outside of the bottom, so they take artwork too, for a barcode or recycling marks.",
+        "Fold it in 3D and turn it over to check the bottom, then export a 1:1 PDF, or the cutting template as [SVG or DXF](/blog/box-dieline-svg-dxf-export)."
+      ] },
+      { type: "h2", text: "Designing for an auto lock bottom carton" },
+      { type: "ul", items: [
+        "Keep important text off the bottom flaps' stepped edges and the glue tabs: the tabs are hidden inside, and the step is where the flaps overlap.",
+        "Put barcodes and regulatory text on the back or a side wall rather than across the bottom seam.",
+        "Leave the glue tabs and the glue area on the flaps they stick to free of ink and varnish, or ask your printer to knock it out, so the glue holds.",
+        "Check the top tuck and thumb notch in 3D: the top is the side people open, so it is worth getting the artwork on the lid right."
+      ] },
+      { type: "h2", text: "Before production" },
+      { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. Crash lock bottoms depend on the gluer and the board, so for a production run send your printer the inside size and the cutting template, and ask them to confirm the glue tabs, allowances and final die." },
+      { type: "cta", label: "Make an auto lock bottom dieline in your size", href: "/box-templates/auto-lock-bottom-box" },
       { type: "faq" }
     ],
   },
