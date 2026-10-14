@@ -68,3 +68,13 @@ test('requested dimensions are bounded and fall back per field', () => {
   assert.deepEqual(requestedDimensions({ w: '70', h: 'abc', d: '99999' }, fallback), { width: 70, height: 180, depth: 55, thickness: 0.5 });
   assert.deepEqual(requestedDimensions({ w: '0', h: '-5', d: '12.345' }, fallback), { width: 120, height: 180, depth: 12.3, thickness: 0.5 });
 });
+
+test('every template page has its own 1200×630 share image', () => {
+  for (const page of BOX_TEMPLATE_PAGES) {
+    const file = path.join(__dirname, '../public/og/templates', `${page.slug}.png`);
+    assert.ok(fs.existsSync(file), `${page.slug} has no share image; run node scripts/render-template-og.cjs`);
+    // A PNG's size sits in its IHDR chunk, right after the signature.
+    const header = fs.readFileSync(file).subarray(0, 24);
+    assert.deepEqual([header.readUInt32BE(16), header.readUInt32BE(20)], [1200, 630], `${page.slug} share image size`);
+  }
+});
