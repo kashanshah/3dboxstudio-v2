@@ -21,6 +21,16 @@ export type SheetPanel = {
   layer?: number;
   /** Leave the panel out of the model (it still anchors its children). */
   hidden?: boolean;
+  /**
+   * The outline the artwork spans, when this is one piece of a larger panel
+   * (a strip of a bowed face): the piece prints its part of that panel.
+   */
+  artworkFrame?: Vec2[];
+  /**
+   * The panel this is a strip of. Strips of one panel bend into each other
+   * with no crease: they join edge to edge and shade as one smooth surface.
+   */
+  piece?: string;
 };
 
 export type SheetHinge = {
@@ -36,6 +46,12 @@ export type SheetHinge = {
    * walls it closes over.
    */
   setback?: number;
+  /**
+   * Fold on the crease line itself, with no rounded bend of board: the two
+   * panels meet edge to edge. For the edges of bowed panels made of strips,
+   * which must close exactly, such as a pillow box's sides.
+   */
+  sharp?: boolean;
 };
 
 export type FoldSheetInput = {
@@ -47,6 +63,8 @@ export type FoldSheetInput = {
   interiorColor: [number, number, number];
   /** Maps the flat sheet (x right, y up, outside facing +z) into the scene. */
   placement: Mat4;
+  /** Filled with each panel's placement in the scene, from the flat sheet (x right, y up). */
+  frames?: Map<string, Mat4>;
 };
 
 /** Column-major 4×4 matrix. */
@@ -100,6 +118,14 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
       if (!shared) throw new Error(`No crease between ${hinge.parent} and ${hinge.child}`);
       const q0 = flat(shared.start), q1 = flat(shared.end);
       const along = normalize(sub(q1, q0));
+      if (hinge.sharp || (parent.piece && parent.piece === child.piece)) {
+        // Two strips of one bowed panel, or a sharp fold: turn about the
+        // crease line itself, set back into the parent if asked.
+        let across = normalize(cross([0, 0, 1], along));
+        if (dot(sub(average(child.outline.map(flat)), q0), across) < 0) across = scale(across, -1);
+        visit(child.id, multiply(matrix, hingeFrame(sub(q0, scale(across, hinge.setback ?? 0)), along, across, hinge.angle, 0, 0)));
+        continue;
+      }
       const centroid = average(child.outline.map(flat));
       let across = normalize(cross([0, 0, 1], along));
       if (dot(sub(centroid, q0), across) < 0) across = scale(across, -1);
@@ -123,6 +149,7 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     }
   };
   visit(input.root, identity());
+  for (const [id, matrix] of world) input.frames?.set(id, multiply(input.placement, matrix));
   // A flap that tucks inside (a setback crease) stays clear of the bends at
   // either end of its parent and of a tongue or glue flap lying along the
   // walls there, as real dielines relieve those flaps. It narrows as the
@@ -184,7 +211,7 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     // template's panels do; the inside face is picked from its own surface.
     const pick = cornersByArtwork(panel);
     outside.pickCorners = pick.map(i => place(full[i]));
-    const box = boundsOf(panel.outline);
+    const box = artworkBox(panel);
     outside.faceAspect = box.width / box.height;
     outside.uvSize = [box.width, box.height];
     outside.creases = (trims.get(panel.id) ?? []).map(trim => remapEdge(trim.edge, flip));
@@ -198,7 +225,47 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
     if (panel.closureFlap) inside.closureFlap = true;
     meshes.push(outside, inside);
   }
+  smoothPieces(meshes, input.panels);
   return [...meshes, ...bends];
+}
+
+/**
+ * Strips of one bowed panel shade as one surface: where strips meet, each
+ * corner takes the average of the normals of the strips that share it.
+ */
+function smoothPieces(meshes: Mesh[], panels: SheetPanel[]) {
+  const pieceOf = new Map(panels.filter(panel => panel.piece).map(panel => [panel.name, panel.piece!]));
+  if (!pieceOf.size) return;
+  const groups = new Map<string, Mesh[]>();
+  for (const mesh of meshes) {
+    const name = mesh.panel?.replace(/^Interior /, '');
+    if (!name || !pieceOf.has(name)) continue;
+    const key = `${mesh.panel}`;
+    groups.set(key, [...(groups.get(key) ?? []), mesh]);
+  }
+  const at = (v: Float32Array, i: number) => `${v[i].toFixed(3)},${v[i + 1].toFixed(3)},${v[i + 2].toFixed(3)}`;
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    const sums = new Map<string, Vec3>();
+    for (const mesh of group) {
+      const v = mesh.vertices;
+      // Each face counts once per corner, though its two triangles repeat corners.
+      const seen = new Set<string>();
+      for (let i = 0; i < v.length; i += 8) {
+        const key = at(v, i);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        sums.set(key, add(sums.get(key) ?? [0, 0, 0], [v[i + 3], v[i + 4], v[i + 5]]));
+      }
+    }
+    for (const mesh of group) {
+      const v = mesh.vertices;
+      for (let i = 0; i < v.length; i += 8) {
+        const n = normalize(sums.get(at(v, i))!);
+        v[i + 3] = n[0]; v[i + 4] = n[1]; v[i + 5] = n[2];
+      }
+    }
+  }
 }
 
 /** Rigid transform of a child folded `angle` about a crease that bends over arc length a + b. */
@@ -281,7 +348,7 @@ function bendMeshes(args: {
       return panelUv(owner, { x: p[0], y: -p[1] });
     };
     const normal0 = placeNormal(normalAt(s0)), normal1 = placeNormal(normalAt(s1));
-    const ownerBox = boundsOf(owner.outline);
+    const ownerBox = artworkBox(owner);
     const ownerSize: [number, number] = [ownerBox.width, ownerBox.height];
     // Outside surface, smooth normals around the bend.
     meshes.push(smoothQuad(
@@ -317,7 +384,7 @@ function bendMeshes(args: {
     const flatAt = (s: number, w: number, depth: number): Vec3 => add(add(add(q0, scale(along, w)), scale(across, s)), [0, 0, -depth]);
     const uvAt = (s: number, w: number) => { const p = flatAt(s, w, 0); return panelUv(parent, { x: p[0], y: -p[1] }); };
     const normal = normalize(sub(placeChild([0, 0, 1]), placeChild([0, 0, 0])));
-    const ownerBox = boundsOf(parent.outline);
+    const ownerBox = artworkBox(parent);
     const size: [number, number] = [ownerBox.width, ownerBox.height];
     const outer = [flatAt(b, from, 0), flatAt(b, to, 0), flatAt(shift, to, 0), flatAt(shift, from, 0)];
     const uvs = [uvAt(b, from), uvAt(b, to), uvAt(shift, to), uvAt(shift, from)];
@@ -387,7 +454,7 @@ function spherePatch(centre: Vec3, radius: number, thickness: number, corner: Ve
     const b = [(n - i - j) / n, i / n, j / n];
     return normalize(corner.reduce((sum, d, k) => add(sum, scale(d, Math.sin(b[k] * angle))), [0, 0, 0] as Vec3));
   };
-  const box = boundsOf(print.panel.outline);
+  const box = artworkBox(print.panel);
   const size: [number, number] = [box.width, box.height];
   const surface = (depth: number, inside: boolean) => {
     const vertices: number[] = [];
@@ -511,7 +578,7 @@ function flatPiece(panel: SheetPanel, matrix: Mat4, outline: Vec2[], cutEdges: n
   const normal = normalize(sub(place([0, 0, 1]), place([0, 0, 0])));
   const order = dot(faceNormal(outer) as Vec3, normal) < 0 ? [3, 2, 1, 0] : [0, 1, 2, 3];
   const uv = outline.map(p => panelUv(panel, p));
-  const box = boundsOf(panel.outline);
+  const box = artworkBox(panel);
   const size: [number, number] = [box.width, box.height];
   const back = scale(normal, -1);
   const meshes = [
@@ -530,6 +597,59 @@ function flatPiece(panel: SheetPanel, matrix: Mat4, outline: Vec2[], cutEdges: n
     meshes.push(face);
   }
   return meshes;
+}
+
+/**
+ * A curved surface of board through a grid of points in the scene (rows of
+ * equal length), printed with `panel`'s artwork: `flat` gives each point's
+ * place on the flat sheet, which fixes its texture and which side is the
+ * printed one. Used where board bends in two directions at once, such as a
+ * pillow box's end flaps, which no set of rigid panels can follow.
+ */
+export function surfaceMeshes(args: { rows: Vec3[][]; flat: Vec2[][]; panel: SheetPanel; thickness: number; color: Vec3; interiorColor: Vec3 }): Mesh[] {
+  const { rows, flat, panel } = args;
+  const count = rows[0]?.length ?? 0;
+  if (rows.length < 2 || count < 2) return [];
+  const normals = rows.map(row => row.map((): Vec3 => [0, 0, 0]));
+  const triangles: [number, number][][] = [];
+  for (let r = 0; r < rows.length - 1; r++) for (let c = 0; c < count - 1; c++) {
+    for (const cell of [[[r, c], [r, c + 1], [r + 1, c + 1]], [[r, c], [r + 1, c + 1], [r + 1, c]]] as [number, number][][]) {
+      // Printed side out: counter-clockwise on the sheet seen from the print (x right, y up).
+      const [a, b, d] = cell.map(([i, j]) => flat[i][j]);
+      const area = (b.x - a.x) * (-(d.y) + a.y) - (-(b.y) + a.y) * (d.x - a.x);
+      if (Math.abs(area) < 1e-9) continue;
+      const ordered = area > 0 ? cell : [cell[0], cell[2], cell[1]];
+      const [p, q, w] = ordered.map(([i, j]) => rows[i][j]);
+      const normal = cross(sub(q, p), sub(w, p));
+      if (Math.hypot(...normal) < 1e-12) continue;
+      for (const [i, j] of ordered) normals[i][j] = add(normals[i][j], normal);
+      triangles.push(ordered);
+    }
+  }
+  const t = Math.max(0.05, args.thickness);
+  const box = artworkBox(panel);
+  const size: [number, number] = [box.width, box.height];
+  const outside: number[] = [], inside: number[] = [];
+  for (const triangle of triangles) {
+    for (const [i, j] of triangle) {
+      const n = normalize(normals[i][j]);
+      outside.push(...rows[i][j], ...n, ...panelUv(panel, flat[i][j]));
+    }
+    for (const [i, j] of [...triangle].reverse()) {
+      const n = normalize(normals[i][j]);
+      inside.push(...sub(rows[i][j], scale(n, t)), ...scale(n, -1), ...insideUv(panelUv(panel, flat[i][j])));
+    }
+  }
+  const last = rows.length - 1;
+  const corners = [rows[0][0], rows[0][count - 1], rows[last][count - 1], rows[last][0]];
+  const face = (vertices: number[], color: Vec3, name: string, pick: Vec3[]): Mesh => ({
+    vertices: new Float32Array(vertices), useTexture: true, color, panel: name,
+    pickCorners: pick, uvSize: size, faceAspect: size[0] / size[1],
+  });
+  return [
+    face(outside, args.color, panel.name, corners),
+    face(inside, args.interiorColor, `Interior ${panel.name}`, corners.map(point => sub(point, [0, 0, 0])).reverse()),
+  ];
 }
 
 /** A cut board edge that shows `panel`'s print through its own texture coordinates. */
@@ -586,7 +706,7 @@ function cornersByArtwork(panel: SheetPanel) {
 
 /** Texture coordinates inside the panel's bounding box, v up, as the 3D view expects. */
 function panelUv(panel: SheetPanel, point: Vec2) {
-  const box = boundsOf(panel.outline);
+  const box = artworkBox(panel);
   let u = (point.x - box.x) / box.width;
   let v = 1 - (point.y - box.y) / box.height;
   if (panel.artworkRotation === 180) { u = 1 - u; v = 1 - v; }
@@ -668,6 +788,11 @@ function remapEdge(edge: number, flipped: boolean) {
   if (!flipped) return edge;
   // Original edge i joins corners i and i+1; in [1,0,3,2] order those sit at:
   return [0, 3, 2, 1][edge];
+}
+
+/** The box the panel's artwork spans: its own outline's, or the whole panel's for a piece of one. */
+function artworkBox(panel: SheetPanel) {
+  return boundsOf(panel.artworkFrame ?? panel.outline);
 }
 
 function boundsOf(outline: Vec2[]) {

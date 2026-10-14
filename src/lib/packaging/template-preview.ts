@@ -9,13 +9,14 @@ import { baseBoxExportGeometry } from './templates/base-box/geometry';
 import { sleeveBoxExportGeometry } from './templates/sleeve-box/geometry';
 import { autoLockBottomExportGeometry } from './templates/auto-lock-bottom/geometry';
 import { snapLockBottomExportGeometry } from './templates/snap-lock-bottom/geometry';
+import { pillowBoxExportGeometry } from './templates/pillow-box/geometry';
 
 /**
  * Flat dieline for the public template pages. Uses the same geometry as the
  * Studio's PDF export but avoids the template runtimes, which pull in the 3D
  * renderer.
  */
-export const PREVIEW_TEMPLATE_IDS = ['reverse-tuck-carton', 'pizza-box', 'split-top-box', 'mailer-box', 'rigid-lid-base', 'base-box', 'sleeve-box', 'auto-lock-bottom-box', 'snap-lock-bottom-box'] as const;
+export const PREVIEW_TEMPLATE_IDS = ['reverse-tuck-carton', 'pizza-box', 'split-top-box', 'mailer-box', 'rigid-lid-base', 'base-box', 'sleeve-box', 'auto-lock-bottom-box', 'snap-lock-bottom-box', 'pillow-box'] as const;
 export type PreviewTemplateId = (typeof PREVIEW_TEMPLATE_IDS)[number];
 
 export function templatePreviewGeometry(templateId: PreviewTemplateId, dimensions: CartonDimensions): DielineExportGeometry {
@@ -29,5 +30,6 @@ export function templatePreviewGeometry(templateId: PreviewTemplateId, dimension
     case 'sleeve-box': return sleeveBoxExportGeometry(dimensions);
     case 'auto-lock-bottom-box': return autoLockBottomExportGeometry(dimensions);
     case 'snap-lock-bottom-box': return snapLockBottomExportGeometry(dimensions);
+    case 'pillow-box': return pillowBoxExportGeometry(dimensions);
   }
 }

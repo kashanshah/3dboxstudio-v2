@@ -310,6 +310,7 @@ const {sleeveBoxDefinition}=require('../src/lib/packaging/parametric/definitions
 const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/mailer-box.ts');
 const {autoLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/auto-lock-bottom.ts');
 const {snapLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/snap-lock-bottom.ts');
+const {pillowBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pillow-box.ts');
 const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
@@ -361,7 +362,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -385,7 +386,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -508,6 +509,58 @@ test('the snap-lock bottom folds closed 1-2-3: side flaps inside, then the back 
   }
   assert.throws(()=>box.getExportGeometry({width:20,height:140,depth:60,thickness:0.5}),/at least 30 mm/);
 });
+
+test('the pillow box bows to its outside size and closes its ends to a pinch, from one sheet',()=>{
+  const box=getTemplateRuntime('pillow-box');
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  for(const dimensions of [{width:160,height:40,depth:90,thickness:0.4},{width:60,height:8,depth:30,thickness:0.3},{width:400,height:150,depth:300,thickness:1}]){
+    const sheet=box.getExportGeometry(dimensions);
+    // One piece: two faces, four end flaps and the glue flap, each face and flap whole on the sheet.
+    assert.deepEqual(sheet.panels.map(panel=>panel.id).sort(),['back','back-left','back-right','front','front-left','front-right','glue']);
+    // The curved creases are shared, so they export as creases, not cuts.
+    const panel=id=>sheet.panels.find(item=>item.id===id);
+    const creaseOn=(a,b)=>sheet.crease.filter(line=>[line.start,line.end].every(point=>[a,b].every(id=>onOutline(panel(id).outline,point)))).length;
+    for(const end of ['front-left','front-right','back-left','back-right'])assert.ok(creaseOn(end,end.split('-')[0])>=8,`${end} crease`);
+    // The glue flap stays inside the front's curved ends, where it is stuck.
+    const front=panel('front');
+    for(const point of panel('glue').outline){
+      const across=point.y-panel('glue').y;
+      const xs=front.outline.filter(q=>Math.abs(q.y-front.y-across)<front.height/18+1e-6).map(q=>q.x);
+      assert.ok(point.x>=Math.min(...xs.filter(x=>x<front.x+front.width/2))-1e-6&&point.x<=Math.max(...xs.filter(x=>x>front.x+front.width/2))+1e-6,`glue at ${point.x},${point.y} stays inside the front`);
+    }
+    // Closed, the model is the size entered: tip to tip, through the middle, across.
+    const extent=[[Infinity,-Infinity],[Infinity,-Infinity],[Infinity,-Infinity]];
+    const ends={};
+    for(const mesh of box.buildMeshes({dimensions,formation:100,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]})){
+      for(let i=0;i<mesh.vertices.length;i+=8)for(let k=0;k<3;k++){extent[k][0]=Math.min(extent[k][0],mesh.vertices[i+k]);extent[k][1]=Math.max(extent[k][1],mesh.vertices[i+k]);}
+      if(/^(Front|Back) (Left|Right) End$/.test(mesh.panel??''))for(let i=0;i<mesh.vertices.length;i+=8)(ends[mesh.panel]??=[]).push([mesh.vertices[i],mesh.vertices[i+1]]);
+    }
+    const t=dimensions.thickness;
+    within(extent[0][1]-extent[0][0],dimensions.width,2*t+0.5,'closed width');
+    within(extent[1][1]-extent[1][0],dimensions.height,2*t+0.02*dimensions.height,'closed height');
+    within(extent[2][1]-extent[2][0],dimensions.depth,2*t+0.5,'closed depth');
+    // Each end flap reaches the pinch: the middle of the box's end.
+    for(const [name,points] of Object.entries(ends)){
+      const tipX=(name.includes('Right')?1:-1)*dimensions.width/2;
+      assert.ok(points.some(([x,y])=>Math.abs(x-tipX)<1e-3&&Math.abs(y)<1e-3),`${name} reaches the pinch`);
+    }
+  }
+  assert.throws(()=>box.getExportGeometry({width:160,height:80,depth:90,thickness:0.4}),/height of at most 63 mm/);
+  // Model pieces and surfaces must stand in for real panels and sit on folded ones.
+  const broken=change=>{const copy=structuredClone(pillowBoxDefinition);change(copy);return ()=>compileParametricTemplate(copy);};
+  assert.throws(broken(copy=>{copy.fold.modelPanels[0].of='nope';}),/stands in for unknown panel "nope"/);
+  assert.throws(broken(copy=>{copy.fold.surfaces[0].rows[1].pop();}),/two or more rows of the same length/);
+  assert.throws(broken(copy=>{copy.fold.surfaces[0].rows[0][0].place={on:'front',at:[0,0]};}),/placed on "front", which the model doesn't fold/);
+});
+
+function onOutline(outline,point){
+  return outline.some((a,i)=>{
+    const b=outline[(i+1)%outline.length],length=Math.hypot(b.x-a.x,b.y-a.y);
+    if(length<1e-9)return false;
+    const along=((point.x-a.x)*(b.x-a.x)+(point.y-a.y)*(b.y-a.y))/length,off=Math.abs((point.x-a.x)*(b.y-a.y)-(point.y-a.y)*(b.x-a.x))/length;
+    return off<1e-6&&along>=-1e-6&&along<=length+1e-6;
+  });
+}
 
 test('the mailer folds into a box of the entered inside size, every layer in its place',()=>{
   const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
@@ -716,12 +769,15 @@ test('"Show sizes" puts each box and flap size on the panels that follow it one 
   assert.deepEqual(mailer.get('frontLeftEar')?.[0],'ear');
   assert.deepEqual(mailer.get('lidFront'),['width','lidTuck']);
   // Every ready template shows its three box sizes somewhere, with their values.
+  // A pillow box's faces bow, so no flat panel grows one for one with its
+  // height or width across; the 3D box still shows them.
+  const notFlat={'pillow-box':['height','depth']};
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
     const runtime=getTemplateRuntime(template.id);
     const entries=runtime.getPanelSizes(template.defaultDimensions,{openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'});
     const shown=entries.flatMap(entry=>[entry.x,entry.y]).filter(Boolean);
-    for(const key of ['width','height','depth']){
+    for(const key of ['width','height','depth'].filter(key=>!notFlat[template.id]?.includes(key))){
       const size=shown.find(item=>item.key===key);
       assert.ok(size,`${template.id} never shows its ${key}`);
       assert.equal(size.value,template.defaultDimensions[key]);
@@ -759,8 +815,9 @@ test('the dieline exports as SVG and DXF at 1:1, cut and crease on their own lay
     pairs.forEach(([code,value],i)=>{if(code===0&&value==='LINE')lines.push(Object.fromEntries(pairs.slice(i+1,i+8).map(([c,v])=>[c,v])));});
     assert.equal(lines.filter(line=>line[8]==='CUT').length,geometry.cut.length,`${template.id} DXF cut lines`);
     assert.equal(lines.filter(line=>line[8]==='CREASE').length,geometry.crease.length,`${template.id} DXF crease lines`);
+    // Coordinates are written to three decimals.
     for(const line of lines)for(const [x,y] of [[10,20],[11,21]]){
-      assert.ok(Number(line[x])>=-1e-6&&Number(line[x])<=width+1e-6&&Number(line[y])>=-1e-6&&Number(line[y])<=height+1e-6,`${template.id} DXF point inside the sheet`);
+      assert.ok(Number(line[x])>=-5e-4&&Number(line[x])<=width+5e-4&&Number(line[y])>=-5e-4&&Number(line[y])<=height+5e-4,`${template.id} DXF point inside the sheet`);
     }
     // The first cut line, turned the right way up.
     const first=geometry.cut[0],mapped=lines.find(line=>line[8]==='CUT');

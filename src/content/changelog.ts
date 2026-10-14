@@ -14,6 +14,19 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'pillow-box',
+    date: '2026-10-14',
+    title: 'New template: pillow box',
+    summary: 'A curved pillow box that closes by pushing in its ends, for jewellery, gift cards, favours and small accessories.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/pillow-box', label: 'See the pillow box template' },
+    highlights: [
+      'The dieline has two faces with curved creases at both ends, a curved end flap beyond each crease and a glue flap, all drawn from the size of the closed pillow.',
+      'In 3D the faces bow out into the pillow shape and the ends close to a straight pinch, with your artwork wrapping smoothly round the curve.',
+      'Export the cutting template as a 1:1 PDF, SVG or DXF, with the curved creases on their own layer.',
+    ],
+  },
+  {
     id: 'image-export-options',
     date: '2026-10-14',
     title: 'Image options: size, format, background and product shots',

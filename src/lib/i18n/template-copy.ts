@@ -33,6 +33,12 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
     "category": "templates.snap-lock-bottom-box.category",
     "description": "templates.snap-lock-bottom-box.description"
   },
+  "pillow-box": {
+    "name": "templates.pillow-box.name",
+    "shortName": "templates.pillow-box.shortName",
+    "category": "templates.pillow-box.category",
+    "description": "templates.pillow-box.description"
+  },
   "mailer-box": {
     "name": "templates.mailer-box.name",
     "shortName": "templates.mailer-box.shortName",

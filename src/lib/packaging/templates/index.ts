@@ -7,6 +7,7 @@ import { mailerBoxRuntime } from './mailer-box/runtime';
 import { rigidLidBaseRuntime } from './rigid-lid-base/runtime';
 import { autoLockBottomRuntime } from './auto-lock-bottom/runtime';
 import { snapLockBottomRuntime } from './snap-lock-bottom/runtime';
+import { pillowBoxRuntime } from './pillow-box/runtime';
 
 export const BUILT_IN_TEMPLATE_RUNTIMES=[
   baseBoxRuntime,
@@ -18,4 +19,5 @@ export const BUILT_IN_TEMPLATE_RUNTIMES=[
   rigidLidBaseRuntime,
   autoLockBottomRuntime,
   snapLockBottomRuntime,
+  pillowBoxRuntime,
 ] as const;
