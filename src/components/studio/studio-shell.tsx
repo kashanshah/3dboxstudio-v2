@@ -15,6 +15,7 @@ import { GraphicLayerEditor } from './graphic-layer-editor';
 import { ShortcutsDialog, StudioTour, tourSeen } from './studio-guide';
 import { DEFAULT_BARCODE, DEFAULT_QR, DEFAULT_SHAPE, defaultGraphicSize, defaultShapeSize, graphicLayerName, isGraphicSpec, renderGraphic, type GraphicSpec } from '@/lib/packaging/graphic-artwork';
 import { fillUrl, panelFillLayer, withTransform } from '@/lib/packaging/panel-fill';
+import { keepArtworkOnResize } from '@/lib/packaging/resize-artwork';
 import { alignTo, panelUnder, snapLines, snapMove, type Alignment } from '@/lib/packaging/snap';
 import { BOX_TEMPLATE_SLUGS } from '@/content/box-template-slugs';
 import Link from 'next/link';
@@ -392,6 +393,8 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const initialDimensions=initial?.dimensions ?? (requestedTemplate ? requestedDimensions : undefined) ?? initialTemplate.defaultDimensions;
   if(!initialDimensions)throw new Error(`Ready template ${initialTemplate.id} is missing default dimensions.`);
   const [dimensions, setDimensions] = useState<CartonDimensions>(initialRuntime.sanitizeParameters(initialDimensions));
+  const dimensionsNow = useRef(dimensions);
+  useEffect(() => { dimensionsNow.current = dimensions; }, [dimensions]);
   const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>(initial?.measurementUnit ?? (requestedTemplate ? initialUnit : undefined) ?? 'mm');
   const [artworkByPanel, setArtworkByPanel] = useState<ArtworkByPanel>(initial?.artworkByPanel ?? {});
   const [outsideDielineLayers, setOutsideDielineLayers] = useState<FullDielineArtworkLayer[]>(initial?.outsideArtworkLayers ?? []);
@@ -1631,12 +1634,30 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [artworkScope, selectedOutsideLayerId, selectedInsideLayerId, mode, mediaLibraryOpen, removeFullDielineLayer]);
 
+  /**
+   * The person changed the box's size. Artwork keeps its printed size and its
+   * place on its panel instead of stretching with the sheet; only the selected
+   * artwork stretches with the box.
+   */
+  const resizeBox = (next: CartonDimensions) => {
+    const options = { openingMode, splitTopHingeSide };
+    // A drag resizes many times between renders: measure from the last size set.
+    const before = getTemplateGeometry(selectedTemplateId, dimensionsNow.current, options);
+    dimensionsNow.current = next;
+    const after = getTemplateGeometry(selectedTemplateId, next, options);
+    const stretch = new Set([selectedOutsideLayerId, selectedInsideLayerId].filter((id): id is string => Boolean(id)));
+    setOutsideDielineLayers(layers => keepArtworkOnResize(layers, before, after, stretch));
+    setInsideDielineLayers(layers => keepArtworkOnResize(layers, before, after, stretch));
+    setDimensions(next);
+  };
+
   /** A size changed from the sheet or the 3D box: a box dimension or a flap size. */
   const setMeasuredSize = (size: MeasuredSize, mm: number) => {
+    const current = dimensionsNow.current;
     if (size.kind === 'dimension') {
-      setDimensions({ ...dimensions, [size.key]: mm });
+      resizeBox({ ...current, [size.key]: mm });
     } else {
-      setDimensions({ ...dimensions, adjustments: { ...dimensions.adjustments, [size.key]: mm } });
+      resizeBox({ ...current, adjustments: { ...current.adjustments, [size.key]: mm } });
     }
     setMessage(`${size.label} set to ${formatDimension(mm, measurementUnit)} ${measurementUnit}`);
   };
@@ -2320,7 +2341,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
           onDropArtworkFiles={handleBoardArtworkDrop}
           toolsOpen={designToolsOpen}
           onCloseTools={()=>setDesignToolsOpen(false)}
-          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={setDimensions} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
+          sizesPanel={designPanel==='sizes' ? <AdjustableSizesCard templateId={selectedTemplateId} dimensions={dimensions} setDimensions={resizeBox} options={{openingMode,splitTopHingeSide}} unit={measurementUnit} onHighlight={setHighlightedSize}/> : null}
           panelSizes={panelSizes}
           showSizeChips={showSizes}
           onSetMeasuredSize={setMeasuredSize}
@@ -2451,7 +2472,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={setDimensions} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={exportPng} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -3242,32 +3263,50 @@ function DielinePrototype({
   },[panelSizes,cartonPanels]);
   const sizeDrivenPanels=hoveredSizeKey&&panelSizes?panelSizes.filter(entry=>entry.x?.key===hoveredSizeKey||entry.y?.key===hoveredSizeKey).map(entry=>entry.panel):[];
   const highlighted=sizeDrivenPanels.length?sizeDrivenPanels:highlightedPanels;
-  // Drag handles for the flap sizes: one per size, on the free edge of the
+  // Drag handles, one per size. A flap size sits on the free edge of the
   // largest flap it drives (the edge facing away from the box's body
-  // panels). Dragging that edge outwards makes the flap bigger, one for one.
+  // panels). The box's width, height and depth sit on the largest body
+  // panel they drive, on the edge that moves when that size grows. Dragging
+  // a handle outwards makes the size bigger, one for one.
   const sizeHandles=useMemo(()=>{
     if(!panelSizes) return [];
     const bodies=cartonPanels.filter(panel=>panel.kind==='body');
     if(!bodies.length) return [];
     const centre={x:bodies.reduce((sum,panel)=>sum+panel.x+panel.width/2,0)/bodies.length,y:bodies.reduce((sum,panel)=>sum+panel.y+panel.height/2,0)/bodies.length};
+    const rank=(panel:typeof cartonPanels[number])=>(panel.kind==='body'?1e12:0)+panel.width*panel.height;
     const best=new Map<string,{panel:typeof cartonPanels[number];axis:'x'|'y';size:MeasuredSize}>();
     for(const entry of panelSizes)for(const axis of ['x','y'] as const){
       const size=entry[axis];
-      if(size?.kind!=='adjustment'||size.max-size.min<0.5)continue;
+      if(!size||size.max-size.min<0.5)continue;
       const panel=cartonPanels.find(item=>item.id===entry.panel);
       if(!panel)continue;
       const current=best.get(size.key);
-      if(!current||panel.width*panel.height>=current.panel.width*current.panel.height)best.set(size.key,{panel,axis,size});
+      if(!current||rank(panel)>=rank(current.panel))best.set(size.key,{panel,axis,size});
     }
+    const options={openingMode,splitTopHingeSide};
     return [...best.values()].map(({panel,axis,size})=>{
-      const low=axis==='x'?panel.x+panel.width/2<centre.x:panel.y+panel.height/2<centre.y;
+      let low=axis==='x'?panel.x+panel.width/2<centre.x:panel.y+panel.height/2<centre.y;
+      if(size.kind==='dimension'){
+        // Which of the panel's two edges moves out when the size grows.
+        const grown=size.value+1<=size.max?size.value+1:size.value-1;
+        const moved=getTemplateGeometry(selectedTemplateId,{...dimensions,[size.key]:grown},options).panels.find(item=>item.id===panel.id);
+        if(moved){
+          const lowShift=axis==='x'?panel.x-moved.x:panel.y-moved.y;
+          const highShift=axis==='x'?moved.x+moved.width-panel.x-panel.width:moved.y+moved.height-panel.y-panel.height;
+          low=Math.abs(lowShift)>Math.abs(highShift);
+        }
+      }
       const direction=low?-1:1;
       return axis==='x'
         ?{size,axis,direction,x:low?panel.x:panel.x+panel.width,y:panel.y+panel.height/2}
         :{size,axis,direction,x:panel.x+panel.width/2,y:low?panel.y:panel.y+panel.height};
     });
-  },[panelSizes,cartonPanels]);
+  },[panelSizes,cartonPanels,selectedTemplateId,dimensions,openingMode,splitTopHingeSide]);
   type SizeHandle=(typeof sizeHandles)[number];
+  // The sheet lays itself out again (and the view refits it) as a size
+  // changes, so a drag reads the handles and the sheet as last drawn.
+  const drawnSheet=useRef({sizeHandles,bounds,onSetMeasuredSize});
+  useEffect(()=>{drawnSheet.current={sizeHandles,bounds,onSetMeasuredSize};});
   const [draggingSize,setDraggingSize]=useState<string|null>(null);
   const beginSizeDrag=(event:React.PointerEvent<HTMLButtonElement>,handle:SizeHandle)=>{
     event.preventDefault();
@@ -3275,20 +3314,33 @@ function DielinePrototype({
     const target=event.currentTarget;
     const layer=target.parentElement;
     if(!layer)return;
-    // Screen pixels per millimetre of sheet, at the zoom the drag starts at.
-    const scale=layer.getBoundingClientRect().width/bounds.width;
-    if(!(scale>0))return;
     target.setPointerCapture(event.pointerId);
-    const start={x:event.clientX,y:event.clientY,value:handle.size.value};
-    let frame:number|null=null,latest=start.value;
-    setDraggingSize(handle.size.key);
-    setHoveredSizeKey(handle.size.key);
-    const apply=()=>{frame=null;onSetMeasuredSize(handle.size,latest);};
+    const key=handle.size.key;
+    // Where on the handle the pointer took hold, so the edge does not jump to it.
+    const grip={x:event.clientX,y:event.clientY};
+    {
+      const rect=layer.getBoundingClientRect(),scale=rect.width/bounds.width;
+      if(!(scale>0))return;
+      grip.x-=rect.left+handle.x*scale;grip.y-=rect.top+handle.y*scale;
+    }
+    let frame:number|null=null,pointer={x:event.clientX,y:event.clientY};
+    setDraggingSize(key);
+    setHoveredSizeKey(key);
+    setHeldScale({visual:visualScale,mobile:mobileFit});
+    // Move the edge under the pointer: the gap between them, in millimetres
+    // of the sheet as drawn now, is how much the size changes.
+    const apply=()=>{
+      frame=null;
+      const drawn=drawnSheet.current,current=drawn.sizeHandles.find(item=>item.size.key===key);
+      if(!current)return;
+      const rect=layer.getBoundingClientRect(),scale=rect.width/drawn.bounds.width;
+      if(!(scale>0))return;
+      const gap=current.axis==='x'?(pointer.x-grip.x-rect.left)/scale-current.x:(pointer.y-grip.y-rect.top)/scale-current.y;
+      const next=Math.min(current.size.max,Math.max(current.size.min,Math.round((current.size.value+gap*current.direction)*2)/2));
+      if(Math.abs(next-current.size.value)>=0.5)drawn.onSetMeasuredSize(current.size,next);
+    };
     const move=(moveEvent:PointerEvent)=>{
-      const moved=(handle.axis==='x'?moveEvent.clientX-start.x:moveEvent.clientY-start.y)/scale*handle.direction;
-      const next=Math.min(handle.size.max,Math.max(handle.size.min,Math.round((start.value+moved)*2)/2));
-      if(next===latest)return;
-      latest=next;
+      pointer={x:moveEvent.clientX,y:moveEvent.clientY};
       if(frame===null)frame=requestAnimationFrame(apply);
     };
     const end=()=>{
@@ -3297,6 +3349,7 @@ function DielinePrototype({
       target.removeEventListener('pointercancel',end);
       if(frame!==null){cancelAnimationFrame(frame);apply();}
       setDraggingSize(null);
+      setHeldScale(null);
       setHoveredSizeKey(null);
     };
     target.addEventListener('pointermove',move);
@@ -3331,8 +3384,11 @@ function DielinePrototype({
   const stageRef=useRef<HTMLDivElement>(null);
   const [mobileFit,setMobileFit]=useState(1);
   const [sheetFit,setSheetFit]=useState(1);
+  // While a size handle is dragged the sheet keeps its on-screen scale, so the
+  // edge stays under the pointer; it refits when the drag ends.
+  const [heldScale,setHeldScale]=useState<{visual:number;mobile:number}|null>(null);
   const visualMax = 760 * sheetFit;
-  const visualScale = visualMax / Math.max(bounds.width, bounds.height);
+  const visualScale = heldScale?.visual ?? visualMax / Math.max(bounds.width, bounds.height);
   const visualWidth = bounds.width * visualScale;
   const visualHeight = bounds.height * visualScale;
   const fullWidth = bounds.width * 760 / Math.max(bounds.width, bounds.height);
@@ -3953,7 +4009,7 @@ function DielinePrototype({
           maxWidth:'none',
           maxHeight:'none',
           aspectRatio:'auto',
-          transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100*mobileFit})`,
+          transform:`translate(${canvasPan.x}px,${canvasPan.y}px) scale(${zoom/100*(heldScale?.mobile ?? mobileFit)})`,
           transformOrigin:'center',
         }}
         onDragEnter={(event)=>{

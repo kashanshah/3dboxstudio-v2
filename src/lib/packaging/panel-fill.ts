@@ -36,13 +36,21 @@ export function panelFillLayer(
     aspectRatio: width / height,
     fill: { color },
     panels: [panel.id],
-    transform: {
-      x: (panel.x + panel.width / 2) / bounds.width * 100,
-      y: (panel.y + panel.height / 2) / bounds.height * 100,
-      width: width / bounds.width * 100,
-      height: height / bounds.height * 100,
-      rotation: 0,
-    },
+    transform: panelFillTransform(panel, bounds),
+  };
+}
+
+/** Where a panel colour sits: over the panel and its overlap, as a share of the sheet. */
+export function panelFillTransform(
+  panel: { x: number; y: number; width: number; height: number },
+  bounds: { width: number; height: number },
+): FullDielineArtworkLayer['transform'] {
+  return {
+    x: (panel.x + panel.width / 2) / bounds.width * 100,
+    y: (panel.y + panel.height / 2) / bounds.height * 100,
+    width: (panel.width + 2 * FILL_OVERLAP_MM) / bounds.width * 100,
+    height: (panel.height + 2 * FILL_OVERLAP_MM) / bounds.height * 100,
+    rotation: 0,
   };
 }
 

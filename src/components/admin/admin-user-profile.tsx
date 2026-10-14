@@ -52,6 +52,7 @@ export function AdminUserProfileView({ profile, afterDelete }: { profile: AdminU
             <AdminDesignThumb src={design.thumbnailUrl} name={design.name} />
             <span><strong>{design.name}</strong><small>{[adminTemplateName(design.templateId), adminRelative(design.updatedAt)].filter(Boolean).join(' · ')}</small></span>
           </Link>
+          <a className="admin-design-card-preview" href={design.previewHref} target="_blank" rel="noopener noreferrer" aria-label={`Preview ${design.name} in 3D`}>Preview</a>
         </li>)}
       </ul> : <p className="admin-muted">No designs yet.</p>}
       {p.designCount > 12 ? <p><Link className="admin-link" href={`/admin/designs?user=${encodeURIComponent(p.id)}`}>All {p.designCount.toLocaleString('en-US')} designs</Link></p> : null}
