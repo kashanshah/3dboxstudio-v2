@@ -152,6 +152,7 @@ export const pillowBoxDefinition = {
     ['xLeft', `max(${samples.map(i => `f${i} - e${i}`).join(', ')})`], ['xRight', 'xLeft + width'],
     // The 3D fold: each strip turns `bowAngle` from the next and the faces meet at the tips.
     ['bowAngle', `2 * lensA / ${STRIPS}`],
+    ['glueModel', `min(glue, 0.9 * faceW / ${STRIPS})`],
     ['tipAngle', `pi - ${STRIPS - 1} * bowAngle`],
   ],
   adjustable: [
@@ -168,8 +169,12 @@ export const pillowBoxDefinition = {
         ...[...glueSteps].reverse().map((j): [Expr, Expr] => [`xLeft + glueCut + ${dipAt(`${j} / ${GLUE_STEPS} * glue`)}`, `yGlue + ${j} / ${GLUE_STEPS} * glue`]),
       ],
       fold: [['xLeft + glueCut', 'yGlue'], ['xRight - glueCut', 'yGlue'], ['xRight - glueCut', 'yGlue + glue'], ['xLeft + glueCut', 'yGlue + glue']],
-      // The model's four corners stay inside the curve all the way across.
-      model: [['xLeft + glueCut', 'yGlue'], ['xRight - glueCut', 'yGlue'], [`xRight - glueCut - ${dipAt('glue')}`, 'yGlue + glue'], [`xLeft + glueCut + ${dipAt('glue')}`, 'yGlue + glue']],
+      // In 3D the flap is flat against the front's first strip, so it is
+      // drawn no wider than that strip: any wider and it would run on
+      // straight while the bowed front curves away, and show through it. It
+      // is hidden inside, so the narrower model doesn't show. The corners
+      // stay inside the end creases all the way across.
+      model: [['xLeft + glueCut', 'yGlue'], ['xRight - glueCut', 'yGlue'], [`xRight - glueCut - ${dipAt('glueModel')}`, 'yGlue + glueModel'], [`xLeft + glueCut + ${dipAt('glueModel')}`, 'yGlue + glueModel']],
     },
   ],
   validations: [
