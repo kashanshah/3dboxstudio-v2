@@ -26,7 +26,7 @@ import { templateAssemblyValuesForProgress } from '@/lib/packaging/template-runt
 const renderer = createCartonRenderer(document.getElementById('c'));
 window.show = shot => {
   const values = templateAssemblyValuesForProgress(shot.id, shot.progress, shot.mode);
-  renderer.setScene({ dimensions: getPackagingTemplate(shot.id).defaultDimensions, templateId: shot.id, opening: values.opening, formation: values.formation, openingMode: shot.mode, splitTopHingeSide: 'side_a', material: getPackagingTemplate(shot.id).defaultMaterial, outsideColor: null, insideColor: null, artworkByPanel: {}, yaw: shot.yaw, pitch: shot.pitch, zoom: shot.zoom ?? 90, viewPan: { x: 0, y: 0 }, lightIntensity: 0, hoverPanel: null, renderStyle: 'realistic', floorShadow: true });
+  renderer.setScene({ dimensions: getPackagingTemplate(shot.id).defaultDimensions, templateId: shot.id, opening: values.opening, formation: values.formation, openingMode: shot.mode, splitTopHingeSide: 'side_a', material: getPackagingTemplate(shot.id).defaultMaterial, outsideColor: shot.outside ?? null, insideColor: null, artworkByPanel: {}, yaw: shot.yaw, pitch: shot.pitch, zoom: shot.zoom ?? 90, viewPan: { x: 0, y: 0 }, lightIntensity: 0, hoverPanel: null, renderStyle: 'realistic', floorShadow: true });
 };`;
 
 const work = await mkdtemp(path.join(tmpdir(), 'thumbs-'));

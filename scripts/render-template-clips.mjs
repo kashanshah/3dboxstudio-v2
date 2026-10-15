@@ -40,7 +40,7 @@ const kept = [];
 const scene = (shot, progress) => {
   const template = getPackagingTemplate(shot.id);
   const values = templateAssemblyValuesForProgress(shot.id, progress, shot.mode);
-  return { dimensions: template.defaultDimensions, templateId: shot.id, opening: values.opening, formation: values.formation, openingMode: shot.mode, splitTopHingeSide: 'side_a', material: template.defaultMaterial, outsideColor: null, insideColor: null, artworkByPanel: {}, yaw: shot.yaw, pitch: shot.pitch, zoom: 90, viewPan: { x: 0, y: 0 }, lightIntensity: 0, hoverPanel: null, renderStyle: 'realistic', floorShadow: true };
+  return { dimensions: template.defaultDimensions, templateId: shot.id, opening: values.opening, formation: values.formation, openingMode: shot.mode, splitTopHingeSide: 'side_a', material: template.defaultMaterial, outsideColor: shot.outside ?? null, insideColor: null, artworkByPanel: {}, yaw: shot.yaw, pitch: shot.pitch, zoom: 90, viewPan: { x: 0, y: 0 }, lightIntensity: 0, hoverPanel: null, renderStyle: 'realistic', floorShadow: true };
 };
 // Draw frame i transparent, with room to spare, keep what it shows and
 // return its box (shadow included, as the picture is trimmed).

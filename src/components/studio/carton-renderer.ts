@@ -139,12 +139,16 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   world.add(key, key.target);
 
   // Transparent floor that only shows the shadow, over the studio backdrop.
-  const floor = new ThreeMesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.18, depthWrite: false }));
+  // The floor and contact shadow sit pushed back in depth further than any
+  // board face: inside faces are pushed back too (see syncMeshes), and on a
+  // sheet lying flat, seen at a low angle, that would otherwise let the
+  // shadow below show through the panels whose inside faces up.
+  const floor = new ThreeMesh(new PlaneGeometry(1, 1), new ShadowMaterial({ opacity: 0.18, depthWrite: false, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 }));
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
   floor.renderOrder = -2;
   // Soft contact shadow where the carton meets the floor.
-  const contact = new ThreeMesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ map: contactShadowTexture(), color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false }));
+  const contact = new ThreeMesh(new PlaneGeometry(1, 1), new MeshBasicMaterial({ map: contactShadowTexture(), color: 0x000000, transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 }));
   contact.rotation.x = -Math.PI / 2;
   contact.renderOrder = -1;
   world.add(floor, contact);
@@ -320,7 +324,12 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     floor.scale.setScalar(size * 8);
     contact.visible = showFloor;
     contact.position.set((minX + maxX) / 2, groundY + size * 0.0005, (minZ + maxZ) / 2);
-    contact.scale.set((maxX - minX) * 1.35 + size * 0.06, (maxZ - minZ) * 1.35 + size * 0.06, 1);
+    // A contact shadow spreads with how tall the carton stands, not how much
+    // floor it covers: a flat sheet lying on the floor gets only a faint rim,
+    // not a halo that makes the background look like a tabletop.
+    const standing = Math.min(1, (maxY - minY) / (size * 0.12));
+    contact.scale.set((maxX - minX) * (1 + 0.35 * standing) + size * 0.06 * standing, (maxZ - minZ) * (1 + 0.35 * standing) + size * 0.06 * standing, 1);
+    contact.material.opacity = 0.5 * (0.3 + 0.7 * standing);
 
     const azimuth = scene.yaw + 0.85;
     const elevation = 1.0;
