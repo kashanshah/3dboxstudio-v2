@@ -69,11 +69,36 @@ export function signedArea(polygon: Point[]) {
   return area / 2;
 }
 
-/** The sheet's outer contour: the closed cut loop that encloses the most area. */
-export function outerContour(cuts: Segment[]): Point[] | null {
-  const loops = chainSegments(cuts).filter(isClosed).map(run => run.slice(0, -1));
-  if (!loops.length) return null;
-  return loops.reduce((best, loop) => (Math.abs(signedArea(loop)) > Math.abs(signedArea(best)) ? loop : best));
+/**
+ * The outline of each piece of the sheet: the cut lines that lie on exactly
+ * one panel's edge. That leaves out slits (on the edge of two panels) and
+ * holes cut inside a panel (on none), so each loop is a piece's boundary.
+ */
+export function pieceOutlines(cuts: Segment[], panels: Point[][]): Point[][] {
+  const onEdge = (point: Point, outline: Point[]) => outline.some((a, i) => {
+    const b = outline[(i + 1) % outline.length], length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (length < 1e-9) return false;
+    const along = ((point[0] - a[0]) * (b[0] - a[0]) + (point[1] - a[1]) * (b[1] - a[1])) / length;
+    const off = Math.abs((point[0] - a[0]) * (b[1] - a[1]) - (point[1] - a[1]) * (b[0] - a[0])) / length;
+    return off < 1e-3 && along > -1e-3 && along < length + 1e-3;
+  });
+  // Split each cut at the panel corners along it: a slit can run on past
+  // the corner of a narrower panel into a stretch of plain edge.
+  const corners = panels.flat();
+  const pieces = cuts.flatMap(([a, b]): Segment[] => {
+    const dx = b[0] - a[0], dy = b[1] - a[1], length2 = dx * dx + dy * dy;
+    if (length2 < 1e-12) return [];
+    const stops = corners.map(point => ({ point, t: ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / length2 }))
+      .filter(({ point, t }) => t > 1e-6 && t < 1 - 1e-6 && Math.abs((point[0] - a[0]) * dy - (point[1] - a[1]) * dx) / Math.sqrt(length2) < 1e-3)
+      .sort((p, q) => p.t - q.t).map(({ t }): Point => [a[0] + dx * t, a[1] + dy * t]);
+    const points = [a, ...stops, b];
+    return points.slice(1).map((point, i): Segment => [points[i], point]);
+  });
+  const boundary = pieces.filter(([a, b]) => {
+    const middle: Point = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    return panels.filter(outline => onEdge(middle, outline)).length === 1;
+  });
+  return chainSegments(boundary).filter(isClosed).map(run => run.slice(0, -1));
 }
 
 /**

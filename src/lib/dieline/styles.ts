@@ -2,7 +2,7 @@ import { getTemplateRuntime, type TemplateRuntime } from '@/lib/packaging/templa
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import type { TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
-import { chainSegments, offsetPolygon, outerContour, pathData, sharedEdge, type Point, type Segment } from './geometry';
+import { chainSegments, offsetPolygon, pathData, pieceOutlines, sharedEdge, type Point, type Segment } from './geometry';
 import type { DielineInput, DielineOutput, DielinePath, DielineStyle, DimensionMode, Panel, StyleParam } from './types';
 
 // The generator's box styles. Each is drawn and folded by one of the
@@ -139,11 +139,8 @@ function makeStyle(spec: StyleSpec): DielineStyle {
     ];
     const glue = geometry.panels.filter(panel => panel.kind === 'glue');
     if (glue.length) paths.push({ type: 'glue', d: pathData(glue.map(panel => { const points = outline(panel.outline); return [...points, points[0]]; })) });
-    const contour = outerContour(segments(geometry.cut));
-    if (contour) {
-      const bleed = offsetPolygon(contour, BLEED_MM);
-      paths.push({ type: 'bleed', d: pathData([[...bleed, bleed[0]]]) });
-    }
+    const pieces = pieceOutlines(segments(geometry.cut), geometry.panels.map(panel => outline(panel.outline)));
+    if (pieces.length) paths.push({ type: 'bleed', d: pathData(pieces.map(piece => offsetPolygon(piece, BLEED_MM)).map(points => [...points, points[0]])) });
     // Safe zones on the printed panels big enough to have one.
     const printed = geometry.panels.filter(panel => panel.kind !== 'glue' && panel.width > 4 * SAFE_MM && panel.height > 4 * SAFE_MM);
     const safe = printed.map(panel => offsetPolygon(outline(panel.outline), -SAFE_MM)).map(points => [...points, points[0]]);
