@@ -320,7 +320,12 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     floor.scale.setScalar(size * 8);
     contact.visible = showFloor;
     contact.position.set((minX + maxX) / 2, groundY + size * 0.0005, (minZ + maxZ) / 2);
-    contact.scale.set((maxX - minX) * 1.35 + size * 0.06, (maxZ - minZ) * 1.35 + size * 0.06, 1);
+    // A contact shadow spreads with how tall the carton stands, not how much
+    // floor it covers: a flat sheet lying on the floor gets only a faint rim,
+    // not a halo that makes the background look like a tabletop.
+    const standing = Math.min(1, (maxY - minY) / (size * 0.12));
+    contact.scale.set((maxX - minX) * (1 + 0.35 * standing) + size * 0.06 * standing, (maxZ - minZ) * (1 + 0.35 * standing) + size * 0.06 * standing, 1);
+    contact.material.opacity = 0.5 * (0.3 + 0.7 * standing);
 
     const azimuth = scene.yaw + 0.85;
     const elevation = 1.0;
