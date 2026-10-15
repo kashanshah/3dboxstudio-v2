@@ -14,6 +14,12 @@ const { BoardArtworkImage } = require('../src/components/studio/board-artwork-im
 
 // Bundle the production rasterizer with TypeScript already installed by the app.
 const modules = {};
+/** A module's source file: "x" may be x.ts, x.tsx or a folder with an index. */
+function resolveSource(base) {
+  const found = [`${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts'), path.join(base, 'index.tsx')].find((candidate) => fs.existsSync(candidate));
+  if (!found) throw new Error(`Cannot find the source for ${base}`);
+  return found;
+}
 function bundle(file) {
   const id = path.relative(path.resolve(__dirname, '..'), file);
   if (modules[id]) return id;
@@ -21,7 +27,7 @@ function bundle(file) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   modules[id] = '';
-  code = code.replace(/require\("(\.[^"]+|@\/[^"]+)"\)/g, (_, name) => `require(${JSON.stringify(bundle(name.startsWith('@/') ? path.resolve(__dirname, '../src', name.slice(2) + '.ts') : path.resolve(path.dirname(file), name + '.ts')))})`);
+  code = code.replace(/require\("(\.[^"]+|@\/[^"]+)"\)/g, (_, name) => `require(${JSON.stringify(bundle(resolveSource(name.startsWith('@/') ? path.resolve(__dirname, '../src', name.slice(2)) : path.resolve(path.dirname(file), name))))})`);
   modules[id] = code;
   return id;
 }
@@ -117,6 +123,8 @@ const runtime = `const modules={${Object.entries(modules).map(([id, code]) => `$
         const board=await decode(screenshot);let bad=0,total=0;
         for(const panel of data.panels){
           const name=panel.label.toLowerCase().replace(/\b\w/g,char=>char.toUpperCase());
+          // Panels the artwork does not reach get no texture.
+          if(!data.textures[name])continue;
           const face=await decode(data.textures[name].url);
           for(let y=1;y<20;y++) for(let x=1;x<20;x++){
             const bx=Math.min(board.w-1,Math.floor((panel.x+panel.width*x/20)*scale));

@@ -8,3 +8,6 @@ coverage/
 .vercel
 .env.local
 .indexnow-state.json
+e2e/.auth/
+test-results/
+playwright-report/
