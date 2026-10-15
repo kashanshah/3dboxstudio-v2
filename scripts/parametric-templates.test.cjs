@@ -311,6 +311,7 @@ const {mailerBoxDefinition}=require('../src/lib/packaging/parametric/definitions
 const {autoLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/auto-lock-bottom.ts');
 const {snapLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/snap-lock-bottom.ts');
 const {pillowBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pillow-box.ts');
+const {gableBoxDefinition}=require('../src/lib/packaging/parametric/definitions/gable-box.ts');
 const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
@@ -362,7 +363,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -386,7 +387,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition,gableBoxDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -562,6 +563,68 @@ test('the pillow box bows to its outside size and closes its ends to a pinch, fr
   assert.throws(broken(copy=>{copy.fold.modelPanels[0].of='nope';}),/stands in for unknown panel "nope"/);
   assert.throws(broken(copy=>{copy.fold.surfaces[0].rows[1].pop();}),/two or more rows of the same length/);
   assert.throws(broken(copy=>{copy.fold.surfaces[0].rows[0][0].place={on:'front',at:[0,0]};}),/placed on "front", which the model doesn't fold/);
+});
+
+test('the gable box closes its roof over gusseted ends, handles back to back with a finger hole',()=>{
+  const box=getTemplateRuntime('gable-box');
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  for(const dimensions of [{width:120,height:90,depth:70,thickness:0.5},{width:30,height:30,depth:20,thickness:0.3},{width:400,height:400,depth:250,thickness:2}]){
+    const t=dimensions.thickness;
+    const sheet=box.getExportGeometry(dimensions);
+    const panel=id=>sheet.panels.find(item=>item.id===id);
+    for(const id of ['front-roof','back-roof','front-handle','back-handle','left-gable','right-gable','left-gusset-a','left-gusset-b','right-gusset-a','right-gusset-b'])assert.ok(panel(id),`${id} is on the sheet`);
+    // Each gusset creases onto its gable, and is cut free from the roof beside it.
+    const along=(line,a,b)=>[line.start,line.end].every(point=>[a,b].every(id=>onOutline(panel(id).outline,point)));
+    for(const end of ['left','right'])for(const side of ['a','b'])assert.ok(sheet.crease.some(line=>along(line,`${end}-gable`,`${end}-gusset-${side}`)),`${end} gusset ${side} creases onto its gable`);
+    for(const [gusset,roof] of [['left-gusset-b','front-roof'],['right-gusset-a','front-roof'],['right-gusset-b','back-roof']]){
+      assert.ok(!sheet.crease.some(line=>along(line,gusset,roof)),`${gusset} is not creased to ${roof}`);
+      assert.ok(sheet.cut.some(line=>along(line,gusset,roof)),`${gusset} is cut from ${roof}`);
+    }
+    // The finger hole is cut inside each handle.
+    for(const id of ['front-handle','back-handle']){
+      const handle=panel(id);
+      assert.ok(sheet.cut.filter(line=>[line.start,line.end].every(point=>point.x>handle.x&&point.x<handle.x+handle.width&&point.y>handle.y&&point.y<handle.y+handle.height)).length>=20,`${id} has a finger hole`);
+    }
+    // Closed: the body is the size entered, the roof leans in until the
+    // handles meet over the middle, and the gables and gussets stay under it.
+    const meshes=box.buildMeshes({dimensions,formation:100,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    const points=name=>meshes.filter(mesh=>mesh.panel===name).flatMap(mesh=>{const out=[];for(let i=0;i<mesh.vertices.length;i+=8)out.push([mesh.vertices[i],mesh.vertices[i+1],mesh.vertices[i+2]]);return out;});
+    const span=(name,k)=>{const values=points(name).map(point=>point[k]);return [Math.min(...values),Math.max(...values)];};
+    within(span('Right',0)[0]-span('Left',0)[1],dimensions.width,2*t,'inside width');
+    within(span('Front',2)[0]-span('Back',2)[1],dimensions.depth,2*t,'inside depth');
+    const [front,back]=[span('Front Handle',2),span('Back Handle',2)];
+    assert.ok(front[0]-back[1]>=-1e-6&&front[0]-back[1]<=2*t+0.5,`the handles meet back to back: ${back[1]} to ${front[0]}`);
+    within(span('Front Handle',1)[0],span('Front Roof',1)[1],2*t+0.5,'the handle stands on the ridge');
+    for(const end of ['Left','Right']){
+      assert.ok(span(`${end} Gable`,1)[1]<span('Front Roof',1)[1],`${end} gable stays under the ridge`);
+      // Each gusset lies on the inside of the roof panel over it.
+      for(const side of ['A','B']){
+        const gusset=points(`${end} Gusset ${side}`);
+        const roof=points(gusset.reduce((sum,point)=>sum+point[2],0)>0?'Front Roof':'Back Roof');
+        const [lo,hi]=[0,1].map(k=>k?roof.reduce((best,point)=>point[1]>best[1]?point:best):roof.reduce((best,point)=>point[1]<best[1]?point:best));
+        const slope=(hi[1]-lo[1])/(hi[2]-lo[2]);
+        // Height of the roof's outside over each point; the gusset stays below it, and within the walls.
+        for(const point of gusset){
+          assert.ok(point[1]<=lo[1]+slope*(point[2]-lo[2])+1e-3,`${end} gusset ${side} at ${point.map(x=>x.toFixed(1))} stays under the roof`);
+          assert.ok(Math.abs(point[0])<=span('Right',0)[1]+1e-3,`${end} gusset ${side} stays within the walls`);
+        }
+      }
+    }
+    // The model shows the finger hole: nothing covers the middle of it.
+    const handle=panel('front-handle'),middle=handle.x+handle.width/2-sheet.panels.find(item=>item.id==='front').x-panel('front').width/2;
+    const covered=meshes.filter(mesh=>mesh.panel==='Front Handle').some(mesh=>{
+      const v=mesh.vertices,[y0,y1]=span('Front Handle',1),y=y1-0.45*(y1-y0);
+      for(let i=0;i<v.length;i+=24){
+        const [a,b,c]=[0,1,2].map(k=>[v[i+k*8],v[i+k*8+1]]);
+        const sign=(p,q,r)=>(p[0]-r[0])*(q[1]-r[1])-(q[0]-r[0])*(p[1]-r[1]);
+        const d=[sign([middle,y],a,b),sign([middle,y],b,c),sign([middle,y],c,a)];
+        if(!(d.some(x=>x<0)&&d.some(x=>x>0))&&d.some(x=>Math.abs(x)>1e-9))return true;
+      }
+      return false;
+    });
+    assert.ok(!covered,'the finger hole is open in 3D');
+  }
+  assert.throws(()=>box.getExportGeometry({width:120,height:90,depth:15,thickness:0.5}),/at least 20 mm/);
 });
 
 function onOutline(outline,point){

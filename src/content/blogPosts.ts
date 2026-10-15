@@ -110,6 +110,7 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "rigid-box-lid-and-base-template": "tools",
   "auto-lock-bottom-box-crash-lock": "tools",
   "how-to-make-a-pillow-box": "tools",
+  "how-to-make-a-gable-box": "tools",
   "box-dieline-svg-dxf-export": "tools",
   "box-template-svg-cricut-laser-cutter": "tools",
 };
@@ -2454,6 +2455,74 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
   },
   {
+    slug: "how-to-make-a-gable-box",
+    title: "How to Make a Gable Box with a Handle: Template, Sizes and Folding",
+    seoTitle: "How to Make a Gable Box: Free Template & Dieline | 3D Box Studio",
+    description: "How a gable box with a handle is made, how its roof, gussets and auto-lock bottom fold, how to choose the size, and how to make the gable box dieline in your size, design it and fold it in 3D for free.",
+    published: "2026-10-15",
+    readMinutes: 6,
+    keywords: ["how to make a gable box","gable box template","gable box dieline","gable box with handle","gable top box","bakery box with handle","cupcake gable box","favour box with handle"],
+    imageAlt: "A gable box dieline with a roof, handle and finger hole, next to the folded gable box closed and with its roof opening",
+    relatedSlugs: ["auto-lock-bottom-box-crash-lock","gift-box-packaging-luxury-preview","box-dieline-svg-dxf-export"],
+    faqs: [
+      { question: "What is a gable box?", answer: "A carton with a pitched roof like a house and a carry handle on top. The front and back walls rise into roof panels that meet over the middle, each ending in a handle panel with a finger hole, and the sides rise into triangular gable ends." },
+      { question: "Is there a free gable box template?", answer: "Yes. The gable box template in 3D Box Studio is free. Enter the width, depth and height of the body and it draws the dieline with the roof, handles, gusseted gable ends and auto-lock bottom, and folds it closed in 3D. Designing and exporting need a free account." },
+      { question: "What size should a gable box be?", answer: "Measure the product and add a few millimetres of room. Width, depth and height are the inside of the body below the roof; the roof adds space above it, about half the depth by default, and the handle sits on top. Both can be changed in the Studio." },
+      { question: "What board is best for gable boxes?", answer: "Folding carton board around 0.4 to 0.6 mm thick for light products such as favours and cupcakes, and thicker or food-safe coated board for heavier or greasy contents. The handle carries the whole load, so choose a stronger board if the box will be heavy." },
+      { question: "Can I download the gable box dieline?", answer: "Yes. Export a 1:1 PDF with your artwork, bleed and cut and crease lines, or the cutting template on its own as SVG or DXF for a die maker, cutting table, Cricut or laser cutter. The finger holes are included as cut lines." },
+    ],
+    sections: [
+      { type: "p", text: "A gable box is the carton with a pitched roof and a handle that bakeries, takeaways and party shops love. It carries easily, ships flat until it is needed, and the tall roof and handle give a lot of room for branding. The clever part is how the ends close: the roof panels lean in over triangular gable ends, with small gusset flaps folded in under the roof." },
+      { type: "p", text: "This guide explains how a gable box works, how to choose its size, and how to make the dieline in your own size with the free [gable box template](/box-templates/gable-box), then design it and watch it fold closed in 3D." },
+      { type: "h2", text: "How a gable box works" },
+      { type: "p", text: "The whole box is one piece of board: a glue flap and four walls in a row, with the roof, handles and gable ends above them and the bottom flaps below." },
+      { type: "ol", items: [
+        "The glue flap is stuck inside the back wall, which turns the sheet into a tube that folds flat for shipping.",
+        "The bottom is an auto-lock (crash-lock) bottom: its side flaps have glue tabs stuck to the front and back flaps, so when the flat box is opened the bottom swings down and locks itself. See [how a crash lock bottom works](/blog/auto-lock-bottom-box-crash-lock).",
+        "Above each side wall is a triangular gable end with a small gusset flap on each slope. The gussets fold in, under where the roof will come down.",
+        "The roof panels above the front and back walls lean in over the gable ends until they meet in the middle. Each roof ends in a handle panel, so the two handles stand back to back, and their finger holes line up for carrying."
+      ] },
+      { type: "callout", text: "You can watch this in the Studio: open the [gable box template](/box-templates/gable-box) and drag the fold slider from flat to closed. The walls fold round, the bottom locks, the gussets fold in and the roof closes until the handles meet." },
+      { type: "h2", text: "Choosing the size" },
+      { type: "ul", items: [
+        "Width: the inside of the front and back walls, from side to side.",
+        "Depth: the inside of the side walls, from front to back. The roof slopes across the depth, so a deeper box has a longer roof.",
+        "Height: the inside of the body, from the bottom to where the roof begins. The roof adds space above that.",
+        "Roof height: by default about half the depth. Raise it for cupcakes or anything that sticks up above the walls, lower it for a flatter look.",
+        "Handle height: at least 30 mm so a finger fits through the hole. A taller handle gives more room for a logo or a web address."
+      ] },
+      { type: "p", text: "As a starting point: two to four cupcakes fit a box about 180 × 90 × 90 mm, a party favour 100 × 70 × 60 mm and a kids' meal 160 × 100 × 100 mm. The template page has these as presets." },
+      { type: "callout", text: "Measuring the product first? See [inside vs outside box dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions) for how much room to leave." },
+      { type: "h2", text: "Make the gable box dieline in your size" },
+      { type: "ol", items: [
+        "Open the [gable box template](/box-templates/gable-box) and pick a preset or type the width, height and depth in millimetres or inches. The dieline redraws as you type.",
+        "Open it in the Studio and set the board thickness. Under Box & Size you can also set the roof height, the handle height, the glue flap and the bottom side flaps.",
+        "Place artwork on the walls, the roof panels, the handles and the gable ends. The roof and handles are the first thing people see when the box is carried, so they are a good place for the logo.",
+        "Fold it in 3D to check the design on the closed box, then export a 1:1 PDF, or the cutting template as [SVG or DXF](/blog/box-dieline-svg-dxf-export)."
+      ] },
+      { type: "h2", text: "Folding it by hand" },
+      { type: "ol", items: [
+        "Cut along the solid lines, including the finger holes and the short cuts that free each gusset from the roof beside it, and score the dashed lines.",
+        "Glue the triangular tabs on the bottom side flaps to the front and back flaps beside them, then glue the glue flap inside the back wall. Fold the box flat and let it dry.",
+        "Open the tube and push the bottom down until it locks.",
+        "Fill the box, fold the gussets in, bring the two roof panels together over the middle and put the handles back to back."
+      ] },
+      { type: "callout", text: "Cutting at home? A Cricut or laser cutter can cut the finger holes and score the creases for you. See [box templates for Cricut and laser cutters](/blog/box-template-svg-cricut-laser-cutter)." },
+      { type: "h2", text: "Designing for a gable box" },
+      { type: "ul", items: [
+        "Put the main logo on the front wall or the front roof: these face the customer on a counter or a shelf.",
+        "Repeat the logo or a web address on both handles. They stand back to back, so each side of the carried box shows one.",
+        "Keep text and logos clear of the finger hole, and a few millimetres away from the creases between the wall, roof and handle.",
+        "The gable ends are triangles under the roof: give them a solid colour or a simple pattern rather than text.",
+        "Leave the glue flap and the bottom's glue tabs free of ink and varnish so the glue holds."
+      ] },
+      { type: "h2", text: "Before production" },
+      { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. For a production run, especially for food, send your printer the size and the cutting template, ask them to confirm the board, the crease allowances and the glue tabs, and check whether the board needs a food-safe or grease-resistant coating." },
+      { type: "cta", label: "Make a gable box dieline in your size", href: "/box-templates/gable-box" },
+      { type: "faq" }
+    ],
+  },
+  {
     slug: "auto-lock-bottom-box-crash-lock",
     title: "Auto Lock Bottom Box: How a Crash Lock Bottom Works",
     seoTitle: "Auto Lock Bottom (Crash Lock) Box Template & Dieline | 3D Box Studio",
@@ -2514,6 +2583,7 @@ export const BLOG_POSTS: BlogPost[] = [
         "Leave the glue tabs and the glue area on the flaps they stick to free of ink and varnish, or ask your printer to knock it out, so the glue holds.",
         "Check the top tuck and thumb notch in 3D: the top is the side people open, so it is worth getting the artwork on the lid right."
       ] },
+      { type: "callout", text: "The same self-locking bottom is under the [gable box](/box-templates/gable-box), a carry box with a pitched roof and a handle. See [how to make a gable box](/blog/how-to-make-a-gable-box)." },
       { type: "h2", text: "Before production" },
       { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. Crash lock bottoms depend on the gluer and the board, so for a production run send your printer the inside size and the cutting template, and ask them to confirm the glue tabs, allowances and final die." },
       { type: "cta", label: "Make an auto lock bottom dieline in your size", href: "/box-templates/auto-lock-bottom-box" },
@@ -2661,6 +2731,7 @@ export const BLOG_POSTS: BlogPost[] = [
         "[Reverse tuck end box](/box-templates/reverse-tuck-end-box): the classic product carton with tuck flaps at both ends. Good for cardstock gifts and favours.",
         "[Mailer box](/box-templates/mailer-box): a self-locking box with a hinged lid, no glue needed.",
         "[Rigid lid and base box](/box-templates/rigid-box): a two-piece gift box with a lift-off lid.",
+        "[Gable box](/box-templates/gable-box): a carry box with a handle and finger hole, for party favours and treats.",
         "[Pizza box](/box-templates/pizza-box) and [split top box](/box-templates/split-top-box) for flat items and shipping boxes."
       ] },
       { type: "h2", text: "Step by step" },

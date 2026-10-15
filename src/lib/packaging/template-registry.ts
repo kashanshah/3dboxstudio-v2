@@ -10,6 +10,7 @@ import { rigidLidBaseDefinition } from '@/lib/packaging/parametric/definitions/r
 import { autoLockBottomDefinition } from '@/lib/packaging/parametric/definitions/auto-lock-bottom';
 import { snapLockBottomDefinition } from '@/lib/packaging/parametric/definitions/snap-lock-bottom';
 import { pillowBoxDefinition } from '@/lib/packaging/parametric/definitions/pillow-box';
+import { gableBoxDefinition } from '@/lib/packaging/parametric/definitions/gable-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -100,6 +101,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(autoLockBottomDefinition),
   fromDefinition(snapLockBottomDefinition),
   fromDefinition(pillowBoxDefinition),
+  fromDefinition(gableBoxDefinition),
 
   // Every template with a parametric definition and catalog entry is ready.
   // The drawer box below stays planned until it has one.

@@ -12,4 +12,5 @@ export const SHOTS = [
   { id: 'auto-lock-bottom-box', mode: 'closed', progress: 86, yaw: 2.3, pitch: 0.7 },
   { id: 'snap-lock-bottom-box', mode: 'closed', progress: 86, yaw: -0.8, pitch: 0.7 },
   { id: 'pillow-box', mode: 'closed', progress: 100, yaw: 0.75, pitch: 0.3 },
+  { id: 'gable-box', mode: 'closed', progress: 100, yaw: -0.6, pitch: 0.35 },
 ];
