@@ -126,7 +126,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "overview",
     question: "What box types can I design?",
     answer:
-      "Twelve box templates are ready: the reverse tuck end carton, straight tuck end box, auto lock bottom (crash lock) box, snap lock (1-2-3) bottom box, pillow box, gable box, drawer box (tray and sleeve), split top shipping box (FEFCO 0201/0204), pizza box, mailer box (FEFCO 0427), sleeve box, and rigid lid and base box. Each one takes your own size and board thickness, and you can adjust individual flap and panel sizes. See them all under Box templates.",
+      "Fifteen box templates are ready: the reverse tuck end carton, straight tuck end box, auto lock bottom (crash lock) box, snap lock (1-2-3) bottom box, pillow box, gable box, drawer box (tray and sleeve), four-corner tray, telescope box (tray with lid), cake box (with an optional window), split top shipping box (FEFCO 0201/0204), pizza box, mailer box (FEFCO 0427), sleeve box, and rigid lid and base box. Each one takes your own size and board thickness, and you can adjust individual flap and panel sizes. See them all under Box templates.",
   },
   {
     id: "svg-dxf-dieline",
@@ -210,7 +210,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Do I need an account to use 3D Box Studio?",
     answer:
-      "Yes, a free account is required. Sign up in seconds with Google or email. Accounts let projects, artwork, saving, reopening, and sharing work consistently across sessions. Anyone you share a preview link with can open it without an account.",
+      "Not to download a dieline: the box dieline generator and every template page let you download SVG, PDF, DXF, PNG and Cricut files with no account. The Studio, where you add artwork, fold the box in 3D, save and share, needs a free account. Sign up in seconds with Google or email. Anyone you share a preview link with can open it without an account.",
   },
   {
     id: "video-export",

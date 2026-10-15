@@ -42,6 +42,7 @@ import {
   defaultScene,
   pickScenePanel,
   sceneMeshes,
+  sceneShowsInside,
   sceneViewMatrices,
   textureTransform,
   type Scene,
@@ -209,7 +210,7 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     const finish = FINISHES[scene.material] ?? DEFAULT_FINISH;
     // Little light reaches the inside of a closed carton, so what shows of it
     // through the small slots where folds meet at a corner stays dark.
-    const shut = scene.formation >= 100 ? 1 - Math.min(1, scene.opening / 15) : 0;
+    const shut = scene.formation >= 100 && !sceneShowsInside(scene) ? 1 - Math.min(1, scene.opening / 15) : 0;
     const insideShade = 1 - 0.7 * shut;
     meshes.forEach((mesh, index) => {
       let object = objects[index];

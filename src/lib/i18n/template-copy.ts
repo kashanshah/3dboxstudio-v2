@@ -75,6 +75,24 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
     "category": "templates.drawer-box.category",
     "description": "templates.drawer-box.description"
   },
+  "tray-box": {
+    "name": "templates.tray-box.name",
+    "shortName": "templates.tray-box.shortName",
+    "category": "templates.tray-box.category",
+    "description": "templates.tray-box.description"
+  },
+  "telescope-box": {
+    "name": "templates.telescope-box.name",
+    "shortName": "templates.telescope-box.shortName",
+    "category": "templates.telescope-box.category",
+    "description": "templates.telescope-box.description"
+  },
+  "cake-box": {
+    "name": "templates.cake-box.name",
+    "shortName": "templates.cake-box.shortName",
+    "category": "templates.cake-box.category",
+    "description": "templates.cake-box.description"
+  },
 };
 
 /** Localize display fields only. Geometry, panel names, category filters and persisted IDs remain stable. */

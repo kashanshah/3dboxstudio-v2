@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="384.75mm" height="317.5mm" viewBox="-14 -14 384.75 317.5">
+  <title>Auto lock (crash lock) bottom box</title>
+  <desc>Auto lock (crash lock) bottom box. Flat size 356.75 x 289.5 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 236.802L-3 232.783L-3 99.217L12 95.198L12 93L13 93L13 92.471L28.094 51L72.406 51L87.5 92.471L87.5 93L82.5 93L82.5 95.5L82.5 22L83.5 22L83.5 22L83.5 14.853L83.832 11.486L84.857 8.106L86.521 4.992L88.762 2.262L91.491 0.022L94.606 -1.643L97.986 -2.668L101.353 -3L170.147 -3L173.514 -2.668L176.894 -1.643L180.008 0.021L182.738 2.262L184.978 4.991L186.643 8.106L187.668 11.486L188 14.853L188 22L188 22L189 22L189 95.5L189 93L184 93L184 92.471L199.094 51L243.406 51L258.5 92.471L258.5 93L256.5 93L299.256 93L299.889 97.805L300.585 99.487L301.694 100.931L303.138 102.04L304.82 102.736L306.625 102.974L308.43 102.736L310.112 102.04L311.556 100.931L312.665 99.487L313.361 97.805L313.994 93L359.75 93L359.75 237L359.75 271.5L309.986 271.5L308.986 292.5L253.5 292.5L253.5 237L256.39 244.999L258.47 278.273L252.743 284L211.5 284L188.255 284L184.255 239L189 239L189 237L189 271.5L139.111 271.5L138.111 292.5L82.5 292.5L82.5 237L85.39 244.999L87.47 278.273L81.743 284L40.5 284L17.255 284L13.255 239L12 239Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 99L82.5 99L82.5 233L18 233ZM88.5 98.5L183 98.5L183 234L88.5 234ZM189 99L253.5 99L253.5 233L189 233ZM259.5 99L293.994 99L294.043 99.371L295.344 102.513L297.414 105.211L300.112 107.281L303.254 108.582L306.625 109.026L309.996 108.582L313.138 107.281L315.836 105.211L317.906 102.513L319.207 99.371L319.256 99L353.75 99L353.75 234L259.5 234ZM88.5 28L183 28L183 92.5L88.5 92.5ZM89.5 22L182 22L182 22L182 15.147L181.755 12.662L181.073 10.414L179.965 8.34L178.475 6.525L176.66 5.035L174.586 3.927L172.338 3.245L169.853 3L101.647 3L99.162 3.245L96.914 3.927L94.84 5.035L93.025 6.525L91.535 8.34L90.427 10.414L89.745 12.662L89.5 15.147L89.5 22ZM19 93L81.5 93L81.5 93.529L68.204 57L32.296 57L19 93.529ZM190 93L252.5 93L252.5 93.529L239.204 57L203.296 57L190 93.529ZM88.5 240L183 240L183 265.5L133.389 265.5L132.389 286.5L88.5 286.5ZM259.5 240L353.75 240L353.75 265.5L304.264 265.5L303.264 286.5L259.5 286.5ZM19.278 239L78.257 239L39.257 278L22.745 278ZM190.278 239L249.257 239L210.257 278L193.745 278Z"/>
+  </g>
+  <g id="glue" inkscape:groupmode="layer" inkscape:label="Glue area" fill="none" stroke="#e8a317" stroke-width="0.2" stroke-dasharray="1.5 1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 97.5L15 234.5L0 230.481L0 101.519ZM85.5 236L84.5 277L80.5 281L40.5 281ZM256.5 236L255.5 277L251.5 281L211.5 281Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 97.5L15 234.5M16 96L84.5 96M85.5 96L85.5 236L16 236M85.5 236L40.5 281M85.5 95.5L186 95.5M186 96L186 236M85.5 237L186 237M187 96L255.5 96M256.5 96L256.5 236L187 236M256.5 236L211.5 281M256.5 237L356.75 237M89.5 25L182 25"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 234.5L0 230.481L0 101.519L15 97.5L15 96L16 96L16 93L30.195 54L70.305 54L84.5 93L84.5 96L85.5 96L85.5 95.5L85.5 25L89.5 25L86.5 25L86.5 22L86.5 15L86.788 12.074L87.642 9.26L89.028 6.666L90.893 4.393L93.166 2.528L95.76 1.142L98.574 0.288L101.5 0L170 0L172.926 0.288L175.74 1.142L178.334 2.528L180.607 4.393L182.472 6.666L183.858 9.26L184.712 12.074L185 15L185 22L185 25L182 25L186 25L186 95.5L186 96L187 96L187 93L201.195 54L241.305 54L255.5 93L255.5 96L256.5 96L296.625 96L296.966 98.588L297.965 101L299.554 103.071L301.625 104.66L304.037 105.659L306.625 106L309.213 105.659L311.625 104.66L313.696 103.071L315.285 101L316.284 98.588L316.625 96L356.75 96L356.75 237L356.75 268.5L307.125 268.5L306.125 289.5L256.5 289.5L256.5 237L256.5 236L255.5 277L251.5 281L211.5 281L191 281L187 236L186 236L186 237L186 268.5L136.25 268.5L135.25 289.5L85.5 289.5L85.5 237L85.5 236L84.5 277L80.5 281L40.5 281L20 281L16 236L15 236Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="7.5" y="166">Glue</text>
+    <text x="50.25" y="166">Left</text>
+    <text x="135.75" y="166.25">Front</text>
+    <text x="221.25" y="166">Right</text>
+    <text x="306.625" y="166.5">Back</text>
+    <text x="135.75" y="60.25">Top</text>
+    <text x="135.75" y="12.5">Top Tuck</text>
+    <text x="50.25" y="75">Top Left Dust Flap</text>
+    <text x="221.25" y="75">Top Right Dust Flap</text>
+    <text x="135.75" y="263.25">Bottom Front</text>
+    <text x="306.625" y="263.25">Bottom Back</text>
+    <text x="50.75" y="258.5">Bottom Left</text>
+    <text x="63" y="258.5">Left Glue</text>
+    <text x="221.75" y="258.5">Bottom Right</text>
+    <text x="234" y="258.5">Right Glue</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="356.75" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="356.75" y1="-11" x2="356.75" y2="-7"/>
+    <text x="178.375" y="-10.5" stroke="none">356.75 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="289.5"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="289.5" x2="-7" y2="289.5"/>
+    <text x="-10.5" y="144.75" stroke="none" transform="rotate(-90 -10.5 144.75)">289.5 mm</text>
+  </g>
+</svg>

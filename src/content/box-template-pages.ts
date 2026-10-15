@@ -77,7 +77,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the reverse tuck end template free?', answer: 'Yes. The size picker and dieline on this page are free to use. Designing artwork, saving and exporting the PDF dieline happen in the Studio, which needs a free account.' },
+      { question: 'Is the reverse tuck end template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Can I download the dieline as a PDF, SVG or DXF?', answer: 'Yes, from the Studio. Open this template with your size, then use Preview & Download to export a 1:1 vector PDF with your artwork, cut and crease lines, adjustable bleed and a calibration ruler, or the cutting template on its own as an SVG or DXF with cut and crease lines on separate layers.' },
       { question: 'Does the dieline include tuck flaps and dust flaps?', answer: 'Yes. The reverse tuck template draws the tuck tongues with slit locks, four shouldered dust flaps, a tapered glue flap and a thumb notch, with panels creased one board thickness wider than the inside size you enter. Artwork prints on the closure flaps too, exactly as laid out on the design grid; the glue flap stays bare.' },
       { question: 'Does it adjust for board thickness?', answer: 'Yes. The sizes you enter are inside dimensions, and each panel is creased one board thickness wider for the caliper set in the Studio. Printers sometimes use their own allowances for a particular board and tooling, so ask yours to confirm before production.' },
@@ -130,7 +130,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the pizza box template free?', answer: 'Yes. The size picker and layout preview here are free. Designing artwork, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the pizza box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'What sizes can I make?', answer: 'Any size. Presets cover 10, 12, 14 and 16 inch boxes and a 30 cm metric box, and you can type your own width, depth and wall height in millimetres or inches.' },
       { question: 'Is this a production-ready pizza box die?', answer: 'It is a real cutting template with the locking double front, slots, corner tabs, lid flaps and finger hole, sized from your inside dimensions and board thickness. Ask your box maker to confirm the allowances for the flute they run before production.' },
       { question: 'Can I export the pizza box design?', answer: 'Yes. The Studio exports PNG mockups from the 3D view and a 1:1 PDF cutting template with your artwork, cut and crease lines, and adjustable bleed. The cutting template on its own downloads as SVG or DXF for your box maker.' },
@@ -183,7 +183,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the mailer box template free?', answer: 'Yes. The size picker and dieline here are free. Designing artwork, saving and exporting the PDF happen in the Studio with a free account.' },
+      { question: 'Is the mailer box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Which mailer style is this?', answer: 'The roll end tuck top mailer, FEFCO 0427: one piece, no glue, double side walls locked into the base, and a lid with a front tuck and side flaps. It is the style most e-commerce and subscription boxes use.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. The base and walls are cut larger so the folded box keeps the inside size you enter, for the board thickness set in the Studio. Ask your box maker to confirm the allowances for their flute and tooling.' },
       { question: 'Can I print the inside of the mailer?', answer: 'Yes. Every panel has an outside and an inside surface in the Studio, so you can design the unboxing view and export both sides in the PDF.' },
@@ -233,7 +233,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the rigid box template free?', answer: 'Yes. The size picker and layout here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the rigid box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Can I change the lid height?', answer: 'Yes. In the Studio the lid height is one of the box’s adjustable sizes: anything from a shallow lid to one that covers the base completely.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside the base. The base walls and the lid are sized from it for the board thickness you set, with the lid fitting over the base with a little play.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF for your box maker.' },
@@ -287,7 +287,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the straight tuck end template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the straight tuck end template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Which side do the lids hinge on?', answer: 'Both lids hinge on the front, so the top and bottom tuck in at the back. In the Studio you can move the top lid to another wall or open the front as doors.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. Each panel is creased one board thickness wider for the caliper you set, so the folded carton keeps the inside size you enter.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers.' },
@@ -341,7 +341,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the auto lock bottom template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the auto lock bottom template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Is an auto lock bottom the same as a crash lock bottom?', answer: 'Yes. Auto lock bottom, crash lock bottom and auto bottom are names for the same pre-glued bottom that locks itself when the carton is opened. A [snap lock (1-2-3) bottom](/box-templates/snap-lock-bottom-box) is different: it is not glued and is folded closed by hand.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. Each panel is creased one board thickness wider for the caliper you set, and the walls are three boards taller for the layered bottom, so the folded carton keeps the inside size you enter.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers. Ask your printer to confirm the glue tabs and allowances for their board and gluer.' },
@@ -396,7 +396,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the snap lock bottom template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the snap lock bottom template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Is a snap lock bottom the same as a 1-2-3 bottom?', answer: 'Yes. Snap lock, 1-2-3 bottom and lock bottom are names for the same four-flap bottom that closes by hand without glue. A crash lock or auto lock bottom is different: it is glued at the factory and forms itself when the carton is opened.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside. Each panel is creased one board thickness wider for the caliper you set, and the walls are three boards taller for the layered bottom, so the folded carton keeps the inside size you enter.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers. Ask your printer to confirm the allowances for their board.' },
@@ -450,7 +450,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the pillow box template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the pillow box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Outside. Width is the closed pillow from tip to tip, depth is across, and height is its thickness in the middle. The inside is a little smaller, and less towards the ends, where the pillow tapers.' },
       { question: 'Does a pillow box need glue?', answer: 'Only once, along the glue flap that closes the tube. The ends close by pushing in the curved flaps, with no glue or tuck, so the box can be opened and closed again.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers. The curved creases are drawn as short straight segments, as die makers cut them. Ask your printer to confirm the scores for their board.' },
@@ -505,7 +505,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the gable box template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the gable box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside, for the body: width, depth and height are the space inside the walls, below the roof. Each panel is creased one board wider so the folded box keeps that inside size. The roof and handle add to the overall height.' },
       { question: 'Can I change the roof and handle height?', answer: 'Yes. In the Studio, under Box & Size, you can set the roof height, the handle height, the glue flap and the bottom side flaps, each within limits that keep the box folding. The dieline and the 3D box follow.' },
       { question: 'Does a gable box need glue?', answer: 'Only where the printer glues it: the glue flap along the side and the bottom\'s glue tabs, so the bottom locks itself when the box is opened. The roof closes by bringing the handles together, so the box can be opened and closed again.' },
@@ -560,7 +560,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the drawer box template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the drawer box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Are the sizes inside or outside dimensions?', answer: 'Inside, for the tray: width, depth and height are the space the product sits in. The sleeve is sized round the tray with a little play, so the outside of the closed box is a few millimetres larger.' },
       { question: 'Does a drawer box need glue?', answer: 'Only the sleeve, along its glue flap. The tray\'s ears and turn-ins lock its walls without glue, although a dot of glue under each turn-in makes it sturdier.' },
       { question: 'Can I change how tight the drawer is?', answer: 'Yes. In the Studio, under Box & Size, set the sleeve play: the gap between the tray and the sleeve. You can also change the turn-ins, the thumb notches and the glue flap.' },
@@ -610,7 +610,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the sleeve template free?', answer: 'Yes. The size picker and dieline here are free. Designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the sleeve template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'What size should the sleeve be?', answer: 'The opening should be the outside size of the tray or product plus a little play, so it slides on without catching. Enter that as width and depth, and the length you want the sleeve to cover.' },
       { question: 'Can I print the inside of the sleeve?', answer: 'Yes. Every panel has an outside and an inside surface in the Studio, and the PDF exports either side.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF.' },
@@ -661,7 +661,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
     ],
     faqs: [
-      { question: 'Is the split top box template free?', answer: 'Yes. The size picker and layout here are free; designing, saving and exporting happen in the Studio with a free account.' },
+      { question: 'Is the split top box template free?', answer: 'Yes. The dieline on this page is free to download as SVG, PDF, DXF, PNG or a Cricut file, with no account, watermark or limit. Adding artwork and folding it in 3D happen in the Studio, which needs a free account.' },
       { question: 'Can I print inside the box?', answer: 'Yes. The Studio has separate outside and inside artwork for this template, and the 3D view opens the flaps so you can review both.' },
       { question: 'Is it the same as a standard shipping box?', answer: 'Yes. It is a regular slotted container (FEFCO 0201), or a centre special slotted container (FEFCO 0204) if you put the outer flaps on the ends. Ask your box maker to confirm the score allowances for the flute you choose.' },
       { question: 'Can I use inches?', answer: 'Yes. Switch the size picker to inches; the Studio opens with the same unit.' },

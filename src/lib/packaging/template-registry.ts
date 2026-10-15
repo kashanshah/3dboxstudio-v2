@@ -12,6 +12,8 @@ import { snapLockBottomDefinition } from '@/lib/packaging/parametric/definitions
 import { pillowBoxDefinition } from '@/lib/packaging/parametric/definitions/pillow-box';
 import { gableBoxDefinition } from '@/lib/packaging/parametric/definitions/gable-box';
 import { drawerBoxDefinition } from '@/lib/packaging/parametric/definitions/drawer-box';
+import { trayBoxDefinition, telescopeBoxDefinition } from '@/lib/packaging/parametric/definitions/tray-box';
+import { cakeBoxDefinition } from '@/lib/packaging/parametric/definitions/cake-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -109,6 +111,9 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(pizzaBoxDefinition),
   fromDefinition(sleeveBoxDefinition),
   fromDefinition(drawerBoxDefinition),
+  fromDefinition(trayBoxDefinition),
+  fromDefinition(telescopeBoxDefinition),
+  fromDefinition(cakeBoxDefinition),
   fromDefinition(rigidLidBaseDefinition),
 ];
 
