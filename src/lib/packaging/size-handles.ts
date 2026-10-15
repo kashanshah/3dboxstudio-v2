@@ -1,12 +1,15 @@
 import type { MeasuredSize, PanelSizes } from './parametric/sheet';
 
 // Where the drag handles for a box's sizes sit on the flat sheet. The box's
-// width, height and depth get a handle on every side of the box (each body
-// panel), on the panel's edge that moves when that size grows; a flap size
-// gets one handle, on the free edge of its largest flap (the edge facing
-// away from the body panels). Dragging a handle outwards makes the size
-// bigger, one for one. Handles that would land on the same spot are shown
-// once.
+// width, height and depth get handles on every side of the box (each body
+// panel), on both of the panel's edges along that size: the edge that moves
+// when the size grows, and the opposite one, so a height can be dragged from
+// the top as well as the bottom. A flap size gets one handle, on the free
+// edge of its largest flap (the edge facing away from the body panels).
+// Dragging a handle outwards makes the size bigger, one for one; the panel's
+// other edge stays put. Handles that would land on the same spot are shown
+// once, and the edges that move come first, so where two panels share a
+// crease it keeps the handle of the size that moves it.
 
 type Panel = { id: string; kind: string; x: number; y: number; width: number; height: number };
 
@@ -60,6 +63,8 @@ export function placeSizeHandles(panels: Panel[], panelSizes: PanelSizes[], grow
     .filter((entry) => entry.size.kind === 'dimension' || flapFor.get(entry.size.key) === entry)
     .sort((a, b) => Math.abs(rank(b.panel) - rank(a.panel)) > 1 ? rank(b.panel) - rank(a.panel) : a.order - b.order);
   const handles: (SizeHandle & { order: number })[] = [];
+  const free = (axis: 'x' | 'y', x: number, y: number) => !handles.some((item) => item.axis === axis && Math.hypot(item.x - x, item.y - y) < 6);
+  const opposite: (SizeHandle & { order: number })[] = [];
   for (const { panel, axis, size, order } of entries) {
     let low = axis === 'x' ? panel.x + panel.width / 2 < centre.x : panel.y + panel.height / 2 < centre.y;
     if (size.kind === 'dimension') {
@@ -73,9 +78,17 @@ export function placeSizeHandles(panels: Panel[], panelSizes: PanelSizes[], grow
     const place = axis === 'x'
       ? { x: low ? panel.x : panel.x + panel.width, y: panel.y + panel.height / 2, anchor: low ? panel.x + panel.width : panel.x }
       : { x: panel.x + panel.width / 2, y: low ? panel.y : panel.y + panel.height, anchor: low ? panel.y + panel.height : panel.y };
-    if (handles.some((item) => item.axis === axis && Math.hypot(item.x - place.x, item.y - place.y) < 6)) continue;
+    if (size.kind === 'dimension') {
+      // The other edge: dragging it outwards grows the size too, while the moving edge stays put.
+      const other = axis === 'x'
+        ? { x: place.anchor, y: place.y, anchor: low ? panel.x : panel.x + panel.width }
+        : { x: place.x, y: place.anchor, anchor: low ? panel.y : panel.y + panel.height };
+      opposite.push({ id: `${size.key}:${panel.id}:${axis}:far`, size, axis, direction: low ? 1 : -1, panel: panel.id, order: order + 0.5, ...other });
+    }
+    if (!free(axis, place.x, place.y)) continue;
     handles.push({ id: `${size.key}:${panel.id}:${axis}`, size, axis, direction: low ? -1 : 1, panel: panel.id, order, ...place });
   }
+  for (const handle of opposite) if (free(handle.axis, handle.x, handle.y)) handles.push(handle);
   // In the sheet's own order, which does not change as sizes do: a handle
   // that moved in the page would lose the pointer mid-drag.
   return handles.sort((a, b) => a.order - b.order).map(({ order, ...handle }) => { void order; return handle; });
