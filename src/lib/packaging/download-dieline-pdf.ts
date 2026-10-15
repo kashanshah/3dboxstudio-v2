@@ -24,6 +24,8 @@ type DownloadInput = {
   deviceInfo?: ExportDeviceInfo;
   rasterBudget?: PdfRasterBudget;
   onPanelProgress?: (done: number, total: number) => void;
+  /** 'png' keeps transparency in a single image (for SVG); 'auto' prefers JPEG with a soft mask (PDF). */
+  imageEncoding?: 'auto' | 'png';
 };
 
 const JPEG_QUALITY = 0.92;
@@ -236,7 +238,7 @@ export function preparePdfArtwork(input: DownloadInput) {
       let alpha: Uint8Array | null = null;
       let format: 'png' | 'jpeg';
       try {
-        const jpegSupported = canEncodeJpeg();
+        const jpegSupported = input.imageEncoding !== 'png' && canEncodeJpeg();
         if (jpegSupported) alpha = readAlpha(ctx, pixelWidth, pixelHeight);
         // 'jpeg' when opaque, 'jpeg+smask' (alpha kept) when not, 'png' only without JPEG support.
         if (choosePanelImageEncoding({ hasAlpha: Boolean(alpha), jpegSupported }) !== 'png') {
@@ -323,13 +325,44 @@ export async function downloadDielinePdf(input: DownloadInput) {
   } finally { dispose?.(); }
 }
 
-/** Downloads the cutting template alone as an SVG or DXF file for a printer or die maker. */
-export async function downloadDielineVector(input: { templateId: string; dimensions: CartonDimensions; geometryOptions?: TemplateGeometryOptions; format: 'svg' | 'dxf' }) {
+/**
+ * Downloads the cutting template as an SVG or DXF file for a printer or die
+ * maker. The SVG can carry the printed artwork too: each panel as an image
+ * (the same rendering as the PDF, with its bleed) under the lines.
+ */
+export async function downloadDielineVector(input: {
+  templateId: string; dimensions: CartonDimensions; geometryOptions?: TemplateGeometryOptions; format: 'svg' | 'dxf';
+  artwork?: Omit<DownloadInput, 'templateId' | 'dimensions' | 'geometryOptions' | 'imageEncoding'>;
+}) {
   const { dielineSvg, dielineDxf } = await import('./dieline-vector');
   // Throws the template's size message when the box can't be made at this size.
   const geometry = getTemplateExportGeometry(input.templateId, input.dimensions, input.geometryOptions);
   const name = `3d-box-studio-${input.templateId}-dieline`;
-  return input.format === 'svg'
-    ? deliverFile(dielineSvg(geometry, `3D Box Studio - ${input.templateId} - dieline 1:1 (mm)`), `${name}.svg`, 'image/svg+xml')
-    : deliverFile(dielineDxf(geometry), `${name}.dxf`, 'application/dxf');
+  if (input.format === 'dxf') return deliverFile(dielineDxf(geometry), `${name}.dxf`, 'application/dxf');
+  if (!input.artwork) return deliverFile(dielineSvg(geometry, `3D Box Studio - ${input.templateId} - dieline 1:1 (mm)`), `${name}.svg`, 'image/svg+xml');
+
+  let dispose: (() => void) | undefined;
+  try {
+    const deviceInfo = input.artwork.deviceInfo ?? readExportDeviceInfo();
+    const prepared = preparePdfArtwork({ ...input.artwork, templateId: input.templateId, dimensions: input.dimensions, geometryOptions: input.geometryOptions ?? {}, deviceInfo, imageEncoding: 'png' });
+    dispose = prepared.dispose;
+    const images = [];
+    for (let index = 0; index < prepared.geometry.panels.length; index++) {
+      const image = await prepared.renderPanel(index);
+      input.artwork.onPanelProgress?.(index + 1, prepared.geometry.panels.length);
+      if (image) images.push({ href: `data:image/png;base64,${bytesToBase64(image.bytes)}`, x: image.x, y: image.y, width: image.width, height: image.height });
+    }
+    dispose();
+    const svg = dielineSvg(prepared.geometry, `3D Box Studio - ${input.templateId} - ${input.artwork.scope} - dieline and artwork 1:1 (mm)`, { bleedMm: input.artwork.options.bleedMm, images });
+    return deliverFile(svg, `3d-box-studio-${input.templateId}-${input.artwork.scope}-dieline-artwork.svg`, 'image/svg+xml', deviceInfo);
+  } catch (error) {
+    // The artwork is prepared as for the PDF; say SVG in its messages.
+    throw new PdfExportError(friendlyPdfError(error).message.replace(/\bPDF\b/g, 'SVG'));
+  } finally { dispose?.(); }
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = '';
+  for (let start = 0; start < bytes.length; start += 0x8000) binary += String.fromCharCode(...bytes.subarray(start, start + 0x8000));
+  return btoa(binary);
 }
