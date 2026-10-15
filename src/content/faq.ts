@@ -210,7 +210,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     category: "getting-started",
     question: "Do I need an account to use 3D Box Studio?",
     answer:
-      "Yes, a free account is required. Sign up in seconds with Google or email. Accounts let projects, artwork, saving, reopening, and sharing work consistently across sessions. Anyone you share a preview link with can open it without an account.",
+      "Not to download a dieline: the box dieline generator and every template page let you download SVG, PDF, DXF, PNG and Cricut files with no account. The Studio, where you add artwork, fold the box in 3D, save and share, needs a free account. Sign up in seconds with Google or email. Anyone you share a preview link with can open it without an account.",
   },
   {
     id: "video-export",

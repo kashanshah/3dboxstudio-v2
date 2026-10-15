@@ -281,3 +281,33 @@ test('the PDF is one page at full size, or tiles across A4 pages',async()=>{
   const page=letter.getPage(0).getSize();
   assert.deepEqual([page.width,page.height].map(value=>Math.round(value)).sort((a,b)=>a-b),[612,792]);
 });
+
+test('generator settings round-trip through the URL, and bad values fall back',()=>{
+  const {encodeState,decodeState,defaultState,materialFor,exportName}=require('../src/lib/dieline/state.ts');
+  const mailer=getDielineStyle('mailer-box');
+  const base=defaultState(mailer);
+  assert.equal(base.material,'eflute');
+  const state={...base,length:250,width:9.5,depth:80,units:'mm',mode:'outer',thickness:1.5,options:{ear:30}};
+  const query=encodeState(state);
+  assert.equal(query.get('o_ear'),'30');
+  assert.deepEqual(decodeState(query,DIELINE_STYLES,base),state);
+  // Nothing set: no state; a page's style is the fallback for a query without one.
+  assert.equal(decodeState(new URLSearchParams('utm_source=x'),DIELINE_STYLES,base),null);
+  const odd=decodeState(new URLSearchParams('l=-4&w=abc&d=99999&mode=sideways&t=50&o_nope=3&o_ear=-1&u=mm'),DIELINE_STYLES,base);
+  assert.deepEqual([odd.length,odd.width,odd.depth,odd.mode,odd.thickness,odd.options],[base.length,base.width,base.depth,base.mode,base.thickness,{}]);
+  // Another style resets to its defaults, converted to the query's units.
+  const tray=decodeState(new URLSearchParams('style=four-corner-tray&u=in'),DIELINE_STYLES,base);
+  assert.equal(tray.style,'four-corner-tray');
+  assert.equal(tray.length,Math.round(getDielineStyle('four-corner-tray').defaults.length/MM_PER_IN*1000)/1000);
+  assert.equal(materialFor(0.46),'sbs18');
+  assert.equal(materialFor(0.33),'custom');
+  assert.equal(exportName({...state,length:9.5}, 'pdf','-a4'),'mailer-box-9_5x9_5x80mm-a4-dieline.pdf');
+});
+
+test('every style reports its adjustable sizes with limits round the value in use',()=>{
+  for(const style of DIELINE_STYLES){
+    const output=generateDieline(input(style,{dimensionMode:style.modes[0]}));
+    assert.deepEqual(output.sizes.map(size=>size.key),style.params.map(param=>param.key),style.id);
+    for(const size of output.sizes) assert.ok(size.min<=size.value+1e-6&&size.value<=size.max+1e-6,`${style.id} ${size.key}`);
+  }
+});

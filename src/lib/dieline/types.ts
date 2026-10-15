@@ -54,6 +54,8 @@ export interface DielineOutput {
   inner: { length: number; width: number; depth: number };
   /** Plain-language problems: sizes the box can't be made at, or modes a style can't honour exactly. */
   warnings: string[];
+  /** The style's adjustable sizes for this box, in mm: the value in use and its limits. */
+  sizes: { key: string; label: string; value: number; defaultValue: number; min: number; max: number }[];
 }
 
 /** A style-specific size the user may change. */

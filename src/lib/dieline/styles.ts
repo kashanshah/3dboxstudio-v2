@@ -169,6 +169,9 @@ function makeStyle(spec: StyleSpec): DielineStyle {
       bounds: { width: round(geometry.bounds.width), height: round(geometry.bounds.height) },
       inner: { length: round(inner.length), width: round(inner.width), depth: round(inner.depth) },
       warnings,
+      sizes: (runtime.getAdjustableSizes?.(dimensions, spec.options) ?? []).map(size => ({
+        key: size.key, label: size.label, value: round(size.value), defaultValue: round(size.defaultValue), min: round(size.min), max: round(size.max),
+      })),
     };
   };
 
@@ -201,4 +204,9 @@ export const DIELINE_STYLES: DielineStyle[] = STYLE_SPECS.map(makeStyle);
 
 export function getDielineStyle(id: string) {
   return DIELINE_STYLES.find(style => style.id === id) ?? null;
+}
+
+/** The style drawn by a Studio template (its first, where several share one). */
+export function styleForTemplate(templateId: string) {
+  return DIELINE_STYLES.find(style => style.templateId === templateId) ?? null;
 }

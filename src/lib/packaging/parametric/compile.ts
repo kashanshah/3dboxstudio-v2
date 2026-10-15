@@ -214,9 +214,12 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
     },
   };
 
-  // Build every variant once so a bad expression fails now, with the template named.
+  // Build every variant once so a bad expression fails now, with the template
+  // named: in development and tests, which compile every definition. A
+  // production page skips it; it costs about a second of a phone's main
+  // thread across all the templates.
   const fallback = Object.fromEntries(DIMENSIONS.map(key => [key, definition.parameters[key].fallback])) as Record<DimensionKey, number>;
-  for (const options of variants(definition)) {
+  for (const options of process.env.NODE_ENV === 'production' ? [] : variants(definition)) {
     try {
       const scope = compiled.values(fallback, options);
       // Every adjustable size, at its limits too.

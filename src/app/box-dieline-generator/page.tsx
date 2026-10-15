@@ -2,15 +2,27 @@ import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
 import { TemplatePageLinks } from "@/components/template-page-links";
 import { site, defaultOgImage } from "@/lib/site";
+import { DielineGenerator } from "@/components/dieline-generator/dieline-generator";
+import { generatorSetup } from "@/lib/dieline/thumbnails";
 
 export const metadata: Metadata = {
-  title: { absolute: "Box Dieline Generator Online — Design-Ready Packaging Layouts | 3D Box Studio" },
-  description: "Generate a box dieline from your dimensions, design artwork on the flat layout, preview it in 3D, and download it free as a 1:1 PDF, SVG or DXF with cut and crease layers.",
+  title: { absolute: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio" },
+  description: "Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",
   alternates: { canonical: "/box-dieline-generator" },
-  openGraph: { images:[defaultOgImage], title: "Box Dieline Generator Online — Design-Ready Packaging Layouts | 3D Box Studio", description: "Generate a box dieline from your dimensions, design artwork on the flat layout, preview it in 3D, and download it free as a 1:1 PDF, SVG or DXF with cut and crease layers.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio", description: "Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.", type: "website" }
 };
 
 const sections = [
+  {
+    "title": "Free, with no account",
+    "body": "The generator above runs in your browser. Pick a style, type the length, width and depth in millimetres or inches, choose whether they are the inside, the outside or crease to crease, and pick your board. The dieline redraws as you type, with cut, crease, glue, bleed and safe-zone lines. Downloads need no sign-up, carry no watermark and have no limit.",
+    "bullets": [
+      "15 styles: tuck end, snap lock and auto lock bottom cartons, mailer (FEFCO 0427), shipping carton (FEFCO 0201), pillow, gable, sleeve, pizza, drawer, tray, telescope, cake and rigid boxes",
+      "Inside, outside or manufacture sizes, with board thickness worked in",
+      "SVG, PDF (one page or tiled on A4 or Letter), DXF, PNG and a Cricut or Silhouette file",
+      "A link that reopens the same box, to send to a printer or a colleague"
+    ]
+  },
   {
     "title": "Start with a supported structure",
     "body": "Choose a box template whose panel geometry and folding behavior are defined in the Studio. This gives the dieline a structural basis instead of treating it like a decorative outline.",
@@ -56,6 +68,14 @@ const sections = [
 ];
 const faqs = [
   {
+    "question": "Is the dieline generator free? Do I need an account?",
+    "answer": "It is free, and downloading needs no account: SVG, PDF, DXF, PNG and Cricut files download straight from this page, without a watermark or a limit. A free account is only needed to open the box in 3D Box Studio, where you add artwork and fold it in 3D."
+  },
+  {
+    "question": "Can I cut the dieline on a Cricut or Silhouette?",
+    "answer": "Yes. Download the Cricut / Silhouette file: an SVG sized in inches with only the cut lines (black) and score lines (blue). In Design Space, set the blue lines to Score. Silhouette Studio Basic can't open SVG, so use the DXF there. A 12 × 24 in mat cuts boxes up to about 292 × 597 mm flat; the generator tells you whether yours fits."
+  },
+  {
     "question": "Can 3D Box Studio generate a dieline from dimensions?",
     "answer": "For supported structures, yes. The Studio can create the flat layout from the selected template and finished dimensions."
   },
@@ -88,8 +108,9 @@ const faqs = [
 export default function Page(){
   const url=new URL("/box-dieline-generator",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
-    {"@type":"WebPage",name:"Box dieline generator—design the flat layout, preview in 3D.",description:"Generate a box dieline from your dimensions, design artwork on the flat layout, preview it in 3D, and download it free as a 1:1 PDF, SVG or DXF with cut and crease layers.",url},
+    {"@type":"WebPage",name:"Free box dieline generator: draw it to size, download it, fold it in 3D.",description:"Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",url},
+    {"@type":"SoftwareApplication",name:"Box dieline generator",applicationCategory:"DesignApplication",operatingSystem:"Any (runs in the browser)",url,offers:{"@type":"Offer",price:"0",priceCurrency:"USD"},featureList:["15 box styles","Inside, outside and manufacture sizes","SVG, PDF, DXF and PNG downloads","Cricut and Silhouette cut files","Tiled PDF for home printers","No sign-up"]},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Box dieline generator" title="Box dieline generator—design the flat layout, preview in 3D." intro="For supported packaging structures, 3D Box Studio can derive the flat layout from the template and finished dimensions so you can plan artwork, understand panels, and visualize the assembled package." secondaryHref="/blog/how-to-generate-box-dieline-online" secondaryLabel="Read the dieline guide" sections={sections} faqs={faqs} note="Use generated dielines for design, panel planning, and visualization. Before production, validate final geometry, bleed, folds, tolerances, material behavior, and tooling requirements with the printer or structural packaging workflow responsible for manufacturing." afterHero={<TemplatePageLinks title="Generate a dieline for your box" />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Box dieline generator" title="Free box dieline generator: draw it to size, download it, fold it in 3D." intro="Pick a box style, type your size, and download the dieline as SVG, PDF, DXF, PNG or a Cricut file. Free, with no account, no watermark and no limits." secondaryHref="/blog/how-to-generate-box-dieline-online" secondaryLabel="Read the dieline guide" sections={sections} faqs={faqs} note="Use generated dielines for design, panel planning, and visualization. Before production, validate final geometry, bleed, folds, tolerances, material behavior, and tooling requirements with the printer or structural packaging workflow responsible for manufacturing." afterHero={<><DielineGenerator setup={generatorSetup("reverse-tuck-end")} title="Choose a style and size" /><TemplatePageLinks title="Templates with guides for each box" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
