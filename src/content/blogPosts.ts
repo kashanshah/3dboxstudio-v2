@@ -111,6 +111,7 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "auto-lock-bottom-box-crash-lock": "tools",
   "how-to-make-a-pillow-box": "tools",
   "how-to-make-a-gable-box": "tools",
+  "how-to-make-a-drawer-box": "tools",
   "box-dieline-svg-dxf-export": "tools",
   "box-template-svg-cricut-laser-cutter": "tools",
 };
@@ -1868,7 +1869,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         type: "p",
-        text: "Rigid lid and base boxes are the standard for rings, necklaces and watches. Start the [rigid box template](/box-templates/rigid-box) from its jewellery preset, set a shallow or full-depth lid, and design the lid top and the inside of the base for the reveal. Many DTC jewelry lines also use folding cartons or tuck-style gift boxes for a premium feel at a lower cost; the [reverse tuck end box](/box-templates/reverse-tuck-end-box) covers those. For bracelets, earrings and gift cards, a [pillow box](/box-templates/pillow-box) is a light, inexpensive alternative that closes without glue (see [how to make a pillow box](/blog/how-to-make-a-pillow-box)). Ask your box maker to confirm board and wrap allowances before a rigid sample.",
+        text: "Rigid lid and base boxes are the standard for rings, necklaces and watches. Start the [rigid box template](/box-templates/rigid-box) from its jewellery preset, set a shallow or full-depth lid, and design the lid top and the inside of the base for the reveal. Many DTC jewelry lines also use folding cartons or tuck-style gift boxes for a premium feel at a lower cost; the [reverse tuck end box](/box-templates/reverse-tuck-end-box) covers those. For bracelets, earrings and gift cards, a [pillow box](/box-templates/pillow-box) is a light, inexpensive alternative that closes without glue (see [how to make a pillow box](/blog/how-to-make-a-pillow-box)), and a [drawer box](/box-templates/drawer-box) gives a sliding reveal (see [how to make a drawer box](/blog/how-to-make-a-drawer-box)). Ask your box maker to confirm board and wrap allowances before a rigid sample.",
       },
       {
         type: "h2",
@@ -2455,6 +2456,73 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
   },
   {
+    slug: "how-to-make-a-drawer-box",
+    title: "How to Make a Drawer Box: Sleeve and Tray Template, Sizes and Folding",
+    seoTitle: "How to Make a Drawer Box (Sleeve and Tray): Free Template | 3D Box Studio",
+    description: "How a drawer box is made: the tray with corner ears and turn-ins, the sleeve with thumb notches, how to size them so the drawer slides, and how to make the dieline in your size, design it and see it slide open in 3D for free.",
+    published: "2026-10-15",
+    readMinutes: 6,
+    keywords: ["how to make a drawer box","drawer box template","drawer box dieline","sleeve and tray box","slide box template","matchbox style box","sliding gift box","box with sleeve"],
+    imageAlt: "A drawer box dieline with the tray and sleeve side by side, next to the folded drawer box closed and slid open",
+    relatedSlugs: ["gift-box-packaging-luxury-preview","jewelry-packaging-box-mockup","box-dieline-svg-dxf-export"],
+    faqs: [
+      { question: "What is a drawer box?", answer: "A box in two parts: a tray that holds the product and a sleeve it slides into, like a matchbox. It is also called a slide box or a sleeve and tray box." },
+      { question: "Is there a free drawer box template?", answer: "Yes. The drawer box template in 3D Box Studio is free. Enter the inside size of the tray and it draws the tray and the sleeve side by side, with corner ears, turn-ins and thumb notches, and shows the drawer sliding in 3D. Designing and exporting need a free account." },
+      { question: "How much bigger should the sleeve be than the tray?", answer: "A little: the template adds about a board's thickness of play on each side and above, so the tray slides without rattling. You can change the sleeve play in the Studio; thicker board and heavier products need a little more." },
+      { question: "Does the tray need glue?", answer: "No. Its front and back walls have ears that wrap the corners, and every wall has a turn-in that folds over inside it and holds the ears in place. A dot of glue under each turn-in makes it sturdier. Only the sleeve is glued, along its glue flap." },
+      { question: "Can I download the drawer box dieline?", answer: "Yes. Export a 1:1 PDF with your artwork, bleed and cut and crease lines, or the cutting template on its own as SVG or DXF for a die maker, cutting table, Cricut or laser cutter." },
+    ],
+    sections: [
+      { type: "p", text: "A drawer box is the sliding box that jewellery, chocolates, tea and premium gifts so often come in. Pushing the tray out of its sleeve is a small, satisfying reveal, and the sleeve gives a clean surface for branding. It is two simple parts, a tray and a sleeve, and both fold from flat board." },
+      { type: "p", text: "This guide explains how each part is made, how to size them so the drawer slides well, and how to make the dieline in your own size with the free [drawer box template](/box-templates/drawer-box), then design it and watch it slide open in 3D." },
+      { type: "h2", text: "How a drawer box works" },
+      { type: "ol", items: [
+        "The tray is a bottom with four walls. The front and back walls have ears at each end that fold round the corners, inside the side walls.",
+        "Every wall has a turn-in along its top edge that folds over and down inside the wall. The turn-ins make the walls double, give them a clean top edge, and trap the ears so the tray holds together without glue.",
+        "The sleeve is a tube: two sides, a bottom and a top, glued along one edge and open at both ends. It is sized round the tray with a little play.",
+        "A half-round thumb notch at each end of the sleeve's top lets you push the tray out from either side."
+      ] },
+      { type: "callout", text: "You can watch this in the Studio: open the [drawer box template](/box-templates/drawer-box) and drag the fold slider. The tray and sleeve fold up side by side, then the sleeve slides on over the tray; the open slider pulls the drawer out." },
+      { type: "h2", text: "Choosing the size" },
+      { type: "ul", items: [
+        "Width: the inside of the tray from side to side.",
+        "Depth: the inside of the tray from front to back. The drawer slides out along the depth.",
+        "Height: the inside height of the tray walls.",
+        "All three are inside sizes of the tray. The sleeve is worked out from them, so you only measure the product.",
+        "Sleeve play: about a board's thickness each side by default. More play slides more easily; less feels more premium but needs accurate folding."
+      ] },
+      { type: "p", text: "As a starting point: a ring or earrings fit a drawer about 80 × 30 × 80 mm, a box of twelve chocolates 160 × 30 × 120 mm, and a tea or soap gift set 140 × 50 × 100 mm. The template page has these as presets." },
+      { type: "callout", text: "Measuring the product first? See [inside vs outside box dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions) for how much room to leave." },
+      { type: "h2", text: "Make the drawer box dieline in your size" },
+      { type: "ol", items: [
+        "Open the [drawer box template](/box-templates/drawer-box) and pick a preset or type the width, height and depth in millimetres or inches. The dieline redraws as you type.",
+        "Open it in the Studio and set the board thickness. Under Box & Size you can also set the sleeve play, the turn-ins, the thumb notch size and the glue flap.",
+        "Place artwork on the sleeve and the tray. The sleeve's top and sides are what people see first; the tray's front wall shows at the open end and is the first thing seen when the drawer slides out.",
+        "Slide it open in 3D to check both parts, then export a 1:1 PDF, or the cutting template as [SVG or DXF](/blog/box-dieline-svg-dxf-export)."
+      ] },
+      { type: "h2", text: "Folding it by hand" },
+      { type: "ol", items: [
+        "Cut along the solid lines, including the thumb notches, and score the dashed lines.",
+        "Tray: fold up the front and back walls, fold their ears in round the corners, fold up the side walls over the ears, then fold each turn-in over the top of its wall and press it down inside.",
+        "Sleeve: fold the sides and top round, glue the glue flap inside the top, and let it dry flat.",
+        "Open the sleeve into a tube and slide the tray in."
+      ] },
+      { type: "callout", text: "Cutting at home? A Cricut or laser cutter can cut the thumb notches and score the creases for you. See [box templates for Cricut and laser cutters](/blog/box-template-svg-cricut-laser-cutter)." },
+      { type: "h2", text: "Designing for a drawer box" },
+      { type: "ul", items: [
+        "Put the logo on the sleeve's top, away from the thumb notches at its ends.",
+        "Give the tray's front wall a colour or pattern: it shows at the sleeve's open end and leads the eye as the drawer slides out.",
+        "The turn-ins fold over the tray's walls, so artwork on them shows along the top edge inside; a solid colour or a short message works well.",
+        "Print the inside of the tray for a reveal when the drawer opens.",
+        "Leave the sleeve's glue flap free of ink and varnish so the glue holds."
+      ] },
+      { type: "h2", text: "Before production" },
+      { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. How tightly a drawer slides depends on the board and how accurately it is folded, so for a production run send your printer the size and the cutting template, and ask them to confirm the board and the sleeve play with a sample." },
+      { type: "cta", label: "Make a drawer box dieline in your size", href: "/box-templates/drawer-box" },
+      { type: "faq" }
+    ],
+  },
+  {
     slug: "how-to-make-a-gable-box",
     title: "How to Make a Gable Box with a Handle: Template, Sizes and Folding",
     seoTitle: "How to Make a Gable Box: Free Template & Dieline | 3D Box Studio",
@@ -2732,6 +2800,7 @@ export const BLOG_POSTS: BlogPost[] = [
         "[Mailer box](/box-templates/mailer-box): a self-locking box with a hinged lid, no glue needed.",
         "[Rigid lid and base box](/box-templates/rigid-box): a two-piece gift box with a lift-off lid.",
         "[Gable box](/box-templates/gable-box): a carry box with a handle and finger hole, for party favours and treats.",
+        "[Drawer box](/box-templates/drawer-box): a tray that slides out of a sleeve, for small gifts.",
         "[Pizza box](/box-templates/pizza-box) and [split top box](/box-templates/split-top-box) for flat items and shipping boxes."
       ] },
       { type: "h2", text: "Step by step" },
