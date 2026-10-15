@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1473.5mm" height="643mm" viewBox="-14 -14 1473.5 643">
+  <title>Regular slotted shipping carton</title>
+  <desc>Regular slotted shipping carton. Flat size 1445.5 x 615 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 459.763L-3 449.763L-3 165.237L32 155.237L32 151.5L35 151.5L35 -3L438 -3L438 151.5L438 151.5L438 151.5L438 0L741 0L741 151.5L741 151.5L741 151.5L741 -3L1144 -3L1144 151.5L1144 151.5L1144 151.5L1144 0L1447 0L1447 151.5L1448.5 151.5L1448.5 463.5L1447 463.5L1447 615L1144 615L1144 463.5L1144 463.5L1144 463.5L1144 618L741 618L741 463.5L741 463.5L741 463.5L741 615L438 615L438 463.5L438 463.5L438 463.5L438 618L35 618L35 463.5L32 463.5Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M38 157.5L435 157.5L435 457.5L38 457.5ZM41 151.5L432 151.5L432 3L41 3ZM41 463.5L432 463.5L432 612L41 612ZM441 157.5L738 157.5L738 457.5L441 457.5ZM444 151.5L735 151.5L735 6L444 6ZM444 463.5L735 463.5L735 609L444 609ZM744 157.5L1141 157.5L1141 457.5L744 457.5ZM747 151.5L1138 151.5L1138 3L747 3ZM747 463.5L1138 463.5L1138 612L747 612ZM1147 157.5L1442.5 157.5L1442.5 457.5L1147 457.5ZM1150 151.5L1441 151.5L1441 6L1150 6ZM1150 463.5L1441 463.5L1441 609L1150 609Z"/>
+  </g>
+  <g id="glue" inkscape:groupmode="layer" inkscape:label="Glue area" fill="none" stroke="#e8a317" stroke-width="0.2" stroke-dasharray="1.5 1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M35 157.5L35 457.5L0 447.5L0 167.5Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M35 157.5L35 457.5M38 154.5L435 154.5M438 154.5L438 460.5M38 460.5L435 460.5M441 154.5L738 154.5M741 154.5L741 460.5M441 460.5L738 460.5M744 154.5L1141 154.5M1144 154.5L1144 460.5M744 460.5L1141 460.5M1147 154.5L1444 154.5M1147 460.5L1444 460.5"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M35 457.5L0 447.5L0 167.5L35 157.5L35 154.5L38 154.5L38 0L435 0L435 154.5L438 154.5L441 154.5L441 3L738 3L738 154.5L741 154.5L744 154.5L744 0L1141 0L1141 154.5L1144 154.5L1147 154.5L1147 3L1444 3L1444 154.5L1445.5 154.5L1445.5 460.5L1444 460.5L1444 612L1147 612L1147 460.5L1144 460.5L1141 460.5L1141 615L744 615L744 460.5L741 460.5L738 460.5L738 612L441 612L441 460.5L438 460.5L435 460.5L435 615L38 615L38 460.5L35 460.5Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="17.5" y="307.5">Glue</text>
+    <text x="236.5" y="307.5">Front</text>
+    <text x="236.5" y="77.25">Top Front</text>
+    <text x="236.5" y="537.75">Bottom Front</text>
+    <text x="589.5" y="307.5">Right</text>
+    <text x="589.5" y="78.75">Top Right</text>
+    <text x="589.5" y="536.25">Bottom Right</text>
+    <text x="942.5" y="307.5">Back</text>
+    <text x="942.5" y="77.25">Top Back</text>
+    <text x="942.5" y="537.75">Bottom Back</text>
+    <text x="1294.75" y="307.5">Left</text>
+    <text x="1295.5" y="78.75">Top Left</text>
+    <text x="1295.5" y="536.25">Bottom Left</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="1445.5" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="1445.5" y1="-11" x2="1445.5" y2="-7"/>
+    <text x="722.75" y="-10.5" stroke="none">1445.5 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="615"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="615" x2="-7" y2="615"/>
+    <text x="-10.5" y="307.5" stroke="none" transform="rotate(-90 -10.5 307.5)">615 mm</text>
+  </g>
+</svg>

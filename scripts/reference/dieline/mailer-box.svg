@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="587.25mm" height="588.1mm" viewBox="-14 -14 587.25 588.1">
+  <title>Roll end tuck front mailer box</title>
+  <desc>Roll end tuck front mailer box. Flat size 559.25 x 560.1 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M396.75 483.1L396.75 478.6L450.083 478.6L450.083 540.798L394.328 563.1L164.922 563.1L109.167 540.798L109.167 478.6L162.5 478.6L162.5 483.1L82.5 483.1L82.5 481.1L82.5 481.1L1 481.1L1 449.25L1 430.05L1 370.692L-3 369.692L-3 347.808L7 345.308L7 368.35L7 430.05L7 453.092L-3 450.592L-3 428.708L1 427.708L1 368.35L1 349.15L1 317.3L82.5 317.3L82.5 317.3L82.5 315.3L162.5 315.3L162.5 319.8L109.167 319.8L109.167 257.602L162.5 236.269L162.5 238.591L87.5 198.141L87.5 113.659L164.743 72L163.373 72L173.373 -3L385.877 -3L395.877 72L394.507 72L471.75 113.659L471.75 198.141L396.75 238.591L396.75 236.269L450.083 257.602L450.083 319.8L396.75 319.8L396.75 315.3L476.75 315.3L476.75 317.3L476.75 317.3L558.25 317.3L558.25 349.15L558.25 368.35L558.25 427.708L562.25 428.708L562.25 450.592L552.25 453.092L552.25 430.05L552.25 368.35L552.25 345.308L562.25 347.808L562.25 369.692L558.25 370.692L558.25 430.05L558.25 449.25L558.25 481.1L476.75 481.1L476.75 481.1L476.75 483.1Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M168.5 321.3L390.75 321.3L390.75 477.1L168.5 477.1ZM168.5 483.1L390.75 483.1L390.75 557.1L168.5 557.1ZM168.5 239.8L390.75 239.8L390.75 315.3L168.5 315.3ZM162.5 484.6L162.5 555.669L115.167 536.736L115.167 484.6ZM396.75 484.6L396.75 555.669L444.083 536.736L444.083 484.6ZM162.5 313.8L162.5 242.731L115.167 261.664L115.167 313.8ZM396.75 313.8L396.75 242.731L444.083 261.664L444.083 313.8ZM88.5 321.3L162.5 321.3L162.5 477.1L88.5 477.1ZM396.75 321.3L470.75 321.3L470.75 477.1L396.75 477.1ZM7 323.3L79.5 323.3L79.5 475.1L7 475.1L7 366.008L3 365.008L3 352.492L1 352.992L1 445.408L3 445.908L3 433.392L7 432.392ZM479.75 323.3L552.25 323.3L552.25 432.392L556.25 433.392L556.25 445.908L558.25 445.408L558.25 352.992L556.25 352.492L556.25 365.008L552.25 366.008L552.25 475.1L479.75 475.1ZM168.5 78L390.75 78L390.75 233.8L168.5 233.8ZM169.427 72L389.823 72L380.623 3L178.627 3ZM162.5 80.027L162.5 231.773L93.5 194.559L93.5 117.241ZM396.75 80.027L396.75 231.773L465.75 194.559L465.75 117.241Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M393.75 481.6L393.75 560.1M165.5 481.6L165.5 560.1M393.75 238.3L393.75 316.8M165.5 238.3L165.5 316.8M85.5 320.3L85.5 478.1M473.75 320.3L473.75 478.1M82.5 320.3L82.5 478.1M476.75 320.3L476.75 478.1M166 75L393.25 75M393.75 75L393.75 236.8L165.5 236.8L165.5 75M165.5 318.3L393.75 318.3L393.75 480.1L165.5 480.1Z"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M393.75 480.1L393.75 481.6L447.083 481.6L447.083 538.767L393.75 560.1L165.5 560.1L112.167 538.767L112.167 481.6L165.5 481.6L165.5 480.1L85.5 480.1L85.5 478.1L82.5 478.1L4 478.1L4 368.35L0 367.35L0 350.15L4 349.15L4 449.25L0 448.25L0 431.05L4 430.05L4 320.3L82.5 320.3L85.5 320.3L85.5 318.3L165.5 318.3L165.5 316.8L112.167 316.8L112.167 259.633L165.5 238.3L165.5 236.8L90.5 196.35L90.5 115.45L165.5 75L166 75L176 0L383.25 0L393.25 75L393.75 75L468.75 115.45L468.75 196.35L393.75 236.8L393.75 238.3L447.083 259.633L447.083 316.8L393.75 316.8L393.75 318.3L473.75 318.3L473.75 320.3L476.75 320.3L555.25 320.3L555.25 430.05L559.25 431.05L559.25 448.25L555.25 449.25L555.25 349.15L559.25 350.15L559.25 367.35L555.25 368.35L555.25 478.1L476.75 478.1L473.75 478.1L473.75 480.1ZM168 348.15L170.5 348.15L170.5 369.35L168 369.35ZM168 429.05L170.5 429.05L170.5 450.25L168 450.25ZM388.75 348.15L391.25 348.15L391.25 369.35L388.75 369.35ZM388.75 429.05L391.25 429.05L391.25 450.25L388.75 450.25Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="279.625" y="399.2">Bottom</text>
+    <text x="279.625" y="520.1">Front</text>
+    <text x="279.625" y="277.55">Back</text>
+    <text x="138.834" y="520.85">Front Left Ear</text>
+    <text x="420.417" y="520.85">Front Right Ear</text>
+    <text x="138.834" y="277.55">Back Left Ear</text>
+    <text x="420.417" y="277.55">Back Right Ear</text>
+    <text x="125.5" y="399.2">Left</text>
+    <text x="433.75" y="399.2">Right</text>
+    <text x="84" y="399.2">Left Roll</text>
+    <text x="41.25" y="399.2">Left Inner</text>
+    <text x="475.25" y="399.2">Right Roll</text>
+    <text x="518" y="399.2">Right Inner</text>
+    <text x="279.625" y="155.9">Top</text>
+    <text x="279.625" y="37.5">Lid Front</text>
+    <text x="128" y="155.9">Lid Left</text>
+    <text x="431.25" y="155.9">Lid Right</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="559.25" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="559.25" y1="-11" x2="559.25" y2="-7"/>
+    <text x="279.625" y="-10.5" stroke="none">559.25 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="560.1"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="560.1" x2="-7" y2="560.1"/>
+    <text x="-10.5" y="280.05" stroke="none" transform="rotate(-90 -10.5 280.05)">560.1 mm</text>
+  </g>
+</svg>

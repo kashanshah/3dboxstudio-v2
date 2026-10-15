@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="664mm" height="332mm" viewBox="-14 -14 664 332">
+  <title>Rigid lid and base box</title>
+  <desc>Rigid lid and base box. Flat size 636 x 304 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M73.422 9L73 9L73 -3L279 -3L279 9L278.578 9L301 17.969L301 75L281 75L281 71L343 71L343 93L355 93L355 211L343 211L343 233L281 233L281 229L301 229L301 286.031L278.578 295L279 295L279 307L73 307L73 295L73.422 295L51 286.031L51 229L71 229L71 233L9 233L9 211L-3 211L-3 93L9 93L9 71L71 71L71 75L51 75L51 17.969ZM393.56 51L393 51L393 39L605 39L605 51L604.44 51L627 57.768L627 75L607 75L607 71L627 71L627 93L639 93L639 217L627 217L627 239L607 239L607 235L627 235L627 252.232L604.44 259L605 259L605 271L393 271L393 259L393.56 259L371 252.232L371 235L391 235L391 239L371 239L371 217L359 217L359 93L371 93L371 71L391 71L391 75L371 75L371 57.768Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M77 77L275 77L275 227L77 227ZM77 15L275 15L275 71L77 71ZM77 233L275 233L275 289L77 289ZM15 77L71 77L71 227L15 227ZM281 77L337 77L337 227L281 227ZM71 69L71 16.431L57 22.031L57 69ZM281 69L281 16.431L295 22.031L295 69ZM71 235L71 287.569L57 281.969L57 235ZM281 235L281 287.569L295 281.969L295 235ZM397 77L601 77L601 233L397 233ZM397 57L601 57L601 71L397 71ZM397 239L601 239L601 253L397 253ZM377 77L391 77L391 233L377 233ZM607 77L621 77L621 233L607 233ZM391 69L391 58.032L377 62.232L377 69ZM607 69L607 58.032L621 62.232L621 69ZM391 241L391 251.968L377 247.768L377 241ZM607 241L607 251.968L621 247.768L621 241Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M76 12L276 12M278 12L278 72M74 12L74 72M278 232L278 292M76 292L276 292M74 232L74 292M12 96L12 208M340 96L340 208M396 54L602 54M604 54L604 72M394 54L394 72M604 238L604 256M396 256L602 256M394 238L394 256M374 96L374 214M624 96L624 214M74 74L278 74L278 230L74 230ZM394 74L604 74L604 236L394 236Z"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M74 12L76 12L76 0L276 0L276 12L278 12L298 20L298 72L278 72L278 74L340 74L340 96L352 96L352 208L340 208L340 230L278 230L278 232L298 232L298 284L278 292L276 292L276 304L76 304L76 292L74 292L54 284L54 232L74 232L74 230L12 230L12 208L0 208L0 96L12 96L12 74L74 74L74 72L54 72L54 20ZM394 54L396 54L396 42L602 42L602 54L604 54L624 60L624 72L604 72L604 74L624 74L624 96L636 96L636 214L624 214L624 236L604 236L604 238L624 238L624 250L604 256L602 256L602 268L396 268L396 256L394 256L374 250L374 238L394 238L394 236L374 236L374 214L362 214L362 96L374 96L374 74L394 74L394 72L374 72L374 60Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="176" y="152">Bottom</text>
+    <text x="176" y="43">Back</text>
+    <text x="176" y="261">Front</text>
+    <text x="43" y="152">Left</text>
+    <text x="309" y="152">Right</text>
+    <text x="64" y="42">Back Left Ear</text>
+    <text x="288" y="42">Back Right Ear</text>
+    <text x="64" y="262">Front Left Ear</text>
+    <text x="288" y="262">Front Right Ear</text>
+    <text x="176" y="6">Back Turn-In</text>
+    <text x="176" y="298">Front Turn-In</text>
+    <text x="6" y="152">Left Turn-In</text>
+    <text x="346" y="152">Right Turn-In</text>
+    <text x="499" y="155">Lid Top</text>
+    <text x="499" y="64">Lid Front</text>
+    <text x="499" y="246">Lid Back</text>
+    <text x="384" y="155">Lid Left</text>
+    <text x="614" y="155">Lid Right</text>
+    <text x="384" y="63">Lid Front Left Ear</text>
+    <text x="614" y="63">Lid Front Right Ear</text>
+    <text x="384" y="247">Lid Back Left Ear</text>
+    <text x="614" y="247">Lid Back Right Ear</text>
+    <text x="499" y="48">Lid Front Turn-In</text>
+    <text x="499" y="262">Lid Back Turn-In</text>
+    <text x="368" y="155">Lid Left Turn-In</text>
+    <text x="630" y="155">Lid Right Turn-In</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="636" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="636" y1="-11" x2="636" y2="-7"/>
+    <text x="318" y="-10.5" stroke="none">636 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="304"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="304" x2="-7" y2="304"/>
+    <text x="-10.5" y="152" stroke="none" transform="rotate(-90 -10.5 152)">304 mm</text>
+  </g>
+</svg>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="423mm" height="818.5mm" viewBox="-14 -14 423 818.5">
+  <title>Pizza box</title>
+  <desc>Pizza box. Flat size 395 x 790.5 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M353 698L353 743L351 743L351 743L351 789.5L294.392 789.5L293.392 793.5L254.108 793.5L253.108 789.5L141.892 789.5L140.892 793.5L101.608 793.5L100.608 789.5L44 789.5L44 743L44 743L42 743L42 698L46.5 698L46.5 738.5L12.388 738.5L-3 695.521L-3 389.479L12.388 346.5L46.5 346.5L46.5 387L42 387L42 344.743L0.5 303.243L0.5 80.257L43.757 37L43.158 37L53.158 -3L341.842 -3L351.842 37L351.243 37L394.5 80.257L394.5 303.243L353 344.743L353 387L348.5 387L348.5 346.5L382.612 346.5L398 389.479L398 695.521L382.612 738.5L348.5 738.5L348.5 698Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M48 393L347 393L347 692L48 692ZM48 698L347 698L347 737L48 737ZM50 746L345 746L345 783.5L289.708 783.5L288.708 787.5L258.792 787.5L257.792 783.5L137.208 783.5L136.208 787.5L106.292 787.5L105.292 783.5L50 783.5ZM48 346.5L347 346.5L347 387L48 387ZM3 393L42 393L42 692L3 692ZM353 393L392 393L392 692L353 692ZM4.261 698L40.5 698L40.5 732.5L16.612 732.5ZM16.612 352.5L40.5 352.5L40.5 387L4.261 387ZM354.5 698L390.739 698L378.388 732.5L354.5 732.5ZM354.5 352.5L378.388 352.5L390.739 387L354.5 387ZM48 43L347 43L347 340.5L48 340.5ZM49.342 37L345.658 37L337.158 3L57.842 3ZM42 47.243L42 336.257L6.5 300.757L6.5 82.743ZM353 47.243L353 336.257L388.5 300.757L388.5 82.743Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M47 740L348 740M47 743L348 743M0 390L43.5 390M0 695L43.5 695M351.5 390L395 390M351.5 695L395 695M45.5 40L349.5 40M350 40L350 343.5L45 343.5L45 40M45 390L350 390L350 695L45 695Z"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M350 695L350 740L348 740L348 743L348 786.5L292.05 786.5L291.05 790.5L256.45 790.5L255.45 786.5L139.55 786.5L138.55 790.5L103.95 790.5L102.95 786.5L47 786.5L47 743L47 740L45 740L45 695L43.5 695L43.5 735.5L14.5 735.5L0 695L0 390L14.5 349.5L43.5 349.5L43.5 390L45 390L45 343.5L3.5 302L3.5 81.5L45 40L45.5 40L55.5 0L339.5 0L349.5 40L350 40L391.5 81.5L391.5 302L350 343.5L350 390L351.5 390L351.5 349.5L380.5 349.5L395 390L395 695L380.5 735.5L351.5 735.5L351.5 695ZM101.95 690L140.55 690L140.55 692.5L101.95 692.5ZM254.45 690L293.05 690L293.05 692.5L254.45 692.5ZM209.5 741.5L209.091 744.606L207.892 747.5L205.985 749.985L203.5 751.892L200.606 753.091L197.5 753.5L194.394 753.091L191.5 751.892L189.015 749.985L187.108 747.5L185.909 744.606L185.5 741.5L185.909 738.394L187.108 735.5L189.015 733.015L191.5 731.108L194.394 729.909L197.5 729.5L200.606 729.909L203.5 731.108L205.985 733.015L207.892 735.5L209.091 738.394Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="197.5" y="542.5">Bottom</text>
+    <text x="197.5" y="717.5">Front</text>
+    <text x="197.5" y="741.5">Front Roll</text>
+    <text x="197.5" y="766.75">Inner Front</text>
+    <text x="197.5" y="366.75">Back</text>
+    <text x="22.5" y="542.5">Left</text>
+    <text x="372.5" y="542.5">Right</text>
+    <text x="21.75" y="715.25">Left Front Tab</text>
+    <text x="21.75" y="369.75">Left Back Tab</text>
+    <text x="373.25" y="715.25">Right Front Tab</text>
+    <text x="373.25" y="369.75">Right Back Tab</text>
+    <text x="197.5" y="191.75">Top</text>
+    <text x="197.5" y="20">Lid Front</text>
+    <text x="24.25" y="191.75">Lid Left</text>
+    <text x="370.75" y="191.75">Lid Right</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="395" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="395" y1="-11" x2="395" y2="-7"/>
+    <text x="197.5" y="-10.5" stroke="none">395 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="790.5"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="790.5" x2="-7" y2="790.5"/>
+    <text x="-10.5" y="395.25" stroke="none" transform="rotate(-90 -10.5 395.25)">790.5 mm</text>
+  </g>
+</svg>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="374.75mm" height="307mm" viewBox="-14 -14 374.75 307">
+  <title>Drawer box (tray and sleeve)</title>
+  <desc>Drawer box (tray and sleeve). Flat size 346.75 x 279 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112.297 9L110.375 9L110.375 -3L236.375 -3L236.375 9L234.453 9L256.875 17.969L256.875 55L236.875 55L236.875 49.5L277.375 49.5L277.375 70L289.375 70L289.375 116.5L277.375 116.5L277.375 137L236.875 137L236.875 131.5L256.875 131.5L256.875 168.531L234.453 177.5L236.375 177.5L236.375 189.5L110.375 189.5L110.375 177.5L112.297 177.5L89.875 168.531L89.875 131.5L109.875 131.5L109.875 137L69.375 137L69.375 116.5L57.375 116.5L57.375 70L69.375 70L69.375 49.5L109.875 49.5L109.875 55L89.875 55L89.875 17.969ZM12 279.802L-3 275.783L-3 199.717L12 195.698L12 193.5L57.5 193.5L181 193.5L223.5 193.5L275.756 193.5L276.457 198.823L277.353 200.987L278.779 202.846L280.638 204.272L282.802 205.168L285.125 205.474L287.448 205.168L289.612 204.272L291.471 202.846L292.897 200.987L293.793 198.823L294.494 193.5L349.75 193.5L349.75 282L294.494 282L293.793 276.677L292.897 274.513L291.471 272.654L289.612 271.228L287.448 270.332L285.125 270.026L282.802 270.332L280.638 271.228L278.779 272.654L277.353 274.513L276.457 276.677L275.756 282L223.5 282L181 282L57.5 282L12 282Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M115.875 55.5L230.875 55.5L230.875 131L115.875 131ZM115.875 15L230.875 15L230.875 49.5L115.875 49.5ZM115.875 137L230.875 137L230.875 171.5L115.875 171.5ZM75.375 55.5L109.875 55.5L109.875 131L75.375 131ZM236.875 55.5L271.375 55.5L271.375 131L236.875 131ZM109.875 49L109.875 16.431L95.875 22.031L95.875 49ZM236.875 49L236.875 16.431L250.875 22.031L250.875 49ZM109.875 137.5L109.875 170.069L95.875 164.469L95.875 137.5ZM236.875 137.5L236.875 170.069L250.875 164.469L250.875 137.5ZM18 199.5L54.5 199.5L54.5 276L18 276ZM60.5 199.5L178 199.5L178 276L60.5 276ZM184 199.5L220.5 199.5L220.5 276L184 276ZM226.5 199.5L270.494 199.5L270.611 200.389L272.113 204.013L274.5 207.125L277.612 209.512L281.236 211.014L285.125 211.526L289.014 211.014L292.638 209.512L295.75 207.125L298.137 204.013L299.639 200.389L299.756 199.5L343.75 199.5L343.75 276L299.756 276L299.639 275.111L298.137 271.487L295.75 268.375L292.638 265.988L289.014 264.486L285.125 263.974L281.236 264.486L277.612 265.988L274.5 268.375L272.113 271.487L270.611 275.111L270.494 276L226.5 276Z"/>
+  </g>
+  <g id="glue" inkscape:groupmode="layer" inkscape:label="Glue area" fill="none" stroke="#e8a317" stroke-width="0.2" stroke-dasharray="1.5 1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 198L15 277.5L0 273.481L0 202.019Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M113.375 12L233.375 12M233.875 12L233.875 52M112.875 12L112.875 52M233.875 134.5L233.875 174.5M113.375 174.5L233.375 174.5M112.875 134.5L112.875 174.5M72.375 73L72.375 113.5M274.375 73L274.375 113.5M15 198L15 277.5M57.5 196.5L57.5 279M181 196.5L181 279M223.5 196.5L223.5 279M112.875 52.5L233.875 52.5L233.875 134L112.875 134Z"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112.875 12L113.375 12L113.375 0L233.375 0L233.375 12L233.875 12L253.875 20L253.875 52L233.875 52L233.875 52.5L274.375 52.5L274.375 73L286.375 73L286.375 113.5L274.375 113.5L274.375 134L233.875 134L233.875 134.5L253.875 134.5L253.875 166.5L233.875 174.5L233.375 174.5L233.375 186.5L113.375 186.5L113.375 174.5L112.875 174.5L92.875 166.5L92.875 134.5L112.875 134.5L112.875 134L72.375 134L72.375 113.5L60.375 113.5L60.375 73L72.375 73L72.375 52.5L112.875 52.5L112.875 52L92.875 52L92.875 20ZM15 277.5L0 273.481L0 202.019L15 198L15 196.5L57.5 196.5L181 196.5L223.5 196.5L273.125 196.5L273.125 196.5L273.534 199.606L274.733 202.5L276.64 204.985L279.125 206.892L282.019 208.091L285.125 208.5L288.231 208.091L291.125 206.892L293.61 204.985L295.517 202.5L296.716 199.606L297.125 196.5L346.75 196.5L346.75 279L297.125 279L297.125 279L296.716 275.894L295.517 273L293.61 270.515L291.125 268.608L288.231 267.409L285.125 267L282.019 267.409L279.125 268.608L276.64 270.515L274.733 273L273.534 275.894L273.125 279L223.5 279L181 279L57.5 279L15 279Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="173.375" y="93.25">Bottom</text>
+    <text x="173.375" y="32.25">Back</text>
+    <text x="173.375" y="154.25">Front</text>
+    <text x="92.625" y="93.25">Left</text>
+    <text x="254.125" y="93.25">Right</text>
+    <text x="102.875" y="32">Back Left Ear</text>
+    <text x="243.875" y="32">Back Right Ear</text>
+    <text x="102.875" y="154.5">Front Left Ear</text>
+    <text x="243.875" y="154.5">Front Right Ear</text>
+    <text x="173.375" y="6">Back Turn-In</text>
+    <text x="173.375" y="180.5">Front Turn-In</text>
+    <text x="66.375" y="93.25">Left Turn-In</text>
+    <text x="280.375" y="93.25">Right Turn-In</text>
+    <text x="7.5" y="237.75">Sleeve Glue</text>
+    <text x="36.25" y="237.75">Sleeve Left</text>
+    <text x="119.25" y="237.75">Sleeve Bottom</text>
+    <text x="202.25" y="237.75">Sleeve Right</text>
+    <text x="285.125" y="237.75">Sleeve Top</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="346.75" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="346.75" y1="-11" x2="346.75" y2="-7"/>
+    <text x="173.375" y="-10.5" stroke="none">346.75 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="279"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="279" x2="-7" y2="279"/>
+    <text x="-10.5" y="139.5" stroke="none" transform="rotate(-90 -10.5 139.5)">279 mm</text>
+  </g>
+</svg>
