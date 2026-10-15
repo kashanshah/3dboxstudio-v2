@@ -46,6 +46,9 @@ const STYLE_SPECS: StyleSpec[] = [
   { id: 'pizza-box', name: 'Pizza box', category: 'Corrugated', templateId: 'pizza-box', measure: TRAY },
   { id: 'drawer-box', name: 'Drawer box (tray and sleeve)', category: 'Folding carton', templateId: 'drawer-box', measure: SLEEVE },
   { id: 'rigid-lid-and-base', name: 'Rigid lid and base box', category: 'Rigid', templateId: 'rigid-lid-base', measure: TRAY },
+  { id: 'four-corner-tray', name: 'Four-corner tray', category: 'Folding carton', templateId: 'tray-box', measure: TRAY },
+  { id: 'telescope-box', name: 'Telescope box (tray with lid)', category: 'Folding carton', templateId: 'telescope-box', measure: TRAY },
+  { id: 'cake-box', name: 'Cake box (lock corners, optional window)', category: 'Folding carton', templateId: 'cake-box', measure: TRAY },
 ];
 
 const runtimeOf = (spec: StyleSpec): TemplateRuntime => {

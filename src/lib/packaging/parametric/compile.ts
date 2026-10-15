@@ -1,4 +1,5 @@
 import type { LegacyOpeningMode } from '@/lib/studio-project';
+import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { TemplateGeometryOptions, TemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { apply, creaseHalfWidth, foldSheet, restingSetback, surfaceMeshes, translation, type Mat4, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
@@ -51,7 +52,7 @@ function prepareFold(compiled: ParametricSheet, input: { dimensions: Parameters<
   // Strips of a bending panel: each prints its part of the whole panel's artwork.
   for (const piece of definition.fold.modelPanels ?? []) {
     const whole = geometry.panels.find(panel => panel.id === piece.of);
-    if (!whole) continue;
+    if (!whole || (piece.when !== undefined && evaluate(piece.when, scope) === 0)) continue;
     const spec = specOf(whole.id);
     panels.push({
       id: piece.id,
@@ -207,6 +208,9 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
       legacyOpeningAsFormation: definition.assembly.legacyOpeningAsFormation,
       hasOpeningStage: mode => openingStage === 'always'
         || (Array.isArray(openingStage) ? openingStage.includes(mode) : typeof openingStage === 'object' && !openingStage.except.includes(mode)),
+      ...(definition.assembly.showsInside === undefined ? {} : {
+        showsInside: (dimensions: CartonDimensions) => evaluate(definition.assembly.showsInside!, compiled.values(dimensions)) !== 0,
+      }),
     },
   };
 

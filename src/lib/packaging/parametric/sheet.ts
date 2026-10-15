@@ -160,14 +160,23 @@ export function compileParametricSheet(source: ParametricTemplate) {
 
   /**
    * The panels one adjustable size changes the shape of, found by nudging the
-   * size and comparing: panels that only move along don't count.
+   * size and comparing: panels that only move along don't count. Cuts inside
+   * a panel (a window) are part of its shape.
    */
   const adjustedPanels = (input: CartonDimensions, options: OptionValues, key: string): string[] => {
     const size = adjustableSizes(input, options).find(item => item.key === key);
     if (!size || size.max - size.min < 1e-6) return [];
     const nudged = size.value + (size.value + 1 <= size.max ? 1 : -Math.min(1, size.value - size.min));
-    const shapes = (value: number) => new Map(sheet({ ...input, adjustments: { ...input.adjustments, [key]: value } }, options).panels
-      .map(panel => [panel.id, panel.outline.map(point => `${(point.x - panel.x).toFixed(4)},${(point.y - panel.y).toFixed(4)}`).join(' ')]));
+    const shapes = (value: number) => {
+      const dimensions = { ...input, adjustments: { ...input.adjustments, [key]: value } };
+      const cuts = lines(definition.cuts, values(dimensions, options));
+      return new Map(sheet(dimensions, options).panels.map(panel => {
+        const at = (point: PointMm) => `${(point.x - panel.x).toFixed(4)},${(point.y - panel.y).toFixed(4)}`;
+        const inside = (point: PointMm) => point.x > panel.x && point.x < panel.x + panel.width && point.y > panel.y && point.y < panel.y + panel.height;
+        const holes = cuts.filter(line => inside(line.start) && inside(line.end)).map(line => `${at(line.start)}-${at(line.end)}`);
+        return [panel.id, [...panel.outline.map(at), ...holes].join(' ')];
+      }));
+    };
     const before = shapes(size.value), after = shapes(nudged);
     return [...after.keys()].filter(id => before.get(id) !== after.get(id));
   };

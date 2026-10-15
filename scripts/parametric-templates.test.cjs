@@ -364,7 +364,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box','drawer-box':'drawer-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box','drawer-box':'drawer-box','tray-box':'tray-box','telescope-box':'telescope-box','cake-box':'cake-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });

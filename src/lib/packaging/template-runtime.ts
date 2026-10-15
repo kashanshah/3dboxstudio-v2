@@ -20,6 +20,8 @@ export type TemplateAssemblyRuntime = {
   defaultOpeningMode: LegacyOpeningMode;
   legacyOpeningAsFormation?: boolean;
   hasOpeningStage: (openingMode: LegacyOpeningMode) => boolean;
+  /** Whether the inside of the closed box is in view (an open tray, a window), so it isn't shaded as shut. */
+  showsInside?: (dimensions: CartonDimensions) => boolean;
 };
 
 export type TemplateRuntime = {

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     "title": "Folding carton structures",
-    "body": "Tuck end cartons close with tuck lids, top and bottom. The auto lock bottom box keeps the tuck top but has a pre-glued crash-lock bottom that locks itself when the carton is opened, for heavier products; the snap lock bottom box closes its four bottom flaps by hand, with no glue. The pillow box has two bowed faces and curved ends that close when pushed in, the gable box has a pitched roof with a carry handle over an auto-lock bottom, and the drawer box is a tray that slides out of a sleeve."
+    "body": "Tuck end cartons close with tuck lids, top and bottom. The auto lock bottom box keeps the tuck top but has a pre-glued crash-lock bottom that locks itself when the carton is opened, for heavier products; the snap lock bottom box closes its four bottom flaps by hand, with no glue. The pillow box has two bowed faces and curved ends that close when pushed in, the gable box has a pitched roof with a carry handle over an auto-lock bottom, and the drawer box is a tray that slides out of a sleeve. The four-corner tray is an open tray with glued corners; with a second, larger tray as its lid it becomes a telescope box. The cake box is a one-piece bakery box whose corners lock without glue, with an optional window in its lid."
   },
   {
     "title": "Lid and box structures",
@@ -32,7 +32,7 @@ const sections = [
 const faqs = [
   {
     "question": "Which box templates are available?",
-    "answer": "Reverse tuck end carton, straight tuck end box, auto lock bottom box, snap lock bottom box, pillow box, gable box, drawer box, pizza box, split top box, mailer box, sleeve box and rigid lid and base box are ready now."
+    "answer": "Reverse tuck end carton, straight tuck end box, auto lock bottom box, snap lock bottom box, pillow box, gable box, drawer box, four-corner tray, telescope box, cake box, pizza box, split top box, mailer box, sleeve box and rigid lid and base box are ready now."
   },
   {
     "question": "Can I resize a template?",

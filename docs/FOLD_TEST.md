@@ -38,6 +38,9 @@ The unit tests (`scripts/dieline.test.cjs`) check the arithmetic: panel sizes in
 | Pizza box | 200 × 200 × 40 | E-flute | Front roll locks, the tabs tuck into the side walls, the lid tuck closes. The template doesn't add board thickness, so check the fit. |
 | Drawer box (tray and sleeve) | 100 × 60 × 30 | card | The tray slides into the sleeve from either end without catching; not loose enough to fall out when tilted. |
 | Rigid lid and base | 120 × 80 × 40 | card (in place of greyboard) | The lid slips over the base; turn-ins sit flat inside the walls. In greyboard, the lid gap grows with the board: check it at 2 mm. |
+| Four-corner tray | 120 × 80 × 40 | card | Each ear glues flat inside its side wall; the walls stand square without bowing. |
+| Telescope box (tray with lid) | 120 × 80 × 50 | card | The lid slides over the base without forcing and doesn't drop off when the box is lifted by the lid; try the lid at full height too. |
+| Cake box | 150 × 150 × 80 | card | The side walls fold double over the ears and their tabs lock into the base slots; the lid tuck and side flaps close. With a window (border 25 mm), the window is centred and leaves the lid stiff enough. |
 
 ## Record
 
