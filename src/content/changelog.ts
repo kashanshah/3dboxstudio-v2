@@ -21,8 +21,8 @@ export const releases: Release[] = [
     tags: ['New'],
     landingPage: { href: '/box-templates/drawer-box', label: 'See the drawer box template' },
     highlights: [
-      'The dieline has the tray, with corner ears and turn-ins for double walls, and its sleeve, with a thumb notch at each end, side by side on one sheet.',
-      'In 3D the tray and sleeve fold up, the sleeve slides on over the tray, and opening pulls the drawer out of the front.',
+      'The dieline has the tray, with corner ears and turn-ins for double walls, and below it its sleeve, with a thumb notch at each end, on one sheet.',
+      'In 3D the tray and sleeve fold up, the sleeve slides on over the tray from the front, and opening pulls the drawer out again.',
       'Set the sleeve play, turn-ins, thumb notches and glue flap in the Studio.',
     ],
   },

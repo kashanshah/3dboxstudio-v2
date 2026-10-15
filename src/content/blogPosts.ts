@@ -2463,11 +2463,11 @@ export const BLOG_POSTS: BlogPost[] = [
     published: "2026-10-15",
     readMinutes: 6,
     keywords: ["how to make a drawer box","drawer box template","drawer box dieline","sleeve and tray box","slide box template","matchbox style box","sliding gift box","box with sleeve"],
-    imageAlt: "A drawer box dieline with the tray and sleeve side by side, next to the folded drawer box closed and slid open",
+    imageAlt: "A drawer box dieline with the tray above its sleeve, next to the folded drawer box closed and slid open",
     relatedSlugs: ["gift-box-packaging-luxury-preview","jewelry-packaging-box-mockup","box-dieline-svg-dxf-export"],
     faqs: [
       { question: "What is a drawer box?", answer: "A box in two parts: a tray that holds the product and a sleeve it slides into, like a matchbox. It is also called a slide box or a sleeve and tray box." },
-      { question: "Is there a free drawer box template?", answer: "Yes. The drawer box template in 3D Box Studio is free. Enter the inside size of the tray and it draws the tray and the sleeve side by side, with corner ears, turn-ins and thumb notches, and shows the drawer sliding in 3D. Designing and exporting need a free account." },
+      { question: "Is there a free drawer box template?", answer: "Yes. The drawer box template in 3D Box Studio is free. Enter the inside size of the tray and it draws the tray and the sleeve on one sheet, with corner ears, turn-ins and thumb notches, and shows the drawer sliding in 3D. Designing and exporting need a free account." },
       { question: "How much bigger should the sleeve be than the tray?", answer: "A little: the template adds about a board's thickness of play on each side and above, so the tray slides without rattling. You can change the sleeve play in the Studio; thicker board and heavier products need a little more." },
       { question: "Does the tray need glue?", answer: "No. Its front and back walls have ears that wrap the corners, and every wall has a turn-in that folds over inside it and holds the ears in place. A dot of glue under each turn-in makes it sturdier. Only the sleeve is glued, along its glue flap." },
       { question: "Can I download the drawer box dieline?", answer: "Yes. Export a 1:1 PDF with your artwork, bleed and cut and crease lines, or the cutting template on its own as SVG or DXF for a die maker, cutting table, Cricut or laser cutter." },
@@ -2482,7 +2482,7 @@ export const BLOG_POSTS: BlogPost[] = [
         "The sleeve is a tube: two sides, a bottom and a top, glued along one edge and open at both ends. It is sized round the tray with a little play.",
         "A half-round thumb notch at each end of the sleeve's top lets you push the tray out from either side."
       ] },
-      { type: "callout", text: "You can watch this in the Studio: open the [drawer box template](/box-templates/drawer-box) and drag the fold slider. The tray and sleeve fold up side by side, then the sleeve slides on over the tray; the open slider pulls the drawer out." },
+      { type: "callout", text: "You can watch this in the Studio: open the [drawer box template](/box-templates/drawer-box) and drag the fold slider. The tray and sleeve fold up, then the sleeve slides on over the tray from the front; the open slider pulls the drawer out." },
       { type: "h2", text: "Choosing the size" },
       { type: "ul", items: [
         "Width: the inside of the tray from side to side.",

@@ -532,7 +532,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { label: 'Phone accessory', note: 'Retail', width: 90, height: 25, depth: 170, unit: 'mm' },
       { label: '4 × 4 × 2 in', note: 'US gift drawer', width: 4, height: 2, depth: 4, unit: 'in' },
     ],
-    geometryNote: 'Cutting template: a tray (a bottom, four walls, ears on the front and back walls that wrap the corners inside the side walls, and a turn-in on every wall) beside a sleeve (a glue flap, two sides, a bottom and a top with a half-round thumb notch at each end). Width, depth and height are the inside of the tray; the sleeve fits round it with a little play, which you can change in the Studio. Ask your printer to confirm the allowances for their board.',
+    geometryNote: 'Cutting template: a tray (a bottom, four walls, ears on the front and back walls that wrap the corners inside the side walls, and a turn-in on every wall) above a sleeve (a glue flap, two sides, a bottom and a top with a half-round thumb notch at each end). Width, depth and height are the inside of the tray; the sleeve fits round it with a little play, which you can change in the Studio. Ask your printer to confirm the allowances for their board.',
     sections: [
       {
         title: 'What is a drawer box?',
@@ -540,7 +540,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
       {
         title: 'What is on the dieline',
-        body: 'The template draws both parts side by side on one sheet, from your three measurements.',
+        body: 'The template draws both parts on one sheet, the tray above the sleeve, from your three measurements.',
         bullets: [
           'The tray: a bottom and four walls, with ears on the front and back walls that fold round the corners and turn-ins that fold over inside every wall, so the walls are double and hold together without glue.',
           'The sleeve: a glue flap, two sides, a bottom and a top, glued into a tube open at both ends.',

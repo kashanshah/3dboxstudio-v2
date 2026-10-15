@@ -4,7 +4,7 @@ import { panelRegions } from './artwork-regions';
 import { finish, tray, trayHinges } from './rigid-lid-base';
 
 // A drawer box: a tray that slides in and out of a sleeve, like a matchbox.
-// Both are cut side by side on one sheet.
+// Both are cut on one sheet, the sleeve below the tray.
 //
 // The tray is the rigid box's base tray (rigid-lid-base.ts): a bottom and
 // four walls, ears on the front and back walls that wrap the corners inside
@@ -110,11 +110,15 @@ export const drawerBoxDefinition = {
     // Crease to crease; the top, which the glue flap is stuck to, takes half a board less.
     ['sideW', 'innerH + t'], ['bottomW', 'innerW + t'], ['topW', 'innerW + t / 2'],
     ['notchR', 'max(3, min(12, innerW / 5, sleeveL / 6))'],
-    // Sheet: the tray on the left, the sleeve on the right, both centred on one line.
-    ['baseX0', 'max(baseH + baseTurn, baseEar)'],
+    // Sheet: the tray on top and the sleeve below it, centred on each other,
+    // so the sheet is about as tall as it is wide.
+    ['trayWide', 'baseW + 2 * max(baseH + baseTurn, baseEar)'],
+    ['sleeveWide', 'glue + 2 * sideW + bottomW + topW'],
+    ['shift', '(sleeveWide - trayWide) / 2'],
+    ['baseX0', 'max(baseH + baseTurn, baseEar) + max(0, shift)'],
     ['baseY0', 'baseH + baseTurn'],
-    ['sleeveX0', 'baseX0 + baseW + max(baseH + baseTurn, baseEar) + 10'],
-    ['sy0', 'max(0, baseY0 + baseD / 2 - sleeveL / 2)'], ['sy1', 'sy0 + sleeveL'],
+    ['sleeveX0', 'max(0, -shift)'],
+    ['sy0', 'baseY0 + baseD + baseH + baseTurn + 10'], ['sy1', 'sy0 + sleeveL'],
     ['xLeft', 'sleeveX0 + glue'], ['xBottom', 'xLeft + sideW'], ['xRight', 'xBottom + bottomW'], ['xTop', 'xRight + sideW'],
     ['notchX', 'xTop + topW / 2'],
   ],
@@ -145,8 +149,8 @@ export const drawerBoxDefinition = {
     { text: 'Artwork prints exactly as laid out on the design grid, including the turn-ins.' },
   ],
   // The tray folds up as the rigid box's base does, and the sleeve folds
-  // into a tube beside it. Then the sleeve moves behind the tray and slides
-  // on over it; opening pulls the drawer out of the front.
+  // into a tube in front of it. Then the sleeve lines up with the tray and
+  // slides on over it from the front; opening pulls the drawer out again.
   fold: {
     root: 'bottom',
     thickness: 'max(0.05, min(thickness, min(width, depth) * 0.06))',
@@ -162,16 +166,16 @@ export const drawerBoxDefinition = {
       ['turnTop', 'stage(formation, 0.4, 0.6) * (pi / 2)'],
       // The whole box stands on the floor, centred on the closed sleeve.
       ['floor', '-(innerH + 2 * foldT) / 2'],
-      // The sleeve moves round behind the tray, then slides on over it; the
-      // tray rises a board to rest on the sleeve's bottom.
+      // The sleeve lines up in front of the tray, then slides on over it;
+      // the tray rises a board to rest on the sleeve's bottom.
       ['across', 'stage(formation, 0.62, 0.8)'],
       ['slideOn', 'stage(formation, 0.8, 1)'],
       ['trayLift', 'across * foldT * 1.05'],
       ['trayCx', 'bottom.x + bottom.width / 2'], ['trayCy', 'bottom.y + bottom.height / 2'],
       ['sleeveCx', 'sleeveBottom.x + sleeveBottom.width / 2'], ['sleeveCy', 'sleeveBottom.y + sleeveBottom.height / 2'],
-      ['behind', '-(sleeveL + 15)'],
+      ['ahead', 'sleeveL + 15'],
       ['sleeveX', '(1 - across) * (trayCx - sleeveCx)'],
-      ['sleeveZ', '(1 - across) * (sleeveCy - trayCy) + across * (1 - slideOn) * behind'],
+      ['sleeveZ', '(1 - across) * (sleeveCy - trayCy) + across * (1 - slideOn) * ahead'],
       // Opening pulls the drawer out of the sleeve's front.
       ['pull', 'stage(opening, 0, 1) * sleeveL * 0.6'],
     ],
