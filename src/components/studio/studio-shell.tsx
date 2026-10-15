@@ -1704,13 +1704,25 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
   // The cutting template alone, as SVG or DXF, for a printer or die maker.
   const [dielineBusy, setDielineBusy] = useState(false);
+  const [dielineArtwork, setDielineArtwork] = useState(false);
   const exportDieline = async (format: 'svg' | 'dxf') => {
     setDielineBusy(true);
     try {
       const { downloadDielineVector } = await import('@/lib/packaging/download-dieline-pdf');
-      const delivery = await downloadDielineVector({ templateId: selectedTemplateId, dimensions, geometryOptions: { openingMode, splitTopHingeSide }, format });
-      if (delivery !== 'cancelled') setMessage(`Dieline downloaded as ${format.toUpperCase()}`);
-      trackEvent('dieline_exported', { template_id: selectedTemplateId, format });
+      // The SVG can carry the artwork of the side being designed, as the PDF does.
+      const withArtwork = format === 'svg' && dielineArtwork;
+      const inside = artworkScope === 'inside';
+      const artwork = withArtwork ? {
+        layers: inside ? insideDielineLayers : outsideDielineLayers,
+        artworkByPanel,
+        scope: artworkScope,
+        baseColor: inside ? (insideColorMode === 'custom' ? insideCustomColor : null) : (outsideColorMode === 'custom' ? outsideCustomColor : null),
+        options: { ...pdfExportOptions, includeArtwork: true },
+        onPanelProgress: (done: number, total: number) => setMessage(`Preparing SVG… artwork ${done} of ${total} panels`),
+      } : undefined;
+      const delivery = await downloadDielineVector({ templateId: selectedTemplateId, dimensions, geometryOptions: { openingMode, splitTopHingeSide }, format, artwork });
+      if (delivery !== 'cancelled') setMessage(withArtwork ? `Dieline and ${artworkScope} artwork downloaded as SVG` : `Dieline downloaded as ${format.toUpperCase()}`);
+      trackEvent('dieline_exported', { template_id: selectedTemplateId, format, with_artwork: withArtwork });
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not export the dieline.');
     } finally {
@@ -2483,7 +2495,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={()=>void exportImage()} imageSettings={imageSettings} setImageSettings={setImageSettings} imageBusy={imageBusy} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={()=>void exportImage()} imageSettings={imageSettings} setImageSettings={setImageSettings} imageBusy={imageBusy} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} dielineArtwork={dielineArtwork} setDielineArtwork={setDielineArtwork} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2703,7 +2715,7 @@ function Inspector(props: {
   artworkByPanel:ArtworkByPanel; setArtworkByPanel:React.Dispatch<React.SetStateAction<ArtworkByPanel>>;
   mediaAssets: LocalMediaAsset[];
   onOpenMediaLibrary:(panel?:string,tab?:'library'|'upload')=>void; onRemoveArtwork:(panel:string)=>void;
-  onExport:()=>void; imageSettings:ImageSettings; setImageSettings:React.Dispatch<React.SetStateAction<ImageSettings>>; imageBusy:boolean; onExportVideo:()=>void; videoProgress:number|null; videoSettings:VideoSettings; setVideoSettings:React.Dispatch<React.SetStateAction<VideoSettings>>; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onExportDieline:(format:'svg'|'dxf')=>void; dielineBusy:boolean; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
+  onExport:()=>void; imageSettings:ImageSettings; setImageSettings:React.Dispatch<React.SetStateAction<ImageSettings>>; imageBusy:boolean; onExportVideo:()=>void; videoProgress:number|null; videoSettings:VideoSettings; setVideoSettings:React.Dispatch<React.SetStateAction<VideoSettings>>; onShare:()=>void; shareBusy:boolean; canShare:boolean; onExportPdf:()=>void; onExportDieline:(format:'svg'|'dxf')=>void; dielineBusy:boolean; dielineArtwork:boolean; setDielineArtwork:(value:boolean)=>void; pdfOptions:DielinePdfOptions; setPdfOptions:React.Dispatch<React.SetStateAction<DielinePdfOptions>>; pdfBusy:boolean; onAnimateFold:(target:0|100)=>void; setMessage:(v:string)=>void;
   renderStyle:RenderStyle; onRenderStyleChange:(style:RenderStyle)=>void; floorShadow:boolean; setFloorShadow:(value:boolean)=>void;
 }) {
   const t = useTranslations();
@@ -3080,6 +3092,10 @@ function Inspector(props: {
         <div><strong>{t("studio.dieline_file_title")}</strong><span>{t("studio.dieline_file_help")}</span></div>
       </div>
       <div className="pro-dieline-formats">
+        <label className="pro-dieline-artwork-option">
+          <input type="checkbox" checked={props.dielineArtwork} disabled={props.dielineBusy} onChange={event=>props.setDielineArtwork(event.target.checked)}/>
+          <span><strong>{t("studio.dieline_svg_artwork")}</strong><small>{t("studio.dieline_svg_artwork_help",{side:props.artworkScope})}</small></span>
+        </label>
         <button className="pro-primary pro-export-button" disabled={props.dielineBusy} onClick={()=>props.onExportDieline('svg')}><Download size={16}/> {t("studio.download_svg")}</button>
         <p>{t("studio.dieline_svg_help")}</p>
         <button className="pro-secondary-button pro-export-button" disabled={props.dielineBusy} onClick={()=>props.onExportDieline('dxf')}><Download size={16}/> {t("studio.download_dxf")}</button>

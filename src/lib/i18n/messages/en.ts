@@ -278,6 +278,8 @@ export const en = {
   "studio.download_svg": "Download SVG",
   "studio.download_dxf": "Download DXF",
   "studio.dieline_svg_help": "Opens in Adobe Illustrator, Inkscape and Affinity Designer.",
+  "studio.dieline_svg_artwork": "Include artwork in the SVG",
+  "studio.dieline_svg_artwork_help": "The {side} artwork goes on its own layer under the lines, with the PDF's bleed. Leave it off for a cutting-only file.",
   "studio.dieline_dxf_help": "For CAD programs and cutting tables (DXF R12, millimetres).",
   "studio.show_sizes_assemble_hint": "Assemble the box to see its measurements",
   "studio.search_packaging_templates": "Search packaging templates",

@@ -3,7 +3,8 @@ import type { DielineExportGeometry, LineMm } from './export-geometry';
 // The cutting template as plain vector files for printers and die makers:
 // SVG (opens in Illustrator, Inkscape, Affinity) and DXF (CAD and cutting
 // tables). Both are drawn at 1:1 in millimetres with the cut and crease
-// lines on separate layers, the way a die maker expects them.
+// lines on separate layers, the way a die maker expects them. The SVG can
+// also carry the printed artwork on a layer underneath.
 
 const round = (value: number) => Number(value.toFixed(3));
 const escapeXml = (text: string) => text.replace(/[<>&"']/g, char => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[char]!);
@@ -14,13 +15,20 @@ export const DIELINE_LAYERS = {
   crease: { name: 'CREASE', svgColor: '#0000ff', dxfColor: 5 },
 } as const;
 
+/** Printed artwork placed on the sheet, in millimetres (outside 0..bounds where it runs into the bleed). */
+export type SvgArtworkImage = { href: string; x: number; y: number; width: number; height: number };
+
 /**
  * An SVG of the cutting template at actual size (1 user unit = 1 mm). Each
  * kind of line is a named layer (Illustrator reads the group ids, Inkscape
- * the layer labels); panel names are on a hidden layer of their own.
+ * the layer labels); panel names are on a hidden layer of their own. With
+ * artwork, the printed panels sit on an ARTWORK layer under the lines and
+ * the page grows by the bleed so the artwork past the cut edges is kept;
+ * the lines stay at the same millimetre coordinates.
  */
-export function dielineSvg(geometry: DielineExportGeometry, title: string) {
-  const { width, height } = geometry.bounds;
+export function dielineSvg(geometry: DielineExportGeometry, title: string, artwork?: { bleedMm: number; images: SvgArtworkImage[] }) {
+  const bleed = artwork ? Math.max(0, artwork.bleedMm) : 0;
+  const width = geometry.bounds.width + 2 * bleed, height = geometry.bounds.height + 2 * bleed;
   const lines = (kind: 'cut' | 'crease', list: LineMm[]) => {
     const layer = DIELINE_LAYERS[kind];
     const dash = kind === 'crease' ? ' stroke-dasharray="3 1.5"' : '';
@@ -28,11 +36,16 @@ export function dielineSvg(geometry: DielineExportGeometry, title: string) {
     return `  <g id="${layer.name}" inkscape:groupmode="layer" inkscape:label="${layer.name}" fill="none" stroke="${layer.svgColor}" stroke-width="0.25"${dash} stroke-linecap="round">\n${body}\n  </g>`;
   };
   const labels = geometry.panels.map(panel => `    <text x="${round(panel.x + panel.width / 2)}" y="${round(panel.y + panel.height / 2)}">${escapeXml(panel.label)}</text>`).join('\n');
+  const images = artwork?.images.map(image => `    <image x="${round(image.x)}" y="${round(image.y)}" width="${round(image.width)}" height="${round(image.height)}" preserveAspectRatio="none" href="${image.href}"/>`).join('\n');
+  const description = artwork
+    ? `Cutting template and printed artwork at 1:1 in millimetres, with ${round(bleed)} mm bleed. Red: cut. Blue dashed: crease.`
+    : 'Cutting template at 1:1 in millimetres. Red: cut. Blue dashed: crease.';
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="${round(width)}mm" height="${round(height)}mm" viewBox="0 0 ${round(width)} ${round(height)}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="${round(width)}mm" height="${round(height)}mm" viewBox="${round(-bleed)} ${round(-bleed)} ${round(width)} ${round(height)}">`,
     `  <title>${escapeXml(title)}</title>`,
-    `  <desc>${escapeXml(['Cutting template at 1:1 in millimetres. Red: cut. Blue dashed: crease.', ...geometry.notes].join(' '))}</desc>`,
+    `  <desc>${escapeXml([description, ...geometry.notes].join(' '))}</desc>`,
+    ...(artwork ? [`  <g id="ARTWORK" inkscape:groupmode="layer" inkscape:label="ARTWORK">${images ? `\n${images}\n  ` : ''}</g>`] : []),
     lines('cut', geometry.cut),
     lines('crease', geometry.crease),
     `  <g id="LABELS" inkscape:groupmode="layer" inkscape:label="LABELS" style="display:none" font-family="Helvetica, Arial, sans-serif" font-size="4" fill="#666666" text-anchor="middle" dominant-baseline="middle">\n${labels}\n  </g>`,

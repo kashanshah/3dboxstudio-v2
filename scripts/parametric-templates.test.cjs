@@ -861,6 +861,27 @@ test('"Show sizes" puts each box and flap size on the panels that follow it one 
   }
 });
 
+test('the SVG can carry the artwork on a layer under the lines, with the bleed kept',()=>{
+  const {dielineSvg}=require('../src/lib/packaging/dieline-vector.ts');
+  const runtime=getTemplateRuntime('reverse-tuck-carton');
+  const geometry=runtime.getExportGeometry({width:60,height:120,depth:40,thickness:0.5},{openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'});
+  const {width,height}=geometry.bounds;
+  const panel=geometry.panels[1];
+  const image={href:'data:image/png;base64,AAAA',x:panel.x-3,y:panel.y-3,width:panel.width+6,height:panel.height+6};
+  const svg=dielineSvg(geometry,'With artwork',{bleedMm:3,images:[image]});
+  // The page grows by the bleed on every side; the lines keep their millimetre coordinates.
+  const r=value=>Number(value.toFixed(3));
+  assert.match(svg,new RegExp(`width="${r(width+6)}mm" height="${r(height+6)}mm" viewBox="-3 -3 ${r(width+6)} ${r(height+6)}"`));
+  // Artwork first (underneath), then the cut and crease layers.
+  assert.ok(svg.indexOf('<g id="ARTWORK"')<svg.indexOf('<g id="CUT"')&&svg.indexOf('<g id="CUT"')<svg.indexOf('<g id="CREASE"'));
+  assert.match(svg,new RegExp(`<image x="${r(image.x)}" y="${r(image.y)}" width="${r(image.width)}" height="${r(image.height)}" preserveAspectRatio="none" href="data:image/png;base64,AAAA"/>`));
+  assert.match(svg,/printed artwork at 1:1 in millimetres, with 3 mm bleed/);
+  // Without artwork nothing changes: no artwork layer, the page is the sheet.
+  const plain=dielineSvg(geometry,'Plain');
+  assert.ok(!plain.includes('ARTWORK'));
+  assert.match(plain,new RegExp(`viewBox="0 0 ${r(width)} ${r(height)}"`));
+});
+
 test('the dieline exports as SVG and DXF at 1:1, cut and crease on their own layers',()=>{
   const {dielineSvg,dielineDxf}=require('../src/lib/packaging/dieline-vector.ts');
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');

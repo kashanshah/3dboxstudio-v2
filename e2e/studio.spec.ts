@@ -88,6 +88,18 @@ test('create a design, add artwork, resize the box, and it is all saved', async 
   await expect(artwork(page)).toHaveCount(1);
   expect(await aspect(artwork(page))).toBeCloseTo(before, 1);
   await expect(page.getByLabel('Design name')).toHaveValue('E2E carton');
+
+  // The dieline SVG can carry the artwork, on its own layer under the lines.
+  await page.getByRole('button', { name: /^3\s*Preview/ }).click();
+  await page.getByRole('navigation', { name: 'Preview & Download tools' }).getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('tab', { name: 'Dieline' }).click();
+  await page.getByRole('checkbox', { name: /Include artwork in the SVG/ }).check();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download SVG' }).click();
+  const svg = await readFile((await (await download).path())!, 'utf8');
+  expect(svg.indexOf('<g id="ARTWORK"')).toBeGreaterThan(0);
+  expect(svg.indexOf('<g id="ARTWORK"')).toBeLessThan(svg.indexOf('<g id="CUT"'));
+  expect(svg).toMatch(/<image [^>]*href="data:image\/png;base64,/);
 });
 
 test('a size handle follows the pointer and changes the size one for one', async ({ page }) => {
