@@ -422,7 +422,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { label: 'Socks or scarf', note: 'Apparel', width: 220, height: 60, depth: 130, unit: 'mm' },
       { label: '4 × 3 × 1 in', note: 'US gift pillow', width: 4, height: 1, depth: 3, unit: 'in' },
     ],
-    geometryNote: 'Cutting template: a front and a back face side by side, each with a curved crease at both ends and a curved end flap beyond it, and a glue flap whose ends follow the creases. No glue at the ends. Width, depth and height are the outside of the closed pillow: tip to tip, across, and through the middle. The faces are cut as wide as their bowed curve. Ask your printer to confirm the curved scores for their board.',
+    geometryNote: 'Cutting template: a front and a back face joined by a straight crease, each with a curved crease at both ends and a curved end flap beyond it, and a glue flap whose ends follow the creases. No glue at the ends. Width, depth and height are the outside of the closed pillow: tip to tip, across, and through the middle. The faces are cut as wide as their bowed curve. Ask your printer to confirm the curved scores for their board.',
     sections: [
       {
         title: 'What is a pillow box?',
@@ -442,7 +442,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       },
       {
         title: 'How to fold a pillow box',
-        body: 'Score the curved creases cleanly first: they are what make the box work. Fold along the straight crease between the two faces, glue the flap inside the front edge and let it dry. Squeeze the sides so the faces bow out, then push one curved end in until both flaps meet in the middle, fill the box, and push the other end in the same way. In the Studio you can watch the faces bow and the ends close in 3D.',
+        body: 'Score the curved creases cleanly first: they are what make the box work. Fold along the straight crease between the two faces, glue the flap inside the front edge and let it dry. Squeeze the sides so the faces bow out, then push one curved end in until both flaps meet in the middle, fill the box, and push the other end in the same way. In the Studio you can watch the faces bow and the ends close in 3D. For more detail, see [how to make a pillow box](/blog/how-to-make-a-pillow-box).',
       },
       {
         title: 'Choosing the size',
@@ -455,7 +455,7 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
       { question: 'Does a pillow box need glue?', answer: 'Only once, along the glue flap that closes the tube. The ends close by pushing in the curved flaps, with no glue or tuck, so the box can be opened and closed again.' },
       { question: 'Can I download the dieline?', answer: 'Yes. The Studio exports a 1:1 PDF with your artwork, and the cutting template on its own as SVG or DXF with cut and crease lines on separate layers. The curved creases are drawn as short straight segments, as die makers cut them. Ask your printer to confirm the scores for their board.' },
     ],
-    guides: ['jewelry-packaging-box-mockup', 'gift-box-packaging-luxury-preview', 'box-dieline-svg-dxf-export', 'how-to-measure-a-box-inside-vs-outside-dimensions'],
+    guides: ['how-to-make-a-pillow-box', 'jewelry-packaging-box-mockup', 'gift-box-packaging-luxury-preview', 'box-dieline-svg-dxf-export'],
     tags: ['Folding cartons', 'Gift'],
     updated: '2026-10-14',
   },
