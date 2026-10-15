@@ -8,6 +8,10 @@ import { MAIL_PORT } from './env';
 const IGNORED = [
   // Vercel's analytics script only exists on Vercel.
   /\/_vercel\//,
+  // The admin email previews are sandboxed on purpose (sandbox="" on an
+  // srcdoc frame), so nothing in an email can run; newer Chrome reports the
+  // blocked attempt.
+  /^Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed/,
 ];
 
 const expected = new WeakMap<Page, RegExp[]>();
