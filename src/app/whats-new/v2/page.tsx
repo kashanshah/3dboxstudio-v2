@@ -23,7 +23,7 @@ const faqs=[
   ['What is a Project compared with a Box Design?','A Project is the workspace for a packaging job. A Box Design is an individual package design inside that Project. Projects let related packaging work stay together instead of becoming disconnected files.'],
   ['Can I save multiple boxes in one Project?','Yes. A Project can contain multiple Box Designs, which is useful for product variants, sizes, related SKUs, or alternative packaging directions.'],
   ['Can I share and export designs?','Yes. Saved designs can be shared through view-only preview links. Preview & Download exports PNG images, a short MP4 of the box folding closed, a 1:1 PDF of the dieline with your artwork, and the cutting template as SVG or DXF.'],
-  ['Are more box templates and dielines coming?','Yes. Since launch the library has added the mailer box, sleeve box and rigid lid and base box, and the drawer box is next. This is separate from importing your own dieline.'],
+  ['Are more box templates and dielines coming?','Yes. Since launch the library has added the mailer box, sleeve box, rigid lid and base box, and many more since, including the drawer box. This is separate from importing your own dieline.'],
   ['Are Scenes available now?','Not yet. Scenes are coming soon. The intended workflow is to take multiple saved Box Designs from a Project and compose them together in a Scene for staged product-shot and presentation workflows.']
 ] as const;
 

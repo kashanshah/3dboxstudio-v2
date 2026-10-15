@@ -312,6 +312,7 @@ const {autoLockBottomDefinition}=require('../src/lib/packaging/parametric/defini
 const {snapLockBottomDefinition}=require('../src/lib/packaging/parametric/definitions/snap-lock-bottom.ts');
 const {pillowBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pillow-box.ts');
 const {gableBoxDefinition}=require('../src/lib/packaging/parametric/definitions/gable-box.ts');
+const {drawerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/drawer-box.ts');
 const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
@@ -363,7 +364,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box','drawer-box':'drawer-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -387,7 +388,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition,gableBoxDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition,gableBoxDefinition,drawerBoxDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -625,6 +626,46 @@ test('the gable box closes its roof over gusseted ends, handles back to back wit
     assert.ok(!covered,'the finger hole is open in 3D');
   }
   assert.throws(()=>box.getExportGeometry({width:120,height:90,depth:15,thickness:0.5}),/at least 20 mm/);
+});
+
+test('the drawer box tray fits inside its sleeve, slides out of the front, and the thumb notches show',()=>{
+  const box=getTemplateRuntime('drawer-box');
+  for(const dimensions of [{width:120,height:40,depth:80,thickness:0.5},{width:30,height:15,depth:30,thickness:0.3},{width:400,height:200,depth:400,thickness:2}]){
+    const t=dimensions.thickness;
+    const sheet=box.getExportGeometry(dimensions);
+    const panel=id=>sheet.panels.find(item=>item.id===id);
+    for(const id of ['bottom','front','back','left','right','sleeveTop','sleeveBottom','sleeveLeft','sleeveRight','sleeveGlue'])assert.ok(panel(id),`${id} is on the sheet`);
+    // The sleeve's walls crease to each other, and the top is notched at both ends.
+    const along=(line,a,b)=>[line.start,line.end].every(point=>[a,b].every(id=>onOutline(panel(id).outline,point)));
+    for(const [a,b] of [['sleeveGlue','sleeveLeft'],['sleeveLeft','sleeveBottom'],['sleeveBottom','sleeveRight'],['sleeveRight','sleeveTop']])assert.ok(sheet.crease.some(line=>along(line,a,b)),`${a} creases to ${b}`);
+    const top=panel('sleeveTop'),ys=top.outline.map(point=>point.y);
+    const dips=top.outline.filter(point=>point.y>Math.min(...ys)+1e-6&&point.y<Math.max(...ys)-1e-6);
+    assert.ok(dips.some(point=>point.y<top.y+top.height/2)&&dips.some(point=>point.y>top.y+top.height/2),'the top has a notch at each end');
+    const meshes=opening=>box.buildMeshes({dimensions,formation:100,opening,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    const span=(list,pattern,k)=>{const values=list.filter(mesh=>pattern.test(mesh.panel??'')).flatMap(mesh=>{const out=[];for(let i=k;i<mesh.vertices.length;i+=8)out.push(mesh.vertices[i]);return out;});return [Math.min(...values),Math.max(...values)];};
+    const tray=/^(Interior )?(Front|Back|Left|Right|Bottom)( Turn-In| (Left|Right) Ear)?$/,sleeve=/^(Interior )?Sleeve /;
+    // Closed: the tray lies within the sleeve on every side, and the sleeve is the inside size and a little more.
+    const closed=meshes(0);
+    for(const k of [0,1]){
+      const [a,b]=[span(closed,tray,k),span(closed,sleeve,k)];
+      assert.ok(a[0]>b[0]+t*0.5&&a[1]<b[1]-t*0.5,`the tray stays inside the sleeve along ${'xy'[k]}: ${a} in ${b}`);
+    }
+    const [a,b]=[span(closed,tray,2),span(closed,sleeve,2)];
+    assert.ok(Math.abs(a[0]-b[0])<=2*t+0.5&&Math.abs(a[1]-b[1])<=2*t+0.5,`the tray's ends meet the sleeve's: ${a} and ${b}`);
+    // Open: the drawer has slid forward, out of the front, and is still held by the sleeve.
+    const open=span(meshes(100),tray,2);
+    assert.ok(open[1]-a[1]>dimensions.depth*0.5,`the drawer slides out: ${open[1]-a[1]}`);
+    assert.ok(open[0]<b[1],'the drawer stays in the sleeve');
+    // The thumb notches show in 3D: nothing covers the sleeve top just inside each end.
+    const topMeshes=closed.filter(mesh=>mesh.panel==='Sleeve Top');
+    const [x0,x1]=span(closed,/^Sleeve Top$/,0),[z0,z1]=span(closed,/^Sleeve Top$/,2);
+    for(const z of [z0+1,z1-1]){
+      const p=[(x0+x1)/2,z];
+      const covered=topMeshes.some(mesh=>{const v=mesh.vertices;for(let i=0;i<v.length;i+=24){const tri=[0,1,2].map(n=>[v[i+n*8],v[i+n*8+2]]);const s=(u,w,q)=>(u[0]-q[0])*(w[1]-q[1])-(w[0]-q[0])*(u[1]-q[1]);const d=[s(p,tri[0],tri[1]),s(p,tri[1],tri[2]),s(p,tri[2],tri[0])];if(!(d.some(x=>x<-1e-9)&&d.some(x=>x>1e-9)))return true;}return false;});
+      assert.ok(!covered,`the thumb notch at z=${z.toFixed(1)} is open in 3D`);
+    }
+  }
+  assert.throws(()=>box.getExportGeometry({width:120,height:10,depth:80,thickness:0.5}),/at least 15 mm/);
 });
 
 function onOutline(outline,point){

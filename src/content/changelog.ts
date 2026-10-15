@@ -14,6 +14,19 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'drawer-box',
+    date: '2026-10-15',
+    title: 'New template: drawer box',
+    summary: 'A sliding drawer box: a tray that pulls out of a sleeve, for jewellery, chocolates, tea, cosmetics and gift sets.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/drawer-box', label: 'See the drawer box template' },
+    highlights: [
+      'The dieline has the tray, with corner ears and turn-ins for double walls, and below it its sleeve, with a thumb notch at each end, on one sheet.',
+      'In 3D the tray and sleeve fold up, the sleeve slides on over the tray from the front, and opening pulls the drawer out again.',
+      'Set the sleeve play, turn-ins, thumb notches and glue flap in the Studio.',
+    ],
+  },
+  {
     id: 'gable-box',
     date: '2026-10-15',
     title: 'New template: gable box',

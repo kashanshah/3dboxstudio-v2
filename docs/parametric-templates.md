@@ -184,9 +184,10 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/sleeve-box.ts` | Open-ended sleeve; the first template written only as a definition |
 | `src/lib/packaging/parametric/definitions/mailer-box.ts` | FEFCO 0427 roll end tuck top mailer: the pizza box's double wall moved to the sides |
 | `src/lib/packaging/parametric/definitions/pillow-box.ts` | Pillow box: two bowed faces with curved end creases and flaps, and a glue flap; the first to use model panels and surfaces |
+| `src/lib/packaging/parametric/definitions/drawer-box.ts` | Drawer box: the rigid box's base tray (corner ears, turn-ins) and a glued sleeve with thumb notches, two pieces that slide together |
 | `src/lib/packaging/parametric/definitions/gable-box.ts` | Gable box: a roof and a handle with a finger hole over the front and back, gusseted gable ends, and the auto-lock bottom's flaps |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `gable-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `gable-box/`, `drawer-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 
