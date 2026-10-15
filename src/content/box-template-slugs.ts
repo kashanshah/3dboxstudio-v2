@@ -7,6 +7,7 @@ export const BOX_TEMPLATE_SLUGS: Record<string, string> = {
   'auto-lock-bottom-box': 'auto-lock-bottom-box',
   'snap-lock-bottom-box': 'snap-lock-bottom-box',
   'pillow-box': 'pillow-box',
+  'gable-box': 'gable-box',
   'pizza-box': 'pizza-box',
   'mailer-box': 'mailer-box',
   'rigid-lid-base': 'rigid-box',

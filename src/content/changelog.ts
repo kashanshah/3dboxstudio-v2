@@ -14,6 +14,19 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'gable-box',
+    date: '2026-10-15',
+    title: 'New template: gable box',
+    summary: 'A gable box with a pitched roof, a carry handle and an auto-lock bottom, for bakery, takeaway, favours and gifts.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/gable-box', label: 'See the gable box template' },
+    highlights: [
+      'The dieline has four walls, a roof panel and a handle with a finger hole over the front and back, a gable end with two gussets over each side, and an auto-lock bottom, all drawn from your inside size.',
+      'Set the roof height and the handle height in the Studio, and the dieline and 3D box follow.',
+      'In 3D the bottom locks, the gussets fold in and the roof closes until the handles meet back to back, with the finger holes cut through.',
+    ],
+  },
+  {
     id: 'pillow-box',
     date: '2026-10-14',
     title: 'New template: pillow box',

@@ -26,7 +26,7 @@ const die = tuckEndDie({
 });
 
 /** A front or back flap: tall on the half next to its glue tab, short on the other, stepped in the middle. */
-const lockFlap = (wall: 'front' | 'back'): PanelSpec => {
+export const lockFlap = (wall: 'front' | 'back'): PanelSpec => {
   const W = wall === 'front' ? 'Front' : 'Back';
   const [x, y, w] = [`x${W}`, `wallBottom${W}`, `wall${W}`];
   return {
@@ -42,7 +42,7 @@ const lockFlap = (wall: 'front' | 'back'): PanelSpec => {
 };
 
 /** A side flap and, past a 45° crease at its corner by the next wall, the glue tab. */
-const sideFlap = (wall: 'left' | 'right'): PanelSpec[] => {
+export const sideFlap = (wall: 'left' | 'right'): PanelSpec[] => {
   const W = wall === 'left' ? 'Left' : 'Right';
   const [x0, y, x1] = [`x${W}`, `wallBottom${W}`, `x${W} + wall${W}`];
   return [

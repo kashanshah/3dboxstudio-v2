@@ -8,6 +8,7 @@ import { rigidLidBaseRuntime } from './rigid-lid-base/runtime';
 import { autoLockBottomRuntime } from './auto-lock-bottom/runtime';
 import { snapLockBottomRuntime } from './snap-lock-bottom/runtime';
 import { pillowBoxRuntime } from './pillow-box/runtime';
+import { gableBoxRuntime } from './gable-box/runtime';
 
 export const BUILT_IN_TEMPLATE_RUNTIMES=[
   baseBoxRuntime,
@@ -20,4 +21,5 @@ export const BUILT_IN_TEMPLATE_RUNTIMES=[
   autoLockBottomRuntime,
   snapLockBottomRuntime,
   pillowBoxRuntime,
+  gableBoxRuntime,
 ] as const;
