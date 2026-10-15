@@ -539,6 +539,17 @@ test('the pillow box bows to its outside size and closes its ends to a pinch, fr
     within(extent[0][1]-extent[0][0],dimensions.width,2*t+0.5,'closed width');
     within(extent[1][1]-extent[1][0],dimensions.height,2*t+0.02*dimensions.height,'closed height');
     within(extent[2][1]-extent[2][0],dimensions.depth,2*t+0.5,'closed depth');
+    // The glue flap stays inside the bowed front, however wide it is set.
+    const triangles=meshes=>meshes.flatMap(mesh=>{const v=mesh.vertices,out=[];for(let i=0;i<v.length;i+=24)out.push([0,1,2].map(k=>[v[i+k*8],v[i+k*8+1],v[i+k*8+2]]));return out;});
+    const wide=box.buildMeshes({dimensions:{...dimensions,adjustments:{glue:1e9}},formation:100,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    const faces=triangles(wide.filter(mesh=>mesh.panel==='Front'));
+    for(const point of triangles(wide.filter(mesh=>/Glue$/.test(mesh.panel??''))).flat()){
+      const centre=f=>f[0].map((_,k)=>(f[0][k]+f[1][k]+f[2][k])/3);
+      const near=faces.reduce((best,f)=>Math.hypot(...centre(f).map((x,k)=>x-point[k]))<Math.hypot(...centre(best).map((x,k)=>x-point[k]))?f:best);
+      const a=near[1].map((x,k)=>x-near[0][k]),b=near[2].map((x,k)=>x-near[0][k]);
+      const n=[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],length=Math.hypot(...n);
+      assert.ok(point.reduce((sum,x,k)=>sum+(x-near[0][k])*n[k]/length,0)<1e-3,`glue at ${point.map(x=>x.toFixed(1))} stays inside the front`);
+    }
     // Each end flap reaches the pinch: the middle of the box's end.
     for(const [name,points] of Object.entries(ends)){
       const tipX=(name.includes('Right')?1:-1)*dimensions.width/2;

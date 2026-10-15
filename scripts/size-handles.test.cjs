@@ -15,7 +15,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
 const { placeSizeHandles } = require('../src/lib/packaging/size-handles.ts');
 const { getTemplateGeometry, getTemplateRuntime } = require('../src/lib/packaging/template-runtime.ts');
 
-const TEMPLATES = ['reverse-tuck-carton', 'base-box', 'auto-lock-bottom-box', 'snap-lock-bottom-box', 'sleeve-box', 'mailer-box', 'pizza-box', 'rigid-lid-base', 'split-top-box'];
+const TEMPLATES = ['reverse-tuck-carton', 'base-box', 'auto-lock-bottom-box', 'snap-lock-bottom-box', 'sleeve-box', 'mailer-box', 'pizza-box', 'rigid-lid-base', 'split-top-box', 'pillow-box'];
 function handlesFor(templateId, dims) {
   const sheet = getTemplateGeometry(templateId, dims, {});
   const sizes = getTemplateRuntime(templateId).getPanelSizes?.(dims, {});
@@ -30,7 +30,7 @@ const base = { width: 60, height: 120, depth: 40, thickness: 0.5 };
 
 test('every side of the box gets width, height and depth handles; each flap size one', () => {
   const { sheet, handles } = handlesFor('reverse-tuck-carton', base);
-  const on = (id) => handles.filter((handle) => handle.panel === id).map((handle) => handle.size.key).sort();
+  const on = (id) => [...new Set(handles.filter((handle) => handle.panel === id).map((handle) => handle.size.key))].sort();
   assert.deepEqual(on('front'), ['height', 'width']);
   assert.deepEqual(on('back'), ['height', 'width']);
   assert.deepEqual(on('left'), ['depth', 'height']);
@@ -41,6 +41,26 @@ test('every side of the box gets width, height and depth handles; each flap size
   }
   const flapKeys = handles.filter((handle) => handle.size.kind === 'adjustment').map((handle) => handle.size.key);
   assert.equal(new Set(flapKeys).size, flapKeys.length);
+});
+
+test('box sizes can be dragged from both ends: the height from the top and the bottom', () => {
+  for (const templateId of TEMPLATES) {
+    const { sheet, handles } = handlesFor(templateId, base);
+    for (const panel of sheet.panels.filter((item) => item.kind === 'body')) {
+      for (const handle of handles.filter((item) => item.panel === panel.id && item.size.kind === 'dimension')) {
+        const [low, high] = handle.axis === 'x' ? [panel.x, panel.x + panel.width] : [panel.y, panel.y + panel.height];
+        const at = (edge) => handles.some((item) => item.axis === handle.axis && Math.abs((item.axis === 'x' ? item.x : item.y) - edge) < 1e-6
+          && Math.abs((item.axis === 'x' ? item.y : item.x) - (handle.axis === 'x' ? handle.y : handle.x)) < 6);
+        // Both ends of the panel along the size have a handle (its own, or a neighbour's on a shared crease).
+        assert.ok(at(low) && at(high), `${templateId} ${panel.id} ${handle.size.key} has handles at both ends`);
+      }
+    }
+    // The reverse tuck's front takes its height from the top and the bottom.
+    if (templateId === 'reverse-tuck-carton') {
+      const front = handles.filter((item) => item.panel === 'front' && item.size.key === 'height');
+      assert.deepEqual(front.map((item) => item.direction).sort(), [-1, 1]);
+    }
+  }
 });
 
 test('a handle sits on the edge that moves, and dragging it out grows the size by as much', () => {
