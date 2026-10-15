@@ -98,6 +98,8 @@ export type HingeSpec = {
   when?: Expr;
   /** Millimetres the crease sits inside the parent (see SheetHinge.setback). */
   setback?: Expr;
+  /** Fold on the crease line itself, with no rounded bend (see SheetHinge.sharp). */
+  sharp?: boolean;
 } & (
   | {
     /**
@@ -118,6 +120,29 @@ export type HingeSpec = {
    */
   | { angle: Expr }
 );
+
+/** A piece of the 3D model standing in for part of panel `of`, by its four corners on the sheet. */
+export type ModelPanelSpec = {
+  id: string;
+  of: string;
+  outline: [[Expr, Expr], [Expr, Expr], [Expr, Expr], [Expr, Expr]];
+};
+
+/**
+ * A point in the scene: a point of the sheet carried along by folded panel
+ * `on`; another point with some of its scene coordinates replaced; or a mix
+ * of two points, `t` of the way from the first to the second.
+ */
+export type SurfaceVertex =
+  | { on: string; at: [Expr, Expr] }
+  | { from: SurfaceVertex; set: { x?: Expr; y?: Expr; z?: Expr } }
+  | { mix: [SurfaceVertex, SurfaceVertex]; t: Expr };
+
+/** Rows of equal length; `flat` is each point's place on the sheet, within panel `of`. */
+export type SurfaceSpec = {
+  of: string;
+  rows: { place: SurfaceVertex; flat: [Expr, Expr] }[][];
+};
 
 /** A definition with every `repeat` block expanded: what the compiler works on. */
 export type ExpandedTemplate = {
@@ -176,6 +201,22 @@ export type ExpandedTemplate = {
      * motions, so a lid can lift off as the box opens.
      */
     pieces?: { root: string; matrix: Expr[] }[];
+    /**
+     * Pieces the 3D model folds in place of a panel whose board bends rather
+     * than folding flat, such as a pillow box's bowed faces: narrow strips,
+     * hinged to each other by small angles, that together cover the panel.
+     * The panel stays whole on the design grid and the cutting template; the
+     * model leaves it out and folds these, each printed with its part of the
+     * panel's artwork. Hinges name these pieces, not the panel they replace.
+     */
+    modelPanels?: ModelPanelSpec[];
+    /**
+     * Curved surfaces the 3D model draws in place of a panel whose board
+     * bends two ways at once, such as a pillow box's end flaps: a grid of
+     * points placed on the folded panels, printed with panel `of`'s artwork.
+     * Like model panels, the panel stays whole on the sheet.
+     */
+    surfaces?: SurfaceSpec[];
   };
   assembly: {
     control: 'none' | 'opening-mechanism' | 'split-direction';

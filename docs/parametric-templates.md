@@ -43,6 +43,19 @@ Angles are in degrees, with 0 pointing right and 90 pointing down the sheet. The
 - **`fold.matrix`** replaces `fold.offset` when the sheet must be turned, not just moved, before it is placed. It is a column-major 4×4 matrix of formulas. The pizza box is folded printed side down with the lid at the back.
 - **`fold.pieces`** lists further roots for boxes made of separate pieces printed on one sheet, each `{ root, matrix }`. Every piece is folded from its own root and placed by its own matrix, which may use motions. The rigid lid and base box folds the base from `bottom` and the lid from `lidTop`, then turns the lid over and lowers it onto the base.
 
+### Bowed panels: model panels, surfaces and sharp folds
+
+Every panel the fold engine folds is a rigid piece of board. A pillow box's faces bow and its end flaps curve in two directions at once, which rigid panels can't do. Three additions cover it, all for the 3D model only. The design grid and cutting template keep each face and flap whole.
+
+- **`fold.modelPanels`** are narrow strips the model folds in place of a panel, each `{ id, of, outline }`, with four corners on the sheet. Hinges name the strips, not the panel they replace. Each strip prints its part of the panel's artwork. Strips of one panel join edge to edge, with no rounded crease, and shade as one smooth surface.
+- **`fold.surfaces`** are curved surfaces the model draws in place of a panel, each `{ of, rows }`. Rows are lists of equal length. Each point has a `place` in the scene and a `flat` position on the sheet, which fixes its artwork and which side is printed. A place is one of:
+  - `{ on, at }`: a point of the sheet carried along by a folded panel or strip;
+  - `{ from, set: { x, y, z } }`: another place with some of its scene coordinates replaced;
+  - `{ mix: [a, b], t }`: a point `t` of the way from one place to another.
+- **`sharp: true`** on a hinge folds on the crease line itself, with no rounded bend of board, so panels made of strips meet exactly.
+
+The pillow box folds each face as nine strips bowed into a lens. Each end flap is a surface from its crease, carried by the strips, to its edge. That edge runs straight on from the face while the box is open, then swings in to the pinch at the middle of the closed end.
+
 ### Repeats
 
 Any list in a definition (panels, derived values, hinges, motions, cuts, slits, validations, notes) may hold a `repeat` block in place of near-identical items:
@@ -168,8 +181,9 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/pizza-box.ts` | One-piece corrugated pizza box with a locking double front |
 | `src/lib/packaging/parametric/definitions/sleeve-box.ts` | Open-ended sleeve; the first template written only as a definition |
 | `src/lib/packaging/parametric/definitions/mailer-box.ts` | FEFCO 0427 roll end tuck top mailer: the pizza box's double wall moved to the sides |
+| `src/lib/packaging/parametric/definitions/pillow-box.ts` | Pillow box: two bowed faces with curved end creases and flaps, and a glue flap; the first to use model panels and surfaces |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 
@@ -210,4 +224,4 @@ Next, roughly in order:
 1. **Retire the frozen references** in `scripts/reference/` once each template has been stable in production.
 2. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
 
-Out of scope for this format: bottles, cans, pouches and other curved or flexible packaging. Their geometry isn't folded from flat panels; they will need their own format family that shares only the parameter, option and expression layers.
+Out of scope for this format: bottles, cans, pouches and other curved or flexible packaging. (Board that bows, such as a pillow box, is covered by model panels and surfaces.) Their geometry isn't folded from flat panels; they will need their own format family that shares only the parameter, option and expression layers.

@@ -9,6 +9,7 @@ import { mailerBoxDefinition } from '@/lib/packaging/parametric/definitions/mail
 import { rigidLidBaseDefinition } from '@/lib/packaging/parametric/definitions/rigid-lid-base';
 import { autoLockBottomDefinition } from '@/lib/packaging/parametric/definitions/auto-lock-bottom';
 import { snapLockBottomDefinition } from '@/lib/packaging/parametric/definitions/snap-lock-bottom';
+import { pillowBoxDefinition } from '@/lib/packaging/parametric/definitions/pillow-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -98,6 +99,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(reverseTuckDefinition),
   fromDefinition(autoLockBottomDefinition),
   fromDefinition(snapLockBottomDefinition),
+  fromDefinition(pillowBoxDefinition),
 
   // Every template with a parametric definition and catalog entry is ready.
   // The drawer box below stays planned until it has one.

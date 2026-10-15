@@ -1,10 +1,10 @@
 import type { LegacyOpeningMode } from '@/lib/studio-project';
 import type { TemplateGeometryOptions, TemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
-import { creaseHalfWidth, foldSheet, restingSetback, translation, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
+import { apply, creaseHalfWidth, foldSheet, restingSetback, surfaceMeshes, translation, type Mat4, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
 import { panelName, substage } from '@/lib/packaging/templates/folded-box';
 import { evaluate, interpolate } from './expression';
-import type { DimensionKey, ExpandedTemplate, ParametricTemplate } from './format';
+import type { DimensionKey, ExpandedTemplate, ParametricTemplate, SurfaceVertex } from './format';
 import { compileParametricSheet, definitionError, DIMENSIONS, type OptionValues, type ParametricSheet } from './sheet';
 
 export { TemplateDefinitionError } from './sheet';
@@ -36,20 +36,10 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
     };
     Object.assign(scope, progress);
     for (const [name, value] of definition.fold.motions ?? []) scope[name] = evaluate(value, scope);
-    const present = new Set(geometry.panels.map(panel => panel.id));
-    const active = definition.fold.hinges.filter(hinge => present.has(hinge.child) && (hinge.when === undefined || evaluate(hinge.when, scope) !== 0));
-    checkHingeTree(definition, present, active);
-    const hinges: SheetHinge[] = active.map(hinge => ({
-      child: hinge.child,
-      parent: hinge.parent,
-      angle: 'angle' in hinge
-        ? evaluate(hinge.angle, scope)
-        : substage(hinge.drive === 'formation' ? progress.formation : 1 - progress.opening, evaluate(hinge.from, scope), evaluate(hinge.to, scope))
-          * (evaluate(hinge.degrees ?? 90, scope) / 90) * (Math.PI / 2),
-      ...(hinge.setback === undefined ? {} : { setback: evaluate(hinge.setback, scope) }),
-    }));
-    const panels: SheetPanel[] = geometry.panels.map(panel => {
-      const spec = definition.panels.find(candidate => candidate.id === panel.id && (candidate.when === undefined || evaluate(candidate.when, scope) !== 0))!;
+    const specOf = (id: string) => definition.panels.find(candidate => candidate.id === id && (candidate.when === undefined || evaluate(candidate.when, scope) !== 0))!;
+    const replaced = new Set([...(definition.fold.modelPanels ?? []), ...(definition.fold.surfaces ?? [])].map(piece => piece.of));
+    const panels: SheetPanel[] = geometry.panels.filter(panel => !replaced.has(panel.id)).map(panel => {
+      const spec = specOf(panel.id);
       return {
         id: panel.id,
         name: spec.name ?? panelName(panel.label),
@@ -62,6 +52,35 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
         ...(spec.closureFlap ? { closureFlap: true } : {}),
       };
     });
+    // Strips of a bending panel: each prints its part of the whole panel's artwork.
+    for (const piece of definition.fold.modelPanels ?? []) {
+      const whole = geometry.panels.find(panel => panel.id === piece.of);
+      if (!whole) continue;
+      const spec = specOf(whole.id);
+      panels.push({
+        id: piece.id,
+        name: spec.name ?? panelName(whole.label),
+        outline: piece.outline.map(([x, y]) => ({ x: evaluate(x, scope), y: evaluate(y, scope) })),
+        artworkFrame: whole.outline,
+        piece: whole.id,
+        ...(spec.layer === undefined ? {} : { layer: evaluate(spec.layer, scope) }),
+        ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}),
+        ...(spec.closureFlap ? { closureFlap: true } : {}),
+      });
+    }
+    const present = new Set(panels.map(panel => panel.id));
+    const active = definition.fold.hinges.filter(hinge => present.has(hinge.child) && (hinge.when === undefined || evaluate(hinge.when, scope) !== 0));
+    checkHingeTree(definition, present, active);
+    const hinges: SheetHinge[] = active.map(hinge => ({
+      child: hinge.child,
+      parent: hinge.parent,
+      angle: 'angle' in hinge
+        ? evaluate(hinge.angle, scope)
+        : substage(hinge.drive === 'formation' ? progress.formation : 1 - progress.opening, evaluate(hinge.from, scope), evaluate(hinge.to, scope))
+          * (evaluate(hinge.degrees ?? 90, scope) / 90) * (Math.PI / 2),
+      ...(hinge.setback === undefined ? {} : { setback: evaluate(hinge.setback, scope) }),
+      ...(hinge.sharp ? { sharp: true } : {}),
+    }));
     const placement = definition.fold.matrix
       ? definition.fold.matrix.map(value => evaluate(value, scope))
       : translation((definition.fold.offset ?? [0, 0, 0]).map(value => evaluate(value, scope)) as [number, number, number]);
@@ -72,13 +91,40 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
     ];
     const parentOf = new Map(hinges.map(hinge => [hinge.child, hinge.parent]));
     const rootOf = (id: string): string => (parentOf.has(id) ? rootOf(parentOf.get(id)!) : id);
+    const frames = new Map<string, Mat4>();
     const meshes = pieces.flatMap(piece => foldSheet({
       panels: panels.filter(panel => rootOf(panel.id) === piece.root),
       hinges: hinges.filter(hinge => rootOf(hinge.child) === piece.root),
       root: piece.root, thickness: scope.foldT,
       color: input.color, interiorColor: input.interiorColor,
-      placement: piece.placement,
+      placement: piece.placement, frames,
     }));
+    // Curved surfaces, through points carried by the folded panels.
+    const place = (vertex: SurfaceVertex): [number, number, number] => {
+      if ('on' in vertex) {
+        const frame = frames.get(vertex.on);
+        if (!frame) throw new Error(`a surface is placed on "${vertex.on}", which isn't folded`);
+        return apply(frame, [evaluate(vertex.at[0], scope), -evaluate(vertex.at[1], scope), 0]);
+      }
+      if ('from' in vertex) {
+        const point = place(vertex.from);
+        const { x, y, z } = vertex.set;
+        return [x === undefined ? point[0] : evaluate(x, scope), y === undefined ? point[1] : evaluate(y, scope), z === undefined ? point[2] : evaluate(z, scope)];
+      }
+      const [a, b] = vertex.mix.map(place), t = evaluate(vertex.t, scope);
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    };
+    for (const surface of definition.fold.surfaces ?? []) {
+      const whole = geometry.panels.find(panel => panel.id === surface.of);
+      if (!whole) continue;
+      const spec = specOf(whole.id);
+      meshes.push(...surfaceMeshes({
+        rows: surface.rows.map(row => row.map(point => place(point.place))),
+        flat: surface.rows.map(row => row.map(point => ({ x: evaluate(point.flat[0], scope), y: evaluate(point.flat[1], scope) }))),
+        panel: { id: whole.id, name: spec.name ?? panelName(whole.label), outline: whole.outline, ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}) },
+        thickness: scope.foldT, color: input.color, interiorColor: input.interiorColor,
+      }));
+    }
     return meshes.map((mesh: Mesh) => {
       const own = mesh.panel?.replace(/^Interior /, '');
       const fallback = own ? fallbacks.get(own) : undefined;

@@ -519,7 +519,10 @@ test('dimension changes flow through each ready template runtime',()=>{
     const widthAllowance={'mailer-box':5.5,'rigid-lid-base':1}[template.id]??0;
     const heightAllowance={'auto-lock-bottom-box':2,'snap-lock-bottom-box':2}[template.id]??0;
     within(front.width,changed.width+widthAllowance*changed.thickness,changed.thickness,`${template.id} front width`);
-    within(front.height,changed.height+heightAllowance*changed.thickness,2*changed.thickness,`${template.id} front height`);
+    // A pillow box's sizes are outside ones, and its face is cut as wide as its bow across the box.
+    const h=changed.height/2,R=(changed.depth**2/4+h*h)/(2*h);
+    const frontHeight=template.id==='pillow-box'?2*R*Math.asin(changed.depth/(2*R)):changed.height+heightAllowance*changed.thickness;
+    within(front.height,frontHeight,2*changed.thickness,`${template.id} front height`);
   }
 });
 
@@ -581,6 +584,7 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'rigid-lid-base':'rigid-lid-base',
     'auto-lock-bottom-box':'auto-lock-bottom',
     'snap-lock-bottom-box':'snap-lock-bottom',
+    'pillow-box':'pillow-box',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];

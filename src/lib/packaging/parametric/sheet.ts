@@ -1,7 +1,7 @@
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { arcPoints, finishExportGeometry, type ExportPanel, type LineMm, type PointMm } from '@/lib/packaging/export-geometry';
 import { evaluate, interpolate, type Expr, type Scope } from './expression';
-import { PARAMETRIC_TEMPLATE_FORMAT, type DimensionKey, type LineSpec, type OptionSpec, type OutlineEntry, type ExpandedTemplate, type ParametricTemplate } from './format';
+import { PARAMETRIC_TEMPLATE_FORMAT, type DimensionKey, type LineSpec, type OptionSpec, type OutlineEntry, type ExpandedTemplate, type ParametricTemplate, type SurfaceVertex } from './format';
 import { expandRepeats } from './repeat';
 
 // The flat half of a parametric template: sizes, the design grid and the
@@ -231,7 +231,28 @@ function checkStructure(definition: ExpandedTemplate) {
   for (const panel of definition.panels) {
     if (copies.get(panel.id)! > 1 && panel.when === undefined) fail(`panel "${panel.id}" is defined twice; give every copy a "when"`);
   }
-  const ids = new Set(copies.keys());
+  const panelIds = new Set(copies.keys());
+  // The model folds model panels in place of the panels they replace.
+  const replaced = new Set<string>(), modelIds = new Set<string>();
+  for (const piece of definition.fold.modelPanels ?? []) {
+    if (panelIds.has(piece.id) || modelIds.has(piece.id)) fail(`model panel "${piece.id}" reuses an id`);
+    if (!panelIds.has(piece.of)) fail(`model panel "${piece.id}" stands in for unknown panel "${piece.of}"`);
+    if (piece.outline?.length !== 4) fail(`model panel "${piece.id}" needs four corners`);
+    modelIds.add(piece.id);
+    replaced.add(piece.of);
+  }
+  for (const surface of definition.fold.surfaces ?? []) {
+    if (!panelIds.has(surface.of)) fail(`a surface stands in for unknown panel "${surface.of}"`);
+    if (surface.rows.length < 2 || surface.rows.some(row => row.length !== surface.rows[0].length || row.length < 2)) {
+      fail(`the surface for "${surface.of}" needs two or more rows of the same length`);
+    }
+    replaced.add(surface.of);
+  }
+  const ids = new Set([...[...panelIds].filter(id => !replaced.has(id)), ...modelIds]);
+  const placedOn = (vertex: SurfaceVertex): string[] => 'on' in vertex ? [vertex.on] : 'from' in vertex ? placedOn(vertex.from) : vertex.mix.flatMap(placedOn);
+  for (const surface of definition.fold.surfaces ?? []) for (const row of surface.rows) for (const point of row) {
+    for (const on of placedOn(point.place)) if (!ids.has(on)) fail(`the surface for "${surface.of}" is placed on "${on}", which the model doesn't fold`);
+  }
   if (!ids.has(definition.fold.root)) fail(`fold root "${definition.fold.root}" is not a panel`);
   const roots = new Set([definition.fold.root, ...(definition.fold.pieces ?? []).map(piece => piece.root)]);
   if (roots.size !== 1 + (definition.fold.pieces?.length ?? 0)) fail('each piece needs a root panel of its own');
