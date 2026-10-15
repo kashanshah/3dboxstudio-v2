@@ -146,11 +146,15 @@ export function compileParametricSheet(source: ParametricTemplate) {
   };
 
   /** The printable cutting template, after the size checks. */
-  const exportGeometry = (input: CartonDimensions, options: OptionValues = {}) => {
+  /** The size checks this box fails, as messages ("Use a depth of at least 20 mm."). */
+  const problems = (input: CartonDimensions, options: OptionValues = {}) => {
     const scope = values(input, options);
-    for (const check of definition.validations ?? []) {
-      if (!evaluate(check.require, scope)) throw new Error(interpolate(check.message, scope));
-    }
+    return (definition.validations ?? []).filter(check => !evaluate(check.require, scope)).map(check => interpolate(check.message, scope));
+  };
+
+  const exportGeometry = (input: CartonDimensions, options: OptionValues = {}) => {
+    const [problem] = problems(input, options);
+    if (problem) throw new Error(problem);
     return sheet(input, options);
   };
 
@@ -205,7 +209,7 @@ export function compileParametricSheet(source: ParametricTemplate) {
     return [...result.values()].filter(entry => entry.x || entry.y);
   };
 
-  return { definition, sanitize, values, adjustableSizes, adjustedPanels, panelSizes, sheet, exportGeometry };
+  return { definition, sanitize, values, adjustableSizes, adjustedPanels, panelSizes, sheet, problems, exportGeometry };
 }
 
 export type ParametricSheet = ReturnType<typeof compileParametricSheet>;
