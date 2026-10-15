@@ -15,6 +15,7 @@ export function TemplatePageLinks({ title = "Ready-to-use box templates", filter
       description: page.description,
       tags: page.tags,
       image: `/images/templates/${page.templateId}.webp`,
+      video: `/videos/templates/${page.templateId}.mp4`,
       size: `${formatMm(size.width)} × ${formatMm(size.height)} × ${formatMm(size.depth)} mm`,
       studioHref: studioTemplateHref(page.templateId, size, "mm"),
     };
