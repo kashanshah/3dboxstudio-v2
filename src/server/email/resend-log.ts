@@ -1,4 +1,4 @@
-const ENDPOINT = 'https://api.resend.com/emails';
+import { resendApiUrl } from './resend-api';
 const PAGE_SIZE = 25;
 
 export type SentEmailSummary = {
@@ -60,7 +60,7 @@ async function resendGet(path: string): Promise<ResendResult<unknown>> {
   // A slow Resend must not hold the admin page open indefinitely.
   let response: Response;
   try {
-    response = await fetch(`${ENDPOINT}${path}`, { headers: { Authorization: `Bearer ${key}` }, cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    response = await fetch(resendApiUrl(`/emails${path}`), { headers: { Authorization: `Bearer ${key}` }, cache: 'no-store', signal: AbortSignal.timeout(10000) });
   } catch (error) {
     const timedOut = error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError');
     return { ok: false, error: timedOut ? 'Resend did not respond in time. Try again.' : 'Could not reach Resend.' };

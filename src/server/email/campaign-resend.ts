@@ -1,3 +1,4 @@
+import { resendApiUrl } from './resend-api';
 import { CampaignError } from '@/lib/email-campaigns';
 
 export class ResendCampaignError extends CampaignError {
@@ -16,7 +17,7 @@ export async function resendCampaignRequest<T>(path: string, method = 'GET', bod
     await new Promise(resolve => setTimeout(resolve, 550));
     let response: Response;
     try {
-      response = await fetch(`https://api.resend.com${path}`, { method, cache: 'no-store', signal: AbortSignal.timeout(12_000), headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+      response = await fetch(resendApiUrl(path), { method, cache: 'no-store', signal: AbortSignal.timeout(12_000), headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     } catch { throw new CampaignError('Resend did not confirm the request. Refresh status before trying again.', 502); }
     if (response.status === 429 && attempt < 2) {
       const delay = Math.max(1, Math.min(4, Number(response.headers.get('retry-after')) || attempt + 1));

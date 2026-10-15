@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { neon } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { requireEnv } from './env';
 import { ADMIN_READ_MODEL_SCHEMA } from './admin/read-model-schema';
 import { LEGACY_SYNC_SCHEMA } from './legacy-schema';
@@ -8,6 +8,10 @@ let sql: ReturnType<typeof neon> | null = null;
 let schemaPromise: Promise<void> | null = null;
 
 export function getSql() {
+  // A local stand-in for Neon's HTTP endpoint, for the browser tests
+  // (e2e/support/services.mjs). Never set in production.
+  const endpoint = process.env.NEON_FETCH_ENDPOINT?.trim();
+  if (endpoint) neonConfig.fetchEndpoint = endpoint;
   if (!sql) sql = neon(requireEnv('DATABASE_URL'));
   return sql;
 }
