@@ -78,3 +78,15 @@ test('every template page has its own 1200×630 share image', () => {
     assert.deepEqual([header.readUInt32BE(16), header.readUInt32BE(20)], [1200, 630], `${page.slug} share image size`);
   }
 });
+
+test('every template card has its fold clip, small enough to load on hover', () => {
+  const shots = fs.readFileSync(path.join(__dirname, 'template-shots.mjs'), 'utf8');
+  for (const page of BOX_TEMPLATE_PAGES) {
+    const file = path.join(__dirname, '../public/videos/templates', `${page.templateId}.mp4`);
+    assert.ok(fs.existsSync(file), `${page.templateId} has no fold clip; run node scripts/render-template-clips.mjs`);
+    // An MP4 opens with its ftyp box; the clip stays under 600 KB.
+    assert.equal(fs.readFileSync(file).subarray(4, 8).toString('ascii'), 'ftyp', `${page.templateId} clip is an MP4`);
+    assert.ok(fs.statSync(file).size < 600 * 1024, `${page.templateId} clip is ${Math.round(fs.statSync(file).size / 1024)} KB`);
+    assert.ok(shots.includes(`id: '${page.templateId}'`), `${page.templateId} has a shot in scripts/template-shots.mjs`);
+  }
+});
