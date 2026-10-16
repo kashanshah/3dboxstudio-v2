@@ -1,6 +1,7 @@
 import { BOX_TEMPLATE_PAGES } from "@/content/box-template-pages";
 import { getPackagingTemplate } from "@/lib/packaging/template-registry";
 import { studioTemplateHref } from "@/lib/studio-entry";
+import { templateSearchText } from "@/lib/template-search";
 import { TemplateCards, type TemplateCard } from "./template-cards";
 
 const formatMm = (value: number) => String(Math.round(value * 10) / 10);
@@ -18,6 +19,7 @@ export function TemplatePageLinks({ title = "Ready-to-use box templates", filter
       video: `/videos/templates/${page.templateId}.mp4`,
       size: `${formatMm(size.width)} × ${formatMm(size.height)} × ${formatMm(size.depth)} mm`,
       studioHref: studioTemplateHref(page.templateId, size, "mm"),
+      searchText: templateSearchText([page.name, page.h1, page.description, ...page.tags, ...page.presets.flatMap(preset => [preset.label, preset.note]), ...page.sections.map(section => section.title), page.geometryNote]),
     };
   });
   return <section className="template-page-links" aria-labelledby="template-page-links-title">
