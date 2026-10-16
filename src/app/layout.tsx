@@ -4,6 +4,7 @@ import { LocaleProvider } from '@/components/i18n/locale-provider';
 import { translate } from '@/lib/i18n';
 import type { Metadata } from 'next';
 import { defaultOgImage, site } from '@/lib/site';
+import { jsonLd, organizationSchema } from '@/lib/seo';
 import '@fontsource/manrope/400.css';
 import '@fontsource/manrope/500.css';
 import '@fontsource/manrope/600.css';
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </LocaleProvider>
         <ConsentBanner />
         <Analytics />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema()) }} />
       </body>
     </html>
   );

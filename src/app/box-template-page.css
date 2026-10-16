@@ -2,7 +2,7 @@
 .btp-hero,.btp-sections,.btp-related,.btp-geometry-note{width:min(1180px,calc(100% - 40px));margin:0 auto}
 .btp-hero{padding:56px 0 32px}
 .btp-geometry-note{margin-top:14px!important;font-size:14px;line-height:1.55;color:#667085}
-.btp-breadcrumb{display:flex;gap:8px;font-size:14px;color:#667085;margin-bottom:22px}
+.btp-breadcrumb{margin-bottom:22px}
 .btp-breadcrumb a{color:#0f67e8;text-decoration:none}
 .btp-eyebrow{display:block;font-size:12px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:#0f67e8;margin-bottom:12px}
 .btp-hero h1{margin:0;font-size:clamp(38px,5.4vw,68px);line-height:1;letter-spacing:-.045em}
@@ -28,3 +28,8 @@
   .btp-sections{grid-template-columns:1fr;padding-top:48px}
   .btp-cards{grid-template-columns:1fr}
 }
+.btp-updated{margin-top:12px!important;font-size:14px!important;color:#667085!important}
+.btp-table{width:100%;border-collapse:collapse;font-size:15px}
+.btp-table th,.btp-table td{padding:9px 10px;border-bottom:1px solid #e4e7ec;text-align:left;vertical-align:top;color:#344054}
+.btp-table thead th{font-size:13px;color:#667085;font-weight:700}
+.btp-sections h3{margin:16px 0 6px;font-size:17px}

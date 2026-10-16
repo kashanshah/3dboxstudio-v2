@@ -6,6 +6,8 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react';
 import { ContentPageShell, StudioCta } from '@/components/content-page-shell';
 import { AdaptiveArticleImage } from '@/components/adaptive-article-image';
+import { Breadcrumbs } from '@/components/seo/breadcrumbs';
+import { breadcrumbSchema } from '@/lib/seo';
 import { BlogShareButtons } from '@/components/blog-share-buttons';
 import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel, getBlogPostImagePath } from '@/content/blogPosts';
 import { site } from '@/lib/site';
@@ -41,6 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [{ url: image, width: 1200, height: 800, alt: post.imageAlt ?? post.title }],
     },
     twitter: { card: 'summary_large_image', title: post.title, description: post.description, images: [image] },
+    ...(post.draft ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
@@ -59,6 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
   const toc = post.sections.flatMap((section, index) => section.type === 'h2' ? [{ id: headingId(section.text, index), text: section.text }] : []);
   const related = (post.relatedSlugs?.map((relatedSlug) => getBlogPostBySlug(relatedSlug)).filter(Boolean) ?? BLOG_POSTS.filter((item) => item.slug !== post.slug).slice(0, 3)) as typeof BLOG_POSTS;
 
+  const crumbs = [{ name: 'Guides', path: '/blog' }, { name: post.title, path: `/blog/${post.slug}` }];
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -84,6 +88,7 @@ export default async function BlogPostPage({ params }: Props) {
   return <ContentPageShell>
     <article>
       <header className="content-article-header">
+        <Breadcrumbs crumbs={crumbs} />
         <Link className="content-text-link" href="/blog"><ArrowLeft size={16}/> All guides</Link>
         <p className="content-eyebrow">{getBlogCategoryLabel(getBlogCategory(post.slug))}</p>
         <h1>{post.title}</h1>
@@ -121,8 +126,8 @@ export default async function BlogPostPage({ params }: Props) {
       <h2 id="related-tools-title">Free 3D box tools</h2>
       <ul>
         <li><Link href="/3d-box-mockup-generator"><strong>3D box mockup generator</strong><span>Turn your artwork into a 3D box mockup from real dimensions.</span></Link></li>
-        <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Generate a flat dieline with cut, crease and bleed guides.</span></Link></li>
-        <li><Link href="/box-templates"><strong>Box templates</strong><span>Tuck end cartons, mailer, pizza, split-top shipping, sleeve and rigid lid and base boxes.</span></Link></li>
+        <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Draw a dieline to your size and download SVG, PDF or DXF free, with no account.</span></Link></li>
+        <li><Link href="/box-templates"><strong>Box templates</strong><span>15 styles, from tuck end cartons and mailers to trays, cake boxes and rigid boxes.</span></Link></li>
         <li><Link href="/pacdora-alternative"><strong>Pacdora alternative</strong><span>A free browser workflow for dieline-to-3D packaging previews.</span></Link></li>
       </ul>
     </nav>
@@ -132,5 +137,6 @@ export default async function BlogPostPage({ params }: Props) {
     <StudioCta title="Put the next packaging concept into motion." />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
     {faqSchema ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} /> : null}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', ...breadcrumbSchema(crumbs) }) }} />
   </ContentPageShell>;
 }

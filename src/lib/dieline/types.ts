@@ -80,6 +80,8 @@ export interface DielineStyle {
   defaults: { length: number; width: number; depth: number; thickness: number };
   /** Modes the style can be sized in exactly; others are approximated with a warning. */
   modes: DimensionMode[];
+  /** The panel side each size is measured on, crease to crease (where the style has one): drag handles sit there. */
+  measure?: Record<'length' | 'width' | 'depth', [panel: string, side: 'width' | 'height']>;
   params: StyleParam[];
   generate(input: DielineInput): DielineOutput;
 }

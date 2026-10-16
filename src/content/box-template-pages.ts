@@ -25,6 +25,13 @@ export type BoxTemplatePage = {
   /** Gallery filters; the first is shown on the card. */
   tags: string[];
   updated: string;
+  /** Products and uses the style suits, and where another style does better (shown when given). */
+  bestFor?: string[];
+  notIdealFor?: string[];
+  /** Boards for this style: grade, caliper and what it suits (shown as a table when given). */
+  materials?: { board: string; caliper: string; use: string }[];
+  /** Related styles by slug, 2–4; otherwise the pages sharing most tags. */
+  related?: string[];
 };
 
 export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
@@ -837,4 +844,16 @@ export const BOX_TEMPLATE_PAGES: BoxTemplatePage[] = [
 
 export function getBoxTemplatePage(slug: string) {
   return BOX_TEMPLATE_PAGES.find(page => page.slug === slug);
+}
+
+/** 2–4 styles to suggest from a page: its own list, or those sharing most of its tags. */
+export function relatedTemplatePages(page: BoxTemplatePage, count = 4): BoxTemplatePage[] {
+  if (page.related?.length) return page.related.map(slug => getBoxTemplatePage(slug)).filter((other): other is BoxTemplatePage => other !== undefined).slice(0, count);
+  const shared = (other: BoxTemplatePage) => other.tags.filter(tag => page.tags.includes(tag)).length;
+  return BOX_TEMPLATE_PAGES
+    .filter(other => other.slug !== page.slug)
+    .map((other, index) => ({ other, score: shared(other) * 10 + (other.tags[0] === page.tags[0] ? 5 : 0) - index * 0.01 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map(item => item.other);
 }

@@ -178,6 +178,7 @@ function makeStyle(spec: StyleSpec): DielineStyle {
   return {
     id: spec.id, name: spec.name, category: spec.category, ...(spec.code ? { code: spec.code } : {}), templateId: spec.templateId,
     modes,
+    ...(spec.measure ? { measure: spec.measure } : {}),
     get defaults() {
       return (defaults ??= defaultsOf(spec));
     },

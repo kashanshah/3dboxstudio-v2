@@ -1,0 +1,23 @@
+.seo-breadcrumbs ol{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none;font-size:14px;color:#667085}
+.seo-breadcrumbs li{display:inline-flex;align-items:center;gap:6px}
+.seo-breadcrumbs li+li::before{content:"/";color:#98a2b3}
+.seo-breadcrumbs a{color:#0f67e8;text-decoration:none}
+.seo-breadcrumbs a:hover{text-decoration:underline}
+
+.seo-about{width:min(1180px,calc(100% - 32px));margin:48px auto;padding:24px;border:1px solid #e4e7ec;border-radius:20px;background:#f8fafc;color:#101828}
+.seo-about h2,.seo-about h3{margin:0 0 8px;font-size:20px;letter-spacing:-.02em}
+.seo-about>p{margin:0 0 14px;line-height:1.6;color:#344054}
+.seo-about dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:0 0 14px}
+.seo-about dl div{padding:12px 14px;border:1px solid #e4e7ec;border-radius:12px;background:#fff}
+.seo-about dt{font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#667085}
+.seo-about dd{margin:4px 0 0;font-size:14.5px;line-height:1.5}
+.seo-about-links{margin:0!important;font-size:14.5px}
+.seo-about-links a{color:#0f67e8;font-weight:600;text-decoration:none}
+
+.seo-use-file{width:min(1180px,calc(100% - 40px));margin:24px auto 56px}
+.seo-use-file h2{margin:0 0 16px;font-size:24px;letter-spacing:-.025em}
+.seo-use-file-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.seo-use-file-grid>div{padding:18px;border:1px solid #e4e7ec;border-radius:16px;background:#fff}
+.seo-use-file h3{margin:0 0 6px;font-size:16px}
+.seo-use-file p{margin:0;color:#475467;line-height:1.65;font-size:15px}
+@media (max-width:760px){.seo-use-file-grid{grid-template-columns:1fr}}

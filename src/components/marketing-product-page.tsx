@@ -4,6 +4,9 @@ import { ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
 import { FaqSection, type FaqSectionItem } from "./faq-section";
 import { StudioTour } from "./studio-tour";
+import { Breadcrumbs } from "./seo/breadcrumbs";
+import { AboutStudio } from "./seo/about-studio";
+import type { Crumb } from "@/lib/seo";
 import "./marketing-product-page.css";
 
 export type MarketingPageFaq = FaqSectionItem;
@@ -24,6 +27,8 @@ export function MarketingProductPage({
   showStudioProof = true,
   heroSecondary,
   afterHero,
+  breadcrumbs,
+  about = false,
 }: {
   eyebrow: string;
   title: string;
@@ -40,6 +45,10 @@ export function MarketingProductPage({
   heroSecondary?: { eyebrow: string; title: string; body: string };
   /** Rendered between the hero and the Studio tour, e.g. links to template pages. */
   afterHero?: ReactNode;
+  /** Visible breadcrumbs above the eyebrow (pair with breadcrumbSchema). */
+  breadcrumbs?: Crumb[];
+  /** The "About 3D Box Studio" facts block, after the sections. */
+  about?: boolean;
 }) {
   return <>
     <SiteHeader />
@@ -48,6 +57,7 @@ export function MarketingProductPage({
       <section className={`mpp-hero${heroAside ? " has-aside" : ""}${!showStudioProof ? " mpp-hero-combined" : ""}`}>
         <div className="mpp-hero-copy">
           <section className="mpp-hero-primary-copy">
+          {breadcrumbs ? <Breadcrumbs crumbs={breadcrumbs} className="mpp-breadcrumbs" /> : null}
           <span className="mpp-eyebrow">{eyebrow}</span>
           <h1>{title}</h1>
           <p>{intro}</p>
@@ -86,6 +96,8 @@ export function MarketingProductPage({
           <div><h2>{section.title}</h2><p>{section.body}</p>{section.bullets?.length ? <ul>{section.bullets.map(item=><li key={item}><CheckCircle2 />{item}</li>)}</ul> : null}</div>
         </article>)}
       </section>
+
+      {about ? <AboutStudio /> : null}
 
       {note ? <section className="mpp-note"><Info/><div><b>Important limitation</b><p>{note}</p></div></section> : null}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
 import { Box, Check, Download, Link2 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import { dielineToSvg } from "@/lib/dieline/export/svg";
@@ -14,7 +14,7 @@ import {
   type GeneratorState,
 } from "@/lib/dieline/state";
 import { studioTemplateHref } from "@/lib/studio-entry";
-import { DielinePreview } from "./dieline-preview";
+import { DielinePreview, type Axis, type ResizeHandle } from "./dieline-preview";
 import "./dieline-generator.css";
 
 // The free dieline generator: pick a style, type the box's size, and the
@@ -37,6 +37,16 @@ const FIELDS = [
   { key: "depth", label: "Depth", hint: "the height" },
 ] as const;
 type Field = (typeof FIELDS)[number]["key"];
+type ExportFormat = "pdf" | "pdf_a4" | "pdf_letter" | "svg" | "dxf" | "png" | "cricut";
+const EXPORTS: { id: ExportFormat; label: string; short: string; hint: string }[] = [
+  { id: "pdf", short: "PDF", label: "PDF · 100%, one page", hint: "Vector, at exact size, with a legend and a 50 mm scale bar." },
+  { id: "pdf_a4", short: "tiled PDF", label: "PDF · tiled on A4", hint: "For a home printer: print at 100% and tape the pages by the marks." },
+  { id: "pdf_letter", short: "tiled PDF", label: "PDF · tiled on Letter", hint: "For a home printer: print at 100% and tape the pages by the marks." },
+  { id: "svg", short: "SVG", label: "SVG · layered", hint: "For Illustrator, Inkscape and Affinity: a layer per line type." },
+  { id: "dxf", short: "DXF", label: "DXF · CAD", hint: "For CAD, die makers and cutting tables: mm, CUT and CREASE layers." },
+  { id: "png", short: "PNG", label: "PNG · 300 dpi", hint: "A picture of the dieline, for proofs and listings." },
+  { id: "cricut", short: "Cricut file", label: "Cricut / Silhouette SVG", hint: "Cut lines in black, score lines in blue, sized in inches." },
+];
 type Text = Record<Field, string>;
 
 const textOf = (state: GeneratorState): Text => ({ length: String(state.length), width: String(state.width), depth: String(state.depth) });
@@ -109,11 +119,13 @@ function save(name: string, data: BlobPart, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function DielineGenerator({ setup, presets = [], title = "Make your dieline" }: {
+export function DielineGenerator({ setup, presets = [], title = "Make your dieline", className }: {
   /** The picker and the first box, drawn on the server (lib/dieline/thumbnails.ts). */
   setup: GeneratorSetup;
   presets?: GeneratorPreset[];
   title?: string;
+  /** Sizing from the page: the tool fills its container. */
+  className?: string;
 }) {
   const id = useId();
   const { styles: thumbs, initial } = setup;
@@ -129,7 +141,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const { state, text, thicknessText, optionText } = current;
   const [showLabels, setShowLabels] = useState(true);
   const [showSizes, setShowSizes] = useState(true);
-  const [tile, setTile] = useState<"a4" | "letter">("a4");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const tracked = useRef(new Set<string>());
@@ -222,7 +234,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const windowOn = (state.options.window ?? 0) > 0;
   const lengthSizes = sizes.filter(size => size.key !== "window");
 
-  const download = async (format: "svg" | "pdf" | "pdf-tiled" | "dxf" | "png" | "cricut") => {
+  const download = async (format: ExportFormat) => {
     if (!output) return;
     setBusy(format);
     try {
@@ -230,16 +242,17 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
       if (format === "svg") save(exportName(state, "svg"), dielineToSvg(output, { title: name, annotations: showSizes }), "image/svg+xml");
       if (format === "cricut") save(exportName(state, "svg", "-cricut"), dielineToCricutSvg(output, name), "image/svg+xml");
       if (format === "dxf") save(exportName(state, "dxf"), dielineToDxf(output), "application/dxf");
-      if (format === "pdf" || format === "pdf-tiled") {
+      if (format === "pdf" || format === "pdf_a4" || format === "pdf_letter") {
         const { dielineToPdf } = await import("@/lib/dieline/export/pdf");
-        const bytes = await dielineToPdf(output, { title: name, annotations: true, ...(format === "pdf-tiled" ? { tile } : {}) });
-        save(exportName(state, "pdf", format === "pdf-tiled" ? `-${tile}` : ""), bytes as BlobPart, "application/pdf");
+        const tile = format === "pdf_a4" ? "a4" : format === "pdf_letter" ? "letter" : undefined;
+        const bytes = await dielineToPdf(output, { title: name, annotations: true, ...(tile ? { tile } : {}) });
+        save(exportName(state, "pdf", tile ? `-${tile}` : ""), bytes as BlobPart, "application/pdf");
       }
       if (format === "png") {
         const { dielineToPng } = await import("@/lib/dieline/export/png");
         save(exportName(state, "png"), await dielineToPng(output, 300, { title: name, annotations: showSizes }), "image/png");
       }
-      trackEvent("dieline_export", { format: format === "pdf-tiled" ? `pdf_${tile}` : format, style: state.style, unit, mode: state.mode });
+      trackEvent("dieline_export", { format, style: state.style, unit, mode: state.mode });
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "The file couldn't be made.");
     } finally {
@@ -265,8 +278,16 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const inner = output ? `${format(output.inner.length)} × ${format(output.inner.width)} × ${format(output.inner.depth)}` : null;
   const cricutFits = output ? Math.min(output.bounds.width, output.bounds.height) <= 292 && Math.max(output.bounds.width, output.bounds.height) <= 597 : false;
 
-  return <section className="dg" aria-labelledby={`${id}-title`} onPointerDownCapture={() => void loadEngine()} onFocusCapture={() => void loadEngine()}>
-    <h2 id={`${id}-title`} className="dg-title">{title}</h2>
+  const step = unit === "in" ? 0.05 : 1;
+  const mmPerUnit = unit === "in" ? MM_PER_IN : 1;
+  const handles: ResizeHandle[] = meta.measure ? FIELDS.map(field => ({ axis: field.key, label: field.label, panel: meta.measure![field.key][0], side: meta.measure![field.key][1] })) : [];
+  const resize = (axis: Axis, value: number) => { void loadEngine(); setSize(axis, String(value)); };
+
+  return <section className={`dg${className ? ` ${className}` : ""}`} aria-labelledby={`${id}-title`} onPointerDownCapture={() => void loadEngine()} onFocusCapture={() => void loadEngine()}>
+    <div className="dg-head">
+      <h2 id={`${id}-title`} className="dg-title">{title}</h2>
+      <p>Free · no account · SVG, PDF, DXF, PNG and Cricut</p>
+    </div>
 
     <div ref={strip} className="dg-styles" role="radiogroup" aria-label="Box style">
       {thumbs.map(thumb => <button key={thumb.id} type="button" role="radio" aria-checked={thumb.id === state.style} onClick={() => void chooseStyle(thumb.id)}>
@@ -276,114 +297,132 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
       </button>)}
     </div>
 
-    <div className="dg-body">
-      <div className="dg-controls">
-        {presets.length ? <div className="dg-presets" role="group" aria-label="Common sizes">
-          {presets.map(preset => <button key={preset.label} type="button" onClick={() => choosePreset(preset)}
-            aria-pressed={preset.units === unit && preset.length === state.length && preset.width === state.width && preset.depth === state.depth}>
-            <b>{preset.label}</b>{preset.note ? <small>{preset.note}</small> : null}
-          </button>)}
-        </div> : null}
+    {presets.length ? <div className="dg-presets" role="group" aria-label="Common sizes">
+      <span>Common sizes</span>
+      {presets.map(preset => <button key={preset.label} type="button" onClick={() => choosePreset(preset)} title={preset.note}
+        aria-pressed={preset.units === unit && preset.length === state.length && preset.width === state.width && preset.depth === state.depth}>{preset.label}</button>)}
+    </div> : null}
 
-        <fieldset className="dg-group">
-          <legend>Size</legend>
-          <div className="dg-segmented" role="group" aria-label="Units">
-            {(["mm", "in"] as const).map(option => <button key={option} type="button" aria-pressed={unit === option} onClick={() => changeUnit(option)}>{option === "mm" ? "Millimetres" : "Inches"}</button>)}
-          </div>
-          <div className="dg-fields">
-            {FIELDS.map(field => <label key={field.key}>
-              <span>{field.label} <small>{field.hint}</small></span>
-              <span className="dg-input"><input type="number" inputMode="decimal" min={0} step={unit === "in" ? 0.05 : 1} value={text[field.key]} onChange={event => setSize(field.key, event.target.value)} /><i>{unit}</i></span>
-            </label>)}
-          </div>
-          <label className="dg-select">
-            <span>Measured as</span>
-            <select value={state.mode} onChange={event => apply({ ...state, mode: event.target.value as DimensionMode })}>
-              {(["inner", "outer", "manufacture"] as const).map(mode => <option key={mode} value={mode} disabled={!meta.modes.includes(mode)}>
-                {MODE_LABELS[mode].label}{meta.modes.includes(mode) ? "" : " (not for this style)"}
-              </option>)}
-            </select>
-            <small>{MODE_LABELS[state.mode].hint}</small>
-          </label>
-        </fieldset>
-
-        <fieldset className="dg-group">
-          <legend>Board</legend>
-          <label className="dg-select">
-            <span>Material</span>
-            <select value={state.material} onChange={event => changeMaterial(event.target.value)}>
-              {MATERIALS.map(material => <option key={material.id} value={material.id}>{material.label} ({material.thickness} mm)</option>)}
-              <option value={CUSTOM_MATERIAL}>Custom thickness</option>
-            </select>
-          </label>
-          <label className="dg-thickness">
-            <span>Thickness <small>{toPoints(state.thickness)} pt</small></span>
-            <span className="dg-input"><input type="number" inputMode="decimal" min={0.1} max={10} step={0.01} value={thicknessText} onChange={event => setThickness(event.target.value)} /><i>mm</i></span>
-          </label>
-        </fieldset>
-
-        {hasWindow ? <fieldset className="dg-group">
-          <legend>Window</legend>
-          <label className="dg-check"><input type="checkbox" checked={windowOn} onChange={event => setOption("window", event.target.checked ? String(unit === "in" ? 1 : 30) : "0")} /> Cut a window in the lid</label>
-          {windowOn ? <label>
-            <span>Border round the window</span>
-            <span className="dg-input"><input type="number" inputMode="decimal" min={0} step={unit === "in" ? 0.05 : 1} value={optionText.window ?? ""} onChange={event => setOption("window", event.target.value)} /><i>{unit}</i></span>
-          </label> : null}
-        </fieldset> : null}
-
-        {lengthSizes.length ? <details className="dg-group dg-advanced">
-          <summary>Flaps and allowances</summary>
-          <p>Leave blank for the style&apos;s own size, worked out from your box.</p>
-          {lengthSizes.map(size => <label key={size.key}>
-            <span>{size.label} <small>{inUnits(size.min)}–{inUnits(size.max)} {unit}</small></span>
-            <span className="dg-input"><input type="number" inputMode="decimal" min={0} step={unit === "in" ? 0.01 : 0.5} placeholder={String(inUnits(size.value))} value={optionText[size.key] ?? ""} onChange={event => setOption(size.key, event.target.value)} /><i>{unit}</i></span>
-          </label>)}
-        </details> : null}
-      </div>
-
-      <div className="dg-main">
-        <div className="dg-toolbar">
-          <label className="dg-check"><input type="checkbox" checked={showLabels} onChange={event => setShowLabels(event.target.checked)} /> Panel names</label>
-          <label className="dg-check"><input type="checkbox" checked={showSizes} onChange={event => setShowSizes(event.target.checked)} /> Sizes</label>
-        </div>
+    <div className="dg-workspace">
+      <div className="dg-stage">
         {output
           ? <DielinePreview output={output} showLabels={showLabels} showSizes={showSizes} format={format}
-            label={`Flat dieline of a ${meta.name.toLowerCase()}, ${state.length} × ${state.width} × ${state.depth} ${unit} (${MODE_LABELS[state.mode].label.toLowerCase()}); the flat sheet is ${sheet}.`} />
+            handles={handles} values={{ length: state.length, width: state.width, depth: state.depth }} step={step} mmPerUnit={mmPerUnit} unitLabel={unit} onResize={resize}
+            label={`Flat dieline of a ${meta.name.toLowerCase()}, ${state.length} × ${state.width} × ${state.depth} ${unit} (${MODE_LABELS[state.mode].label.toLowerCase()}); the flat sheet is ${sheet}.`}
+            toolbar={<div className="dg-view-toggles" role="group" aria-label="Show">
+              <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels(value => !value)}>Names</button>
+              <button type="button" aria-pressed={showSizes} onClick={() => setShowSizes(value => !value)}>Sizes</button>
+            </div>} />
           : <div className="dg-preview dg-error" role="alert">{"error" in result ? result.error : null}</div>}
+      </div>
 
-        {output ? <dl className="dg-summary">
+      <aside className="dg-inspector" aria-label="Box settings">
+        <section className="dg-panel">
+          <div className="dg-panel-head">
+            <h3>Size</h3>
+            <div className="dg-seg" role="group" aria-label="Units">
+              {(["mm", "in"] as const).map(option => <button key={option} type="button" aria-pressed={unit === option} onClick={() => changeUnit(option)}>{option}</button>)}
+            </div>
+          </div>
+          <div className="dg-dims">
+            {FIELDS.map(field => <ScrubField key={field.key} letter={field.label[0]} label={`${field.label} in ${unit}, ${field.hint}`} value={text[field.key]} step={step}
+              onChange={value => setSize(field.key, value)} />)}
+          </div>
+          <div className="dg-seg dg-seg-wide" role="radiogroup" aria-label="Measured as">
+            {(["inner", "outer", "manufacture"] as const).map(mode => <button key={mode} type="button" role="radio" aria-checked={state.mode === mode} disabled={!meta.modes.includes(mode)}
+              onClick={() => apply({ ...state, mode })} title={MODE_LABELS[mode].hint}>{MODE_LABELS[mode].label}</button>)}
+          </div>
+          <p className="dg-hint-text">{MODE_LABELS[state.mode].hint}</p>
+        </section>
+
+        <section className="dg-panel">
+          <h3>Board</h3>
+          <div className="dg-board">
+            <label className="dg-select"><span className="dg-sr">Material</span>
+              <select value={state.material} onChange={event => changeMaterial(event.target.value)}>
+                {MATERIALS.map(material => <option key={material.id} value={material.id}>{material.label}</option>)}
+                <option value={CUSTOM_MATERIAL}>Custom</option>
+              </select>
+            </label>
+            <ScrubField letter="T" label={`Board thickness, ${toPoints(state.thickness)} pt`} value={thicknessText} unit="mm" step={0.01} min={0.1} onChange={setThickness} />
+          </div>
+        </section>
+
+        {hasWindow ? <section className="dg-panel">
+          <div className="dg-panel-head">
+            <h3>Window</h3>
+            <label className="dg-switch"><input type="checkbox" checked={windowOn} onChange={event => setOption("window", event.target.checked ? String(unit === "in" ? 1 : 30) : "0")} /> <span>Cut a window in the lid</span></label>
+          </div>
+          {windowOn ? <ScrubField letter="B" label="Border round the window" value={optionText.window ?? ""} unit={unit} step={step} min={0} onChange={value => setOption("window", value)} /> : null}
+        </section> : null}
+
+        {lengthSizes.length ? <details className="dg-panel dg-advanced">
+          <summary><h3>Flaps and allowances</h3></summary>
+          <p className="dg-hint-text">Blank uses the style&apos;s own size for your box.</p>
+          {lengthSizes.map(size => <ScrubField key={size.key} label={`${size.label}, ${inUnits(size.min)} to ${inUnits(size.max)} ${unit}`} text={size.label} value={optionText[size.key] ?? ""}
+            placeholder={String(inUnits(size.value))} unit={unit} step={unit === "in" ? 0.01 : 0.5} min={0} onChange={value => setOption(size.key, value)} />)}
+        </details> : null}
+
+        {output ? <dl className="dg-panel dg-summary">
           <div><dt>Flat sheet</dt><dd>{sheet}</dd></div>
           <div><dt>Inside</dt><dd>{inner}</dd></div>
-          <div><dt>Panels</dt><dd>{output.panels.length}</dd></div>
+          <div><dt>Cricut mat</dt><dd>{cricutFits ? "Fits 12 × 24 in" : "Too large"}</dd></div>
         </dl> : null}
         {output?.warnings.length ? <ul className="dg-warnings" role="status">{output.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul> : null}
 
-        <div className="dg-actions">
-          <h3>Download <small>Free, no account, no watermark</small></h3>
-          <div className="dg-downloads">
-            <button type="button" onClick={() => download("svg")} disabled={!output || busy !== null}><Download aria-hidden="true" /> SVG <small>Illustrator, Inkscape</small></button>
-            <button type="button" onClick={() => download("pdf")} disabled={!output || busy !== null}><Download aria-hidden="true" /> PDF <small>{busy === "pdf" ? "Making…" : "At 100%, one page"}</small></button>
-            <button type="button" onClick={() => download("dxf")} disabled={!output || busy !== null}><Download aria-hidden="true" /> DXF <small>CAD, cutting tables</small></button>
-            <button type="button" onClick={() => download("png")} disabled={!output || busy !== null}><Download aria-hidden="true" /> PNG <small>{busy === "png" ? "Making…" : "300 dpi preview"}</small></button>
-            <button type="button" onClick={() => download("cricut")} disabled={!output || busy !== null}><Download aria-hidden="true" /> Cricut / Silhouette <small>Cut and score SVG</small></button>
-            <span className="dg-tiled">
-              <button type="button" onClick={() => download("pdf-tiled")} disabled={!output || busy !== null}><Download aria-hidden="true" /> Print at home <small>{busy === "pdf-tiled" ? "Making…" : "Tiled PDF"}</small></button>
-              <select aria-label="Paper size" value={tile} onChange={event => setTile(event.target.value as "a4" | "letter")}><option value="a4">A4</option><option value="letter">Letter</option></select>
-            </span>
+        <section className="dg-panel dg-export">
+          <h3>Export</h3>
+          <div className="dg-export-row">
+            <label className="dg-select"><span className="dg-sr">File type</span>
+              <select value={exportFormat} onChange={event => setExportFormat(event.target.value as ExportFormat)}>
+                {EXPORTS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+            </label>
           </div>
-          <details className="dg-cricut">
-            <summary>Using a Cricut or Silhouette{output ? (cricutFits ? ": fits a 12 × 24 in mat" : ": larger than a 12 × 24 in mat") : ""}</summary>
-            <ol>{CRICUT_STEPS.map(step => <li key={step}>{step}</li>)}</ol>
-          </details>
-          <div className="dg-more">
-            {studioHref ? <Link className="dg-primary" href={studioHref} onClick={() => trackEvent("dieline_open_3d", { style: state.style, unit })}><Box aria-hidden="true" /> Open in 3D Box Studio</Link> : null}
-            <button type="button" className="dg-secondary" onClick={share} disabled={!output}>{copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />} {copied ? "Link copied" : "Copy link to this box"}</button>
-          </div>
-          <p className="dg-note">3D Box Studio folds this box in 3D with your artwork; it needs a free account. Check the board, allowances and bleed with your printer before production.</p>
-        </div>
-      </div>
+          <button type="button" className="dg-download" onClick={() => void download(exportFormat)} disabled={!output || busy !== null}>
+            <Download aria-hidden="true" /> {busy ? "Making…" : `Download ${EXPORTS.find(item => item.id === exportFormat)?.short}`}
+          </button>
+          <p className="dg-hint-text">{EXPORTS.find(item => item.id === exportFormat)?.hint} No account, no watermark.</p>
+          {exportFormat === "cricut" ? <details className="dg-cricut"><summary>How to cut it</summary><ol>{CRICUT_STEPS.map(stepText => <li key={stepText}>{stepText}</li>)}</ol></details> : null}
+          {studioHref ? <Link className="dg-primary" href={studioHref} onClick={() => trackEvent("dieline_open_3d", { style: state.style, unit })}><Box aria-hidden="true" /> Open in 3D Box Studio</Link> : null}
+          <button type="button" className="dg-secondary" onClick={share} disabled={!output}>{copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />} {copied ? "Link copied" : "Copy link to this box"}</button>
+          <p className="dg-note">The Studio adds your artwork and folds the box in 3D; it needs a free account. Check the board and allowances with your printer before production.</p>
+        </section>
+      </aside>
     </div>
   </section>;
+}
+
+/**
+ * A compact number field, like a design tool's: drag sideways on its letter
+ * to scrub the value (shift for ten steps at a time), or type into it.
+ */
+function ScrubField({ letter, text, label, value, unit, step, min = 0, placeholder, onChange }: {
+  letter?: string; text?: string; label: string; value: string; unit?: string; step: number; min?: number; placeholder?: string; onChange: (value: string) => void;
+}) {
+  const scrub = useRef<{ id: number; x: number; from: number } | null>(null);
+  const decimals = Math.max(0, -Math.floor(Math.log10(step)));
+  const onDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (event.button !== 0) return;
+    const from = Number(value || placeholder || 0);
+    if (!Number.isFinite(from)) return;
+    scrub.current = { id: event.pointerId, x: event.clientX, from };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+  const onMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const start = scrub.current;
+    if (!start || start.id !== event.pointerId) return;
+    const steps = Math.round((event.clientX - start.x) / 3) * (event.shiftKey ? 10 : 1);
+    onChange(String(Number(Math.max(min, start.from + steps * step).toFixed(decimals))));
+  };
+  const onUp = () => { scrub.current = null; };
+  return <label className={`dg-field${text ? " has-text" : ""}`}>
+    <span className="dg-scrub" title="Drag to change" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} aria-hidden="true">{letter ?? text}</span>
+    <span className="dg-sr">{label}</span>
+    <input type="number" inputMode="decimal" min={min} step={step} value={value} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
+    {unit ? <i>{unit}</i> : null}
+  </label>;
 }
 
 function sizeText(state: GeneratorState) {

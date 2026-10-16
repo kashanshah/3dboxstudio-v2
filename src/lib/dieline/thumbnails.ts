@@ -1,14 +1,14 @@
 import { DIELINE_STYLES, getDielineStyle } from './styles';
 import { parsePath } from './export/paths';
 import { defaultState, type GeneratorState } from './state';
-import type { DielineOutput, DimensionMode, Units } from './types';
+import type { DielineOutput, DielineStyle, DimensionMode, Units } from './types';
 
 // What the dieline generator needs from the server: the style picker's
 // cards and the first box, already drawn. The browser loads the engine only
 // once the visitor starts changing things, so the page stays light.
 
 /** A style's card in the generator's picker: its cut outline at the default size. */
-export type StyleThumb = { id: string; name: string; code?: string; templateId: string; modes: DimensionMode[]; viewBox: string; d: string };
+export type StyleThumb = { id: string; name: string; code?: string; templateId: string; modes: DimensionMode[]; measure?: DielineStyle['measure']; viewBox: string; d: string };
 
 export type GeneratorSetup = { styles: StyleThumb[]; initial: GeneratorState; output: DielineOutput };
 
@@ -21,7 +21,7 @@ export function styleThumbnails(): StyleThumb[] {
     const path = runs.map(run => run.map(([x, y], i) => `${i ? 'L' : 'M'}${Math.round(x)} ${Math.round(y)}`).join('')).join('');
     const pad = Math.max(output.bounds.width, output.bounds.height) * 0.04;
     return {
-      id: style.id, name: style.name, ...(style.code ? { code: style.code } : {}), templateId: style.templateId, modes: style.modes,
+      id: style.id, name: style.name, ...(style.code ? { code: style.code } : {}), templateId: style.templateId, modes: style.modes, ...(style.measure ? { measure: style.measure } : {}),
       viewBox: [-pad, -pad, output.bounds.width + 2 * pad, output.bounds.height + 2 * pad].map(value => Math.round(value)).join(' '),
       d: path,
     };
