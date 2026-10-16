@@ -37,3 +37,27 @@ test('an unknown page is a 404', async ({ page }) => {
   const response = await page.goto('/no-such-page-e2e');
   expect(response?.status()).toBe(404);
 });
+
+test('the box templates can be searched, together with the tag filters', async ({ page }) => {
+  await page.goto('/box-templates');
+  const cards = page.locator('.template-card');
+  const total = await cards.count();
+  expect(total).toBeGreaterThan(5);
+  const search = page.getByRole('searchbox', { name: 'Search box templates' });
+
+  await search.fill('pizza');
+  await expect(cards).toHaveCount(1);
+  await expect(cards.first().getByRole('heading')).toContainText(/pizza/i);
+  await expect(page.getByRole('status').filter({ hasText: 'of' })).toContainText(`1 of ${total} templates`);
+
+  // Size presets are searchable too: "perfume" finds the tuck end cartons.
+  await search.fill('perfume');
+  await expect(cards.filter({ hasText: /reverse tuck end/i })).toHaveCount(1);
+
+  await search.fill('no such box anywhere');
+  await expect(cards).toHaveCount(0);
+  await expect(page.getByText(/No template matches/)).toBeVisible();
+  await page.getByRole('button', { name: 'Show all templates' }).click();
+  await expect(search).toHaveValue('');
+  await expect(cards).toHaveCount(total);
+});

@@ -522,7 +522,20 @@
 .template-page-links{width:min(1288px,100% - 64px);margin:0 auto 72px;padding:0 24px}
 .template-page-links h2{margin:0;font-size:clamp(28px,3.4vw,40px);letter-spacing:-.035em}
 .template-page-links>p{margin:10px 0 22px;color:#5f6b7a;font-size:17px}
-.template-card-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.template-card-tools{display:grid;gap:12px;margin:0 0 20px}
+.template-card-search{position:relative;display:flex;align-items:center;max-width:520px}
+.template-card-search>svg{position:absolute;left:14px;width:18px;height:18px;color:#667085;pointer-events:none}
+.template-card-search input{width:100%;height:46px;padding:0 44px 0 42px;border:1px solid #d0d5dd;border-radius:12px;background:#fff;color:#101828;font:inherit;font-size:15px}
+.template-card-search input:focus{outline:2px solid #0f67e8;outline-offset:1px;border-color:#0f67e8}
+.template-card-search input::-webkit-search-cancel-button{display:none}
+.template-card-search button{position:absolute;right:8px;display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:#667085;cursor:pointer}
+.template-card-search button:hover{background:#f2f4f7;color:#101828}
+.template-card-search button svg{width:16px;height:16px}
+.template-card-count{margin:0;color:#667085;font-size:13px}
+.template-card-empty{display:grid;justify-items:start;gap:10px;margin:0 0 24px;padding:20px;border:1px dashed #d0d5dd;border-radius:14px;color:#475467}
+.template-card-empty p{margin:0}
+.template-card-empty button{height:36px;padding:0 14px;border:1px solid #0f67e8;border-radius:999px;background:#fff;color:#0f67e8;font-weight:600;cursor:pointer}
+.template-card-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0}
 .template-card-filters button{height:36px;padding:0 14px;border:1px solid #d0d5dd;border-radius:999px;background:#fff;color:#344054;font-size:14px;font-weight:600;cursor:pointer}
 .template-card-filters button:hover{border-color:#0f67e8;color:#0f67e8}
 .template-card-filters button[aria-pressed="true"]{background:#0f67e8;border-color:#0f67e8;color:#fff}

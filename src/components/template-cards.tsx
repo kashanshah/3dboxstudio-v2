@@ -2,18 +2,34 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Search, X } from "lucide-react";
+import { matchesTemplateSearch } from "@/lib/template-search";
 
-export type TemplateCard = { slug: string; name: string; description: string; tags: string[]; image: string; video?: string; size: string; studioHref: string };
+export type TemplateCard = { slug: string; name: string; description: string; tags: string[]; image: string; video?: string; size: string; studioHref: string; /** Prepared by templateSearchText. */ searchText?: string };
 
 export function TemplateCards({ cards, filters }: { cards: TemplateCard[]; filters: boolean }) {
   const [tag, setTag] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const tags = Array.from(new Set(cards.flatMap(card => card.tags)));
-  const shown = tag ? cards.filter(card => card.tags.includes(tag)) : cards;
+  const shown = cards.filter(card => (!tag || card.tags.includes(tag)) && matchesTemplateSearch(query, card.searchText ?? ` ${card.name} ${card.description} ${card.tags.join(" ")} `));
+  const reset = () => { setQuery(""); setTag(null); };
   return <>
-    {filters && <div className="template-card-filters" role="group" aria-label="Filter templates">
-      <button type="button" aria-pressed={tag === null} onClick={() => setTag(null)}>All</button>
-      {tags.map(name => <button type="button" key={name} aria-pressed={tag === name} onClick={() => setTag(name)}>{name}</button>)}
+    {filters && <div className="template-card-tools">
+      <label className="template-card-search">
+        <Search aria-hidden="true" />
+        <span className="sr-only">Search box templates</span>
+        <input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search templates: mailer, pizza, perfume, FEFCO…" autoComplete="off" />
+        {query && <button type="button" onClick={() => setQuery("")} aria-label="Clear search"><X aria-hidden="true" /></button>}
+      </label>
+      <div className="template-card-filters" role="group" aria-label="Filter templates">
+        <button type="button" aria-pressed={tag === null} onClick={() => setTag(null)}>All</button>
+        {tags.map(name => <button type="button" key={name} aria-pressed={tag === name} onClick={() => setTag(name)}>{name}</button>)}
+      </div>
+      <p className="template-card-count" role="status">{shown.length === cards.length ? `${cards.length} templates` : `${shown.length} of ${cards.length} templates`}</p>
+    </div>}
+    {shown.length === 0 && <div className="template-card-empty">
+      <p>No template matches {query ? <>&ldquo;{query}&rdquo;</> : "this filter"}{query && tag ? ` in ${tag}` : ""}.</p>
+      <button type="button" onClick={reset}>Show all templates</button>
     </div>}
     <div className="template-card-grid">{shown.map(card => <article className="template-card" key={card.slug}>
       <Link className="template-card-media" href={`/box-templates/${card.slug}`} tabIndex={-1} aria-hidden="true">
