@@ -453,3 +453,4 @@ button.contact-topic-card:focus-visible{outline:2px solid var(--accent);outline-
 @media(max-width:900px){.faq-categories{mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:24px}}
 @media(max-width:650px){.faq-list summary{font-size:16px}.faq-list details p{margin-right:0;font-size:15px}.faq-categories a{min-height:40px;display:flex;align-items:center}}
 @media(prefers-reduced-motion:reduce){.faq-list summary::after,.content-article-toc-mobile summary::after{transition:none}}
+.content-article-header .seo-breadcrumbs{margin-bottom:16px}

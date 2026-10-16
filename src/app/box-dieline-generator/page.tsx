@@ -4,6 +4,7 @@ import { TemplatePageLinks } from "@/components/template-page-links";
 import { site, defaultOgImage } from "@/lib/site";
 import { DielineGenerator } from "@/components/dieline-generator/dieline-generator";
 import { generatorSetup } from "@/lib/dieline/thumbnails";
+import { breadcrumbSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: { absolute: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio" },
@@ -110,7 +111,8 @@ export default function Page(){
   const schema={"@context":"https://schema.org","@graph":[
     {"@type":"WebPage",name:"Free box dieline generator: draw it to size, download it, fold it in 3D.",description:"Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",url},
     {"@type":"SoftwareApplication",name:"Box dieline generator",applicationCategory:"DesignApplication",operatingSystem:"Any (runs in the browser)",url,offers:{"@type":"Offer",price:"0",priceCurrency:"USD"},featureList:["15 box styles","Inside, outside and manufacture sizes","SVG, PDF, DXF and PNG downloads","Cricut and Silhouette cut files","Tiled PDF for home printers","No sign-up"]},
+    breadcrumbSchema([{name:"Box dieline generator",path:"/box-dieline-generator"}]),
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Box dieline generator" title="Free box dieline generator: draw it to size, download it, fold it in 3D." intro="Pick a box style, type your size, and download the dieline as SVG, PDF, DXF, PNG or a Cricut file. Free, with no account, no watermark and no limits." secondaryHref="/blog/how-to-generate-box-dieline-online" secondaryLabel="Read the dieline guide" sections={sections} faqs={faqs} note="Use generated dielines for design, panel planning, and visualization. Before production, validate final geometry, bleed, folds, tolerances, material behavior, and tooling requirements with the printer or structural packaging workflow responsible for manufacturing." afterHero={<><DielineGenerator setup={generatorSetup("reverse-tuck-end")} title="Choose a style and size" /><TemplatePageLinks title="Templates with guides for each box" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage breadcrumbs={[{name:"Box dieline generator",path:"/box-dieline-generator"}]} about eyebrow="Box dieline generator" title="Free box dieline generator: draw it to size, download it, fold it in 3D." intro="Pick a box style, type your size, and download the dieline as SVG, PDF, DXF, PNG or a Cricut file. Free, with no account, no watermark and no limits." secondaryHref="/blog/how-to-generate-box-dieline-online" secondaryLabel="Read the dieline guide" sections={sections} faqs={faqs} note="Use generated dielines for design, panel planning, and visualization. Before production, validate final geometry, bleed, folds, tolerances, material behavior, and tooling requirements with the printer or structural packaging workflow responsible for manufacturing." afterHero={<><DielineGenerator setup={generatorSetup("reverse-tuck-end")} title="Choose a style and size" /><TemplatePageLinks title="Templates with guides for each box" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

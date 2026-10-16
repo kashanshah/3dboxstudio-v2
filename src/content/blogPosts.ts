@@ -1,3 +1,4 @@
+import { SHOW_DRAFTS } from '@/lib/seo';
 export type BlogSection =
   | { type: "p"; text: string }
   | { type: "h2"; text: string }
@@ -42,6 +43,8 @@ export type BlogPost = {
    *  an FAQ accordion before the bottom CTA. */
   faqs?: BlogFaq[];
   sections: BlogSection[];
+  /** Not yet approved: served only where drafts show (previews, development), noindex, out of the index and sitemap. */
+  draft?: boolean;
 };
 
 export const BLOG_IMAGE_WIDTH = 1200;
@@ -130,7 +133,7 @@ export const BLOG_INDEX_TITLE =
 export const BLOG_INDEX_DESCRIPTION =
   "Practical guides to free 3D box designers, packaging mockup generators, folding carton previews, mailer and rigid box templates, SVG and DXF dielines, and browser-based box makers—for e-commerce sellers, beauty, coffee, electronics, jewelry, print shops, freelancers, and packaging teams.";
 
-export const BLOG_POSTS: BlogPost[] = [
+const ALL_BLOG_POSTS: BlogPost[] = [
   {
     slug: "what-is-a-3d-box-designer",
     title: "What Is a 3D Box Designer? A Guide for Packaging Teams",
@@ -2826,6 +2829,9 @@ export const BLOG_POSTS: BlogPost[] = [
     ],
   },
 ];
+
+/** The guides this deployment serves: every published one, and drafts where drafts show. */
+export const BLOG_POSTS: BlogPost[] = ALL_BLOG_POSTS.filter(post => !post.draft || SHOW_DRAFTS);
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);
