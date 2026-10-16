@@ -16,7 +16,7 @@ import { pairedPanelRegions, panelRegions } from './artwork-regions';
 type Corner = [Expr, Expr];
 
 /** One tray: bottom, walls, ears and turn-ins, laid out as a cross from (x0, y0). */
-function tray(p: 'base' | 'lid'): PanelSpec[] {
+export function tray(p: 'base' | 'lid'): PanelSpec[] {
   const v = (name: string) => `${p}${name}`;
   const [x0, y0, w, d, h, turn, ear] = [v('X0'), v('Y0'), v('W'), v('D'), v('H'), v('Turn'), v('Ear')];
   // The lid is turned over onto the base, so its front wall is cut on the
@@ -65,7 +65,7 @@ function tray(p: 'base' | 'lid'): PanelSpec[] {
   ];
 }
 
-function trayHinges(p: 'base' | 'lid'): HingeSpec[] {
+export function trayHinges(p: 'base' | 'lid'): HingeSpec[] {
   const id = (name: string) => (p === 'base' ? name.charAt(0).toLowerCase() + name.slice(1) : `lid${name}`);
   const centre = p === 'base' ? 'bottom' : 'lidTop';
   const hinge = (child: string, parent: string, angle: Expr, setback?: Expr): HingeSpec => ({ child, parent, angle, ...(setback === undefined ? {} : { setback }) });
@@ -81,7 +81,7 @@ function trayHinges(p: 'base' | 'lid'): HingeSpec[] {
 }
 
 const layer = (spec: PanelSpec) => (/Left$|Right$/.test(spec.id) && spec.kind === 'body' ? 1.5 : spec.id.endsWith('Ear') ? 0 : spec.id === 'lidTop' ? 2 : 1);
-const finish = (spec: PanelSpec): PanelSpec => ({ ...spec, layer: layer(spec), ...(spec.kind === 'flap' ? { closureFlap: true } : {}) });
+export const finish = (spec: PanelSpec): PanelSpec => ({ ...spec, layer: layer(spec), ...(spec.kind === 'flap' ? { closureFlap: true } : {}) });
 
 export const rigidLidBaseDefinition = {
   format: 'parametric-template/1',

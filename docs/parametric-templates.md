@@ -58,6 +58,12 @@ The pillow box folds each face as nine strips bowed into a lens. Each end flap i
 
 Model panels also cut holes the rigid model can't: the gable box folds each handle as pieces round its finger hole (a strip below and above it, one either side, and slices filling the round ends), joined by flat sharp hinges, so the hole shows in 3D. Its triangular gable ends and gussets give a four-corner `fold` shape that repeats one corner.
 
+A model panel with a `when` is left out when the formula is 0. The cake box folds its lid as a frame round its window, and fills the middle with a fifth piece, `when: 'window == 0'`, when no window is cut. The window itself is four lines in `cuts`, with the same condition reversed. An adjustable size that only moves cuts inside a panel, like the window's border, highlights that panel in the Studio.
+
+### Seeing inside
+
+**`assembly.showsInside`** is a formula: when it isn't 0, the closed box's inside is in view, so the renderer doesn't shade it as shut. The four-corner tray sets it to 1 (it has no lid); the cake box sets it to `window > 0`.
+
 ### Repeats
 
 Any list in a definition (panels, derived values, hinges, motions, cuts, slits, validations, notes) may hold a `repeat` block in place of near-identical items:
@@ -184,9 +190,12 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/sleeve-box.ts` | Open-ended sleeve; the first template written only as a definition |
 | `src/lib/packaging/parametric/definitions/mailer-box.ts` | FEFCO 0427 roll end tuck top mailer: the pizza box's double wall moved to the sides |
 | `src/lib/packaging/parametric/definitions/pillow-box.ts` | Pillow box: two bowed faces with curved end creases and flaps, and a glue flap; the first to use model panels and surfaces |
+| `src/lib/packaging/parametric/definitions/drawer-box.ts` | Drawer box: the rigid box's base tray (corner ears, turn-ins) and a glued sleeve with thumb notches, two pieces that slide together |
+| `src/lib/packaging/parametric/definitions/tray-box.ts` | Four-corner tray (glued corner ears) and the telescope box: a base tray and a lid tray that fits over it, two pieces on one sheet |
+| `src/lib/packaging/parametric/definitions/cake-box.ts` | Cake box: the mailer's structure in card, with a short lid tuck and side flaps and an optional window cut in the lid |
 | `src/lib/packaging/parametric/definitions/gable-box.ts` | Gable box: a roof and a handle with a finger hole over the front and back, gusseted gable ends, and the auto-lock bottom's flaps |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `gable-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `gable-box/`, `drawer-box/`, `tray-box/`, `telescope-box/`, `cake-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 

@@ -67,6 +67,12 @@ test('requested dimensions are bounded and fall back per field', () => {
   assert.equal(requestedDimensions({}, fallback), undefined);
   assert.deepEqual(requestedDimensions({ w: '70', h: 'abc', d: '99999' }, fallback), { width: 70, height: 180, depth: 55, thickness: 0.5 });
   assert.deepEqual(requestedDimensions({ w: '0', h: '-5', d: '12.345' }, fallback), { width: 120, height: 180, depth: 12.3, thickness: 0.5 });
+  // Board thickness and flap sizes from the dieline generator; bad entries are dropped.
+  assert.deepEqual(requestedDimensions({ w: '70', t: '0.46', a: 'glue:12.34;tuck:20;bad key:3;x:-1;y:abc' }, fallback), { width: 70, height: 180, depth: 55, thickness: 0.46, adjustments: { glue: 12.3, tuck: 20 } });
+  assert.equal(requestedDimensions({ w: '70', t: '40' }, fallback).thickness, 0.5);
+  const href = studioTemplateHref('mailer-box', { width: 220, height: 80, depth: 160, thickness: 1.5, adjustments: { ear: 30 } }, 'mm');
+  assert.equal(href, '/studio/editor?template=mailer-box&w=220&h=80&d=160&t=1.5&a=ear%3A30&unit=mm');
+  assert.equal(editorReturnPath(Object.fromEntries(new URL(href, 'https://x.test').searchParams)), href);
 });
 
 test('every template page has its own 1200×630 share image', () => {

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="701.5mm" height="339mm" viewBox="-14 -14 701.5 339">
+  <title>Telescope box (tray with lid)</title>
+  <desc>Telescope box (tray with lid). Flat size 673.5 x 311 mm. Print at 100% (actual size). Made with 3D Box Studio (3dboxstudio.com).</desc>
+  <g id="bleed" inkscape:groupmode="layer" inkscape:label="Bleed (3 mm)" fill="none" stroke="#2ba84a" stroke-width="0.2" stroke-dasharray="4 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M79.672 -3L301.328 -3L333.75 9.969L333.75 82.75L303.75 82.75L303.75 77.25L384 77.25L384 233.75L303.75 233.75L303.75 228.25L333.75 228.25L333.75 301.031L301.328 314L79.672 314L47.25 301.031L47.25 228.25L77.25 228.25L77.25 233.75L-3 233.75L-3 77.25L77.25 77.25L77.25 82.75L47.25 82.75L47.25 9.969ZM420.573 50.583L643.927 50.583L676.5 60.054L676.5 82.75L646.5 82.75L646.5 77.25L673.167 77.25L673.167 235.75L646.5 235.75L646.5 230.25L676.5 230.25L676.5 252.946L643.927 262.417L420.573 262.417L388 252.946L388 230.25L418 230.25L418 235.75L391.333 235.75L391.333 77.25L418 77.25L418 82.75L388 82.75L388 60.054Z"/>
+  </g>
+  <g id="safe" inkscape:groupmode="layer" inkscape:label="Safe zone (3 mm)" fill="none" stroke="#9b5bd8" stroke-width="0.2" stroke-dasharray="2 2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M83.25 83.25L297.75 83.25L297.75 227.75L83.25 227.75ZM83.25 3L297.75 3L297.75 77.25L83.25 77.25ZM83.25 233.75L297.75 233.75L297.75 308L83.25 308ZM3 83.25L77.25 83.25L77.25 227.75L3 227.75ZM303.75 83.25L378 83.25L378 227.75L303.75 227.75ZM424 83.25L640.5 83.25L640.5 229.75L424 229.75ZM424 56.583L640.5 56.583L640.5 77.25L424 77.25ZM424 235.75L640.5 235.75L640.5 256.417L424 256.417ZM397.333 83.25L418 83.25L418 229.75L397.333 229.75ZM646.5 83.25L667.167 83.25L667.167 229.75L646.5 229.75Z"/>
+  </g>
+  <g id="glue" inkscape:groupmode="layer" inkscape:label="Glue area" fill="none" stroke="#e8a317" stroke-width="0.2" stroke-dasharray="1.5 1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80.25 79.75L80.25 0L50.25 12L50.25 79.75ZM300.75 79.75L300.75 0L330.75 12L330.75 79.75ZM80.25 231.25L80.25 311L50.25 299L50.25 231.25ZM300.75 231.25L300.75 311L330.75 299L330.75 231.25ZM421 79.75L421 53.583L391 62.306L391 79.75ZM643.5 79.75L643.5 53.583L673.5 62.306L673.5 79.75ZM421 233.25L421 259.417L391 250.694L391 233.25ZM643.5 233.25L643.5 259.417L673.5 250.694L673.5 233.25Z"/>
+  </g>
+  <g id="crease" inkscape:groupmode="layer" inkscape:label="Crease (fold)" fill="none" stroke="#1f6fd6" stroke-width="0.25" stroke-dasharray="3 1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300.75 0L300.75 79.75M80.25 0L80.25 79.75M300.75 231.25L300.75 311M80.25 231.25L80.25 311M643.5 53.583L643.5 79.75M421 53.583L421 79.75M643.5 233.25L643.5 259.417M421 233.25L421 259.417M80.25 80.25L300.75 80.25L300.75 230.75L80.25 230.75ZM421 80.25L643.5 80.25L643.5 232.75L421 232.75Z"/>
+  </g>
+  <g id="cut" inkscape:groupmode="layer" inkscape:label="Cut" fill="none" stroke="#e01e1e" stroke-width="0.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80.25 0L300.75 0L330.75 12L330.75 79.75L300.75 79.75L300.75 80.25L381 80.25L381 230.75L300.75 230.75L300.75 231.25L330.75 231.25L330.75 299L300.75 311L80.25 311L50.25 299L50.25 231.25L80.25 231.25L80.25 230.75L0 230.75L0 80.25L80.25 80.25L80.25 79.75L50.25 79.75L50.25 12ZM421 53.583L643.5 53.583L673.5 62.306L673.5 79.75L643.5 79.75L643.5 80.25L670.167 80.25L670.167 232.75L643.5 232.75L643.5 233.25L673.5 233.25L673.5 250.694L643.5 259.417L421 259.417L391 250.694L391 233.25L421 233.25L421 232.75L394.333 232.75L394.333 80.25L421 80.25L421 79.75L391 79.75L391 62.306Z"/>
+  </g>
+  <g id="labels" inkscape:groupmode="layer" inkscape:label="Panel names" font-family="Arial, Helvetica, sans-serif" font-size="4" fill="#5b6675" text-anchor="middle" style="display:none">
+    <text x="190.5" y="155.5">Bottom</text>
+    <text x="190.5" y="40.125">Back</text>
+    <text x="190.5" y="270.875">Front</text>
+    <text x="40.125" y="155.5">Left</text>
+    <text x="340.875" y="155.5">Right</text>
+    <text x="65.25" y="39.875">Back Left Ear</text>
+    <text x="315.75" y="39.875">Back Right Ear</text>
+    <text x="65.25" y="271.125">Front Left Ear</text>
+    <text x="315.75" y="271.125">Front Right Ear</text>
+    <text x="532.25" y="156.5">Lid Top</text>
+    <text x="532.25" y="66.916">Lid Front</text>
+    <text x="532.25" y="246.083">Lid Back</text>
+    <text x="407.667" y="156.5">Lid Left</text>
+    <text x="656.833" y="156.5">Lid Right</text>
+    <text x="406" y="66.666">Lid Front Left Ear</text>
+    <text x="658.5" y="66.666">Lid Front Right Ear</text>
+    <text x="406" y="246.333">Lid Back Left Ear</text>
+    <text x="658.5" y="246.333">Lid Back Right Ear</text>
+  </g>
+  <g id="dimensions" inkscape:groupmode="layer" inkscape:label="Dimensions" stroke="#5b6675" stroke-width="0.2" fill="#5b6675" font-family="Arial, Helvetica, sans-serif" font-size="3.5" text-anchor="middle">
+    <line x1="0" y1="-9" x2="673.5" y2="-9"/><line x1="0" y1="-11" x2="0" y2="-7"/><line x1="673.5" y1="-11" x2="673.5" y2="-7"/>
+    <text x="336.75" y="-10.5" stroke="none">673.5 mm</text>
+    <line x1="-9" y1="0" x2="-9" y2="311"/><line x1="-11" y1="0" x2="-7" y2="0"/><line x1="-11" y1="311" x2="-7" y2="311"/>
+    <text x="-10.5" y="155.5" stroke="none" transform="rotate(-90 -10.5 155.5)">311 mm</text>
+  </g>
+</svg>

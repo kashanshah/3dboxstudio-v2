@@ -146,24 +146,37 @@ export function compileParametricSheet(source: ParametricTemplate) {
   };
 
   /** The printable cutting template, after the size checks. */
-  const exportGeometry = (input: CartonDimensions, options: OptionValues = {}) => {
+  /** The size checks this box fails, as messages ("Use a depth of at least 20 mm."). */
+  const problems = (input: CartonDimensions, options: OptionValues = {}) => {
     const scope = values(input, options);
-    for (const check of definition.validations ?? []) {
-      if (!evaluate(check.require, scope)) throw new Error(interpolate(check.message, scope));
-    }
+    return (definition.validations ?? []).filter(check => !evaluate(check.require, scope)).map(check => interpolate(check.message, scope));
+  };
+
+  const exportGeometry = (input: CartonDimensions, options: OptionValues = {}) => {
+    const [problem] = problems(input, options);
+    if (problem) throw new Error(problem);
     return sheet(input, options);
   };
 
   /**
    * The panels one adjustable size changes the shape of, found by nudging the
-   * size and comparing: panels that only move along don't count.
+   * size and comparing: panels that only move along don't count. Cuts inside
+   * a panel (a window) are part of its shape.
    */
   const adjustedPanels = (input: CartonDimensions, options: OptionValues, key: string): string[] => {
     const size = adjustableSizes(input, options).find(item => item.key === key);
     if (!size || size.max - size.min < 1e-6) return [];
     const nudged = size.value + (size.value + 1 <= size.max ? 1 : -Math.min(1, size.value - size.min));
-    const shapes = (value: number) => new Map(sheet({ ...input, adjustments: { ...input.adjustments, [key]: value } }, options).panels
-      .map(panel => [panel.id, panel.outline.map(point => `${(point.x - panel.x).toFixed(4)},${(point.y - panel.y).toFixed(4)}`).join(' ')]));
+    const shapes = (value: number) => {
+      const dimensions = { ...input, adjustments: { ...input.adjustments, [key]: value } };
+      const cuts = lines(definition.cuts, values(dimensions, options));
+      return new Map(sheet(dimensions, options).panels.map(panel => {
+        const at = (point: PointMm) => `${(point.x - panel.x).toFixed(4)},${(point.y - panel.y).toFixed(4)}`;
+        const inside = (point: PointMm) => point.x > panel.x && point.x < panel.x + panel.width && point.y > panel.y && point.y < panel.y + panel.height;
+        const holes = cuts.filter(line => inside(line.start) && inside(line.end)).map(line => `${at(line.start)}-${at(line.end)}`);
+        return [panel.id, [...panel.outline.map(at), ...holes].join(' ')];
+      }));
+    };
     const before = shapes(size.value), after = shapes(nudged);
     return [...after.keys()].filter(id => before.get(id) !== after.get(id));
   };
@@ -205,7 +218,7 @@ export function compileParametricSheet(source: ParametricTemplate) {
     return [...result.values()].filter(entry => entry.x || entry.y);
   };
 
-  return { definition, sanitize, values, adjustableSizes, adjustedPanels, panelSizes, sheet, exportGeometry };
+  return { definition, sanitize, values, adjustableSizes, adjustedPanels, panelSizes, sheet, problems, exportGeometry };
 }
 
 export type ParametricSheet = ReturnType<typeof compileParametricSheet>;

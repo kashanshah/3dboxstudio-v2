@@ -62,6 +62,11 @@ export function sceneMeshes(scene: Scene) {
   return buildMeshes(scene.dimensions, scene.opening, outsideBase, insideBase, { templateId: scene.templateId, formation: scene.formation, openingMode: scene.openingMode, splitTopHingeSide: scene.splitTopHingeSide });
 }
 
+/** Whether the scene's closed box shows its inside (an open tray, a window), so it isn't shaded as shut. */
+export function sceneShowsInside(scene: Scene) {
+  return requireTemplateRuntime(scene.templateId).assembly.showsInside?.(scene.dimensions) ?? false;
+}
+
 export function defaultScene(): Scene {
   const defaultTemplate = getDefaultPackagingTemplate();
   if (!defaultTemplate) throw new Error('No default packaging template is configured.');

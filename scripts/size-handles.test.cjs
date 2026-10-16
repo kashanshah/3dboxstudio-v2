@@ -15,7 +15,7 @@ require.extensions['.ts'] = (module, file) => module._compile(ts.transpileModule
 const { placeSizeHandles } = require('../src/lib/packaging/size-handles.ts');
 const { getTemplateGeometry, getTemplateRuntime } = require('../src/lib/packaging/template-runtime.ts');
 
-const TEMPLATES = ['reverse-tuck-carton', 'base-box', 'auto-lock-bottom-box', 'snap-lock-bottom-box', 'sleeve-box', 'mailer-box', 'pizza-box', 'rigid-lid-base', 'split-top-box', 'pillow-box', 'gable-box'];
+const TEMPLATES = ['reverse-tuck-carton', 'base-box', 'auto-lock-bottom-box', 'snap-lock-bottom-box', 'sleeve-box', 'mailer-box', 'pizza-box', 'rigid-lid-base', 'split-top-box', 'pillow-box', 'gable-box', 'drawer-box', 'tray-box', 'telescope-box', 'cake-box'];
 function handlesFor(templateId, dims) {
   const sheet = getTemplateGeometry(templateId, dims, {});
   const sizes = getTemplateRuntime(templateId).getPanelSizes?.(dims, {});

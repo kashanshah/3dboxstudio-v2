@@ -11,6 +11,9 @@ import { autoLockBottomDefinition } from '@/lib/packaging/parametric/definitions
 import { snapLockBottomDefinition } from '@/lib/packaging/parametric/definitions/snap-lock-bottom';
 import { pillowBoxDefinition } from '@/lib/packaging/parametric/definitions/pillow-box';
 import { gableBoxDefinition } from '@/lib/packaging/parametric/definitions/gable-box';
+import { drawerBoxDefinition } from '@/lib/packaging/parametric/definitions/drawer-box';
+import { trayBoxDefinition, telescopeBoxDefinition } from '@/lib/packaging/parametric/definitions/tray-box';
+import { cakeBoxDefinition } from '@/lib/packaging/parametric/definitions/cake-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -104,28 +107,14 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(gableBoxDefinition),
 
   // Every template with a parametric definition and catalog entry is ready.
-  // The drawer box below stays planned until it has one.
   fromDefinition(mailerBoxDefinition),
   fromDefinition(pizzaBoxDefinition),
   fromDefinition(sleeveBoxDefinition),
+  fromDefinition(drawerBoxDefinition),
+  fromDefinition(trayBoxDefinition),
+  fromDefinition(telescopeBoxDefinition),
+  fromDefinition(cakeBoxDefinition),
   fromDefinition(rigidLidBaseDefinition),
-  {
-    id: 'drawer-box',
-    version: 1,
-    name: 'Drawer Box',
-    shortName: 'Drawer',
-    family: 'rigid-box',
-    category: 'Rigid',
-    description: 'Sliding tray and outer sleeve rigid package.',
-    tags: ['drawer','rigid','sleeve','gift'],
-    rendererKey: 'drawer-v1',
-    structureKey: 'drawer-v1',
-    capabilities: [],
-    parameters: [],
-    artworkRegions: [],
-    status: 'planned',
-    defaultMaterial: 'Soft touch',
-  },
 ];
 
 const templateMap = new Map(PACKAGING_TEMPLATES.map(template => [template.id, template]));

@@ -14,6 +14,33 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'free-dieline-generator',
+    date: '2026-10-16',
+    title: 'Free dieline generator, and tray, telescope and cake boxes',
+    summary: 'Draw a dieline in 15 box styles to your size and download it free as SVG, PDF, DXF, PNG or a Cricut file, with no account. Three new templates: a four-corner tray, a telescope box with a lift-off lid, and a cake box with an optional window.',
+    tags: ['New'],
+    landingPage: { href: '/box-dieline-generator', label: 'Open the dieline generator' },
+    highlights: [
+      'Sizes in millimetres or inches, as the inside, the outside or crease to crease, with board thickness worked in; pick a board or type its caliper.',
+      'Downloads need no account and carry no watermark: layered SVG, PDF at 100% or tiled on A4 or Letter, DXF, PNG and a Cricut or Silhouette cut-and-score file.',
+      'A link reopens the same box, and Open in 3D Box Studio carries the size, board and flap sizes into the Studio.',
+      'New templates: the four-corner tray, the telescope box (a tray with a lift-off lid) and the cake box, whose lid window shows in 3D. Each has its own page under Box templates.',
+    ],
+  },
+  {
+    id: 'drawer-box',
+    date: '2026-10-15',
+    title: 'New template: drawer box',
+    summary: 'A sliding drawer box: a tray that pulls out of a sleeve, for jewellery, chocolates, tea, cosmetics and gift sets.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/drawer-box', label: 'See the drawer box template' },
+    highlights: [
+      'The dieline has the tray, with corner ears and turn-ins for double walls, and below it its sleeve, with a thumb notch at each end, on one sheet.',
+      'In 3D the tray and sleeve fold up, the sleeve slides on over the tray from the front, and opening pulls the drawer out again.',
+      'Set the sleeve play, turn-ins, thumb notches and glue flap in the Studio.',
+    ],
+  },
+  {
     id: 'gable-box',
     date: '2026-10-15',
     title: 'New template: gable box',

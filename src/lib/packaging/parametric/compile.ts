@@ -1,4 +1,5 @@
 import type { LegacyOpeningMode } from '@/lib/studio-project';
+import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { TemplateGeometryOptions, TemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { Mesh, TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { apply, creaseHalfWidth, foldSheet, restingSetback, surfaceMeshes, translation, type Mat4, type SheetHinge, type SheetPanel } from '@/lib/packaging/fold-sheet';
@@ -9,6 +10,103 @@ import { compileParametricSheet, definitionError, DIMENSIONS, type OptionValues,
 
 export { TemplateDefinitionError } from './sheet';
 
+/** The folded state's inputs: the sheet, every value in scope, the panels the model folds, and their hinges. */
+function prepareFold(compiled: ParametricSheet, input: { dimensions: Parameters<ParametricSheet['sheet']>[0]; formation: number; opening: number; openingMode?: string; splitTopHingeSide?: string }) {
+  const { definition } = compiled;
+  const options = { splitTopHingeSide: input.splitTopHingeSide, openingMode: input.openingMode };
+  const geometry = compiled.sheet(input.dimensions, options);
+  const scope: Record<string, number> = compiled.values(input.dimensions, options);
+  for (const panel of geometry.panels) {
+    Object.assign(scope, {
+      [`${panel.id}.x`]: panel.x, [`${panel.id}.y`]: panel.y,
+      [`${panel.id}.width`]: panel.width, [`${panel.id}.height`]: panel.height,
+    });
+  }
+  scope.foldT = evaluate(definition.fold.thickness, scope);
+  // The fold engine's crease, for setbacks: half a crease (the furthest a
+  // flap can fold out) and the setback that rests a lid on the walls' edges.
+  scope.foldCrease = creaseHalfWidth(scope.foldT);
+  scope.foldResting = restingSetback(scope.foldT);
+  const progress = {
+    formation: Math.min(1, Math.max(0, input.formation / 100)),
+    opening: Math.min(1, Math.max(0, input.opening / 100)),
+  };
+  Object.assign(scope, progress);
+  for (const [name, value] of definition.fold.motions ?? []) scope[name] = evaluate(value, scope);
+  const specOf = (id: string) => definition.panels.find(candidate => candidate.id === id && (candidate.when === undefined || evaluate(candidate.when, scope) !== 0))!;
+  const replaced = new Set([...(definition.fold.modelPanels ?? []), ...(definition.fold.surfaces ?? [])].map(piece => piece.of));
+  const panels: SheetPanel[] = geometry.panels.filter(panel => !replaced.has(panel.id)).map(panel => {
+    const spec = specOf(panel.id);
+    return {
+      id: panel.id,
+      name: spec.name ?? panelName(panel.label),
+      // The 3D folds each panel's four-corner shape; the print file cuts the full outline.
+      outline: spec.model
+        ? spec.model.map(([x, y]) => ({ x: evaluate(x, scope), y: evaluate(y, scope) }))
+        : panel.fold ?? panel.outline,
+      ...(spec.layer === undefined ? {} : { layer: evaluate(spec.layer, scope) }),
+      ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}),
+      ...(spec.closureFlap ? { closureFlap: true } : {}),
+    };
+  });
+  // Strips of a bending panel: each prints its part of the whole panel's artwork.
+  for (const piece of definition.fold.modelPanels ?? []) {
+    const whole = geometry.panels.find(panel => panel.id === piece.of);
+    if (!whole || (piece.when !== undefined && evaluate(piece.when, scope) === 0)) continue;
+    const spec = specOf(whole.id);
+    panels.push({
+      id: piece.id,
+      name: spec.name ?? panelName(whole.label),
+      outline: piece.outline.map(([x, y]) => ({ x: evaluate(x, scope), y: evaluate(y, scope) })),
+      artworkFrame: whole.outline,
+      piece: whole.id,
+      ...(spec.layer === undefined ? {} : { layer: evaluate(spec.layer, scope) }),
+      ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}),
+      ...(spec.closureFlap ? { closureFlap: true } : {}),
+    });
+  }
+  const present = new Set(panels.map(panel => panel.id));
+  const active = definition.fold.hinges.filter(hinge => present.has(hinge.child) && (hinge.when === undefined || evaluate(hinge.when, scope) !== 0));
+  checkHingeTree(definition, present, active);
+  const hinges: SheetHinge[] = active.map(hinge => ({
+    child: hinge.child,
+    parent: hinge.parent,
+    angle: 'angle' in hinge
+      ? evaluate(hinge.angle, scope)
+      : substage(hinge.drive === 'formation' ? progress.formation : 1 - progress.opening, evaluate(hinge.from, scope), evaluate(hinge.to, scope))
+        * (evaluate(hinge.degrees ?? 90, scope) / 90) * (Math.PI / 2),
+    ...(hinge.setback === undefined ? {} : { setback: evaluate(hinge.setback, scope) }),
+    ...(hinge.sharp ? { sharp: true } : {}),
+  }));
+  return { geometry, scope, panels, hinges, specOf };
+}
+
+/** One fold of the closed box: a panel of the sheet, the panel it hinges on, and the angle it turns through (radians, positive inwards). */
+export type FoldStep = { panel: string; parent: string; angle: number };
+
+/**
+ * How the sheet folds into the closed box, panel by panel, as a tree rooted
+ * at the panel that stays still (more than one root for boxes cut in
+ * pieces). Strips the model folds in place of a bowed panel are reported as
+ * that panel; curved surfaces, which bend rather than fold, are left out.
+ */
+function foldPlan(compiled: ParametricSheet, dimensions: Parameters<ParametricSheet['sheet']>[0], options?: TemplateGeometryOptions): FoldStep[] {
+  const { definition } = compiled;
+  const { panels, hinges } = prepareFold(compiled, {
+    dimensions, formation: 100, opening: 0,
+    openingMode: options?.openingMode ?? definition.assembly.defaultOpeningMode,
+    splitTopHingeSide: options?.splitTopHingeSide ?? 'side_a',
+  });
+  const whole = new Map(panels.map(panel => [panel.id, panel.piece ?? panel.id]));
+  const steps = new Map<string, FoldStep>();
+  for (const hinge of hinges) {
+    const panel = whole.get(hinge.child)!, parent = whole.get(hinge.parent)!;
+    if (panel === parent || steps.has(panel)) continue;
+    steps.set(panel, { panel, parent, angle: hinge.angle });
+  }
+  return [...steps.values()];
+}
+
 /** Folds a parametric template's cutting template into its 3D model. */
 export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBuilder {
   const { definition } = compiled;
@@ -16,71 +114,7 @@ export function parametricMeshBuilder(compiled: ParametricSheet): TemplateMeshBu
     .map(panel => [panel.name ?? panelName(panel.label), panel.artworkFallback!]));
 
   return input => {
-    const options = { splitTopHingeSide: input.splitTopHingeSide, openingMode: input.openingMode };
-    const geometry = compiled.sheet(input.dimensions, options);
-    const scope: Record<string, number> = compiled.values(input.dimensions, options);
-    for (const panel of geometry.panels) {
-      Object.assign(scope, {
-        [`${panel.id}.x`]: panel.x, [`${panel.id}.y`]: panel.y,
-        [`${panel.id}.width`]: panel.width, [`${panel.id}.height`]: panel.height,
-      });
-    }
-    scope.foldT = evaluate(definition.fold.thickness, scope);
-    // The fold engine's crease, for setbacks: half a crease (the furthest a
-    // flap can fold out) and the setback that rests a lid on the walls' edges.
-    scope.foldCrease = creaseHalfWidth(scope.foldT);
-    scope.foldResting = restingSetback(scope.foldT);
-    const progress = {
-      formation: Math.min(1, Math.max(0, input.formation / 100)),
-      opening: Math.min(1, Math.max(0, input.opening / 100)),
-    };
-    Object.assign(scope, progress);
-    for (const [name, value] of definition.fold.motions ?? []) scope[name] = evaluate(value, scope);
-    const specOf = (id: string) => definition.panels.find(candidate => candidate.id === id && (candidate.when === undefined || evaluate(candidate.when, scope) !== 0))!;
-    const replaced = new Set([...(definition.fold.modelPanels ?? []), ...(definition.fold.surfaces ?? [])].map(piece => piece.of));
-    const panels: SheetPanel[] = geometry.panels.filter(panel => !replaced.has(panel.id)).map(panel => {
-      const spec = specOf(panel.id);
-      return {
-        id: panel.id,
-        name: spec.name ?? panelName(panel.label),
-        // The 3D folds each panel's four-corner shape; the print file cuts the full outline.
-        outline: spec.model
-          ? spec.model.map(([x, y]) => ({ x: evaluate(x, scope), y: evaluate(y, scope) }))
-          : panel.fold ?? panel.outline,
-        ...(spec.layer === undefined ? {} : { layer: evaluate(spec.layer, scope) }),
-        ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}),
-        ...(spec.closureFlap ? { closureFlap: true } : {}),
-      };
-    });
-    // Strips of a bending panel: each prints its part of the whole panel's artwork.
-    for (const piece of definition.fold.modelPanels ?? []) {
-      const whole = geometry.panels.find(panel => panel.id === piece.of);
-      if (!whole) continue;
-      const spec = specOf(whole.id);
-      panels.push({
-        id: piece.id,
-        name: spec.name ?? panelName(whole.label),
-        outline: piece.outline.map(([x, y]) => ({ x: evaluate(x, scope), y: evaluate(y, scope) })),
-        artworkFrame: whole.outline,
-        piece: whole.id,
-        ...(spec.layer === undefined ? {} : { layer: evaluate(spec.layer, scope) }),
-        ...(spec.artworkRotation ? { artworkRotation: spec.artworkRotation } : {}),
-        ...(spec.closureFlap ? { closureFlap: true } : {}),
-      });
-    }
-    const present = new Set(panels.map(panel => panel.id));
-    const active = definition.fold.hinges.filter(hinge => present.has(hinge.child) && (hinge.when === undefined || evaluate(hinge.when, scope) !== 0));
-    checkHingeTree(definition, present, active);
-    const hinges: SheetHinge[] = active.map(hinge => ({
-      child: hinge.child,
-      parent: hinge.parent,
-      angle: 'angle' in hinge
-        ? evaluate(hinge.angle, scope)
-        : substage(hinge.drive === 'formation' ? progress.formation : 1 - progress.opening, evaluate(hinge.from, scope), evaluate(hinge.to, scope))
-          * (evaluate(hinge.degrees ?? 90, scope) / 90) * (Math.PI / 2),
-      ...(hinge.setback === undefined ? {} : { setback: evaluate(hinge.setback, scope) }),
-      ...(hinge.sharp ? { sharp: true } : {}),
-    }));
+    const { geometry, scope, panels, hinges, specOf } = prepareFold(compiled, input);
     const placement = definition.fold.matrix
       ? definition.fold.matrix.map(value => evaluate(value, scope))
       : translation((definition.fold.offset ?? [0, 0, 0]).map(value => evaluate(value, scope)) as [number, number, number]);
@@ -162,6 +196,9 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
     getDielinePanels: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)).panels,
     getDielineBounds: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)).bounds,
     getExportGeometry: (dimensions, options) => compiled.exportGeometry(dimensions, fromOptions(options)),
+    getFoldPlan: (dimensions, options) => foldPlan(compiled, dimensions, options),
+    getSheetGeometry: (dimensions, options) => compiled.sheet(dimensions, fromOptions(options)),
+    getSizeProblems: (dimensions, options) => compiled.problems(dimensions, fromOptions(options)),
     buildMeshes,
     exportSummary: definition.export.summary,
     exportArtworkNote: definition.export.artworkNote,
@@ -171,12 +208,18 @@ export function compileParametricTemplate(source: ParametricTemplate): TemplateR
       legacyOpeningAsFormation: definition.assembly.legacyOpeningAsFormation,
       hasOpeningStage: mode => openingStage === 'always'
         || (Array.isArray(openingStage) ? openingStage.includes(mode) : typeof openingStage === 'object' && !openingStage.except.includes(mode)),
+      ...(definition.assembly.showsInside === undefined ? {} : {
+        showsInside: (dimensions: CartonDimensions) => evaluate(definition.assembly.showsInside!, compiled.values(dimensions)) !== 0,
+      }),
     },
   };
 
-  // Build every variant once so a bad expression fails now, with the template named.
+  // Build every variant once so a bad expression fails now, with the template
+  // named: in development and tests, which compile every definition. A
+  // production page skips it; it costs about a second of a phone's main
+  // thread across all the templates.
   const fallback = Object.fromEntries(DIMENSIONS.map(key => [key, definition.parameters[key].fallback])) as Record<DimensionKey, number>;
-  for (const options of variants(definition)) {
+  for (const options of process.env.NODE_ENV === 'production' ? [] : variants(definition)) {
     try {
       const scope = compiled.values(fallback, options);
       // Every adjustable size, at its limits too.

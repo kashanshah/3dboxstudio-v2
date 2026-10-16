@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 };
 
 const rows = [
-  { label: "Price", ours: "Free, with every feature (account required)", theirs: "Free plan with limits; paid plans for more exports, HD output and commercial use" },
+  { label: "Price", ours: "Free, with every feature. Dieline downloads need no account; the Studio needs a free one", theirs: "Free plan with limits; paid plans for more exports, HD output and commercial use" },
   { label: "Box sizing", ours: "Exact width, height and depth in mm or inches, plus board thickness", theirs: "Custom dimensions on its templates" },
   { label: "Flap and panel sizes", ours: "Adjust each flap and panel on the dieline or the 3D box, with drag handles", theirs: "Depends on the template" },
   { label: "Dieline export", ours: "1:1 PDF with artwork and bleed, plus SVG and DXF with cut and crease layers, free", theirs: "Dieline downloads in several formats; limits depend on plan" },
   { label: "3D preview", ours: "Real-time fold and open, orbit, PNG or JPG up to 4K with product shots, and an MP4 up to 15 seconds", theirs: "Photoreal mockups, animations and video" },
-  { label: "Template range", ours: "11 box structures: tuck end, auto lock and snap lock bottom cartons, pillow, gable, mailer, pizza, shipping, sleeve and rigid boxes", theirs: "Large library of boxes plus bags, bottles, cans and other packaging" },
+  { label: "Template range", ours: "12 box structures: tuck end, auto lock and snap lock bottom cartons, pillow, gable, drawer, mailer, pizza, shipping, sleeve and rigid boxes", theirs: "Large library of boxes plus bags, bottles, cans and other packaging" },
   { label: "Sharing", ours: "View-only interactive 3D link", theirs: "Share links and exported files" },
 ];
 
@@ -45,7 +45,7 @@ const faqs = [
   },
   {
     "question": "Is 3D Box Studio free?",
-    "answer": "Yes. It runs in your browser and only needs a free account."
+    "answer": "Yes. It runs in your browser. Dieline downloads need no account; designing in the Studio needs a free one."
   },
   {
     "question": "Does it support custom dimensions?",

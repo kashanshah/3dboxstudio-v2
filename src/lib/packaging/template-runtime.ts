@@ -6,6 +6,7 @@ import type { TemplateMeshBuilder } from '@/lib/packaging/template-mesh';
 import { BUILT_IN_TEMPLATE_RUNTIMES } from '@/lib/packaging/templates';
 import { layoutProofGeometry, type DielineExportGeometry } from './export-geometry';
 import type { AdjustableSize, PanelSizes } from './parametric/sheet';
+import type { FoldStep } from './parametric/compile';
 
 export type TemplateGeometryOptions = {
   openingMode?: LegacyOpeningMode;
@@ -19,6 +20,8 @@ export type TemplateAssemblyRuntime = {
   defaultOpeningMode: LegacyOpeningMode;
   legacyOpeningAsFormation?: boolean;
   hasOpeningStage: (openingMode: LegacyOpeningMode) => boolean;
+  /** Whether the inside of the closed box is in view (an open tray, a window), so it isn't shaded as shut. */
+  showsInside?: (dimensions: CartonDimensions) => boolean;
 };
 
 export type TemplateRuntime = {
@@ -38,6 +41,12 @@ export type TemplateRuntime = {
   assembly: TemplateAssemblyRuntime;
   getFoldState?: typeof reverseTuckFoldState;
   getExportGeometry?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielineExportGeometry;
+  /** How the sheet folds into the closed box: each panel, the panel it hinges on and its angle. */
+  getFoldPlan?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => FoldStep[];
+  /** The cutting template without the size checks, so a box that fails one can still be drawn. */
+  getSheetGeometry?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => DielineExportGeometry;
+  /** The size checks the box fails, as messages. */
+  getSizeProblems?: (dimensions: CartonDimensions, options?: TemplateGeometryOptions) => string[];
   exportSummary?: string;
   exportArtworkNote?: string;
 };

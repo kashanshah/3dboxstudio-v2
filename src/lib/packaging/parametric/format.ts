@@ -125,6 +125,8 @@ export type HingeSpec = {
 export type ModelPanelSpec = {
   id: string;
   of: string;
+  /** Leave the piece out of this variant (the glass of a window that isn't cut). */
+  when?: Expr;
   outline: [[Expr, Expr], [Expr, Expr], [Expr, Expr], [Expr, Expr]];
 };
 
@@ -226,6 +228,8 @@ export type ExpandedTemplate = {
      * these opening modes, or in every mode except these.
      */
     openingStage: 'always' | 'never' | string[] | { except: string[] };
+    /** Whether the closed box's inside is in view (an open tray; a lid window when one is cut); defaults to 0. */
+    showsInside?: Expr;
     legacyOpeningAsFormation?: boolean;
   };
   export: {

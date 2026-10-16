@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
 import { FaqSection } from '@/components/faq-section';
-import { BoxTemplateTool } from '@/components/box-template-tool';
+import { DielineGenerator } from '@/components/dieline-generator/dieline-generator';
+import { styleForTemplate } from '@/lib/dieline/styles';
+import { generatorSetup } from '@/lib/dieline/thumbnails';
 import { BOX_TEMPLATE_PAGES, getBoxTemplatePage } from '@/content/box-template-pages';
 import { getBlogPostBySlug } from '@/content/blogPosts';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
@@ -37,7 +39,10 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
   const page = getBoxTemplatePage((await params).slug);
   if (!page) notFound();
   const template = getPackagingTemplate(page.templateId);
-  if (!template?.defaultDimensions || template.status !== 'ready') notFound();
+  const style = styleForTemplate(page.templateId);
+  if (!template?.defaultDimensions || template.status !== 'ready' || !style) notFound();
+  // The pages list sizes as the Studio takes them; the generator as length × width × depth.
+  const presets = page.presets.map(preset => ({ label: preset.label, note: preset.note, length: preset.width, width: preset.depth, depth: preset.height, units: preset.unit }));
   const others = BOX_TEMPLATE_PAGES.filter(other => other.slug !== page.slug);
   const guides = page.guides.map(slug => getBlogPostBySlug(slug)).filter(post => post !== undefined);
   const url = new URL(`/box-templates/${page.slug}`, site.url).toString();
@@ -60,7 +65,8 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
         <p>{page.intro}</p>
       </header>
 
-      <BoxTemplateTool templateId={page.templateId} name={page.name} fields={page.fields} presets={page.presets} thickness={template.defaultDimensions.thickness} geometryNote={page.geometryNote} />
+      <DielineGenerator setup={generatorSetup(style.id, presets[0])} presets={presets} title={`Make your ${page.name.toLowerCase()} dieline`} />
+      <p className="btp-geometry-note">{page.geometryNote}</p>
 
       <div className="btp-sections">
         {page.sections.map(section => <section key={section.title}>

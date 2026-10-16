@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const sections = [
   {
     "title": "Folding carton structures",
-    "body": "Tuck end cartons close with tuck lids, top and bottom. The auto lock bottom box keeps the tuck top but has a pre-glued crash-lock bottom that locks itself when the carton is opened, for heavier products; the snap lock bottom box closes its four bottom flaps by hand, with no glue. The pillow box has two bowed faces and curved ends that close when pushed in, and the gable box has a pitched roof with a carry handle over an auto-lock bottom."
+    "body": "Tuck end cartons close with tuck lids, top and bottom. The auto lock bottom box keeps the tuck top but has a pre-glued crash-lock bottom that locks itself when the carton is opened, for heavier products; the snap lock bottom box closes its four bottom flaps by hand, with no glue. The pillow box has two bowed faces and curved ends that close when pushed in, the gable box has a pitched roof with a carry handle over an auto-lock bottom, and the drawer box is a tray that slides out of a sleeve. The four-corner tray is an open tray with glued corners; with a second, larger tray as its lid it becomes a telescope box. The cake box is a one-piece bakery box whose corners lock without glue, with an optional window in its lid."
   },
   {
     "title": "Lid and box structures",
@@ -32,7 +32,7 @@ const sections = [
 const faqs = [
   {
     "question": "Which box templates are available?",
-    "answer": "Reverse tuck end carton, straight tuck end box, auto lock bottom box, snap lock bottom box, pillow box, gable box, pizza box, split top box, mailer box, sleeve box and rigid lid and base box are ready now. Drawer boxes are planned."
+    "answer": "Reverse tuck end carton, straight tuck end box, auto lock bottom box, snap lock bottom box, pillow box, gable box, drawer box, four-corner tray, telescope box, cake box, pizza box, split top box, mailer box, sleeve box and rigid lid and base box are ready now."
   },
   {
     "question": "Can I resize a template?",
@@ -66,7 +66,7 @@ export default function Page(){
     <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>
     <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Locking tray, hinged lid</span><i/></Link>
     <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Slotted shipper</span><i/></Link>
-    <Link className="template-hero-note" href="/box-templates/gable-box">New: gable box</Link>
+    <Link className="template-hero-note" href="/box-templates/cake-box">New: cake box, tray and telescope box</Link>
   </div>;
   return <><MarketingProductPage eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} afterHero={<TemplatePageLinks filters />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

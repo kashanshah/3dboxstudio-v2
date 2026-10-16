@@ -9,6 +9,10 @@ import { autoLockBottomRuntime } from './auto-lock-bottom/runtime';
 import { snapLockBottomRuntime } from './snap-lock-bottom/runtime';
 import { pillowBoxRuntime } from './pillow-box/runtime';
 import { gableBoxRuntime } from './gable-box/runtime';
+import { drawerBoxRuntime } from './drawer-box/runtime';
+import { trayBoxRuntime } from './tray-box/runtime';
+import { telescopeBoxRuntime } from './telescope-box/runtime';
+import { cakeBoxRuntime } from './cake-box/runtime';
 
 export const BUILT_IN_TEMPLATE_RUNTIMES=[
   baseBoxRuntime,
@@ -22,4 +26,8 @@ export const BUILT_IN_TEMPLATE_RUNTIMES=[
   snapLockBottomRuntime,
   pillowBoxRuntime,
   gableBoxRuntime,
+  drawerBoxRuntime,
+  trayBoxRuntime,
+  telescopeBoxRuntime,
+  cakeBoxRuntime,
 ] as const;
