@@ -133,6 +133,16 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const tracked = useRef(new Set<string>());
+  // Keep the chosen style's card in view in the picker strip, without scrolling the page.
+  const strip = useRef<HTMLDivElement>(null);
+  const chosen = current.state.style;
+  useEffect(() => {
+    const row = strip.current;
+    const card = row?.querySelector<HTMLElement>('[aria-checked="true"]');
+    if (!row || !card) return;
+    const left = card.offsetLeft - row.offsetLeft, right = left + card.offsetWidth;
+    if (left < row.scrollLeft || right > row.scrollLeft + row.clientWidth) row.scrollLeft = Math.max(0, left - 8);
+  }, [chosen]);
 
   const meta = thumbs.find(thumb => thumb.id === state.style) ?? thumbs[0];
   const style = loaded?.getDielineStyle(state.style) ?? null;
@@ -258,7 +268,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   return <section className="dg" aria-labelledby={`${id}-title`} onPointerDownCapture={() => void loadEngine()} onFocusCapture={() => void loadEngine()}>
     <h2 id={`${id}-title`} className="dg-title">{title}</h2>
 
-    <div className="dg-styles" role="radiogroup" aria-label="Box style">
+    <div ref={strip} className="dg-styles" role="radiogroup" aria-label="Box style">
       {thumbs.map(thumb => <button key={thumb.id} type="button" role="radio" aria-checked={thumb.id === state.style} onClick={() => void chooseStyle(thumb.id)}>
         <svg viewBox={thumb.viewBox} aria-hidden="true"><path d={thumb.d} /></svg>
         <span>{thumb.name}</span>
