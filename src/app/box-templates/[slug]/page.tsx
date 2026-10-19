@@ -73,7 +73,7 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
         <p className="btp-updated">Last updated <time dateTime={page.updated}>{updated}</time></p>
       </header>
 
-      <DielineGenerator setup={generatorSetup(style.id, presets[0])} presets={presets} title={`Make your ${page.name.toLowerCase()} dieline`} />
+      <DielineGenerator setup={generatorSetup(style.id, presets[0])} presets={presets} title={`Make your ${page.name.toLowerCase()} dieline`} page={{ type: 'template_page', slug: page.slug, templateId: page.templateId }} />
       <p className="btp-geometry-note">{page.geometryNote}</p>
 
       <div className="btp-sections">

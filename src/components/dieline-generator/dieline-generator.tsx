@@ -119,15 +119,21 @@ function save(name: string, data: BlobPart, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function DielineGenerator({ setup, presets = [], title = "Make your dieline", className }: {
+/** Where the tool sits, for analytics: GA4 reports page_slug, page_type and box_type. */
+export type GeneratorPage = { type: "template_page"; slug: string; templateId: string } | { type: "dieline_generator"; slug: string };
+
+export function DielineGenerator({ setup, presets = [], title = "Make your dieline", className, page }: {
   /** The picker and the first box, drawn on the server (lib/dieline/thumbnails.ts). */
   setup: GeneratorSetup;
   presets?: GeneratorPreset[];
   title?: string;
   /** Sizing from the page: the tool fills its container. */
   className?: string;
+  page?: GeneratorPage;
 }) {
   const id = useId();
+  const pageSlug = page?.slug, pageType = page?.type;
+  const pageParams = page ? { page_slug: page.slug, page_type: page.type } : {};
   const { styles: thumbs, initial } = setup;
   const loaded = useSyncExternalStore(subscribeEngine, () => engine, () => null);
   // A shared link's settings, else this visitor's last box of this style:
@@ -186,10 +192,10 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
     if (!edited || !drawn || tracked.current.has(query)) return;
     const timer = window.setTimeout(() => {
       tracked.current.add(query);
-      trackEvent("dieline_generate", { style: state.style, unit: state.units, mode: state.mode, material: state.material });
+      trackEvent("dieline_generate", { ...(pageSlug ? { page_slug: pageSlug, page_type: pageType } : {}), box_type: state.style, style: state.style, unit: state.units, mode: state.mode, material: state.material });
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [edited, drawn, query, state.style, state.units, state.mode, state.material]);
+  }, [edited, drawn, query, state.style, state.units, state.mode, state.material, pageSlug, pageType]);
 
   const chooseStyle = async (styleId: string) => {
     if (styleId === state.style) return;
@@ -252,7 +258,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
         const { dielineToPng } = await import("@/lib/dieline/export/png");
         save(exportName(state, "png"), await dielineToPng(output, 300, { title: name, annotations: showSizes }), "image/png");
       }
-      trackEvent("dieline_export", { format, style: state.style, unit, mode: state.mode });
+      trackEvent("dieline_export", { ...pageParams, box_type: state.style, format, style: state.style, unit, mode: state.mode });
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "The file couldn't be made.");
     } finally {
@@ -260,12 +266,19 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
     }
   };
 
+  // The button that takes a template page's visitor into the Studio: the
+  // template pages' main call to action, so it keeps its own event too.
+  const openIn3d = () => {
+    trackEvent("dieline_open_3d", { ...pageParams, box_type: state.style, style: state.style, unit });
+    if (page?.type === "template_page") trackEvent("template_page_cta_clicked", { ...pageParams, box_type: state.style, template_id: page.templateId, unit });
+  };
+
   const share = async () => {
     const link = `${window.location.origin}${window.location.pathname}?${query}`;
     try { await navigator.clipboard.writeText(link); } catch { window.prompt("Copy this link:", link); }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2500);
-    trackEvent("dieline_share", { style: state.style, method: "copy_link" });
+    trackEvent("dieline_share", { ...pageParams, box_type: state.style, style: state.style, method: "copy_link" });
   };
 
   // The Studio takes the template's inside size: width across the front, height, depth front to back.
@@ -384,7 +397,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
           </button>
           <p className="dg-hint-text">{EXPORTS.find(item => item.id === exportFormat)?.hint} No account, no watermark.</p>
           {exportFormat === "cricut" ? <details className="dg-cricut"><summary>How to cut it</summary><ol>{CRICUT_STEPS.map(stepText => <li key={stepText}>{stepText}</li>)}</ol></details> : null}
-          {studioHref ? <Link className="dg-primary" href={studioHref} onClick={() => trackEvent("dieline_open_3d", { style: state.style, unit })}><Box aria-hidden="true" /> Open in 3D Box Studio</Link> : null}
+          {studioHref ? <Link className="dg-primary" href={studioHref} onClick={openIn3d}><Box aria-hidden="true" /> Open in 3D Box Studio</Link> : null}
           <button type="button" className="dg-secondary" onClick={share} disabled={!output}>{copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />} {copied ? "Link copied" : "Copy link to this box"}</button>
           <p className="dg-note">The Studio adds your artwork and folds the box in 3D; it needs a free account. Check the board and allowances with your printer before production.</p>
         </section>
