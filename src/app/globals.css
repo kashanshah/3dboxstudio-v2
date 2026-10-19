@@ -4391,6 +4391,9 @@ body{font-size:var(--type-body)}
 .language-switcher a:hover{background:#f2f4f7}
 .language-switcher a[aria-current="page"]{font-weight:700;color:var(--blue,#0f67e8)}
 @media (max-width:560px){.language-switcher summary span{display:none}}
+/* "English" link in the header of the Spanish tool pages. */
+.spanish-language-link{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--line,#e4e7ec);border-radius:999px;font-size:13px;font-weight:600;color:var(--ink,#101828);background:var(--surface,#fff);text-decoration:none}
+@media (max-width:760px){.spanish-language-link{display:none}}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .pro-studio input[aria-invalid="true"]{border-color:#dc2626;box-shadow:0 0 0 1px #dc2626;outline-color:#dc2626}
 

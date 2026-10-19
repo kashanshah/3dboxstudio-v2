@@ -19,10 +19,10 @@ const absolute = (path: string) => new URL(path, site.url).toString();
 export type Crumb = { name: string; path: string };
 
 /** A BreadcrumbList from Home to the page itself (the last crumb). */
-export function breadcrumbSchema(crumbs: Crumb[]) {
+export function breadcrumbSchema(crumbs: Crumb[], home: Crumb = { name: 'Home', path: '/' }) {
   return {
     '@type': 'BreadcrumbList',
-    itemListElement: [{ name: 'Home', path: '/' }, ...crumbs].map((crumb, index) => ({
+    itemListElement: [home, ...crumbs].map((crumb, index) => ({
       '@type': 'ListItem', position: index + 1, name: crumb.name, item: absolute(crumb.path),
     })),
   };

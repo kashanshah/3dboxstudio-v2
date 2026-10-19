@@ -4,6 +4,7 @@ import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent as Reac
 import { Maximize, Minus, Plus } from "lucide-react";
 import { LINE_NAMES, LINE_STYLES } from "@/lib/dieline/export/svg";
 import type { DielineOutput, LineType } from "@/lib/dieline/types";
+import { GENERATOR_COPY, type PreviewCopy } from "./copy";
 
 // The flat dieline on a canvas, drawn live: every line type in its colour,
 // panel names and the overall sizes. Like a design tool, the box is resized
@@ -23,8 +24,9 @@ export type ResizeHandle = { axis: Axis; label: string; panel: string; side: "wi
 type View = { zoom: number; x: number; y: number };
 type Frame = { x: number; y: number; w: number; h: number };
 
-export function DielinePreview({ output, label, showLabels, showSizes, format, handles = [], values, step, mmPerUnit, unitLabel, onResize, onResizeEnd, toolbar }: {
+export function DielinePreview({ output, label, showLabels, showSizes, format, handles = [], values, step, mmPerUnit, unitLabel, onResize, onResizeEnd, toolbar, copy = GENERATOR_COPY.en.preview }: {
   output: DielineOutput;
+  copy?: PreviewCopy;
   label: string;
   showLabels: boolean;
   showSizes: boolean;
@@ -172,11 +174,11 @@ export function DielinePreview({ output, label, showLabels, showSizes, format, h
   return <figure className="dg-preview">
     <div className="dg-canvas-bar">
       {toolbar}
-      <div className="dg-zoom" role="group" aria-label="Zoom">
-        <button type="button" onClick={() => zoomBy(1 / 1.5)} disabled={view.zoom <= 1 || !!held} aria-label="Zoom out"><Minus aria-hidden="true" /></button>
-        <button type="button" className="dg-zoom-level" onClick={() => setView(fitted)} disabled={!!held} aria-label={`${Math.round(view.zoom * 100)}% zoom: fit the sheet`}>{Math.round(view.zoom * 100)}%</button>
-        <button type="button" onClick={() => zoomBy(1.5)} disabled={view.zoom >= MAX_ZOOM || !!held} aria-label="Zoom in"><Plus aria-hidden="true" /></button>
-        <button type="button" onClick={() => setView(fitted)} disabled={view.zoom <= 1 || !!held} aria-label="Fit to screen"><Maximize aria-hidden="true" /></button>
+      <div className="dg-zoom" role="group" aria-label={copy.zoom}>
+        <button type="button" onClick={() => zoomBy(1 / 1.5)} disabled={view.zoom <= 1 || !!held} aria-label={copy.zoomOut}><Minus aria-hidden="true" /></button>
+        <button type="button" className="dg-zoom-level" onClick={() => setView(fitted)} disabled={!!held} aria-label={copy.zoomLevel(Math.round(view.zoom * 100))}>{Math.round(view.zoom * 100)}%</button>
+        <button type="button" onClick={() => zoomBy(1.5)} disabled={view.zoom >= MAX_ZOOM || !!held} aria-label={copy.zoomIn}><Plus aria-hidden="true" /></button>
+        <button type="button" onClick={() => setView(fitted)} disabled={view.zoom <= 1 || !!held} aria-label={copy.fit}><Maximize aria-hidden="true" /></button>
       </div>
     </div>
     <div className="dg-canvas">
@@ -206,7 +208,7 @@ export function DielinePreview({ output, label, showLabels, showSizes, format, h
         {onResize ? placed.map(handle => {
           const [hw, hh] = handle.dir === "x" ? [unit * 9, unit * 30] : [unit * 30, unit * 9];
           return <g key={handle.axis} className={`dg-handle${active === handle.axis ? " is-active" : ""}`} tabIndex={0} role="slider"
-            aria-label={`${handle.label}: drag or use the arrow keys`} aria-valuenow={values[handle.axis]} aria-valuemin={step} aria-orientation={handle.dir === "x" ? "horizontal" : "vertical"}
+            aria-label={copy.handle(handle.label)} aria-valuenow={values[handle.axis]} aria-valuemin={step} aria-orientation={handle.dir === "x" ? "horizontal" : "vertical"}
             style={{ cursor: handle.dir === "x" ? "ew-resize" : "ns-resize" }}
             onPointerDown={event => startResize(event, handle.axis, handle.dir)} onPointerMove={moveResize} onPointerUp={endResize} onPointerCancel={endResize}
             onPointerEnter={() => setHover(handle.axis)} onPointerLeave={() => setHover(null)}
@@ -220,10 +222,10 @@ export function DielinePreview({ output, label, showLabels, showSizes, format, h
       {drag ? <div className="dg-badge" style={{ left: drag.at.x + 16, top: drag.at.y + 16 }}>
         {placed.find(handle => handle.axis === drag.axis)?.label} <b>{values[drag.axis]} {unitLabel}</b>
       </div> : null}
-      {onResize && placed.length ? <p className="dg-hint" aria-hidden="true">Drag the blue handles to resize</p> : null}
+      {onResize && placed.length ? <p className="dg-hint" aria-hidden="true">{copy.dragHint}</p> : null}
     </div>
     <figcaption className="dg-legend">
-      {types.map(type => <span key={type}><svg viewBox="0 0 24 6" aria-hidden="true"><line x1="1" y1="3" x2="23" y2="3" stroke={LINE_STYLES[type].color} strokeWidth="2" strokeDasharray={LINE_STYLES[type].dash ? "4 2.5" : undefined} /></svg>{LINE_NAMES[type]}</span>)}
+      {types.map(type => <span key={type}><svg viewBox="0 0 24 6" aria-hidden="true"><line x1="1" y1="3" x2="23" y2="3" stroke={LINE_STYLES[type].color} strokeWidth="2" strokeDasharray={LINE_STYLES[type].dash ? "4 2.5" : undefined} /></svg>{copy.lineNames?.[type] ?? LINE_NAMES[type]}</span>)}
     </figcaption>
   </figure>;
 }

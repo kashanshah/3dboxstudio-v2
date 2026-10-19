@@ -35,6 +35,8 @@ export function LanguageSwitcher({ current, label }: { current: string; label: s
 /** Translated landing page for /es, /es-mx, /fr, /pt-br, /de and /zh. The Studio itself is English-only. */
 export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
   const c = localizedHome[locale];
+  // Spanish has its own template pages; the other languages link to the English ones.
+  const templates = c.lang.startsWith('es') ? { href: '/es/box-templates', hrefLang: 'es' } : { href: '/box-templates', hrefLang: 'en' };
   return <div lang={c.lang} className="localized-home-root">
     <a className="skip-link" href="#main">{c.nav.skip}</a>
     <header className="marketing-header">
@@ -42,7 +44,7 @@ export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
         <Brand />
         <nav className="marketing-nav-links" aria-label="3D Box Studio">
           <a href="#features">{c.nav.features}</a>
-          <Link href="/box-templates" hrefLang="en">{c.nav.templates}</Link>
+          <Link href={templates.href} hrefLang={templates.hrefLang}>{c.nav.templates}</Link>
           <a href="#faq">{c.nav.faq}</a>
           <Link href="/blog" hrefLang="en">{c.nav.guides}</Link>
         </nav>
@@ -52,7 +54,7 @@ export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
           <MobileMenu
             links={[
               { href: '#features', label: c.nav.features, native: true },
-              { href: '/box-templates', label: c.nav.templates, hrefLang: 'en' },
+              { href: templates.href, label: c.nav.templates, hrefLang: templates.hrefLang },
               { href: '#faq', label: c.nav.faq, native: true },
               { href: '/blog', label: c.nav.guides, hrefLang: 'en' },
             ]}

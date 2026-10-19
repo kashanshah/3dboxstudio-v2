@@ -61,3 +61,30 @@ test('the box templates can be searched, together with the tag filters', async (
   await expect(search).toHaveValue('');
   await expect(cards).toHaveCount(total);
 });
+
+test('the Spanish template pages and generator are in Spanish and linked both ways', async ({ page }) => {
+  await page.goto('/es/box-templates');
+  await expect(page.getByRole('heading', { level: 1, name: 'Plantillas de cajas gratis' })).toBeVisible();
+  await page.getByRole('link', { name: /^Caja postal autoarmable/ }).first().click();
+
+  await expect(page).toHaveURL(/\/es\/box-templates\/mailer-box$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Plantilla de caja postal autoarmable' })).toBeVisible();
+  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute('href', /\/box-templates\/mailer-box$/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/es\/box-templates\/mailer-box$/);
+  // The generator speaks Spanish, and a preset still redraws the box.
+  await expect(page.getByRole('heading', { name: 'Haz el troquel de tu caja postal autoarmable' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Descargar PDF/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Set de cosmética' }).click();
+  await expect(page.getByRole('button', { name: 'Set de cosmética' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('link', { name: 'Abrir en 3D Box Studio' })).toHaveAttribute('href', /\/studio\/editor\?template=mailer-box/);
+
+  // The English page points back to the Spanish one.
+  await page.getByRole('link', { name: 'English' }).first().click();
+  await expect(page).toHaveURL(/\/box-templates\/mailer-box$/);
+  await expect(page.locator('link[rel="alternate"][hreflang="es"]')).toHaveAttribute('href', /\/es\/box-templates\/mailer-box$/);
+  await expect(page.getByRole('link', { name: 'Leer en español' })).toBeVisible();
+
+  await page.goto('/es/box-dieline-generator');
+  await expect(page.getByRole('heading', { level: 1, name: 'Generador de troqueles de cajas gratis' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: /Caja americana de envío/ })).toBeVisible();
+});

@@ -3,6 +3,10 @@ import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
 import { homeLanguageAlternates, localizedHomeLocales } from '@/content/localized-home';
+import { ES_BOX_TEMPLATE_PAGES, ES_TEMPLATE_SLUGS, templateLanguageAlternates } from '@/content/es/box-template-pages';
+
+const GENERATOR_LANGUAGES = { en: '/box-dieline-generator', es: '/es/box-dieline-generator', 'x-default': '/box-dieline-generator' };
+const TEMPLATES_LANGUAGES = { en: '/box-templates', es: '/es/box-templates', 'x-default': '/box-templates' };
 
 type SitemapEntry = {
   path: string;
@@ -34,15 +38,18 @@ function getEntries(): SitemapEntry[] {
     { path: '/features', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/changelog', lastModified: new Date(changelogReleases[0].date), changeFrequency: 'weekly', priority: 0.7 },
     { path: '/whats-new/v2', lastModified: new Date('2026-10-01'), changeFrequency: 'weekly', priority: 0.85 },
-    { path: '/box-dieline-generator', changeFrequency: 'monthly', priority: 0.85 },
+    { path: '/box-dieline-generator', changeFrequency: 'monthly', priority: 0.85, alternates: GENERATOR_LANGUAGES },
+    { path: '/es/box-dieline-generator', changeFrequency: 'monthly', priority: 0.75, alternates: GENERATOR_LANGUAGES },
     { path: '/3d-box-mockup-generator', changeFrequency: 'monthly', priority: 0.85 },
     { path: '/packaging-design-online', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/pacdora-alternative', changeFrequency: 'monthly', priority: 0.8 },
     { path: '/adobe-dimension-alternative', lastModified: new Date('2026-10-06'), changeFrequency: 'monthly', priority: 0.75 },
     { path: '/boxshot-alternative', lastModified: new Date('2026-10-06'), changeFrequency: 'monthly', priority: 0.75 },
     { path: '/placeit-box-mockup-alternative', lastModified: new Date('2026-10-06'), changeFrequency: 'monthly', priority: 0.75 },
-    { path: '/box-templates', changeFrequency: 'monthly', priority: 0.8 },
-    ...BOX_TEMPLATE_PAGES.map((page): SitemapEntry => ({ path: `/box-templates/${page.slug}`, lastModified: new Date(page.updated), changeFrequency: 'monthly', priority: 0.85 })),
+    { path: '/box-templates', changeFrequency: 'monthly', priority: 0.8, alternates: TEMPLATES_LANGUAGES },
+    { path: '/es/box-templates', changeFrequency: 'monthly', priority: 0.7, alternates: TEMPLATES_LANGUAGES },
+    ...BOX_TEMPLATE_PAGES.map((page): SitemapEntry => ({ path: `/box-templates/${page.slug}`, lastModified: new Date(page.updated), changeFrequency: 'monthly', priority: 0.85, ...(ES_TEMPLATE_SLUGS.includes(page.slug) ? { alternates: templateLanguageAlternates(page.slug) } : {}) })),
+    ...ES_BOX_TEMPLATE_PAGES.map((page): SitemapEntry => ({ path: `/es/box-templates/${page.slug}`, lastModified: new Date(page.updated), changeFrequency: 'monthly', priority: 0.75, alternates: templateLanguageAlternates(page.slug) })),
     { path: '/faq', changeFrequency: 'monthly', priority: 0.7 },
     { path: '/contact', changeFrequency: 'monthly', priority: 0.5 },
     { path: '/privacy', lastModified: new Date('2026-10-11'), changeFrequency: 'yearly', priority: 0.3 },
