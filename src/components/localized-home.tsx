@@ -33,7 +33,7 @@ export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
           <p className="localized-app-note">{c.hero.appNote}</p>
         </div>
         <figure className="localized-hero-shot">
-          <Image src={STEP_IMAGES[2]} alt={c.steps.alts[2]} width={2048} height={1144} priority sizes="(max-width: 980px) 100vw, 640px" />
+          <Image src={STEP_IMAGES[2]} alt={c.steps.alts[2]} width={2048} height={1144} loading="eager" fetchPriority="high" sizes="(max-width: 980px) 100vw, 640px" />
         </figure>
       </section>
 

@@ -18,7 +18,7 @@ export function BrandLogo({ compact = false, tone = 'light', className, priority
     width={width}
     height={56}
     className={className}
-    priority={priority}
+    preload={priority}
     unoptimized
   />;
 }

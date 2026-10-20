@@ -45,7 +45,7 @@ export default function ChangelogPage() {
               <ul className={styles.highlights}>{release.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>
               {release.landingPage ? <Link className={styles.releaseLink} href={release.landingPage.href}>{release.landingPage.label}<ArrowRight size={17} aria-hidden="true" /></Link> : null}
             </div>
-            {release.image ? <div className={styles.image}><Image {...release.image} priority={index === 0} sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1100px) 70vw, 800px" /></div> : null}
+            {release.image ? <div className={styles.image}><Image {...release.image} preload={index === 0} sizes="(max-width: 760px) calc(100vw - 40px), (max-width: 1100px) 70vw, 800px" /></div> : null}
           </article>
         </li>)}
       </ol>
