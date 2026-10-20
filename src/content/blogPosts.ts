@@ -117,6 +117,7 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "how-to-make-a-drawer-box": "tools",
   "box-dieline-svg-dxf-export": "tools",
   "box-template-svg-cricut-laser-cutter": "tools",
+  "qr-code-barcode-on-packaging": "tools",
 };
 
 export function getBlogCategory(slug: string): BlogCategoryId {
@@ -2858,6 +2859,60 @@ const ALL_BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Why size matters for a box that closes" },
       { type: "p", text: "A box folded from thicker card loses a little at every fold. The template spaces the panels for the thickness you enter, which is why a tuck flap still slides in and a lid still closes. If you change card weight, change the thickness and download the template again." },
       { type: "cta", label: "Make a box template in your size", href: "/box-templates" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "qr-code-barcode-on-packaging",
+    title: "How to Add a QR Code and Barcode to Your Box Design",
+    seoTitle: "QR Code & Barcode on Packaging: Size, Placement, Free Tools | 3D Box Studio",
+    description: "Put a QR code and a retail barcode on your box: which panel, what size, what to link to, and how to check both in 3D before printing. Free, in the browser.",
+    published: "2026-10-20",
+    readMinutes: 5,
+    keywords: ["qr code on packaging","barcode on box","where to put barcode on box","qr code box design","barcode size packaging","upc on packaging"],
+    imagePath: "/images/blog/tuck-end-folding-carton-mockup.webp",
+    imageAlt: "A folding carton in 3D, with room on the back panel for a barcode and a QR code",
+    relatedSlugs: ["packaging-bleed-safe-zone-dieline","small-business-product-box-design","tuck-end-folding-carton-mockup"],
+    faqs: [
+      { question: "Which panel should the barcode go on?", answer: "Usually the back or bottom panel, away from folds, glue flaps and edges, where a cashier can scan it without turning the box over twice. Keep it on one flat panel; never wrap it around a corner." },
+      { question: "How big should the barcode be?", answer: "A UPC-A or EAN-13 is about 37 mm wide at 100%, and can be printed from 80% to 200% of that. 3D Box Studio adds it at 100%, so don't shrink it below 80%." },
+      { question: "How big should the QR code be?", answer: "At least 15 to 20 mm wide on a box held in the hand, with a clear margin around it. Larger if people will scan it from a shelf." },
+      { question: "Where do I get the barcode number?", answer: "Retail barcode numbers (UPC or EAN) come from GS1, the organisation that runs the system. For your own stock labels you can use any text with Code 128." },
+    ],
+    sections: [
+      { type: "p", text: "Most product boxes need two codes: a barcode for the till and a QR code for the customer. Both are easy to get wrong on a dieline, because a code that looks fine on a flat layout can end up across a fold, under a flap or on a curved edge once the box is closed. 3D Box Studio lets you add both from the Design panel and check them on the folded box in 3D." },
+      { type: "h2", text: "Barcode or QR code: what each one does" },
+      { type: "ul", items: [
+        "Barcode (UPC-A, EAN-13): a short product number that tills and stock systems scan. Shops need it on anything they sell.",
+        "QR code: a link people open with their phone camera, such as a setup video, recipes, ingredients or a reorder page.",
+        "Most retail boxes need both, printed side by side, each with its own blank margin."
+      ] },
+      { type: "h2", text: "Add them in 3D Box Studio" },
+      { type: "ol", items: [
+        "Open your box in the Studio and go to the Design panel.",
+        "Add a barcode, choose EAN-13, UPC-A or Code 128, and type your number. It is added at 100% size.",
+        "Add a QR code and paste the link or text it should open.",
+        "Drag each one onto a flat panel, clear of folds, glue flaps and the bleed area. See [bleed and safe zones](/blog/packaging-bleed-safe-zone-dieline).",
+        "Fold the box in 3D and turn it around to check that neither code wraps a corner or hides under a flap.",
+        "Export the 1:1 PDF dieline for your printer, and scan a printed proof before the full run."
+      ] },
+      { type: "h2", text: "Placement and size" },
+      { type: "ul", items: [
+        "Barcode: back or bottom panel, at least about 8 mm from any fold or edge, bars running in the direction that suits the printing (your printer can advise).",
+        "Retail barcode size: about 37 mm wide at 100%, between 80% and 200%. Don't cut the bars shorter to save space.",
+        "QR code: at least 15 to 20 mm wide, on a flat panel, with a short line next to it saying why to scan.",
+        "Both: dark on a light background. Avoid gloss varnish and foil over the codes; matte areas scan best."
+      ] },
+      { type: "callout", text: "A QR code printed on a box can't be changed once the run is printed. If the page it opens might move, use a dynamic QR code: it holds a short link you can point somewhere new later, and it counts scans." },
+      { type: "h2", text: "When you need more than the Studio makes" },
+      { type: "p", text: "The Studio covers the codes most boxes need. For anything else, our sister site [QRfinity](https://qrfinity.com/?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=blog_qr_barcode) is free and runs in the browser too:" },
+      { type: "ul", items: [
+        "[Dynamic QR codes](https://qrfinity.com/dynamic-qr-code-generator?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=blog_qr_barcode) you can edit after printing, with scan counts. Paste the short link into the Studio's QR code.",
+        "[ITF-14 barcodes](https://qrfinity.com/barcode-generator/itf-14?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=blog_qr_barcode) for shipping cartons, and [GS1-128](https://qrfinity.com/barcode-generator/gs1-128?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=blog_qr_barcode) for batch and expiry dates.",
+        "[Amazon FNSKU labels](https://qrfinity.com/barcode-generator/amazon-fnsku?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=blog_qr_barcode) if you sell through Amazon FBA.",
+        "[QR codes for product packaging](https://qrfinity.com/qr-code-generator/product-packaging?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=blog_qr_barcode): ideas for what to link to."
+      ] },
+      { type: "cta", label: "Add a barcode and QR code to your box", href: "/studio" },
       { type: "faq" }
     ],
   },

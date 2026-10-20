@@ -13,6 +13,9 @@ const SHAPE_ICONS: Record<ShapeKind, typeof Square> = {
   rectangle: RectangleHorizontal, rounded: Square, ellipse: Circle, triangle: Triangle, star: Star, line: Minus, arrow: ArrowRight,
 };
 const FORMAT_LABELS: Record<BarcodeFormat, string> = { ean13: 'EAN-13', upca: 'UPC-A', code128: 'Code 128' };
+/** QRfinity, our sister site, for codes the box designer doesn't make: editable QR codes and more barcode types. */
+const QRFINITY_DYNAMIC = 'https://qrfinity.com/dynamic-qr-code-generator?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=studio_qr';
+const QRFINITY_BARCODES = 'https://qrfinity.com/barcode-generator?utm_source=3dboxstudio&utm_medium=referral&utm_campaign=studio_barcode';
 
 /** Swatches and a picker; with `optional`, a None button clears the colour. */
 function ColourField({ label, value, optional, onChange }: { label: string; value: string | null; optional?: boolean; onChange: (color: string | null) => void }) {
@@ -69,6 +72,7 @@ function QrEditor({ spec, onChange }: { spec: QrSpec; onChange: (patch: Partial<
     <ColourField label={t('studio.colour')} value={spec.color} onChange={color => color && onChange({ color })} />
     <ColourField label={t('studio.background')} value={spec.background} optional onChange={background => onChange({ background })} />
     <p className="pro-text-editor-hint">{t('studio.qr_hint')}</p>
+    <p className="pro-text-editor-hint">{t('studio.qr_dynamic_hint')} <a className="pro-text-editor-hint-link" href={QRFINITY_DYNAMIC} target="_blank" rel="noopener">{t('studio.qr_dynamic_link')}</a></p>
   </>;
 }
 
@@ -102,6 +106,7 @@ function BarcodeEditor({ spec, onChange }: { spec: BarcodeSpec; onChange: (patch
     <ColourField label={t('studio.colour')} value={spec.color} onChange={color => color && onChange({ color })} />
     <ColourField label={t('studio.background')} value={spec.background} optional onChange={background => onChange({ background })} />
     <p className="pro-text-editor-hint">{t('studio.barcode_hint')}</p>
+    <p className="pro-text-editor-hint">{t('studio.barcode_more_hint')} <a className="pro-text-editor-hint-link" href={QRFINITY_BARCODES} target="_blank" rel="noopener">{t('studio.barcode_more_link')}</a></p>
   </>;
 }
 

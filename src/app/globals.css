@@ -4660,6 +4660,8 @@ body{font-size:var(--type-body)}
 .pro-text-editor-swatches button[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
 .pro-text-editor-range input{width:100%}
 .pro-text-editor-hint{margin:0;color:var(--muted);font-size:var(--fs-caption);line-height:1.4}
+.pro-text-editor-hint-link{color:inherit;text-decoration:underline;text-underline-offset:2px}
+.pro-text-editor-hint-link:hover{color:var(--ink)}
 
 /* Snapping: guide lines while dragging, and the align buttons. */
 .pro-snap-guide{position:absolute;z-index:60;pointer-events:none;background:#e5007e}
