@@ -47,6 +47,20 @@ export const SEO_PAGES = {
     status: 'draft',
     priority: 0.6,
   },
+  templatemaker: {
+    path: '/templatemaker-alternative',
+    title: 'Templatemaker Alternative: Dielines with a 3D Preview',
+    description: 'A free alternative to Templatemaker for box dielines: 15 styles, SVG, PDF and DXF without an account, and the box folded in 3D. Compared fairly.',
+    status: 'draft',
+    priority: 0.7,
+  },
+  dieCutTemplates: {
+    path: '/die-cut-templates-alternative',
+    title: 'Die Cut Templates Alternative: Free, Any Size',
+    description: 'A free alternative to buying die cut box templates: draw the dieline in your exact size, download it with no account, and fold it in 3D. Compared fairly.',
+    status: 'draft',
+    priority: 0.7,
+  },
 } satisfies Record<string, SeoPage>;
 
 /** Metadata for one of these pages: canonical without query strings, and noindex while a draft. */

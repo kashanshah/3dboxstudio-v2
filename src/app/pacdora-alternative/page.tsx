@@ -10,13 +10,26 @@ export const metadata: Metadata = {
   openGraph: { images:[defaultOgImage], title: "Pacdora Alternative for Free 3D Box Mockups | 3D Box Studio", description: "Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG and MP4 export, free SVG/DXF dielines, saving and sharing.", type: "website" }
 };
 
+// Sources for the Pacdora column, checked 2026-10-20 (vendor pages via search
+// index; the pages could not be fetched directly, so recheck in a browser):
+// - Plans Free, Lite, Pro, Business: https://www.pacdora.com/pricing
+// - Dieline file exports (PDF, DXF, AI) shown for paid plans only in the
+//   pricing table, while dieline-generator pages say "create and customize your
+//   dieline for free": https://www.pacdora.com/pricing ,
+//   https://www.pacdora.com/tools/dieline-generator  VERIFY before relying on it.
+// - "3000+" box dieline templates: https://www.pacdora.com/tools/dieline-generator
+// - "7000+ 3D Mockups": https://www.pacdora.com/mockups
+// - Custom dimensions, thickness and material; integrated 3D view:
+//   https://www.pacdora.com/dielines/fefco-box-templates
+// - Print-on-demand service: https://www.pacdora.com/printing
 const rows = [
   { label: "Price", ours: "Free, with every feature. Dieline downloads need no account; the Studio needs a free one", theirs: "Free plan with limits; paid plans for more exports, HD output and commercial use" },
   { label: "Box sizing", ours: "Exact width, height and depth in mm or inches, plus board thickness", theirs: "Custom dimensions on its templates" },
   { label: "Flap and panel sizes", ours: "Adjust each flap and panel on the dieline or the 3D box, with drag handles", theirs: "Depends on the template" },
   { label: "Dieline export", ours: "1:1 PDF with artwork and bleed, plus SVG and DXF with cut and crease layers, free", theirs: "Dieline downloads in several formats; limits depend on plan" },
   { label: "3D preview", ours: "Real-time fold and open, orbit, PNG or JPG up to 4K with product shots, and an MP4 up to 15 seconds", theirs: "Photoreal mockups, animations and video" },
-  { label: "Template range", ours: "12 box structures: tuck end, auto lock and snap lock bottom cartons, pillow, gable, drawer, mailer, pizza, shipping, sleeve and rigid boxes", theirs: "Large library of boxes plus bags, bottles, cans and other packaging" },
+  { label: "Template range", ours: "15 box structures: tuck end, auto lock and snap lock bottom cartons, pillow, gable, drawer, mailer, pizza, shipping, sleeve, four-corner tray, telescope, cake and rigid boxes", theirs: "3,000+ box dieline templates and 7,000+ 3D mockups, including bags, bottles, cans and other packaging" },
+  { label: "Printing", ours: "Not offered: download the dieline and send it to any printer", theirs: "Print-on-demand service" },
   { label: "Sharing", ours: "View-only interactive 3D link", theirs: "Share links and exported files" },
 ];
 
@@ -79,5 +92,5 @@ export default function Page(){
     {"@type":"WebPage",name:"A focused Pacdora alternative for browser-based 3D box design.",description:"Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG and MP4 export, free SVG/DXF dielines, saving and sharing.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Pacdora alternative" title="A focused Pacdora alternative for browser-based 3D box design." intro="If your main job is to choose a box structure, set dimensions, place artwork, preview it in 3D, and share or export the result, 3D Box Studio offers a simpler focused workflow. It is not intended to copy every feature of Pacdora." secondaryHref="/blog/free-pacdora-alternative-3d-box-mockups" secondaryLabel="Read the detailed comparison" sections={sections} faqs={faqs} afterHero={<><CompareTable competitor="Pacdora" rows={rows} checked="Pacdora details from public sources as of October 2026; check pacdora.com for current plans and features." /><ComparisonLinks current="/pacdora-alternative" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Pacdora alternative" title="A focused Pacdora alternative for browser-based 3D box design." intro="If your main job is to choose a box structure, set dimensions, place artwork, preview it in 3D, and share or export the result, 3D Box Studio offers a simpler focused workflow. It is not intended to copy every feature of Pacdora." secondaryHref="/blog/free-pacdora-alternative-3d-box-mockups" secondaryLabel="Read the detailed comparison" sections={sections} faqs={faqs} afterHero={<><CompareTable competitor="Pacdora" rows={rows} checked="Pacdora details from pacdora.com (pricing, dieline generator, mockups and printing pages), checked 20 October 2026; check pacdora.com for current plans and features." /><ComparisonLinks current="/pacdora-alternative" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

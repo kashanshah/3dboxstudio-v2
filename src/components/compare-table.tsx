@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SEO_PAGES, servedSeoPage } from "@/content/seo-pages";
 
 /** Side-by-side comparison for the "alternative" pages. Keep rows factual and dated. */
 export function CompareTable({ competitor, rows, checked }: { competitor: string; rows: { label: string; ours: string; theirs: string }[]; checked: string }) {
@@ -19,12 +20,14 @@ const COMPARISONS = [
   { href: "/adobe-dimension-alternative", label: "Adobe Dimension" },
   { href: "/boxshot-alternative", label: "Boxshot" },
   { href: "/placeit-box-mockup-alternative", label: "Placeit" },
+  { href: SEO_PAGES.templatemaker.path, label: "Templatemaker", page: SEO_PAGES.templatemaker },
+  { href: SEO_PAGES.dieCutTemplates.path, label: "Die Cut Templates", page: SEO_PAGES.dieCutTemplates },
 ];
 
-/** Links between the comparison pages. */
+/** Links between the comparison pages; draft ones only where drafts are served. */
 export function ComparisonLinks({ current }: { current: string }) {
   return <nav className="comparison-links" aria-label="Other comparisons">
     <span>Compare with:</span>
-    {COMPARISONS.filter(item => item.href !== current).map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}
+    {COMPARISONS.filter(item => item.href !== current && (!item.page || servedSeoPage(item.page))).map(item => <Link key={item.href} href={item.href}>{item.label}</Link>)}
   </nav>;
 }
