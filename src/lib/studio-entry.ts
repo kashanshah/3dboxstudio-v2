@@ -1,8 +1,8 @@
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 
-type EditorParams = { project?: string; template?: string; workspace?: string; w?: string; h?: string; d?: string; t?: string; a?: string; unit?: string };
+type EditorParams = { project?: string; template?: string; workspace?: string; w?: string; h?: string; d?: string; t?: string; a?: string; hinge?: string; unit?: string };
 
-const ENTRY_KEYS = ['project', 'template', 'workspace', 'w', 'h', 'd', 't', 'a', 'unit'] as const;
+const ENTRY_KEYS = ['project', 'template', 'workspace', 'w', 'h', 'd', 't', 'a', 'hinge', 'unit'] as const;
 const MAX_MM = 3000;
 
 /** `/studio/editor?…` with only the parameters the editor understands, for the post-login redirect. */
@@ -41,13 +41,21 @@ export function requestedDimensions(params: EditorParams, fallback: CartonDimens
   };
 }
 
+export type SplitTopHingeSide = 'side_a' | 'side_b';
+
+/** The split-top carton's flap arrangement from `hinge`, if the link sets one. */
+export function requestedHingeSide(params: EditorParams): SplitTopHingeSide | undefined {
+  return params.hinge === 'side_a' || params.hinge === 'side_b' ? params.hinge : undefined;
+}
+
 /** Link that opens a new design in the editor with a template and size (and optionally board and flap sizes) already set. */
-export function studioTemplateHref(templateId: string, dimensions: Pick<CartonDimensions, 'width' | 'height' | 'depth'> & Partial<Pick<CartonDimensions, 'thickness' | 'adjustments'>>, unit: 'mm' | 'in') {
+export function studioTemplateHref(templateId: string, dimensions: Pick<CartonDimensions, 'width' | 'height' | 'depth'> & Partial<Pick<CartonDimensions, 'thickness' | 'adjustments'>>, unit: 'mm' | 'in', options: { splitTopHingeSide?: SplitTopHingeSide } = {}) {
   const round = (value: number) => String(Math.round(value * 10) / 10);
   const query = new URLSearchParams({ template: templateId, w: round(dimensions.width), h: round(dimensions.height), d: round(dimensions.depth) });
   if (dimensions.thickness) query.set('t', String(Math.round(dimensions.thickness * 100) / 100));
   const adjustments = Object.entries(dimensions.adjustments ?? {}).map(([key, value]) => `${key}:${round(value)}`);
   if (adjustments.length) query.set('a', adjustments.join(';'));
+  if (options.splitTopHingeSide) query.set('hinge', options.splitTopHingeSide);
   query.set('unit', unit);
   return `/studio/editor?${query}`;
 }

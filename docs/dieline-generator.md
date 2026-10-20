@@ -28,7 +28,7 @@ The page arrives with the first dieline already drawn, so it shows without JavaS
 
 The URL updates once the visitor changes something. The last box is kept in `localStorage` (`dieline-generator:v1`) and restored on that style's page when the URL carries no settings. Bad or missing values fall back to the page's defaults.
 
-"Open in 3D Box Studio" passes the inside size, the board (`t`) and the style sizes (`a=key:mm;…`) to `/studio/editor` (`src/lib/studio-entry.ts`). The Studio keeps the sizes its template knows and clamps them to its limits.
+"Open in 3D Box Studio" passes the inside size, the board (`t`) and the style sizes (`a=key:mm;…`) and, for the shipping carton, its flap arrangement (`hinge=side_b`) to `/studio/editor` (`src/lib/studio-entry.ts`). The Studio keeps the sizes its template knows and clamps them to its limits.
 
 ## Analytics
 

@@ -179,6 +179,7 @@ function makeStyle(spec: StyleSpec): DielineStyle {
     id: spec.id, name: spec.name, category: spec.category, ...(spec.code ? { code: spec.code } : {}), templateId: spec.templateId,
     modes,
     ...(spec.measure ? { measure: spec.measure } : {}),
+    ...(spec.options?.splitTopHingeSide ? { options: { splitTopHingeSide: spec.options.splitTopHingeSide } } : {}),
     get defaults() {
       return (defaults ??= defaultsOf(spec));
     },

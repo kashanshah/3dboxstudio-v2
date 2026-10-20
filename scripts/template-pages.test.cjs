@@ -17,7 +17,7 @@ const { BOX_TEMPLATE_SLUGS } = require('../src/content/box-template-slugs.ts');
 const { templatePreviewGeometry } = require('../src/lib/packaging/template-preview.ts');
 const { getTemplateExportGeometry } = require('../src/lib/packaging/template-runtime.ts');
 const { getPackagingTemplate } = require('../src/lib/packaging/template-registry.ts');
-const { editorReturnPath, requestedDimensions, studioTemplateHref } = require('../src/lib/studio-entry.ts');
+const { editorReturnPath, requestedDimensions, requestedHingeSide, studioTemplateHref } = require('../src/lib/studio-entry.ts');
 
 const toMm = (value, unit) => unit === 'in' ? value * 25.4 : value;
 
@@ -73,6 +73,20 @@ test('requested dimensions are bounded and fall back per field', () => {
   const href = studioTemplateHref('mailer-box', { width: 220, height: 80, depth: 160, thickness: 1.5, adjustments: { ear: 30 } }, 'mm');
   assert.equal(href, '/studio/editor?template=mailer-box&w=220&h=80&d=160&t=1.5&a=ear%3A30&unit=mm');
   assert.equal(editorReturnPath(Object.fromEntries(new URL(href, 'https://x.test').searchParams)), href);
+});
+
+test('the shipping carton opens in the Studio with its flap arrangement', () => {
+  const { getDielineStyle } = require('../src/lib/dieline/styles.ts');
+  const rsc = getDielineStyle('shipping-box-rsc');
+  assert.deepEqual(rsc.options, { splitTopHingeSide: 'side_b' });
+  assert.equal(getDielineStyle('mailer-box').options, undefined);
+  const href = studioTemplateHref(rsc.templateId, { width: 300, height: 150, depth: 200 }, 'mm', rsc.options);
+  const params = Object.fromEntries(new URL(href, 'https://x.test').searchParams);
+  assert.equal(params.hinge, 'side_b');
+  assert.equal(editorReturnPath(params), href);
+  assert.equal(requestedHingeSide(params), 'side_b');
+  assert.equal(requestedHingeSide({ hinge: 'sideways' }), undefined);
+  assert.equal(requestedHingeSide({}), undefined);
 });
 
 test('every template page has its own 1200×630 share image', () => {

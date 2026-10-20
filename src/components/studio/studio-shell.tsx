@@ -302,7 +302,7 @@ function useChangedState<T>(initial:T, same:(a:T, b:T)=>boolean = Object.is) {
   return [value,setChanged] as const;
 }
 
-export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialDimensions:requestedDimensions,initialUnit,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;newDesignProjects?:NewDesignProject[]} = {}) {
+export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialDimensions:requestedDimensions,initialUnit,initialSplitTopHingeSide,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;initialSplitTopHingeSide?:'side_a'|'side_b';newDesignProjects?:NewDesignProject[]} = {}) {
   const t = useTranslations();
 
   // Designs saved on an older version of a template's design grid move onto
@@ -389,7 +389,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [formation,setFormationValue] = useState(legacyFormation ?? 100);
   const [opening, setOpeningValue] = useState(initialRuntime.assembly.legacyOpeningAsFormation && initial?.formation===undefined ? 0 : (initial?.opening ?? 0));
   const [openingMode,setOpeningMode] = useState<LegacyOpeningMode>(initial?.openingMode ?? initialRuntime.assembly.defaultOpeningMode);
-  const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? 'side_a');
+  const [splitTopHingeSide,setSplitTopHingeSide] = useState<'side_a'|'side_b'>(initial?.splitTopHingeSide ?? initialSplitTopHingeSide ?? 'side_a');
   const [zoom, setZoom] = useState(initial?.legacySourceId ? 57.34 : 82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
   const initialDimensions=initial?.dimensions ?? (requestedTemplate ? requestedDimensions : undefined) ?? initialTemplate.defaultDimensions;
