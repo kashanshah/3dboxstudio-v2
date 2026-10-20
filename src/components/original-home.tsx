@@ -5,13 +5,10 @@ import {
   Sparkles, Ruler, ImagePlus, Share2, Save, Rotate3D, Scissors, MousePointer2,
   PanelsTopLeft, Camera, FoldVertical, CheckCircle2
 } from "lucide-react";
-import { BrandMark } from "./original-brand-mark";
 import { PackageBox } from "./original-package-box";
 import { Button } from "./original-button";
-import { SiteHeader } from "./site-shell";
+import { SiteFooter, SiteHeader } from "./site-shell";
 import { FaqSection } from "./faq-section";
-import { CookieSettingsButton } from "./analytics/ConsentBanner";
-import { homeLanguages } from "./localized-home";
 
 const capabilities = [
   [Ruler, "Set real dimensions", "Work with finished width, height, depth, and units instead of being locked to one static mockup."],
@@ -192,6 +189,6 @@ export function OriginalHome() {
     />
 
     <section id="details" className="closing-section"><p className="eyebrow">Your next package starts here</p><h2>Make the flat design feel real.</h2><p>Create a free account, choose a box, set the size, place the artwork, and inspect it in 3D.</p><Button asChild size="lg"><Link href="/studio">Open 3D Box Studio <ArrowRight/></Link></Button></section>
-    <footer><BrandMark/><nav aria-label="Footer navigation"><Link href="/features">Features</Link><Link href="/box-templates">Templates</Link><Link href="/3d-box-mockup-generator">3D box mockup generator</Link><Link href="/box-dieline-generator">Box dieline generator</Link><Link href="/pacdora-alternative">Pacdora alternative</Link><Link href="/blog">Guides</Link><Link href="/faq">FAQ</Link><Link href="/contact">Contact</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><CookieSettingsButton /></nav><nav className="footer-languages" aria-label="Languages">{homeLanguages.filter(language => language.locale !== "en").map(language => <a key={language.locale} href={language.href} hrefLang={language.lang} lang={language.lang}>{language.name}</a>)}</nav><span>© 2026 3D Box Studio</span></footer>
-  </main></>
+
+  </main><SiteFooter /></>
 }

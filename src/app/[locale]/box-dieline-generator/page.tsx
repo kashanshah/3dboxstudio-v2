@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { SpanishFooter, SpanishHeader } from '@/components/spanish-shell';
+import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import { FaqSection } from '@/components/faq-section';
 import { DielineGenerator } from '@/components/dieline-generator/dieline-generator';
 import { generatorSetup } from '@/lib/dieline/thumbnails';
@@ -46,7 +46,7 @@ export default async function SpanishDielineGeneratorPage({ params }: Props) {
   );
 
   return <>
-    <SpanishHeader english="/box-dieline-generator" />
+    <SiteHeader language="es" alternates={LANGUAGES} />
     <main id="main" className="box-template-page" lang="es">
       <header className="btp-hero">
         <Breadcrumbs crumbs={crumbs} home={HOME} label="Ruta de navegación" className="btp-breadcrumb" />
@@ -77,7 +77,7 @@ export default async function SpanishDielineGeneratorPage({ params }: Props) {
         </div>
       </section>
     </main>
-    <SpanishFooter />
+    <SiteFooter language="es" alternates={LANGUAGES} />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
   </>;
 }

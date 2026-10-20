@@ -85,7 +85,7 @@ export default async function BlogPostPage({ params }: Props) {
     })),
   } : null;
 
-  return <ContentPageShell>
+  return <ContentPageShell alternates={FR_BLOG_POSTS[post.slug] ? { fr: `/fr/blog/${post.slug}` } : undefined}>
     <article>
       <header className="content-article-header">
         <Breadcrumbs crumbs={crumbs} />

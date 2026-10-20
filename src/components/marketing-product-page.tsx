@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowRight, CheckCircle2, Info } from "lucide-react";
 import { SiteHeader, SiteFooter } from "@/components/site-shell";
+import type { ChromeAlternates } from "@/lib/site-chrome";
 import { FaqSection, type FaqSectionItem } from "./faq-section";
 import { StudioTour } from "./studio-tour";
 import { Breadcrumbs } from "./seo/breadcrumbs";
@@ -29,6 +30,7 @@ export function MarketingProductPage({
   afterHero,
   breadcrumbs,
   about = false,
+  alternates,
 }: {
   eyebrow: string;
   title: string;
@@ -49,9 +51,11 @@ export function MarketingProductPage({
   breadcrumbs?: Crumb[];
   /** The "About 3D Box Studio" facts block, after the sections. */
   about?: boolean;
+  /** The page in other languages, for the language switcher. */
+  alternates?: ChromeAlternates;
 }) {
   return <>
-    <SiteHeader />
+    <SiteHeader alternates={alternates} />
     <main id="main" className="marketing-product-page">
       <div className={scrollHero ? "mpp-hero-track" : undefined}>
       <section className={`mpp-hero${heroAside ? " has-aside" : ""}${!showStudioProof ? " mpp-hero-combined" : ""}`}>
@@ -118,6 +122,6 @@ export function MarketingProductPage({
         <Link className="mpp-primary" href="/studio">Open 3D Box Studio <ArrowRight /></Link>
       </section>
     </main>
-    <SiteFooter />
+    <SiteFooter alternates={alternates} />
   </>;
 }

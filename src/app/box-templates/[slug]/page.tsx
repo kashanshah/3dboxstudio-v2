@@ -52,6 +52,7 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
   const path = `/box-templates/${page.slug}`;
   const url = new URL(path, site.url).toString();
   const crumbs = [{ name: 'Box templates', path: '/box-templates' }, { name: page.name, path }];
+  const languages = ES_TEMPLATE_SLUGS.includes(page.slug) ? templateLanguageAlternates(page.slug) : undefined;
   const updated = new Date(`${page.updated}T00:00:00Z`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   const schema = jsonLd(
     { '@type': 'WebPage', name: page.h1, description: page.description, url, dateModified: page.updated },
@@ -64,7 +65,7 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
   );
 
   return <>
-    <SiteHeader />
+    <SiteHeader alternates={languages} />
     <main id="main" className="box-template-page">
       <header className="btp-hero">
         <Breadcrumbs crumbs={crumbs} className="btp-breadcrumb" />
@@ -112,7 +113,7 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
         </> : null}
       </section>
     </main>
-    <SiteFooter />
+    <SiteFooter alternates={languages} />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
   </>;
 }

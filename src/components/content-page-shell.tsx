@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { SiteFooter, SiteHeader } from '@/components/site-shell';
+import type { ChromeAlternates } from '@/lib/site-chrome';
 
-export function ContentPageShell({ children }: { children: ReactNode }) {
-  return <div className="content-site"><SiteHeader /><main id="main">{children}</main><SiteFooter /></div>;
+export function ContentPageShell({ children, alternates }: { children: ReactNode; alternates?: ChromeAlternates }) {
+  return <div className="content-site"><SiteHeader alternates={alternates} /><main id="main">{children}</main><SiteFooter alternates={alternates} /></div>;
 }
 
 export function ContentHero({ eyebrow, title, intro, children, compact = false }: { eyebrow: string; title: string; intro: string; children?: ReactNode; compact?: boolean }) {

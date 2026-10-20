@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
-import { SpanishFooter, SpanishHeader } from '@/components/spanish-shell';
+import { SiteFooter, SiteHeader } from '@/components/site-shell';
 import { ES_BOX_TEMPLATE_PAGES } from '@/content/es/box-template-pages';
 import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
 import { defaultOgImage, site } from '@/lib/site';
@@ -17,6 +17,7 @@ type Props = { params: Promise<{ locale: string }> };
 const PATH = '/es/box-templates';
 const HOME = { name: 'Inicio', path: '/es' };
 const TITLE = 'Plantillas de cajas gratis con troquel y mockup 3D | 3D Box Studio';
+const LANGUAGES = { en: '/box-templates', es: PATH };
 const DESCRIPTION = 'Plantillas de cajas gratis: caja de cierre inverso, caja postal, caja de pizza, caja americana y caja almohada. Introduce tus medidas, descarga el troquel y pliega la caja en 3D.';
 
 export const dynamicParams = false;
@@ -25,7 +26,7 @@ export function generateStaticParams() { return [{ locale: 'es' }]; }
 export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
-  alternates: { canonical: PATH, languages: { en: '/box-templates', es: PATH, 'x-default': '/box-templates' } },
+  alternates: { canonical: PATH, languages: { ...LANGUAGES, 'x-default': '/box-templates' } },
   openGraph: { images: [defaultOgImage], title: TITLE, description: DESCRIPTION, type: 'website', url: PATH, locale: 'es_ES' },
 };
 
@@ -39,7 +40,7 @@ export default async function SpanishBoxTemplatesPage({ params }: Props) {
   );
 
   return <>
-    <SpanishHeader english="/box-templates" />
+    <SiteHeader language="es" alternates={LANGUAGES} />
     <main id="main" className="box-template-page" lang="es">
       <header className="btp-hero">
         <Breadcrumbs crumbs={crumbs} home={HOME} label="Ruta de navegación" className="btp-breadcrumb" />
@@ -60,7 +61,7 @@ export default async function SpanishBoxTemplatesPage({ params }: Props) {
         </ul>
       </section>
     </main>
-    <SpanishFooter />
+    <SiteFooter language="es" alternates={LANGUAGES} />
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: schema }} />
   </>;
 }

@@ -1,13 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Download, FoldVertical, Globe, ImagePlus, Palette, Ruler, Share2, Sparkles } from "lucide-react";
-import { Brand } from "./site-shell";
-import { MobileMenu } from "./mobile-menu";
-import { BrandMark } from "./original-brand-mark";
+import { ArrowRight, Download, FoldVertical, ImagePlus, Palette, Ruler, Share2, Sparkles } from "lucide-react";
+import { SiteFooter, SiteHeader } from "./site-shell";
 import { Button } from "./original-button";
 import { FaqSection } from "./faq-section";
-import { CookieSettingsButton } from "./analytics/ConsentBanner";
-import { englishHomeLanguage, localizedHome, localizedHomeLocales, type LocalizedHomeLocale } from "@/content/localized-home";
+import { localizedHome, type LocalizedHomeLocale } from "@/content/localized-home";
 
 const STEP_IMAGES = [
   "/images/v2-launch/studio-box-size.png",
@@ -16,54 +13,11 @@ const STEP_IMAGES = [
 ] as const;
 const FEATURE_ICONS = [Ruler, ImagePlus, FoldVertical, Palette, Download, Share2];
 
-export const homeLanguages = [
-  { href: englishHomeLanguage.path, lang: englishHomeLanguage.lang, name: englishHomeLanguage.nativeName, locale: "en" },
-  ...localizedHomeLocales.map(locale => ({ href: `/${locale}`, lang: localizedHome[locale].lang, name: localizedHome[locale].nativeName, locale })),
-];
-
-/** Links to every version of the home page; works without JavaScript. */
-export function LanguageSwitcher({ current, label }: { current: string; label: string }) {
-  const active = homeLanguages.find(language => language.locale === current) ?? homeLanguages[0];
-  return <details className="language-switcher">
-    <summary aria-label={label}><Globe aria-hidden="true"/><span>{active.name}</span></summary>
-    <ul>{homeLanguages.map(language => <li key={language.locale}>
-      <a href={language.href} hrefLang={language.lang} lang={language.lang} aria-current={language.locale === current ? "page" : undefined}>{language.name}</a>
-    </li>)}</ul>
-  </details>;
-}
-
 /** Translated landing page for /es, /es-mx, /fr, /pt-br, /de and /zh. The Studio itself is English-only. */
 export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
   const c = localizedHome[locale];
-  // Spanish has its own template pages; the other languages link to the English ones.
-  const templates = c.lang.startsWith('es') ? { href: '/es/box-templates', hrefLang: 'es' } : { href: '/box-templates', hrefLang: 'en' };
   return <div lang={c.lang} className="localized-home-root">
-    <a className="skip-link" href="#main">{c.nav.skip}</a>
-    <header className="marketing-header">
-      <div className="marketing-header-inner">
-        <Brand />
-        <nav className="marketing-nav-links" aria-label="3D Box Studio">
-          <a href="#features">{c.nav.features}</a>
-          <Link href={templates.href} hrefLang={templates.hrefLang}>{c.nav.templates}</Link>
-          <a href="#faq">{c.nav.faq}</a>
-          <Link href="/blog" hrefLang="en">{c.nav.guides}</Link>
-        </nav>
-        <div className="marketing-header-actions">
-          <LanguageSwitcher current={locale} label={c.nav.languages} />
-          <Link className="button marketing-header-cta" href="/studio">{c.nav.openStudio} <ArrowRight size={16}/></Link>
-          <MobileMenu
-            links={[
-              { href: '#features', label: c.nav.features, native: true },
-              { href: templates.href, label: c.nav.templates, hrefLang: templates.hrefLang },
-              { href: '#faq', label: c.nav.faq, native: true },
-              { href: '/blog', label: c.nav.guides, hrefLang: 'en' },
-            ]}
-            cta={{ href: '/studio', label: c.nav.openStudio }}
-            labels={{ open: c.nav.openMenu, close: c.nav.closeMenu, nav: '3D Box Studio' }}
-          />
-        </div>
-      </div>
-    </header>
+    <SiteHeader language={locale} />
 
     <main id="main" className="lovable-original marketing-page localized-home">
       <section className="home-hero localized-hero">
@@ -109,19 +63,7 @@ export function LocalizedHome({ locale }: { locale: LocalizedHomeLocale }) {
         <p className="localized-closing-note">{c.closing.note}</p>
       </section>
 
-      <footer>
-        <BrandMark/>
-        <nav aria-label={c.footer.product}>
-          <Link href="/studio">{c.footer.studio}</Link>
-          <Link href="/blog" hrefLang="en">{c.footer.guides}</Link>
-          <Link href="/faq" hrefLang="en">{c.footer.faq}</Link>
-          <Link href="/contact" hrefLang="en">{c.footer.contact}</Link>
-          <Link href="/privacy" hrefLang="en">{c.footer.privacy}</Link>
-          <Link href="/terms" hrefLang="en">{c.footer.terms}</Link>
-          <CookieSettingsButton label={c.footer.cookies} />
-        </nav>
-        <span>© 2026 3D Box Studio · {c.footer.tagline}</span>
-      </footer>
     </main>
+    <SiteFooter language={locale} />
   </div>;
 }
