@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { InViewVideo } from "@/components/in-view-video";
 import {
   ArrowRight, CirclePlay, Download, Layers3, MoveUpRight,
   Sparkles, Ruler, ImagePlus, Share2, Save, Rotate3D, Scissors, MousePointer2,
@@ -107,7 +108,7 @@ export function OriginalHome() {
         <div className="hero-proof"><span>No install</span><i/><span>2D + 3D in one workflow</span><i/><span>Free account</span></div>
       </div>
       <figure className="hero-stage hero-shot">
-        <Image src="/images/v2-launch/studio-preview-3d.png" alt="3D Box Studio showing a printed shipping box in the live 3D preview, with the assembly control beside it" width={2048} height={1151} priority sizes="(max-width: 1050px) 100vw, 680px" />
+        <Image src="/images/v2-launch/studio-preview-3d.png" alt="3D Box Studio showing a printed shipping box in the live 3D preview, with the assembly control beside it" width={2048} height={1151} loading="eager" fetchPriority="high" sizes="(max-width: 1050px) 100vw, 680px" />
       </figure>
     </section>
 
@@ -137,9 +138,7 @@ export function OriginalHome() {
       </div>
       <div className="studio-live-frame">
         <div className="studio-frame-bar"><span/><span/><span/><b>Actual V2 workflow</b><Link href="/whats-new/v2">What’s new in V2 <ArrowRight/></Link></div>
-        <video className="studio-proof-video" autoPlay muted loop playsInline preload="metadata" poster="/images/v2-launch/flatten-assemble-poster.webp" aria-label="3DBoxStudio V2 box flatten and assemble animation">
-          <source src="/animations/flatten-assemble-2.mp4" type="video/mp4"/>
-        </video>
+        <InViewVideo className="studio-proof-video" src="/animations/flatten-assemble-2.mp4" poster="/images/v2-launch/flatten-assemble-poster.webp" label="3DBoxStudio V2 box flatten and assemble animation"/>
         <p className="studio-frame-caption">Current V2 Studio footage showing the same package moving between flat and assembled views.</p>
       </div>
     </section>
