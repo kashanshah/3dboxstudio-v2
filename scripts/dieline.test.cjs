@@ -101,15 +101,12 @@ test('manufacture sizes are crease to crease on the sheet and outer sizes add on
   }
 });
 
-// The pizza box template draws the same panels whatever the board.
-const IGNORES_THICKNESS=new Set(['pizza-box']);
-
 test('a thicker board grows the sheet for the same inside and shrinks the inside for the same outside',()=>{
   for(const style of DIELINE_STYLES.filter(item=>MEASURED[item.id])){
     const thin=style.defaults.thickness,thick=thin*2;
     const a=measure(style,generateDieline(input(style,{thickness:thin}))),b=measure(style,generateDieline(input(style,{thickness:thick})));
     for(const axis of AXES) assert.ok(b[axis]>=a[axis]-0.01,`${style.id}: a thicker board shrank the ${axis}`);
-    if(!IGNORES_THICKNESS.has(style.id)) assert.ok(AXES.some(axis=>b[axis]>a[axis]+thin/4),`${style.id}: a thicker board should need bigger panels`);
+    assert.ok(AXES.some(axis=>b[axis]>a[axis]+thin/4),`${style.id}: a thicker board should need bigger panels`);
     const outerThin=generateDieline(input(style,{thickness:thin,dimensionMode:'outer'})),outerThick=generateDieline(input(style,{thickness:thick,dimensionMode:'outer'}));
     for(const axis of AXES) assert.ok(outerThick.inner[axis]<outerThin.inner[axis],`${style.id}: outer ${axis} with a thicker board`);
   }
