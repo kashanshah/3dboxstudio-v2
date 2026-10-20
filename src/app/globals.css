@@ -758,14 +758,18 @@ body{font-size:var(--type-body)}
   font-size:12px;
 }
 
-/* Examples and Workflow are sections of the home page; drop them first so the
-   header keeps room for Box templates and the Open Studio button. */
-@media(max-width:1180px){
-  .marketing-nav-links a[href^="/#"]{display:none}
-}
-@media(max-width:880px){
-  .marketing-nav-links a[href="/contact"]{display:none}
-}
+/* Header menus (Features, Tools): a button and a small panel of links. */
+.marketing-nav-menu{position:relative}
+.marketing-nav-menu>button{display:inline-flex;align-items:center;gap:4px;padding:13px 0;border:0;background:none;color:inherit;font:inherit;white-space:nowrap;cursor:pointer;transition:color .18s ease}
+.marketing-nav-menu>button:hover,.marketing-nav-menu>button[aria-expanded="true"],.marketing-nav-menu>button.is-active{color:var(--ink)}
+.marketing-nav-menu>button svg{transition:transform .18s ease}
+.marketing-nav-menu>button[aria-expanded="true"] svg{transform:rotate(180deg)}
+.marketing-nav-popover{position:absolute;left:-14px;top:100%;z-index:60;display:flex;flex-direction:column;min-width:220px;padding:6px;background:var(--surface,#fff);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px rgba(15,23,42,.14)}
+.marketing-nav-popover[hidden]{display:none}
+.marketing-nav-links .marketing-nav-popover a{padding:9px 12px;border-radius:9px;font-size:14px;font-weight:600;color:var(--ink)}
+.marketing-nav-links .marketing-nav-popover a:hover{background:#f2f4f7}
+.marketing-nav-links .marketing-nav-popover a.is-active{color:var(--accent)}
+.marketing-nav-links .marketing-nav-popover a.is-active:after{display:none}
 @media(max-width:920px){
   .marketing-header-inner{width:calc(100% - 40px);gap:18px}
   .marketing-nav-links{gap:18px;font-size:13px}
