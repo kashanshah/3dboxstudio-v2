@@ -10,6 +10,12 @@ const contentLanguage = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Feature flags read this in the browser too (src/lib/features.ts): drafts
+  // show on previews and in development, as for draft pages (src/lib/seo.ts).
+  env: {
+    NEXT_PUBLIC_FEATURES: process.env.NEXT_PUBLIC_FEATURES ?? '',
+    NEXT_PUBLIC_SHOW_DRAFTS: String(process.env.SHOW_DRAFTS === 'true' || (process.env.SHOW_DRAFTS == null && process.env.VERCEL_ENV !== 'production')),
+  },
   images: {
     // Source screenshots are 2048px wide. The default 3840 candidate was cached as a truncated PNG and painted as an empty frame.
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],

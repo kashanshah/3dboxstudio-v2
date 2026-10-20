@@ -1,6 +1,6 @@
 import { optionalEnv, requireEnv } from '@/server/env';
 import { getAdminSettings } from '@/server/admin/settings';
-import { renderAdminContactTemplate } from './templates';
+import { renderAdminContactTemplate, renderAdminPrintQuoteTemplate } from './templates';
 import { resendApiUrl } from './resend-api';
 
 const SEND_TIMEOUT_MS=10_000;
@@ -22,4 +22,9 @@ export async function sendAdminContactSubmissionEmail(input:{id:string;name:stri
   if(settings && !settings.notificationPreferences.contactMessage) return;
   const rendered=renderAdminContactTemplate(input);
   await sendEmail({to:await adminAlertEmail(),replyTo:input.email,...rendered});
+}
+
+/** Always sent: a print quote is a request someone is waiting on. */
+export async function sendAdminPrintQuoteEmail(input:Parameters<typeof renderAdminPrintQuoteTemplate>[0]) {
+  await sendEmail({to:await adminAlertEmail(),replyTo:input.email,...renderAdminPrintQuoteTemplate(input)});
 }
