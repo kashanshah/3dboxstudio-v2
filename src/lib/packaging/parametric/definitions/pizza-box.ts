@@ -66,37 +66,43 @@ export const pizzaBoxDefinition = {
   derived: [
     ['t', 'thickness'],
     ['clearance', 0.5],
+    // The base is cut wider and deeper than the inside so the folded box
+    // keeps the entered inside: each single wall takes up 0.7 of a board
+    // inside its crease; the double front and the back together 2.5 boards.
+    // Measured on the folded model at 1.5 and 3 mm board.
+    ['W', 'width + 1.4 * t'],
+    ['D', 'depth + 2.5 * t'],
     // The roll strip lets the inner layer drop one board inside the outer
     // one, with a corner tab's board between them.
     ['roll', '2 * t'],
     ['innerHeight', 'height - t'],
-    ['tabWidth', 'min(40, max(20, 0.12 * width))'],
+    ['tabWidth', 'min(40, max(20, 0.12 * W))'],
     ['tabHeight', 'max(4, 2 * t + 1)'],
     // Inner front: clear of the side walls by a board and a little play.
     ['innerInset', 't + clearance'],
     // Corner tabs reach well into the front's double wall.
-    ['ear', 'min(0.9 * height, width / 4)'],
+    ['ear', 'min(0.9 * height, W / 4)'],
     // Lid: rests on the walls and reaches from the back wall's outside to
     // the inner front, so its tuck slides just inside the double front; its
     // flaps go down inside the side walls, and the tuck stops short of the
     // base, whatever the board.
-    ['lidDepth', 'depth - t'],
+    ['lidDepth', 'D - t'],
     ['lidTuck', 'height - 2 * t - 2'],
     ['lidFlap', 'height - 2 * t - clearance'],
     ['backHeight', 'height + t'],
-    ['fingerHole', 'min(12, height / 3, width / 10)'],
+    ['fingerHole', 'min(12, height / 3, W / 10)'],
     ['x0', 'max(height, lidFlap)'],
     ['lidTop', 'lidTuck'],
     ['backTop', 'lidTop + lidDepth'],
     ['y0', 'backTop + backHeight'],
-    ['frontTop', 'y0 + depth'],
+    ['frontTop', 'y0 + D'],
     ['rollTop', 'frontTop + height'],
     ['innerTop', 'rollTop + roll'],
     ['inL', 'x0 + innerInset'],
-    ['inR', 'x0 + width - innerInset'],
+    ['inR', 'x0 + W - innerInset'],
     ['innerBottom', 'innerTop + innerHeight'],
-    ['tabLeft', 'x0 + width / 4'],
-    ['tabRight', 'x0 + 3 * width / 4'],
+    ['tabLeft', 'x0 + W / 4'],
+    ['tabRight', 'x0 + 3 * W / 4'],
     ['half', 'tabWidth / 2'],
     ['lead', 'min(1, tabHeight / 3)'],
     // Corner tabs are cut a board clear of the front and back walls beside them.
@@ -105,8 +111,8 @@ export const pizzaBoxDefinition = {
     ['leftTaper', 'min((leftRoot1 - leftRoot0) / 3, ear * 0.4)'],
     ['leftTabA', 'leftRoot0 + leftTaper'],
     ['leftTabB', 'leftRoot1'],
-    ['rightRoot0', 'x0 + width + t'],
-    ['rightRoot1', 'x0 + width + height'],
+    ['rightRoot0', 'x0 + W + t'],
+    ['rightRoot1', 'x0 + W + height'],
     ['rightTaper', 'min((rightRoot1 - rightRoot0) / 3, ear * 0.4)'],
     ['rightTabA', 'rightRoot0'],
     ['rightTabB', 'rightRoot1 - rightTaper'],
@@ -121,16 +127,16 @@ export const pizzaBoxDefinition = {
   // beside the back wall on the sheet; the lid's tuck and flaps stay clear
   // of the base.
   adjustable: [
-    { key: 'ear', label: 'Corner tabs', min: 5, max: 'max(5, min(width / 2 - t, height))' },
+    { key: 'ear', label: 'Corner tabs', min: 5, max: 'max(5, min(W / 2 - t, height))' },
     { key: 'lidTuck', label: 'Lid tuck', min: 5, max: 'max(5, height - 2 * t)' },
     { key: 'lidFlap', label: 'Lid side flaps', min: 5, max: 'max(5, height - 2 * t)' },
   ],
   panels: ([
-    { id: 'bottom', label: 'BOTTOM', kind: 'body', rect: ['x0', 'y0', 'width', 'depth'] },
+    { id: 'bottom', label: 'BOTTOM', kind: 'body', rect: ['x0', 'y0', 'W', 'D'] },
     // The front wall, lid and lid front sit upside down on the sheet relative
     // to the folded box: artwork placed on one of them alone is turned to
     // read upright on the box.
-    { id: 'front', label: 'FRONT', kind: 'body', artworkRotation: 180, rect: ['x0', 'frontTop', 'width', 'height'] },
+    { id: 'front', label: 'FRONT', kind: 'body', artworkRotation: 180, rect: ['x0', 'frontTop', 'W', 'height'] },
     {
       id: 'frontRoll', label: 'FRONT ROLL', kind: 'flap', rect: ['inL', 'rollTop', 'inR - inL', 'roll'],
       // A score bends through three boards, wider than the two-board strip:
@@ -147,25 +153,25 @@ export const pizzaBoxDefinition = {
         ['frontRoll.x + frontRoll.width', 'frontRoll.y + frontRoll.height + innerHeight'], ['frontRoll.x', 'frontRoll.y + frontRoll.height + innerHeight'],
       ],
     },
-    { id: 'back', label: 'BACK', kind: 'body', rect: ['x0', 'backTop', 'width', 'backHeight'] },
-    { id: 'left', label: 'LEFT', kind: 'body', rect: ['x0 - height', 'y0', 'height', 'depth'] },
-    { id: 'right', label: 'RIGHT', kind: 'body', rect: ['x0 + width', 'y0', 'height', 'depth'] },
+    { id: 'back', label: 'BACK', kind: 'body', rect: ['x0', 'backTop', 'W', 'backHeight'] },
+    { id: 'left', label: 'LEFT', kind: 'body', rect: ['x0 - height', 'y0', 'height', 'D'] },
+    { id: 'right', label: 'RIGHT', kind: 'body', rect: ['x0 + W', 'y0', 'height', 'D'] },
     ...cornerTabs('left'),
     ...cornerTabs('right'),
     // The lid, hinged on the back wall's top edge.
-    { id: 'top', label: 'TOP', kind: 'body', artworkRotation: 180, rect: ['x0', 'lidTop', 'width', 'lidDepth'] },
+    { id: 'top', label: 'TOP', kind: 'body', artworkRotation: 180, rect: ['x0', 'lidTop', 'W', 'lidDepth'] },
     {
       id: 'lidFront', label: 'LID FRONT', kind: 'flap', artworkRotation: 180,
-      outline: [['x0 + clearance', 'lidTop'], ['x0 + width - clearance', 'lidTop'], ['x0 + width - clearance - tuckChamfer', 0], ['x0 + clearance + tuckChamfer', 0]],
+      outline: [['x0 + clearance', 'lidTop'], ['x0 + W - clearance', 'lidTop'], ['x0 + W - clearance - tuckChamfer', 0], ['x0 + clearance + tuckChamfer', 0]],
     },
     lidFlap('lidLeft', 'x0', 'x0 - lidFlap'),
-    lidFlap('lidRight', 'x0 + width', 'x0 + width + lidFlap'),
+    lidFlap('lidRight', 'x0 + W', 'x0 + W + lidFlap'),
   ] satisfies PanelSpec[]).map(finish),
   cuts: [
     ...slot('tabLeft'),
     ...slot('tabRight'),
     // The finger hole across the roll strip, centred on the front.
-    { arc: { center: ['x0 + width / 2', 'rollTop + roll / 2'], radius: 'fingerHole', from: 0, to: 360, segments: 24 } },
+    { arc: { center: ['x0 + W / 2', 'rollTop + roll / 2'], radius: 'fingerHole', from: 0, to: 360, segments: 24 } },
   ],
   validations: [
     { require: 'height >= max(20, 6 * t)', message: 'The wall height is too small for this board. Use a wall height of at least {max(20, 6 * t)} mm.' },

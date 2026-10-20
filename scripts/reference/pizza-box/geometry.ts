@@ -26,23 +26,27 @@ export function sanitizePizzaBoxDimensions(value: CartonDimensions): CartonDimen
 
 export function pizzaBoxSizes(d: CartonDimensions) {
   const t = d.thickness, clearance = 0.5;
+  // The base is cut wider and deeper than the inside: each single wall
+  // takes up 0.7 of a board inside its crease, the double front and the back
+  // together 2.5 boards.
+  const W = d.width + 1.4 * t, D = d.depth + 2.5 * t;
   // The roll strip lets the inner layer drop one board inside the outer
   // one, with a corner tab's board between them.
   const roll = 2 * t;
   const innerHeight = d.height - t;
-  const tab = { width: Math.min(40, Math.max(20, 0.12 * d.width)), height: Math.max(4, 2 * t + 1) };
+  const tab = { width: Math.min(40, Math.max(20, 0.12 * W)), height: Math.max(4, 2 * t + 1) };
   // Inner front: clear of the side walls by a board and a little play.
   const innerInset = t + clearance;
   // Corner tabs reach well into the front's double wall.
-  const ear = Math.min(0.9 * d.height, d.width / 4);
+  const ear = Math.min(0.9 * d.height, W / 4);
   // Lid: rests on the walls; its flaps go down inside them.
-  const lidDepth = d.depth - t;
+  const lidDepth = D - t;
   // The lid's front tuck stops short of the base, whatever the board.
   const lidTuck = d.height - 2 * t - 2;
   const lidFlap = d.height - 2 * t - clearance;
   const backHeight = d.height + t;
-  const fingerHole = Math.min(12, d.height / 3, d.width / 10);
-  return { t, clearance, roll, innerHeight, tab, innerInset, ear, lidDepth, lidTuck, lidFlap, backHeight, fingerHole };
+  const fingerHole = Math.min(12, d.height / 3, W / 10);
+  return { t, clearance, W, D, roll, innerHeight, tab, innerInset, ear, lidDepth, lidTuck, lidFlap, backHeight, fingerHole };
 }
 
 const LABELS: Record<string, string> = {
@@ -56,12 +60,12 @@ export function pizzaBoxSheet(input: CartonDimensions) {
   const d = sanitizePizzaBoxDimensions(input);
   const s = pizzaBoxSizes(d);
   const { t } = s;
-  const w = d.width, h = d.height;
+  const w = s.W, h = d.height;
   // Columns: left wall | base | right wall; rows: lid tuck, lid, back wall,
   // base, front wall, roll strip, inner front and its tabs.
   const x0 = Math.max(h, s.lidFlap);
   const lidTop = s.lidTuck, backTop = lidTop + s.lidDepth, y0 = backTop + s.backHeight;
-  const frontTop = y0 + d.depth, rollTop = frontTop + h, innerTop = rollTop + s.roll;
+  const frontTop = y0 + s.D, rollTop = frontTop + h, innerTop = rollTop + s.roll;
   const panels: ExportPanel[] = [];
   const add = (id: string, kind: ExportPanel['kind'], outline: PointMm[], fold?: PointMm[], artworkRotation?: 180) => {
     const xs = outline.map(point => point.x), ys = outline.map(point => point.y);
@@ -74,7 +78,7 @@ export function pizzaBoxSheet(input: CartonDimensions) {
   };
   const rect = (x: number, y: number, width: number, height: number) => rectangleOutline({ x, y, width, height } as ExportPanel);
 
-  add('bottom', 'body', rect(x0, y0, w, d.depth));
+  add('bottom', 'body', rect(x0, y0, w, s.D));
   // The front wall, lid and lid front sit upside down on the sheet relative
   // to the folded box: artwork placed on one of them alone is turned to read
   // upright on the box.
@@ -95,8 +99,8 @@ export function pizzaBoxSheet(input: CartonDimensions) {
   innerOutline.push({ x: inL, y: innerBottom });
   add('frontInner', 'flap', innerOutline, rect(inL, innerTop, inR - inL, s.innerHeight));
   add('back', 'body', rect(x0, backTop, w, s.backHeight));
-  add('left', 'body', rect(x0 - h, y0, h, d.depth));
-  add('right', 'body', rect(x0 + w, y0, h, d.depth));
+  add('left', 'body', rect(x0 - h, y0, h, s.D));
+  add('right', 'body', rect(x0 + w, y0, h, s.D));
   // Corner tabs on the side walls' ends, tapered so they slide in.
   for (const [side, wallX, outward] of [['left', x0 - h, -1], ['right', x0 + w, 1]] as const) {
     // Cut a board clear of the front and back walls beside them.

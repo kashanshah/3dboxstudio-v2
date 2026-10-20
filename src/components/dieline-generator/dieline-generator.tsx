@@ -290,7 +290,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const studioHref = output ? studioTemplateHref(meta.templateId, {
     width: output.inner.length, height: output.inner.depth, depth: output.inner.width, thickness: state.thickness,
     adjustments: Object.fromEntries(Object.entries(state.options).map(([key, value]) => [key, unit === "in" ? value * MM_PER_IN : value])),
-  }, unit) : null;
+  }, unit, { splitTopHingeSide: meta.options?.splitTopHingeSide }) : null;
 
   const sheet = output ? `${format(output.bounds.width)} × ${format(output.bounds.height)}` : null;
   const inner = output ? `${format(output.inner.length)} × ${format(output.inner.width)} × ${format(output.inner.depth)}` : null;

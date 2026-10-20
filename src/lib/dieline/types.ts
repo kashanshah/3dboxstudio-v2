@@ -82,6 +82,8 @@ export interface DielineStyle {
   modes: DimensionMode[];
   /** The panel side each size is measured on, crease to crease (where the style has one): drag handles sit there. */
   measure?: Record<'length' | 'width' | 'depth', [panel: string, side: 'width' | 'height']>;
+  /** Template options the style fixes, which the Studio needs too (the RSC's flap arrangement). */
+  options?: { splitTopHingeSide?: 'side_a' | 'side_b' };
   params: StyleParam[];
   generate(input: DielineInput): DielineOutput;
 }

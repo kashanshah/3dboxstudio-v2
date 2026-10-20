@@ -7,6 +7,7 @@ import { splitTopSheetV1 } from './templates/split-top/sheet-v1';
 import { splitTopSheet, splitTopSizes } from './templates/split-top/geometry';
 import { pizzaBoxSheetV2 } from './templates/pizza-box/sheet-v2';
 import { pizzaBoxSheetV3 } from './templates/pizza-box/sheet-v3';
+import { pizzaBoxSheetV4 } from './templates/pizza-box/sheet-v4';
 import { pizzaBoxSheet } from './templates/pizza-box/geometry';
 import type { ArtworkByPanel, ArtworkPlacement } from './artwork';
 import type { FullDielineArtworkLayer } from './full-dieline-artwork';
@@ -79,11 +80,15 @@ const STEPS: Record<string, Step[]> = {
     // with an inner layer and roll strip, corner tabs on the side walls'
     // ends, a lid sized to rest on the walls; sheet layers move and stretch
     // to keep the base's and walls' edges.
-    state => moveSheetLayers(state, s => pizzaBoxSheetV2(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
+    state => moveSheetLayers(state, s => pizzaBoxSheetV2(s.dimensions), s => pizzaBoxSheetV3(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
     // 4: the lid is cut a board longer so it reaches the inner front; the
     // walls and base move down a board on the grid. Sheet layers move with
     // them, keeping their place from the lid's hinge.
-    state => moveSheetLayers(state, s => pizzaBoxSheetV3(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
+    state => moveSheetLayers(state, s => pizzaBoxSheetV3(s.dimensions), s => pizzaBoxSheetV4(s.dimensions), ['bottom', 'left', 'right', 'front', 'back']),
+    // 5: the base is cut wider and deeper than the inside (by 1.4 boards
+    // across, 2.5 front to back) so the folded box keeps the entered inside;
+    // the walls and lid widen with it. Sheet layers stretch with the panels.
+    state => moveSheetLayers(state, s => pizzaBoxSheetV4(s.dimensions), s => pizzaBoxSheet(s.dimensions), ['bottom', 'left', 'right', 'front', 'back', 'top']),
   ],
 };
 

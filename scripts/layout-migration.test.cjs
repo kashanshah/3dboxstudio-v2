@@ -137,7 +137,7 @@ test('migration runs once, and only for templates whose grid changed', () => {
   assert.equal(layoutVersionFor('split-top-box'), 3);
   assert.equal(layoutVersionFor('base-box'), 2);
   assert.equal(layoutVersionFor('reverse-tuck-carton'), 5);
-  assert.equal(layoutVersionFor('pizza-box'), 4);
+  assert.equal(layoutVersionFor('pizza-box'), 5);
   // A design already on version 2 of the reverse tuck takes only the later steps.
   const bottom = { name: 'b', url: '/api/media/b', mode: 'fill', scale: 100, rotation: 0, alignX: 0, alignY: 0, transform: { x: 20, y: 30, width: 50, height: 50, rotation: 0 } };
   const v2 = { ...state({ width: 120, height: 180, depth: 55, thickness: 0.5 }, randomLayers(5, 2), { Bottom: bottom }), layoutVersion: 2 };
@@ -352,14 +352,15 @@ test('pizza box designs keep their artwork on the base and walls of the locking 
 
 test('pizza box designs keep their artwork when the lid is cut a board longer', () => {
   const { pizzaBoxSheetV3 } = require('../src/lib/packaging/templates/pizza-box/sheet-v3.ts');
+  const { pizzaBoxSheetV4 } = require('../src/lib/packaging/templates/pizza-box/sheet-v4.ts');
   for (const dimensions of [{ width: 305, height: 45, depth: 305, thickness: 1.5 }, { width: 406, height: 51, depth: 406, thickness: 3 }]) {
-    const before = pizzaBoxSheetV3(dimensions), after = getTemplateGeometry('pizza-box', dimensions);
+    const before = pizzaBoxSheetV3(dimensions), after = pizzaBoxSheetV4(dimensions);
     const lid = id => [before, after].map(sheet => sheet.panels.find(panel => panel.id === id));
     const [oldLid, newLid] = lid('top');
     assert.ok(Math.abs(newLid.height - oldLid.height - dimensions.thickness) < 1e-9);
     for (const seed of [8, 51, 999]) {
       const v3 = { ...state(dimensions, randomLayers(seed, 2)), templateId: 'pizza-box', layoutVersion: 3 };
-      const v4 = migrateStudioLayout(v3);
+      const v4 = migrateStudioLayoutTo(v3, 4);
       assert.equal(v4.layoutVersion, 4);
       // Walls, base and lid keep every point of their artwork, measured from
       // the lid's hinge: the walls and base move down a board on the grid.
@@ -371,6 +372,41 @@ test('pizza box designs keep their artwork when the lid is cut a board longer', 
           const was = imageAt(v3.outsideArtworkLayers, before.bounds, at, id);
           const now = imageAt(v4.outsideArtworkLayers, after.bounds, { x: at.x, y: at.y + shift }, id);
           assert.deepEqual(now && { ...now, u: +now.u.toFixed(9), v: +now.v.toFixed(9) }, was && { ...was, u: +was.u.toFixed(9), v: +was.v.toFixed(9) }, `${id} at ${i},${j}`);
+        }
+      }
+    }
+  }
+});
+
+test('pizza box designs keep their artwork on each panel when the base grows to allow for the board', () => {
+  const { pizzaBoxSheetV4 } = require('../src/lib/packaging/templates/pizza-box/sheet-v4.ts');
+  for (const dimensions of [{ width: 305, height: 45, depth: 305, thickness: 1.5 }, { width: 406, height: 51, depth: 406, thickness: 3 }]) {
+    const before = pizzaBoxSheetV4(dimensions), after = getTemplateGeometry('pizza-box', dimensions);
+    const panelOf = (sheet, id) => sheet.panels.find(panel => panel.id === id);
+    const t = dimensions.thickness;
+    assert.ok(Math.abs(panelOf(after, 'bottom').width - panelOf(before, 'bottom').width - 1.4 * t) < 1e-9);
+    assert.ok(Math.abs(panelOf(after, 'bottom').height - panelOf(before, 'bottom').height - 2.5 * t) < 1e-9);
+    for (const seed of [8, 51, 999]) {
+      const v4 = { ...state(dimensions, randomLayers(seed, 2)), templateId: 'pizza-box', layoutVersion: 4 };
+      const v5 = migrateStudioLayout(v4);
+      assert.equal(v5.layoutVersion, 5);
+      // A point of artwork at the same place on a panel, as a share of the
+      // panel's size, shows the same point of the image. The grid stretches
+      // by a few millimetres at most, so allow a little drift.
+      for (const id of ['bottom', 'left', 'right', 'front', 'back', 'top']) {
+        const old = panelOf(before, id), panel = panelOf(after, id);
+        for (let i = 0; i <= 6; i++) for (let j = 0; j <= 6; j++) {
+          const u = 0.03 + 0.94 * i / 6, v = 0.03 + 0.94 * j / 6;
+          const was = imageAt(v4.outsideArtworkLayers, before.bounds, { x: old.x + u * old.width, y: old.y + v * old.height }, id);
+          const now = imageAt(v5.outsideArtworkLayers, after.bounds, { x: panel.x + u * panel.width, y: panel.y + v * panel.height }, id);
+          const hit = was ?? now;
+          if (!hit) continue;
+          const tf = v4.outsideArtworkLayers.find(layer => layer.url === hit.layer).transform;
+          // Coverage may change only right at an image's edge.
+          const nearEdge = Math.min(hit.u, 1 - hit.u) * tf.width / 100 * before.bounds.width < 3 * t || Math.min(hit.v, 1 - hit.v) * tf.height / 100 * before.bounds.height < 3 * t;
+          if (!was || !now || was.layer !== now.layer) { assert.ok(nearEdge, `${id} coverage changed at ${i},${j}`); continue; }
+          const mm = Math.hypot((now.u - was.u) * tf.width / 100 * before.bounds.width, (now.v - was.v) * tf.height / 100 * before.bounds.height);
+          assert.ok(mm < 3 * t, `${id} artwork moved ${mm.toFixed(3)} mm at ${i},${j}`);
         }
       }
     }
