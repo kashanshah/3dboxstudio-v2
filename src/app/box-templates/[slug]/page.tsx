@@ -8,6 +8,7 @@ import { DielineGenerator } from '@/components/dieline-generator/dieline-generat
 import { styleForTemplate } from '@/lib/dieline/styles';
 import { generatorSetup } from '@/lib/dieline/thumbnails';
 import { BOX_TEMPLATE_PAGES, getBoxTemplatePage, relatedTemplatePages } from '@/content/box-template-pages';
+import { ES_TEMPLATE_SLUGS, templateLanguageAlternates } from '@/content/es/box-template-pages';
 import { getBlogPostBySlug } from '@/content/blogPosts';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import { notFoundMetadata } from '@/lib/not-found-metadata';
@@ -32,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: { absolute: page.title },
     description: page.description,
-    alternates: { canonical: path },
+    alternates: { canonical: path, ...(ES_TEMPLATE_SLUGS.includes(page.slug) ? { languages: templateLanguageAlternates(page.slug) } : {}) },
     openGraph: { images: [image], title: page.title, description: page.description, type: 'website', url: path },
     twitter: { card: 'summary_large_image', title: page.title, description: page.description, images: [image.url] },
   };
@@ -70,7 +71,8 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
         <span className="btp-eyebrow">{page.eyebrow}</span>
         <h1>{page.h1}</h1>
         <p>{page.intro}</p>
-        <p className="btp-updated">Last updated <time dateTime={page.updated}>{updated}</time></p>
+        <p className="btp-updated">Last updated <time dateTime={page.updated}>{updated}</time>
+          {ES_TEMPLATE_SLUGS.includes(page.slug) ? <> · <Link href={`/es/box-templates/${page.slug}`} hrefLang="es" lang="es">Leer en español</Link></> : null}</p>
       </header>
 
       <DielineGenerator setup={generatorSetup(style.id, presets[0])} presets={presets} title={`Make your ${page.name.toLowerCase()} dieline`} page={{ type: 'template_page', slug: page.slug, templateId: page.templateId }} />

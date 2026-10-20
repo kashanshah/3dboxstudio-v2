@@ -9,7 +9,7 @@ import { breadcrumbSchema } from "@/lib/seo";
 export const metadata: Metadata = {
   title: { absolute: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio" },
   description: "Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",
-  alternates: { canonical: "/box-dieline-generator" },
+  alternates: { canonical: "/box-dieline-generator", languages: { en: '/box-dieline-generator', es: '/es/box-dieline-generator', 'x-default': '/box-dieline-generator' } },
   openGraph: { images:[defaultOgImage], title: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio", description: "Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.", type: "website" }
 };
 

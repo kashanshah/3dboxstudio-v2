@@ -166,7 +166,7 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 .lovable-original .seo-home-links{display:flex;gap:26px;margin-top:34px}
 .lovable-original .seo-home-links a{display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:13px;font-weight:700}
 .lovable-original footer nav{display:flex;flex-wrap:wrap;gap:18px;font-size:11px}
-.lovable-original footer nav a:hover{color:var(--accent)}
+.lovable-original footer nav a:hover{color:var(--primary)}
 @media(max-width:760px){.lovable-original .seo-home-section{width:calc(100% - 36px);padding:62px 0}.lovable-original .seo-home-intro{grid-template-columns:1fr;gap:20px}.lovable-original .seo-home-grid{grid-template-columns:1fr;gap:28px}.lovable-original .seo-home-links{flex-direction:column;gap:14px}.lovable-original footer nav{order:3;width:100%;justify-content:center}}
 
 

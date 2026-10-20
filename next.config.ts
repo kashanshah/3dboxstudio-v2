@@ -2,8 +2,11 @@ import type { NextConfig } from 'next';
 import { localizedHome, localizedHomeLocales } from './src/content/localized-home';
 
 // Translated home pages; Google ignores <html lang>, so declare the language here too.
-const contentLanguage = localizedHomeLocales
-  .map(locale => ({ source: `/${locale}`, headers: [{ key: 'Content-Language', value: localizedHome[locale].lang }] }));
+const contentLanguage = [
+  ...localizedHomeLocales.map(locale => ({ source: `/${locale}`, headers: [{ key: 'Content-Language', value: localizedHome[locale].lang }] })),
+  // The Spanish tool pages.
+  ...['/es/box-templates', '/es/box-templates/:slug', '/es/box-dieline-generator'].map(source => ({ source, headers: [{ key: 'Content-Language', value: 'es' }] })),
+];
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
