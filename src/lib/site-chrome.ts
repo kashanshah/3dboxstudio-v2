@@ -8,6 +8,8 @@
 export const CHROME_LANGUAGE_CODES = ['en', 'es', 'es-mx', 'fr', 'pt-br', 'de', 'zh'] as const;
 export type ChromeLanguage = (typeof CHROME_LANGUAGE_CODES)[number];
 export type ChromeLink = { href: string; label: string; hrefLang?: string; native?: boolean };
+/** A header item: a link, or a menu of links. */
+export type ChromeNavItem = ChromeLink | { label: string; children: ChromeLink[] };
 /** The same page in other languages, by language; the switcher falls back to each language's home page. */
 export type ChromeAlternates = Partial<Record<ChromeLanguage, string>>;
 
@@ -106,25 +108,42 @@ export function chromeWords(language: ChromeLanguage = 'en') {
   return WORDS[language];
 }
 
-/** The header links: the English pages for English, the page's own home sections and Spanish tools where they exist. */
-export function navLinks(language: ChromeLanguage = 'en'): ChromeLink[] {
+/**
+ * The header: the same four items in every language. Features and Tools
+ * open menus; Contact lives in the footer. Translated pages point Features
+ * and FAQ at their own home page's sections.
+ */
+export function navItems(language: ChromeLanguage = 'en'): ChromeNavItem[] {
   const w = WORDS[language];
+  const en = language === 'en' ? undefined : 'en';
+  const own = isSpanish(language) ? 'es' : en;
+  const tools = { label: w.tools, children: [
+    { href: templatesHref(language), label: w.templates, hrefLang: own },
+    { href: generatorHref(language), label: w.dielineGenerator, hrefLang: own },
+    { href: '/3d-box-mockup-generator', label: w.mockupGenerator, hrefLang: en },
+  ] };
   if (language === 'en') return [
-    { href: '/features', label: w.features },
-    { href: '/box-templates', label: w.templates },
-    { href: '/#showcase', label: 'Examples', native: true },
-    { href: '/#workflow', label: 'Workflow', native: true },
+    { label: w.features, children: [
+      { href: '/features', label: 'All features' },
+      { href: '/#showcase', label: 'Examples', native: true },
+      { href: '/#workflow', label: 'Workflow', native: true },
+      { href: '/changelog', label: w.whatsNew },
+    ] },
+    tools,
     { href: '/blog', label: w.guides },
     { href: '/faq', label: w.faq },
-    { href: '/contact', label: w.contact },
   ];
   return [
     { href: `/${language}#features`, label: w.features, native: true },
-    { href: templatesHref(language), label: w.templates, hrefLang: isSpanish(language) ? 'es' : 'en' },
-    { href: `/${language}#faq`, label: w.faq, native: true },
+    tools,
     { href: '/blog', label: w.guides, hrefLang: 'en' },
-    { href: '/contact', label: w.contact, hrefLang: 'en' },
+    { href: `/${language}#faq`, label: w.faq, native: true },
   ];
+}
+
+/** The header items as plain links, for the phone menu. */
+export function flatNavLinks(language: ChromeLanguage = 'en'): ChromeLink[] {
+  return navItems(language).flatMap(item => 'children' in item ? item.children : [item]);
 }
 
 export function footerColumns(language: ChromeLanguage = 'en'): { title: string; links: ChromeLink[] }[] {

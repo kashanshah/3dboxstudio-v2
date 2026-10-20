@@ -110,3 +110,27 @@ test('every page has the same header and footer, with every language', async ({ 
   await page.goto('/faq');
   await expect(page.locator('.marketing-footer-languages a', { hasText: 'Español (España)' })).toHaveAttribute('href', '/es');
 });
+
+test('the header has the same four items in every language, with menus for Features and Tools', async ({ page }) => {
+  for (const [path, names] of [
+    ['/', ['Features', 'Tools', 'Guides', 'FAQ']],
+    ['/fr', ['Fonctionnalités', 'Outils', 'Guides', 'FAQ']],
+    ['/es/box-templates/mailer-box', ['Funciones', 'Herramientas', 'Guías', 'Preguntas']],
+  ] as const) {
+    await page.goto(path);
+    const nav = page.locator('.marketing-nav-links');
+    await expect(nav.locator(':scope > a, :scope > .marketing-nav-menu > button'), path).toHaveText([...names]);
+  }
+  await page.goto('/');
+  const nav = page.locator('.marketing-nav-links');
+  const tools = nav.getByRole('button', { name: 'Tools' });
+  await tools.click();
+  await expect(tools).toHaveAttribute('aria-expanded', 'true');
+  await page.keyboard.press('Escape');
+  await expect(tools).toHaveAttribute('aria-expanded', 'false');
+  await tools.click();
+  await nav.getByRole('link', { name: 'Box dieline generator' }).click();
+  await expect(page).toHaveURL(/\/box-dieline-generator$/);
+  await nav.getByRole('button', { name: 'Features' }).click();
+  await expect(nav.getByRole('link', { name: 'What’s new' })).toBeVisible();
+});
