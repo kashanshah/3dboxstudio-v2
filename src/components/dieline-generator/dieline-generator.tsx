@@ -106,7 +106,7 @@ function save(name: string, data: BlobPart, type: string) {
 /** Where the tool sits, for analytics: GA4 reports page_slug, page_type and box_type. */
 export type GeneratorPage = { type: "template_page"; slug: string; templateId: string } | { type: "dieline_generator"; slug: string };
 
-export function DielineGenerator({ setup, presets = [], title = "Make your dieline", className, page, locale = "en" }: {
+export function DielineGenerator({ setup, presets = [], title = "Make your dieline", className, page, locale = "en", defaultExport = "pdf" }: {
   /** The picker and the first box, drawn on the server (lib/dieline/thumbnails.ts). */
   setup: GeneratorSetup;
   presets?: GeneratorPreset[];
@@ -116,6 +116,8 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   page?: GeneratorPage;
   /** The language of the tool's own words (copy.ts). */
   locale?: GeneratorLocale;
+  /** The file type the Export section starts on (a Cricut page starts on the Cricut file). */
+  defaultExport?: GeneratorExportId;
 }) {
   const id = useId();
   const copy = GENERATOR_COPY[locale];
@@ -135,7 +137,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const { state, text, thicknessText, optionText } = current;
   const [showLabels, setShowLabels] = useState(true);
   const [showSizes, setShowSizes] = useState(true);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>(defaultExport);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const tracked = useRef(new Set<string>());

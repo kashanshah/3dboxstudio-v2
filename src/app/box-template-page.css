@@ -11,7 +11,7 @@
 
 .btp-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 48px;padding:72px 0 24px}
 .btp-sections h2{margin:0 0 10px;font-size:24px;letter-spacing:-.025em}
-.btp-sections p,.btp-sections li{color:#475467;line-height:1.7;font-size:16px}
+.btp-sections p,.btp-sections li,.btp-sections td{color:#475467;line-height:1.7;font-size:16px}
 .btp-sections p{margin:0}
 .btp-sections ul{margin:12px 0 0;padding-left:20px}
 .btp-related{padding:24px 0 96px}
@@ -33,3 +33,4 @@
 .btp-table th,.btp-table td{padding:9px 10px;border-bottom:1px solid #e4e7ec;text-align:left;vertical-align:top;color:#344054}
 .btp-table thead th{font-size:13px;color:#667085;font-weight:700}
 .btp-sections h3{margin:16px 0 6px;font-size:17px}
+.btp-sections ol{margin:12px 0 0;padding-left:20px}
