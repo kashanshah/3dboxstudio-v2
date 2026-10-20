@@ -112,6 +112,15 @@ export default async function BlogPostPage({ params }: Props) {
             if (section.type === 'ul') return <ul key={index}>{section.items.map((item) => <li key={item}>{inlineText(item)}</li>)}</ul>;
             if (section.type === 'ol') return <ol key={index}>{section.items.map((item) => <li key={item}>{inlineText(item)}</li>)}</ol>;
             if (section.type === 'callout') return <aside className="content-article-callout" key={index}>{inlineText(section.text)}</aside>;
+            if (section.type === 'table') return <div className="content-article-table" key={index}><table>
+              {section.caption ? <caption>{section.caption}</caption> : null}
+              <thead><tr>{section.rows[0].map(cell => <th scope="col" key={cell}>{inlineText(cell)}</th>)}</tr></thead>
+              <tbody>{section.rows.slice(1).map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => cellIndex === 0 ? <th scope="row" key={cellIndex}>{inlineText(cell)}</th> : <td key={cellIndex}>{inlineText(cell)}</td>)}</tr>)}</tbody>
+            </table></div>;
+            if (section.type === 'figure') return <figure className="content-article-figure" key={index}>
+              <img src={section.src} alt={section.alt} width={section.width} height={section.height} loading="lazy" />
+              {section.caption ? <figcaption>{inlineText(section.caption)}</figcaption> : null}
+            </figure>;
             if (section.type === 'cta') return <div className="content-article-cta" key={index}><Link className="button" href={section.href ?? '/studio'}>{section.label}<ArrowUpRight size={16}/></Link></div>;
             if (section.type === 'faq') return post.faqs?.length ? <section className="content-article-faq" key={index}>{post.faqs.map((faq) => <details key={faq.question}><summary>{faq.question}</summary><p>{inlineText(faq.answer)}</p></details>)}</section> : null;
             return null;

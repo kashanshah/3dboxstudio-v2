@@ -1,4 +1,5 @@
 import { SHOW_DRAFTS } from '@/lib/seo';
+import { DIELINE_GUIDES } from './blog/dieline-guides';
 export type BlogSection =
   | { type: "p"; text: string }
   | { type: "h2"; text: string }
@@ -7,6 +8,10 @@ export type BlogSection =
   | { type: "ol"; items: string[] }
   | { type: "cta"; label: string; href?: string }
   | { type: "callout"; text: string }
+  /** A data table: the first row is the header; cells take [text](/links). */
+  | { type: "table"; caption?: string; rows: string[][] }
+  /** A picture inside the article (a dieline drawn by the generator), with a caption. */
+  | { type: "figure"; src: string; alt: string; caption?: string; width: number; height: number }
   /** Renders visible FAQ from `post.faqs` (same source as FAQPage JSON-LD). */
   | { type: "faq" };
 
@@ -118,6 +123,12 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "box-dieline-svg-dxf-export": "tools",
   "box-template-svg-cricut-laser-cutter": "tools",
   "qr-code-barcode-on-packaging": "tools",
+  "what-is-a-dieline": "getting-started",
+  "dieline-line-types-and-colors": "tools",
+  "paperboard-thickness-chart": "getting-started",
+  "fefco-box-codes-explained": "tools",
+  "how-to-send-a-dieline-to-a-printer": "workflow",
+  "how-to-make-a-box-with-cricut": "tools",
 };
 
 export function getBlogCategory(slug: string): BlogCategoryId {
@@ -2919,7 +2930,7 @@ const ALL_BLOG_POSTS: BlogPost[] = [
 ];
 
 /** The guides this deployment serves: every published one, and drafts where drafts show. */
-export const BLOG_POSTS: BlogPost[] = ALL_BLOG_POSTS.filter(post => !post.draft || SHOW_DRAFTS);
+export const BLOG_POSTS: BlogPost[] = [...ALL_BLOG_POSTS, ...DIELINE_GUIDES].filter(post => !post.draft || SHOW_DRAFTS);
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((post) => post.slug === slug);

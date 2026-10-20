@@ -454,3 +454,13 @@ button.contact-topic-card:focus-visible{outline:2px solid var(--accent);outline-
 @media(max-width:650px){.faq-list summary{font-size:16px}.faq-list details p{margin-right:0;font-size:15px}.faq-categories a{min-height:40px;display:flex;align-items:center}}
 @media(prefers-reduced-motion:reduce){.faq-list summary::after,.content-article-toc-mobile summary::after{transition:none}}
 .content-article-header .seo-breadcrumbs{margin-bottom:16px}
+.content-article-table{margin:28px 0;overflow-x:auto}
+.content-article-table table{width:100%;border-collapse:collapse;font-size:16px;line-height:1.5}
+.content-article-table caption{caption-side:top;text-align:left;font-weight:700;margin-bottom:10px;color:#101828}
+.content-article-table th,.content-article-table td{padding:10px 12px;border-bottom:1px solid #e4e7ec;text-align:left;vertical-align:top}
+.content-article-table thead th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#667085}
+.content-article-table tbody th{font-weight:650;color:#101828}
+.content-article-table a{color:#0f67e8}
+.content-article-figure{margin:32px 0}
+.content-article-figure img{display:block;width:100%;height:auto;border:1px solid #e4e7ec;border-radius:16px;background:#fff}
+.content-article-figure figcaption{margin-top:10px;font-size:14px;color:#667085;line-height:1.55}

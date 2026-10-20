@@ -50,9 +50,9 @@ Every template page now has:
 
 Guides gained breadcrumbs and BreadcrumbList data. The generator hub gained breadcrumbs, the About 3D Box Studio block and links to the new tools.
 
-## Planned for Phase 5 (not built yet)
+## Phase 5 content (built, draft)
 
-| URL | Proposed title | Proposed description |
+| URL | Title | Description |
 | --- | --- | --- |
 | `/blog/what-is-a-dieline` | What Is a Dieline? Lines, Layers and Examples | A dieline is the flat drawing of a box: its cuts, folds and glue areas at full size. What each line means, with examples, and how to make one free. |
 | `/blog/dieline-line-types-and-colors` | Dieline Line Types and Colours Explained | Cut, crease, perforation, bleed, safe zone and glue: what each dieline line means, the colours printers expect, and how to set up the layers. |
@@ -61,15 +61,27 @@ Guides gained breadcrumbs and BreadcrumbList data. The generator hub gained brea
 | `/blog/how-to-send-a-dieline-to-a-printer` | How to Send a Dieline to a Printer: Checklist | What a printer needs with your dieline: file types, layers, bleed, safe zone, board and quantities, as a checklist to send with the file. |
 | `/blog/how-to-make-a-box-with-cricut` | How to Make a Box with Cricut, in Any Size | Make a box on a Cricut step by step: a template in your size, scoring in Design Space, the right cardstock, and folding it up. |
 | `/templatemaker-alternative` | Templatemaker Alternative: Dielines with a 3D Preview | A free alternative to Templatemaker for box dielines: 15 styles, SVG, PDF and DXF without an account, and the box folded in 3D. Compared fairly. |
-| `/die-cut-templates-alternative` | Die Cut Templates Alternative: Free, Any Size | A free alternative to buying die cut box templates: draw the dieline in your exact size, download it, and fold it in 3D. Compared fairly. |
+| `/die-cut-templates-alternative` | Die Cut Templates Alternative: Free, Any Size | A free alternative to buying die cut box templates: draw the dieline in your exact size, download it with no account, and fold it in 3D. Compared fairly. |
+
+The guides are in `src/content/blog/dieline-guides.ts` with `draft: true`. Their pictures are drawn from the generator's own dielines by `node scripts/render-guide-images.cjs`.
 
 Two guides from the brief already exist and are kept:
 - `/blog/how-to-measure-a-box-inside-vs-outside-dimensions` covers both "inner vs outer box dimensions" and "how to measure a box".
-- `/blog/box-template-svg-cricut-laser-cutter` covers Cricut file types; the planned Cricut guide is the step-by-step make.
+- `/blog/box-template-svg-cricut-laser-cutter` covers Cricut file types; the new Cricut guide is the step-by-step make.
 
-Comparison pages will cite a dated source for every claim about another product.
+Every claim about another product carries its source URL and the date checked (20 October 2026) in a code comment above the comparison rows, and the page names the pages checked. The vendor pages could not be fetched directly when drafting, so each comparison needs a check in a browser before publishing.
 
-Phase 5 also fills each template page's "Best for", "Not ideal for" and "Recommended materials" sections, which render only once they have content.
+Each template page's "Best for", "Not ideal for" and "Recommended materials" come from `src/content/box-template-guidance.ts`, a draft that shows only on previews until its status is `'published'`. A template page's own fields, where set, take precedence.
+
+Claims marked `VERIFY` in the source need checking before publishing:
+- Pacdora: dieline file exports shown only on paid plans.
+- Templatemaker: no 3D preview.
+- Die Cut Templates: prices (copies disagree, so the page shows none), Illustrator plug-in and API.
+- FEFCO guide: the illustrative codes in the family table.
+- Rigid box: greyboard thickness and wrap paper weight.
+- Cake box: food-contact board grades.
+- Printable and Cricut templates (Phase 4): cardstock weights, home-printer limits and Cricut cut areas.
+- Cake box structure: lock-corner bakery boxes vary by maker.
 
 ## Crawling
 

@@ -17,7 +17,8 @@ import '../../box-template-page.css';
 import { inlineLinks } from '@/components/inline-links';
 import { Breadcrumbs } from '@/components/seo/breadcrumbs';
 import { UseTheFile } from '@/components/seo/use-the-file';
-import { breadcrumbSchema, jsonLd, softwareApplicationSchema } from '@/lib/seo';
+import { breadcrumbSchema, isServed, jsonLd, softwareApplicationSchema } from '@/lib/seo';
+import { TEMPLATE_GUIDANCE } from '@/content/box-template-guidance';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -48,6 +49,9 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
   // The pages list sizes as the Studio takes them; the generator as length × width × depth.
   const presets = page.presets.map(preset => ({ label: preset.label, note: preset.note, length: preset.width, width: preset.depth, depth: preset.height, units: preset.unit }));
   const related = relatedTemplatePages(page);
+  // Best-for and materials copy, once approved (drafts show on previews).
+  const guidance = TEMPLATE_GUIDANCE[page.slug] && isServed(TEMPLATE_GUIDANCE[page.slug].status) ? TEMPLATE_GUIDANCE[page.slug] : null;
+  const bestFor = page.bestFor ?? guidance?.bestFor, notIdealFor = page.notIdealFor ?? guidance?.notIdealFor, materials = page.materials ?? guidance?.materials;
   const guides = page.guides.map(slug => getBlogPostBySlug(slug)).filter(post => post !== undefined);
   const path = `/box-templates/${page.slug}`;
   const url = new URL(path, site.url).toString();
@@ -85,15 +89,15 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
           <p>{inlineLinks(section.body)}</p>
           {section.bullets ? <ul>{section.bullets.map(item => <li key={item}>{inlineLinks(item)}</li>)}</ul> : null}
         </section>)}
-        {page.bestFor?.length ? <section>
+        {bestFor?.length ? <section>
           <h2>Best for</h2>
-          <ul>{page.bestFor.map(item => <li key={item}>{inlineLinks(item)}</li>)}</ul>
-          {page.notIdealFor?.length ? <><h3>Not ideal for</h3><ul>{page.notIdealFor.map(item => <li key={item}>{inlineLinks(item)}</li>)}</ul></> : null}
+          <ul>{bestFor.map(item => <li key={item}>{inlineLinks(item)}</li>)}</ul>
+          {notIdealFor?.length ? <><h3>Not ideal for</h3><ul>{notIdealFor.map(item => <li key={item}>{inlineLinks(item)}</li>)}</ul></> : null}
         </section> : null}
-        {page.materials?.length ? <section>
+        {materials?.length ? <section>
           <h2>Recommended materials</h2>
           <table className="btp-table"><thead><tr><th scope="col">Board</th><th scope="col">Caliper</th><th scope="col">Suits</th></tr></thead>
-            <tbody>{page.materials.map(row => <tr key={row.board}><th scope="row">{row.board}</th><td>{row.caliper}</td><td>{row.use}</td></tr>)}</tbody></table>
+            <tbody>{materials.map(row => <tr key={row.board}><th scope="row">{row.board}</th><td>{row.caliper}</td><td>{row.use}</td></tr>)}</tbody></table>
         </section> : null}
       </div>
 
