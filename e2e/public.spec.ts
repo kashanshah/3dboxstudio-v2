@@ -78,8 +78,9 @@ test('the Spanish template pages and generator are in Spanish and linked both wa
   await expect(page.getByRole('button', { name: 'Set de cosmética' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('link', { name: 'Abrir en 3D Box Studio' })).toHaveAttribute('href', /\/studio\/editor\?template=mailer-box/);
 
-  // The English page points back to the Spanish one.
-  await page.getByRole('link', { name: 'English' }).first().click();
+  // The language switcher goes to the same page in English, which points back to the Spanish one.
+  await page.locator('.marketing-header .language-switcher summary').click();
+  await page.locator('.marketing-header .language-switcher').getByRole('link', { name: 'English' }).click();
   await expect(page).toHaveURL(/\/box-templates\/mailer-box$/);
   await expect(page.locator('link[rel="alternate"][hreflang="es"]')).toHaveAttribute('href', /\/es\/box-templates\/mailer-box$/);
   await expect(page.getByRole('link', { name: 'Leer en español' })).toBeVisible();
@@ -87,4 +88,25 @@ test('the Spanish template pages and generator are in Spanish and linked both wa
   await page.goto('/es/box-dieline-generator');
   await expect(page.getByRole('heading', { level: 1, name: 'Generador de troqueles de cajas gratis' })).toBeVisible();
   await expect(page.getByRole('radio', { name: /Caja americana de envío/ })).toBeVisible();
+});
+
+test('every page has the same header and footer, with every language', async ({ page }) => {
+  for (const path of ['/', '/es', '/fr', '/zh', '/features', '/box-templates', '/box-templates/mailer-box', '/es/box-templates/mailer-box', '/es/box-dieline-generator', '/faq', '/blog']) {
+    await page.goto(path);
+    await expect(page.locator('header.marketing-header'), path).toHaveCount(1);
+    await expect(page.locator('header.marketing-header .language-switcher'), path).toHaveCount(1);
+    await expect(page.locator('footer.marketing-footer'), path).toHaveCount(1);
+    await expect(page.locator('footer.marketing-footer .marketing-footer-languages a'), path).toHaveCount(7);
+    await expect(page.locator('footer.marketing-footer .marketing-footer-links > div'), path).toHaveCount(4);
+  }
+  // A translated page's header and footer are in its language, and the switcher marks it.
+  await page.goto('/fr');
+  await expect(page.locator('header.marketing-header').getByRole('link', { name: 'Ouvrir le Studio' }).first()).toBeVisible();
+  await expect(page.locator('.marketing-footer-languages a[aria-current="page"]')).toHaveText('Français');
+  await expect(page.locator('.marketing-footer-languages a', { hasText: 'English' })).toHaveAttribute('href', '/');
+  // An English page with a Spanish version links straight to it; one without links to the Spanish home page.
+  await page.goto('/box-templates/mailer-box');
+  await expect(page.locator('.marketing-footer-languages a', { hasText: 'Español (España)' })).toHaveAttribute('href', '/es/box-templates/mailer-box');
+  await page.goto('/faq');
+  await expect(page.locator('.marketing-footer-languages a', { hasText: 'Español (España)' })).toHaveAttribute('href', '/es');
 });

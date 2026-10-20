@@ -3,7 +3,7 @@ import { ADMIN_STATE, USER_STATE } from './support/user';
 
 // On a phone every page fits the screen: no sideways scrolling.
 
-for (const path of ['/', '/box-templates', '/features', '/faq', '/contact', '/login', '/signup', '/es/box-templates', '/es/box-templates/mailer-box', '/es/box-dieline-generator']) {
+for (const path of ['/', '/box-templates', '/features', '/faq', '/contact', '/login', '/signup', '/es/box-templates', '/es/box-templates/mailer-box', '/es/box-dieline-generator', '/es', '/zh']) {
   test(`${path} fits a phone screen`, async ({ page }) => {
     await page.goto(path);
     await expect(page.locator('h1').first()).toBeVisible();

@@ -1,79 +1,90 @@
 'use client';
 
-import { useTranslations } from '@/components/i18n/locale-provider';
 import { CookieSettingsButton } from '@/components/analytics/ConsentBanner';
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, Globe } from 'lucide-react';
+import { chromeWords, footerColumns, homeHref, languageLinks, navLinks, type ChromeAlternates, type ChromeLanguage, type ChromeLink } from '@/lib/site-chrome';
 import { MobileMenu } from '@/components/mobile-menu';
 import { BrandLogo } from '@/components/brand-logo';
 import { AccountButton } from '@/components/auth/account-button';
 import { usePathname } from 'next/navigation';
 
-const navLinks = [
-  { href: '/features', label: "navigation.features" },
-  { href: '/box-templates', label: "navigation.box_templates" },
-  { href: '/#showcase', label: "navigation.examples", homeHash: '#showcase' },
-  { href: '/#workflow', label: "navigation.workflow", homeHash: '#workflow' },
-  { href: '/blog', label: "navigation.guides" },
-  { href: '/faq', label: "navigation.faq" },
-  { href: '/contact', label: "navigation.contact" },
-] as const;
-
-export function Brand() {
-  const t = useTranslations();
-
-  return <Link href="/" className="brand brand-vector" aria-label={t("navigation.3d_box_studio_home")}><BrandLogo className="brand-vector-logo" priority /></Link>;
+export function Brand({ label = '3D Box Studio home', href = '/' }: { label?: string; href?: string }) {
+  return <Link href={href} className="brand brand-vector" aria-label={label}><BrandLogo className="brand-vector-logo" priority /></Link>;
 }
 
-function NavigationLinks() {
-  const t = useTranslations();
+function NavigationLinks({ links }: { links: ChromeLink[] }) {
   const pathname = usePathname();
   return <>
-    {navLinks.map((item) => {
-      const active = !('homeHash' in item) && (pathname === item.href || pathname.startsWith(item.href + '/'));
+    {links.map((item) => {
+      const active = !item.native && (pathname === item.href || pathname.startsWith(item.href + '/'));
       // Native anchors wait for the destination document's sections to exist.
-      if ('homeHash' in item) return <a key={item.href} href={item.href}>{t(item.label)}</a>;
-      return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href}>{t(item.label)}</Link>;
+      if (item.native) return <a key={item.href} href={item.href}>{item.label}</a>;
+      return <Link key={item.href} className={active ? 'is-active' : ''} href={item.href} hrefLang={item.hrefLang}>{item.label}</Link>;
     })}
   </>;
 }
 
-export function SiteHeader() {
-  const t = useTranslations();
+/** Links to every language: the same page where it is translated, else that language's home page. Works without JavaScript. */
+export function LanguageSwitcher({ language, alternates, label }: { language: ChromeLanguage; alternates?: ChromeAlternates; label: string }) {
+  const languages = languageLinks(alternates);
+  const active = languages.find(item => item.code === language) ?? languages[0];
+  return <details className="language-switcher">
+    <summary aria-label={`${label}: ${active.name}`}><Globe aria-hidden="true" /><span>{active.short}</span></summary>
+    <ul>{languages.map(item => <li key={item.code}>
+      <a href={item.href} hrefLang={item.lang} lang={item.lang} aria-current={item.code === language ? 'page' : undefined}>{item.name}</a>
+    </li>)}</ul>
+  </details>;
+}
+
+/**
+ * The header of every marketing page. `language` is the page's language;
+ * `alternates` are the same page in other languages, for the switcher.
+ */
+export function SiteHeader({ language = 'en', alternates }: { language?: ChromeLanguage; alternates?: ChromeAlternates }) {
+  const words = chromeWords(language);
+  const links = navLinks(language);
 
   const headerContents = <div className="marketing-header-inner">
-    <Brand />
-    <nav className="marketing-nav-links" aria-label={t("navigation.main_navigation")}><NavigationLinks /></nav>
+    <Brand label={words.homeLabel} href={homeHref(language)} />
+    <nav className="marketing-nav-links" aria-label={words.mainNav}><NavigationLinks links={links} /></nav>
     <div className="marketing-header-actions">
+      <LanguageSwitcher language={language} alternates={alternates} label={words.languages} />
       <AccountButton compact />
-      <Link className="button marketing-header-cta" href="/studio">{t("navigation.open_studio") + " "}<ArrowUpRight size={16}/></Link>
+      <Link className="button marketing-header-cta" href="/studio">{words.openStudio + " "}<ArrowUpRight size={16}/></Link>
       <MobileMenu
-        links={navLinks.map(item => ({ href: item.href, label: t(item.label), native: 'homeHash' in item }))}
-        cta={{ href: '/studio', label: t("navigation.open_studio") }}
-        labels={{ open: t("navigation.open_menu"), close: t("navigation.close_menu"), nav: t("navigation.mobile_navigation") }}
+        links={links}
+        languages={{ label: words.languages, links: languageLinks(alternates).filter(item => item.code !== language).map(item => ({ href: item.href, label: item.name, hrefLang: item.lang })) }}
+        cta={{ href: '/studio', label: words.openStudio }}
+        labels={{ open: words.openMenu, close: words.closeMenu, nav: words.mainNav }}
       />
     </div>
   </div>;
 
   return <>
-    <a className="skip-link" href="#main">{t("navigation.skip_to_content")}</a>
-    <header className="marketing-header">{headerContents}</header>
+    <a className="skip-link" href="#main">{words.skip}</a>
+    <header className="marketing-header" lang={language === 'en' ? undefined : words.lang}>{headerContents}</header>
   </>;
 }
 
-export function SiteFooter() {
-  const t = useTranslations();
+/** The footer of every marketing page, with a link to every language. */
+export function SiteFooter({ language = 'en', alternates }: { language?: ChromeLanguage; alternates?: ChromeAlternates }) {
+  const words = chromeWords(language);
+  const languages = languageLinks(alternates);
 
-  return <footer className="marketing-footer">
+  return <footer className="marketing-footer" lang={language === 'en' ? undefined : words.lang}>
     <div className="marketing-footer-main">
-      <div><Brand /><p>{t("navigation.packaging_ideas_made_tangible")}</p></div>
+      <div><Brand label={words.homeLabel} href={homeHref(language)} /><p>{words.tagline}</p></div>
       <div className="marketing-footer-links">
-        <div><b>{t("navigation.product")}</b><Link href="/studio">{t("navigation.studio")}</Link><Link href="/changelog">{t("navigation.whats_new")}</Link><Link href="/blog">{t("navigation.guides")}</Link><Link href="/faq">{t("navigation.help_center")}</Link></div>
-        <div><b>{t("navigation.tools")}</b><Link href="/3d-box-mockup-generator">{t("navigation.3d_box_mockup_generator")}</Link><Link href="/box-dieline-generator">{t("navigation.box_dieline_generator")}</Link><Link href="/box-templates">{t("navigation.box_templates")}</Link><Link href="/packaging-design-online">{t("navigation.packaging_design_online")}</Link></div>
-        <div><b>{t("navigation.compare")}</b><Link href="/pacdora-alternative">{t("navigation.pacdora_alternative")}</Link><Link href="/boxshot-alternative">{t("navigation.boxshot_alternative")}</Link><Link href="/adobe-dimension-alternative">{t("navigation.adobe_dimension_alternative")}</Link><Link href="/placeit-box-mockup-alternative">{t("navigation.placeit_alternative")}</Link></div>
-        <div><b>{t("navigation.company")}</b><Link href="/contact">{t("navigation.contact")}</Link><Link href="/privacy">{t("navigation.privacy")}</Link><Link href="/terms">{t("navigation.terms")}</Link><CookieSettingsButton /></div>
+        {footerColumns(language).map((column, index, all) => <div key={column.title}><b>{column.title}</b>
+          {column.links.map(link => <Link key={link.href} href={link.href} hrefLang={link.hrefLang}>{link.label}</Link>)}
+          {index === all.length - 1 ? <CookieSettingsButton label={words.cookies} /> : null}
+        </div>)}
       </div>
     </div>
-    <div className="marketing-footer-base"><span>© {new Date().getFullYear()}{" " + t("navigation.3d_box_studio")}</span><span>{t("navigation.built_for_thoughtful_packaging_work")}</span></div>
+    <nav className="marketing-footer-languages" aria-label={words.languages}>
+      {languages.map(item => <a key={item.code} href={item.href} hrefLang={item.lang} lang={item.lang} aria-current={item.code === language ? 'page' : undefined}>{item.name}</a>)}
+    </nav>
+    <div className="marketing-footer-base"><span>© {new Date().getFullYear()} 3D Box Studio</span><span>{words.base}</span></div>
   </footer>;
 }

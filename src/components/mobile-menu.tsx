@@ -12,8 +12,10 @@ export type MobileMenuLink = { href: string; label: string; hrefLang?: string; n
  * Rendered in a portal because the header's backdrop-filter would otherwise
  * become the containing block for fixed elements and clip the backdrop.
  */
-export function MobileMenu({ links, cta, labels }: {
+export function MobileMenu({ links, cta, labels, languages }: {
   links: MobileMenuLink[];
+  /** Other languages, listed under the links. */
+  languages?: { label: string; links: MobileMenuLink[] };
   cta: { href: string; label: string };
   labels: { open: string; close: string; nav: string };
 }) {
@@ -52,6 +54,10 @@ export function MobileMenu({ links, cta, labels }: {
         {links.map(link => link.native
           ? <a key={link.href} href={link.href} hrefLang={link.hrefLang} onClick={close}>{link.label}</a>
           : <Link key={link.href} href={link.href} hrefLang={link.hrefLang} onClick={close}>{link.label}</Link>)}
+        {languages?.links.length ? <div className="marketing-mobile-menu-languages" role="group" aria-label={languages.label}>
+          <span>{languages.label}</span>
+          {languages.links.map(link => <a key={link.href + link.label} href={link.href} hrefLang={link.hrefLang} lang={link.hrefLang} onClick={close}>{link.label}</a>)}
+        </div> : null}
         <Link className="button marketing-mobile-menu-cta" href={cta.href} onClick={close}>{cta.label} <ArrowRight size={18}/></Link>
       </nav>
     </>, document.body)}

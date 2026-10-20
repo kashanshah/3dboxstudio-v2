@@ -426,8 +426,6 @@ font-family:var(--font-ui);line-height:1.5;color:var(--foreground);letter-spacin
 @media (max-width:900px){.lovable-original .localized-steps{padding:64px 20px}.lovable-original .localized-steps ol{grid-template-columns:1fr;gap:36px}}
 @media (max-width:700px){.lovable-original.localized-home .hero-copy h1{font-size:clamp(40px,11vw,56px)}}
 /* English home footer: links to the translated home pages on their own row. */
-.lovable-original.marketing-page footer:has(.footer-languages){flex-wrap:wrap;row-gap:14px}
-.lovable-original.marketing-page footer>.footer-languages{order:4;width:100%;justify-content:center;gap:16px;padding-top:14px;border-top:1px solid #e7edf4}
 
 /* Phones: same sections and copy, denser layout (home and translated homes). */
 @media (max-width:700px){

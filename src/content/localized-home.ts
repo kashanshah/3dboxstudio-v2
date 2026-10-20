@@ -13,29 +13,21 @@ export type LocalizedHomeContent = {
   lang: string;
   /** Open Graph locale, e.g. es_ES. */
   ogLocale: string;
-  /** Language name in its own language, for the language switcher. */
-  nativeName: string;
   title: string;
   description: string;
-  nav: { features: string; templates: string; faq: string; guides: string; openStudio: string; languages: string; skip: string; openMenu: string; closeMenu: string };
   hero: { badge: string; line1: string; line2: string; intro: string; primaryCta: string; secondaryCta: string; proof: [string, string, string]; appNote: string };
   steps: { eyebrow: string; title: string; items: [Item, Item, Item]; alts: [string, string, string] };
   features: { eyebrow: string; title: string; items: Item[] };
   faq: { eyebrow: string; title: string; items: Faq[] };
   closing: { title: string; body: string; cta: string; note: string };
-  footer: { tagline: string; product: string; company: string; studio: string; guides: string; faq: string; contact: string; privacy: string; terms: string; cookies: string };
 };
-
-export const englishHomeLanguage = { lang: 'en', nativeName: 'English', path: '/' } as const;
 
 export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = {
   es: {
     lang: 'es',
     ogLocale: 'es_ES',
-    nativeName: 'Español (España)',
     title: 'Diseñador de cajas 3D y mockups gratis | 3D Box Studio',
     description: 'Generador de cajas 3D online y gratuito: medidas exactas, diseño sobre el troquel, vista 3D que se pliega, vídeo MP4 y troquel en PDF, SVG o DXF a escala 1:1. Cuenta gratuita.',
-    nav: { features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Saltar al contenido', openMenu: 'Abrir menú', closeMenu: 'Cerrar menú' },
     hero: {
       badge: 'Generador de cajas 3D y mockups gratis',
       line1: 'Diseña la caja.',
@@ -84,16 +76,13 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       ],
     },
     closing: { title: 'Tu próximo packaging empieza aquí', body: 'Crea una cuenta gratuita, elige una caja, ajusta las medidas y revisa tu diseño en 3D.', cta: 'Empezar a diseñar gratis', note: 'Cuenta gratuita · Regístrate con Google o con tu correo' },
-    footer: { tagline: 'Ideas de packaging, hechas tangibles.', product: 'Producto', company: 'Empresa', studio: 'Studio', guides: 'Guías', faq: 'Preguntas frecuentes', contact: 'Contacto', privacy: 'Privacidad', terms: 'Condiciones', cookies: 'Configurar cookies' },
   },
 
   'es-mx': {
     lang: 'es-MX',
     ogLocale: 'es_MX',
-    nativeName: 'Español (México)',
     title: 'Diseñador de cajas 3D y empaques gratis | 3D Box Studio',
     description: 'Crea cajas en 3D gratis en línea: medidas exactas, diseño sobre el suaje, vista 3D que se arma, video MP4 y suaje en PDF, SVG o DXF a escala 1:1. Cuenta gratuita.',
-    nav: { features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', openStudio: 'Abrir Studio', languages: 'Idioma', skip: 'Ir al contenido', openMenu: 'Abrir menú', closeMenu: 'Cerrar menú' },
     hero: {
       badge: 'Generador de cajas 3D y mockups de empaque gratis',
       line1: 'Diseña la caja.',
@@ -142,16 +131,13 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       ],
     },
     closing: { title: 'Tu próximo empaque empieza aquí', body: 'Crea una cuenta gratis, elige una caja, ajusta las medidas y revisa tu diseño en 3D.', cta: 'Empieza a diseñar gratis', note: 'Cuenta gratis · Regístrate con Google o con tu correo' },
-    footer: { tagline: 'Ideas de empaque, hechas realidad.', product: 'Producto', company: 'Empresa', studio: 'Studio', guides: 'Guías', faq: 'Preguntas frecuentes', contact: 'Contacto', privacy: 'Privacidad', terms: 'Términos', cookies: 'Configurar cookies' },
   },
 
   fr: {
     lang: 'fr',
     ogLocale: 'fr_FR',
-    nativeName: 'Français',
     title: 'Créateur de boîtes 3D et mockups gratuit | 3D Box Studio',
     description: 'Créateur de boîtes 3D gratuit en ligne : dimensions exactes, design sur le tracé de découpe, pliage en 3D, vidéo MP4 et tracé PDF, SVG ou DXF à l’échelle 1:1. Compte gratuit.',
-    nav: { features: 'Fonctionnalités', templates: 'Modèles de boîtes', faq: 'FAQ', guides: 'Guides', openStudio: 'Ouvrir le Studio', languages: 'Langue', skip: 'Aller au contenu', openMenu: 'Ouvrir le menu', closeMenu: 'Fermer le menu' },
     hero: {
       badge: 'Générateur de boîtes 3D et mockups gratuit',
       line1: 'Dessinez la boîte.',
@@ -200,16 +186,13 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       ],
     },
     closing: { title: 'Votre prochain emballage commence ici', body: 'Créez un compte gratuit, choisissez une boîte, réglez les dimensions et vérifiez votre design en 3D.', cta: 'Commencer gratuitement', note: 'Compte gratuit · Inscription avec Google ou par e-mail' },
-    footer: { tagline: 'Des idées d’emballage, rendues concrètes.', product: 'Produit', company: 'Entreprise', studio: 'Studio', guides: 'Guides', faq: 'FAQ', contact: 'Contact', privacy: 'Confidentialité', terms: 'Conditions', cookies: 'Paramètres des cookies' },
   },
 
   'pt-br': {
     lang: 'pt-BR',
     ogLocale: 'pt_BR',
-    nativeName: 'Português (Brasil)',
     title: 'Criador de caixas 3D e mockups grátis | 3D Box Studio',
     description: 'Crie caixas em 3D grátis online: medidas exatas, arte sobre a faca de corte, montagem em 3D, vídeo MP4 e faca em PDF, SVG ou DXF na escala 1:1. Conta gratuita.',
-    nav: { features: 'Recursos', templates: 'Modelos de caixa', faq: 'Perguntas', guides: 'Guias', openStudio: 'Abrir o Studio', languages: 'Idioma', skip: 'Pular para o conteúdo', openMenu: 'Abrir menu', closeMenu: 'Fechar menu' },
     hero: {
       badge: 'Gerador de caixas 3D e mockups grátis',
       line1: 'Crie a caixa.',
@@ -258,16 +241,13 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       ],
     },
     closing: { title: 'Sua próxima embalagem começa aqui', body: 'Crie uma conta gratuita, escolha uma caixa, ajuste as medidas e confira o design em 3D.', cta: 'Começar a criar grátis', note: 'Conta gratuita · Cadastre-se com Google ou e-mail' },
-    footer: { tagline: 'Ideias de embalagem, que ganham forma.', product: 'Produto', company: 'Empresa', studio: 'Studio', guides: 'Guias', faq: 'Perguntas frequentes', contact: 'Contato', privacy: 'Privacidade', terms: 'Termos', cookies: 'Configurações de cookies' },
   },
 
   de: {
     lang: 'de',
     ogLocale: 'de_DE',
-    nativeName: 'Deutsch',
     title: 'Kostenloser 3D-Box-Generator & Mockups | 3D Box Studio',
     description: 'Kostenloser 3D-Box-Generator im Browser: exakte Maße, Gestaltung auf der Stanzkontur, Faltung in 3D, MP4-Video und Stanzkontur als PDF, SVG oder DXF im Maßstab 1:1. Kostenloses Konto.',
-    nav: { features: 'Funktionen', templates: 'Schachtelvorlagen', faq: 'FAQ', guides: 'Ratgeber', openStudio: 'Studio öffnen', languages: 'Sprache', skip: 'Zum Inhalt springen', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen' },
     hero: {
       badge: 'Kostenloser 3D-Box-Generator und Mockup-Tool',
       line1: 'Gestalte die Box.',
@@ -316,16 +296,13 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       ],
     },
     closing: { title: 'Deine nächste Verpackung beginnt hier', body: 'Erstelle ein kostenloses Konto, wähle eine Box, stelle die Maße ein und prüfe dein Design in 3D.', cta: 'Kostenlos loslegen', note: 'Kostenloses Konto · Anmeldung mit Google oder E-Mail' },
-    footer: { tagline: 'Verpackungsideen, greifbar gemacht.', product: 'Produkt', company: 'Unternehmen', studio: 'Studio', guides: 'Ratgeber', faq: 'FAQ', contact: 'Kontakt', privacy: 'Datenschutz', terms: 'AGB', cookies: 'Cookie-Einstellungen' },
   },
 
   zh: {
     lang: 'zh-Hans',
     ogLocale: 'zh_CN',
-    nativeName: '简体中文',
     title: '免费 3D 包装盒设计与效果图生成器 | 3D Box Studio',
     description: '免费在线 3D 包装盒生成器：输入精确尺寸，在刀版图上排版，实时 3D 折叠预览，导出 PNG 效果图、MP4 视频，以及 1:1 的 PDF、SVG 或 DXF 刀版图。需注册免费账户。',
-    nav: { features: '功能', templates: '盒型模板', faq: '常见问题', guides: '指南', openStudio: '打开 Studio', languages: '语言', skip: '跳到正文', openMenu: '打开菜单', closeMenu: '关闭菜单' },
     hero: {
       badge: '免费 3D 包装盒生成器与效果图工具',
       line1: '设计包装盒，',
@@ -374,7 +351,6 @@ export const localizedHome: Record<LocalizedHomeLocale, LocalizedHomeContent> = 
       ],
     },
     closing: { title: '从这里开始你的下一个包装', body: '注册免费账户，选择盒型，调整尺寸，在 3D 中检查你的设计。', cta: '免费开始设计', note: '免费账户 · 可用 Google 或邮箱注册' },
-    footer: { tagline: '让包装创意触手可及。', product: '产品', company: '公司', studio: 'Studio', guides: '指南', faq: '常见问题', contact: '联系我们', privacy: '隐私政策', terms: '服务条款', cookies: 'Cookie 设置' },
   },
 };
 
