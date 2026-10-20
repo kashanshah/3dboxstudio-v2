@@ -2,6 +2,7 @@ import { changelogReleases } from '@/content/changelog';
 import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
+import { publishedSeoPages } from '@/content/seo-pages';
 import { homeLanguageAlternates, localizedHomeLocales } from '@/content/localized-home';
 import { ES_BOX_TEMPLATE_PAGES, ES_TEMPLATE_SLUGS, templateLanguageAlternates } from '@/content/es/box-template-pages';
 
@@ -55,6 +56,8 @@ function getEntries(): SitemapEntry[] {
     { path: '/privacy', lastModified: new Date('2026-10-11'), changeFrequency: 'yearly', priority: 0.3 },
     { path: '/terms', lastModified: new Date('2026-10-11'), changeFrequency: 'yearly', priority: 0.3 },
     { path: '/blog', changeFrequency: 'weekly', priority: 0.8 },
+    // Generator search-plan pages, once approved (drafts stay out).
+    ...publishedSeoPages().map((page): SitemapEntry => ({ path: page.path, changeFrequency: 'monthly', priority: page.priority })),
   ];
 
   const blogEntries: SitemapEntry[] = BLOG_POSTS.map((post) => {

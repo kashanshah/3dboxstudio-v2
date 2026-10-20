@@ -1,0 +1,13 @@
+.glossary-letters{width:min(1180px,calc(100% - 40px));margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:6px}
+.glossary-letters a{display:grid;place-items:center;min-width:36px;height:36px;border:1px solid #e4e7ec;border-radius:10px;color:#0f67e8;font-weight:700;text-decoration:none}
+.glossary-letters a:hover{border-color:#0f67e8}
+.glossary{width:min(1180px,calc(100% - 40px));margin:0 auto 96px}
+.glossary section{display:grid;grid-template-columns:72px minmax(0,1fr);gap:24px;padding:28px 0;border-bottom:1px solid #e4e7ec;scroll-margin-top:90px}
+.glossary h2{margin:0;font-size:32px;letter-spacing:-.03em;color:#0f67e8}
+.glossary dl{margin:0;display:grid;gap:18px}
+.glossary dl>div{scroll-margin-top:90px}
+.glossary dt{font-size:18px;font-weight:700}
+.glossary dt small{font-size:13.5px;font-weight:500;color:#667085}
+.glossary dd{margin:4px 0 0;color:#475467;line-height:1.65;font-size:16px;max-width:760px}
+.glossary dd a{color:#0f67e8;text-decoration:underline;text-underline-offset:2px}
+@media (max-width:600px){.glossary section{grid-template-columns:1fr;gap:8px}}
