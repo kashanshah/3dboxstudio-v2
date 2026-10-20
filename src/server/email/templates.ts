@@ -87,13 +87,30 @@ export function renderAdminContactTemplate(input: { id: string; name: string; em
     ].join('')}</table><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px"><tr><td bgcolor="#f1f5f9" style="padding:20px;border:1px solid #dce3eb;border-radius:8px;font-size:15px;line-height:25px;word-break:break-word"><p style="margin:0 0 10px;font-size:12px;font-weight:bold;color:#626779">MESSAGE</p>${esc(input.message).replace(/\r\n|\r|\n/g, '<br>')}</td></tr></table>` + button(replyUrl, 'Reply to message') + note('This notification was sent to the admin address configured in 3D Box Studio.'));
   return { subject, html, text };
 }
+/** A "Get this box printed" request from the dieline generator. Lines come from quoteLines(). */
+export function renderAdminPrintQuoteTemplate(input: { id: string; subject: string; email: string; name: string; lines: [string, string][]; submittedAt: string }): RenderedEmail {
+  const subject = input.subject.replace(/[\r\n]+/g, ' ');
+  const replyUrl = `mailto:${encodeURIComponent(input.email)}?subject=${encodeURIComponent('Your box printing quote')}`;
+  const lines = [...input.lines, ['Submitted (UTC)', input.submittedAt], ['Request ID', input.id]] as [string, string][];
+  const text = `New print quote request on 3D Box Studio\n\n${lines.map(([label, value]) => `${label}: ${value}`).join('\n')}\n\nThe visitor agreed that the request may be shared with printing partners.\nReply to: ${input.email}\n${replyUrl}`;
+  const html = shell(`${input.name} asked for a print quote.`, 'Admin notification', 'New print quote request',
+    paragraph('A visitor asked to get a box printed from the dieline generator. They agreed that the request may be shared with printing partners. Reply directly to this email to get back to them.') +
+    `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px">${lines.map(([label, value]) => row(label, label === 'Box link' ? `<a href="${esc(value)}" style="color:#0075c4">Open the box</a>` : esc(value).replace(/\r\n|\r|\n/g, '<br>'))).join('')}</table>` +
+    button(replyUrl, 'Reply to request') + note('This notification was sent to the admin address configured in 3D Box Studio.'));
+  return { subject, html, text };
+}
 export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
   const contact = renderAdminContactTemplate({ id: 'sample123', name: 'Alex Morgan', email: 'alex@example.com', topic: 'Feature request', subject: 'Custom dieline support', message: 'Hi, I would like to know whether custom dieline import is planned for V2.\nThanks for your help!', submittedAt: '2026-09-29T18:30:00Z' });
+  const quote = renderAdminPrintQuoteTemplate({ id: 'sample456', subject: 'Print quote: Mailer box, 500–999', email: 'alex@example.com', name: 'Alex Morgan', submittedAt: '2026-10-20T10:15:00Z', lines: [
+    ['Box', 'Mailer box'], ['Size', '220 × 160 × 80 mm (inner)'], ['Board', 'E-flute corrugated, 1.5 mm'], ['Quantity', '500–999'], ['Printing', 'Full colour (CMYK)'], ['Finish', 'Matte'],
+    ['Needed by', '2026-12-01'], ['Name', 'Alex Morgan'], ['Email', 'alex@example.com'], ['Country', 'United Kingdom'], ['Notes', 'Printed inside with a pattern.'], ['Box link', appUrl('/box-templates/mailer-box?l=220&w=160&d=80&u=mm')],
+  ] });
   const welcome = renderWelcomeTemplate({ name: 'Alex' });
   const verification = renderVerificationTemplate({ name: 'Alex', verifyUrl: appUrl('/verify-email?token=sample-preview-token') });
   const reset = renderPasswordResetTemplate({ name: 'Alex', resetUrl: appUrl('/reset-password?token=sample-preview-token') });
   return [
     { id: 'admin-contact-submission', label: 'Admin · Contact submission', description: 'Sent to the configured admin address when contact notifications are enabled. Replies go to the visitor.', ...contact, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'admin-print-quote', label: 'Admin · Print quote request', description: 'Sent to the configured admin address for each "Get this box printed" request. Replies go to the visitor.', ...quote, sourcePath: 'src/server/email/templates.ts' },
     { id: 'welcome', label: 'Welcome', description: 'Preview only. Available as a template; not automatically sent.', ...welcome, sourcePath: 'src/server/email/templates.ts' },
     { id: 'verification', label: 'Email verification', description: 'Sent after email signup or a verification resend. One-use link expires in 24 hours.', ...verification, sourcePath: 'src/server/email/templates.ts' },
     { id: 'password-reset', label: 'Password reset', description: 'Sent for password recovery. One-use link expires in 1 hour.', ...reset, sourcePath: 'src/server/email/templates.ts' },

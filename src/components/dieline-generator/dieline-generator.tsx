@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
-import { Box, Check, Download, Link2 } from "lucide-react";
+import { Suspense, lazy, useEffect, useId, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
+import { Box, Check, Download, Link2, Printer } from "lucide-react";
+import type { QuoteBox } from "@/content/print-quote";
+import { isFeatureOn } from "@/lib/features";
 import { trackEvent } from "@/lib/analytics";
 import { dielineToSvg } from "@/lib/dieline/export/svg";
 import { dielineToCricutSvg, CRICUT_STEPS } from "@/lib/dieline/export/cricut";
@@ -17,6 +19,9 @@ import { studioTemplateHref } from "@/lib/studio-entry";
 import { DielinePreview, type Axis, type ResizeHandle } from "./dieline-preview";
 import { GENERATOR_COPY, type GeneratorCopy, type GeneratorExportId, type GeneratorLocale } from "./copy";
 import "./dieline-generator.css";
+
+// "Get this box printed" loads only when opened.
+const PrintQuoteDialog = lazy(() => import("@/components/print-quote/print-quote-dialog").then(module => ({ default: module.PrintQuoteDialog })));
 
 // The free dieline generator: pick a style, type the box's size, and the
 // flat dieline is drawn live, ready to download as SVG, PDF, DXF, PNG or a
@@ -140,6 +145,9 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const [exportFormat, setExportFormat] = useState<ExportFormat>(defaultExport);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [quoteBox, setQuoteBox] = useState<QuoteBox | null>(null);
+  // The quote form is in English only for now.
+  const quoteOn = locale === "en" && isFeatureOn("printQuote");
   const tracked = useRef(new Set<string>());
   // Keep the chosen style's card in view in the picker strip, without scrolling the page.
   const strip = useRef<HTMLDivElement>(null);
@@ -271,6 +279,13 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
     trackEvent("dieline_share", { ...pageParams, box_type: state.style, style: state.style, method: "copy_link" });
   };
 
+  const openQuote = () => {
+    const material = MATERIALS.find(item => item.id === state.material)?.label ?? copy.custom;
+    setQuoteBox({ style: state.style, styleName: styleName(meta), length: state.length, width: state.width, depth: state.depth, units: unit, mode: copy.modes[state.mode].label.toLowerCase(),
+      material, thickness: state.thickness, link: `${window.location.pathname}?${query}` });
+    trackEvent("print_quote_opened", { ...pageParams, box_type: state.style });
+  };
+
   // The Studio takes the template's inside size: width across the front, height, depth front to back.
   const studioHref = output ? studioTemplateHref(meta.templateId, {
     width: output.inner.length, height: output.inner.depth, depth: output.inner.width, thickness: state.thickness,
@@ -389,10 +404,12 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
           {exportFormat === "cricut" ? <details className="dg-cricut"><summary>{copy.howToCut}</summary><ol>{(copy.cricutSteps ?? CRICUT_STEPS).map(stepText => <li key={stepText}>{stepText}</li>)}</ol></details> : null}
           {studioHref ? <Link className="dg-primary" href={studioHref} onClick={openIn3d}><Box aria-hidden="true" /> {copy.open3d}</Link> : null}
           <button type="button" className="dg-secondary" onClick={share} disabled={!output}>{copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />} {copied ? copy.linkCopied : copy.copyLink}</button>
+          {quoteOn ? <button type="button" className="dg-secondary" onClick={openQuote} disabled={!output}><Printer aria-hidden="true" /> Get this box printed</button> : null}
           <p className="dg-note">{copy.note}</p>
         </section>
       </aside>
     </div>
+    {quoteBox ? <Suspense fallback={null}><PrintQuoteDialog box={quoteBox} onClose={() => setQuoteBox(null)} /></Suspense> : null}
   </section>;
 }
 
