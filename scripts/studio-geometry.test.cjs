@@ -514,9 +514,11 @@ test('dimension changes flow through each ready template runtime',()=>{
     // Entered sizes are inside sizes; a cutting template scores each panel up
     // to a board thickness wider, and a slotted box two boards taller. A
     // mailer's front is as wide as its base, cut wider so the double side
-    // walls stand inside it; a rigid box's and a drawer box's tray, a board each side for the turn-ins.
+    // walls stand inside it; a pizza box's front is as wide as its base, cut 1.4
+    // boards wider so the single side walls stand inside it; a rigid box's and
+    // a drawer box's tray, a board each side for the turn-ins.
     // An auto-lock or snap-lock bottom's walls are three boards taller for its layered floor, as are a gable box's.
-    const widthAllowance={'mailer-box':5.5,'cake-box':5.5,'rigid-lid-base':1,'drawer-box':1}[template.id]??0;
+    const widthAllowance={'mailer-box':5.5,'cake-box':5.5,'pizza-box':1.4,'rigid-lid-base':1,'drawer-box':1}[template.id]??0;
     const heightAllowance={'auto-lock-bottom-box':2,'snap-lock-bottom-box':2,'gable-box':2}[template.id]??0;
     within(front.width,changed.width+widthAllowance*changed.thickness,changed.thickness,`${template.id} front width`);
     // A pillow box's sizes are outside ones, and its face is cut as wide as its bow across the box.
