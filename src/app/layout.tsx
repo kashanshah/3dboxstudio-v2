@@ -19,6 +19,7 @@ import { AnalyticsPageView } from '@/components/analytics/AnalyticsPageView';
 import { AnalyticsRouteGuard } from '@/components/analytics/AnalyticsRouteGuard';
 import { ConsentBanner } from '@/components/analytics/ConsentBanner';
 import { Analytics } from '@vercel/analytics/next';
+import { FeedbackHost } from '@/components/feedback/feedback-host';
 
 export const metadata: Metadata = {
   metadataBase: site.url,
@@ -45,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <AnalyticsPageView />
         </Suspense>
         <LocaleProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>{children}<FeedbackHost /></AuthProvider>
         </LocaleProvider>
         <ConsentBanner />
         <Analytics />
