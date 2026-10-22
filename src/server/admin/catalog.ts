@@ -298,7 +298,7 @@ export function parseAdminQuery(value?: string): string {
 
 export type AdminSortDir = 'asc' | 'desc';
 export const USER_SORTS = ['name', 'email', 'verified', 'projects', 'designs', 'media', 'joined'] as const;
-export const DESIGN_SORTS = ['name', 'owner', 'images', 'source', 'updated'] as const;
+export const DESIGN_SORTS = ['name', 'owner', 'images', 'source', 'created', 'updated'] as const;
 export const MEDIA_SORTS = ['name', 'owner', 'designs', 'added'] as const;
 const USER_SORT_SQL: Record<(typeof USER_SORTS)[number], string> = {
   name: `lower(COALESCE(NULLIF(u.name,''), u.email))`,
@@ -314,6 +314,7 @@ const DESIGN_SORT_SQL: Record<(typeof DESIGN_SORTS)[number], string> = {
   owner: `lower(COALESCE(NULLIF(u.name,''), u.email, ''))`,
   images: `img.image_count`,
   source: `CASE WHEN d.legacy THEN 'legacy' ELSE 'v2' END`,
+  created: `d.created_at`,
   updated: `d.updated_at`,
 };
 const MEDIA_SORT_SQL: Record<(typeof MEDIA_SORTS)[number], string> = {
