@@ -1879,7 +1879,7 @@
 .pro-project-copy{min-width:0}
 .pro-project-copy input{max-width:220px}
 .pro-header-actions{justify-self:end}
-.pro-header-share{white-space:nowrap}
+.pro-header-share,.pro-header-feedback{white-space:nowrap}
 .pro-workflow-nav{
   justify-self:center;
   width:100%;
@@ -1975,8 +1975,8 @@
 .pro-project-copy input{max-width:min(46vw,220px);font-size:var(--fs-body)}
 .pro-project-copy a{font-size:var(--fs-caption)}
 .pro-header-actions{gap:6px}
-.pro-header-share span{display:none}
-.pro-header-share{width:42px;min-width:42px;padding:0!important}
+.pro-header-share span,.pro-header-feedback span{display:none}
+.pro-header-share,.pro-header-feedback{width:42px;min-width:42px;padding:0!important}
 .pro-save-design{max-width:128px;padding-inline:10px!important}
 .pro-workflow-nav{height:48px;padding:3px;gap:3px}
 .pro-workflow-step{grid-template-columns:24px minmax(0,1fr);gap:6px;padding:0 7px!important}
@@ -3530,8 +3530,8 @@
 .pro-studio input[type=range]::-moz-range-thumb{width:22px;height:22px;border:2px solid #fff;border-radius:50%;background:var(--accent)}
 .pro-header-actions>button.pro-save-design{display:inline-flex;align-items:center;gap:6px;min-height:40px;max-width:none;padding:0 4px!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:var(--fs-meta);font-weight:600}
 .pro-header-actions>button.pro-save-design.is-save-failed{color:#b91c1c!important}
-.pro-header-actions>button.pro-header-share{display:inline-grid;place-items:center;width:42px;min-width:42px;height:42px;padding:0!important}
-.pro-header-share span{display:none}
+.pro-header-actions>button.pro-header-share,.pro-header-actions>button.pro-header-feedback{display:inline-grid;place-items:center;width:42px;min-width:42px;height:42px;padding:0!important}
+.pro-header-share span,.pro-header-feedback span{display:none}
 }
 .pro-new-design-dialog:focus{outline:none}
 @media(max-width:419px){

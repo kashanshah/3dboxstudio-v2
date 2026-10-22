@@ -4,6 +4,7 @@
 import './studio-shell.css';
 import { trackEvent } from '@/lib/analytics';
 import { PostExportFeedback, POST_EXPORT_FEEDBACK_EVENT } from './post-export-feedback';
+import { offerFeedback, openFeedback } from '@/lib/feedback-events';
 import { ArtworkUploadError, artworkUploadErrorCode, checkArtworkFile, isRetryableArtworkFailure, mergeMediaAssets, summarizeArtworkUpload, type ArtworkUploadFailure, type ArtworkUploadStage } from '@/lib/artwork-upload';
 import { newDesignDefaults, type NewDesignProject } from '@/lib/new-design';
 import type { MessageKey } from '@/lib/i18n';
@@ -37,7 +38,7 @@ import {
   Grid3X3, Image as ImageIcon, Layers3, Lightbulb, Maximize2, Minus, Move, Square,
   FilePlus2, MoreHorizontal, PackageOpen, Pencil, Redo2, RotateCcw, RotateCw, Search, Share2, Sparkles, Star, Undo2, ZoomIn, ZoomOut,
   Trash2, Upload, X, Eye, EyeOff, Contrast, Film, Ruler, ExternalLink, Type, Shapes, QrCode, Barcode, Compass, Keyboard,
-  AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal
+  MessageSquarePlus, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal
 } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
 import { AccountButton } from '@/components/auth/account-button';
@@ -2101,6 +2102,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     } catch {
       trackEvent('export_failed', {...context, failure_category:'render_error'});
       setMessage('Could not export the image. Please try again.');
+      offerFeedback({title:'The image export failed.',source:'studio-export-failed',kind:'problem',context:{box:family,export:`${imageSettings.format} ${imageSettings.size}`}});
     } finally {
       setImageBusy(false);
     }
@@ -2126,6 +2128,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       const unsupported = error instanceof Error && error.name === 'VideoExportUnsupportedError';
       trackEvent('export_failed', {...context, failure_category: unsupported ? 'unsupported_browser' : 'render_error'});
       setMessage(unsupported ? error.message : 'Could not create the video. Please try again.');
+      if (!unsupported) offerFeedback({title:'The video export failed.',source:'studio-export-failed',kind:'problem',context:{box:family,export:'mp4'}});
     } finally {
       setVideoProgress(null);
     }
@@ -2179,6 +2182,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         </div>
         <button className={`pro-secondary pro-save-design${saveFailed?' is-save-failed':hasUnsavedChanges?' is-unsaved':' is-saved'}`} disabled={saving} title={projectId?t("studio.autosave_is_on_click_to_save_now"):t("studio.save_this_design")} onClick={()=>void saveDesign()}>{saving?t("studio.saving"):saveFailed?t("studio.not_saved_retry"):!projectId?t("studio.save"):hasUnsavedChanges?t("studio.unsaved_changes"):t("studio.saved_2")}</button>
         <button className="pro-secondary pro-header-share" disabled={shareBusy||!projectId} title={projectId?t("studio.share_this_design"):t("studio.save_this_design_first")} onClick={()=>void shareDesign()}><Share2 size={16}/><span>{t("studio.share")}</span></button>
+        <button type="button" className="pro-secondary pro-header-feedback" aria-label={t("studio.feedback")} title={t("studio.feedback_help")} onClick={()=>openFeedback({source:'studio-header',context:{box:family,size:`${formatDimension(dimensions.width, measurementUnit)} x ${formatDimension(dimensions.height, measurementUnit)} x ${formatDimension(dimensions.depth, measurementUnit)} ${measurementUnit}`,step:workflowStep}})}><MessageSquarePlus size={16}/><span>{t("studio.feedback")}</span></button>
         <AccountButton compact className="pro-secondary" />
       </div>
     </header>
@@ -3565,6 +3569,7 @@ function DielinePrototype({
       const message=error instanceof Error?error.message:'Could not prepare the PDF. Please retry.';
       setPrintError(message);
       trackEvent('export_failed',{...context,failure_category:'pdf_generation',duration_ms:Math.round(performance.now()-startedAt)});
+      offerFeedback({title:'The PDF export failed.',source:'studio-export-failed',kind:'problem',context:{box:selectedTemplateId,export:'pdf',error:message}});
       onPdfStatus(false,message);
     } finally {
       pdfRunning.current=false;

@@ -99,11 +99,27 @@ export function renderAdminPrintQuoteTemplate(input: { id: string; subject: stri
     button(replyUrl, 'Reply to request') + note('This notification was sent to the admin address configured in 3D Box Studio.'));
   return { subject, html, text };
 }
+/** Feedback sent from the Studio or the dieline generator. Lines come from feedbackLines(). */
+export function renderAdminSiteFeedbackTemplate(input: { id: string; subject: string; replyTo: string | null; lines: [string, string][]; submittedAt: string }): RenderedEmail {
+  const subject = `Feedback · ${input.subject}`.replace(/[\r\n]+/g, ' ');
+  const replyUrl = input.replyTo ? `mailto:${encodeURIComponent(input.replyTo)}?subject=${encodeURIComponent('Your feedback on 3D Box Studio')}` : null;
+  const lines = [...input.lines, ['Submitted (UTC)', input.submittedAt], ['Feedback ID', input.id]] as [string, string][];
+  const text = `New feedback on 3D Box Studio\n\n${lines.map(([label, value]) => `${label}: ${value}`).join('\n')}${replyUrl ? `\n\nReply: ${replyUrl}` : '\n\nNo email was given, so this cannot be answered directly.'}`;
+  const html = shell('A visitor sent feedback.', 'Admin notification', 'New feedback',
+    paragraph(replyUrl ? 'A visitor sent feedback from the site. Reply directly to this email to answer them.' : 'A visitor sent feedback from the site without an email address, so it cannot be answered directly.') +
+    `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-bottom:20px">${lines.map(([label, value]) => row(label, esc(value).replace(/\r\n|\r|\n/g, '<br>'))).join('')}</table>` +
+    (replyUrl ? button(replyUrl, 'Reply to feedback') : '') + note('This notification was sent to the admin address configured in 3D Box Studio.'));
+  return { subject, html, text };
+}
 export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
   const contact = renderAdminContactTemplate({ id: 'sample123', name: 'Alex Morgan', email: 'alex@example.com', topic: 'Feature request', subject: 'Custom dieline support', message: 'Hi, I would like to know whether custom dieline import is planned for V2.\nThanks for your help!', submittedAt: '2026-09-29T18:30:00Z' });
   const quote = renderAdminPrintQuoteTemplate({ id: 'sample456', subject: 'Print quote: Mailer box, 500–999', email: 'alex@example.com', name: 'Alex Morgan', submittedAt: '2026-10-20T10:15:00Z', lines: [
     ['Box', 'Mailer box'], ['Size', '220 × 160 × 80 mm (inner)'], ['Board', 'E-flute corrugated, 1.5 mm'], ['Quantity', '500–999'], ['Printing', 'Full colour (CMYK)'], ['Finish', 'Matte'],
     ['Needed by', '2026-12-01'], ['Name', 'Alex Morgan'], ['Email', 'alex@example.com'], ['Country', 'United Kingdom'], ['Notes', 'Printed inside with a pattern.'], ['Box link', appUrl('/box-templates/mailer-box?l=220&w=160&d=80&u=mm')],
+  ] });
+  const feedback = renderAdminSiteFeedbackTemplate({ id: 'sample789', subject: 'A box or size I need: A hexagon box for candles', replyTo: 'alex@example.com', submittedAt: '2026-10-22T09:05:00Z', lines: [
+    ['About', 'A box or size I need'], ['Message', 'A hexagon box for candles, about 80 mm across. Is that planned?'], ['Reply to', 'alex@example.com'],
+    ['Sent from', 'generator-style-request'], ['Page', '/box-dieline-generator'], ['style', 'Reverse tuck end'], ['size', '80 x 80 x 100 mm'],
   ] });
   const welcome = renderWelcomeTemplate({ name: 'Alex' });
   const verification = renderVerificationTemplate({ name: 'Alex', verifyUrl: appUrl('/verify-email?token=sample-preview-token') });
@@ -111,6 +127,7 @@ export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
   return [
     { id: 'admin-contact-submission', label: 'Admin · Contact submission', description: 'Sent to the configured admin address when contact notifications are enabled. Replies go to the visitor.', ...contact, sourcePath: 'src/server/email/templates.ts' },
     { id: 'admin-print-quote', label: 'Admin · Print quote request', description: 'Sent to the configured admin address for each "Get this box printed" request. Replies go to the visitor.', ...quote, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'admin-site-feedback', label: 'Admin · Site feedback', description: 'Sent to the configured admin address for feedback from the Studio and the dieline generator, when contact notifications are on. Replies go to the visitor when they gave an email.', ...feedback, sourcePath: 'src/server/email/templates.ts' },
     { id: 'welcome', label: 'Welcome', description: 'Preview only. Available as a template; not automatically sent.', ...welcome, sourcePath: 'src/server/email/templates.ts' },
     { id: 'verification', label: 'Email verification', description: 'Sent after email signup or a verification resend. One-use link expires in 24 hours.', ...verification, sourcePath: 'src/server/email/templates.ts' },
     { id: 'password-reset', label: 'Password reset', description: 'Sent for password recovery. One-use link expires in 1 hour.', ...reset, sourcePath: 'src/server/email/templates.ts' },

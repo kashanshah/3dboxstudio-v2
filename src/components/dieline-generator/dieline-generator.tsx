@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Suspense, lazy, useEffect, useId, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
-import { Box, Check, Download, Link2, Printer } from "lucide-react";
+import { Box, Check, Download, Link2, MessageSquarePlus, Printer } from "lucide-react";
 import type { QuoteBox } from "@/content/print-quote";
 import { isFeatureOn } from "@/lib/features";
+import { offerFeedback, openFeedback } from "@/lib/feedback-events";
 import { trackEvent } from "@/lib/analytics";
 import { dielineToSvg } from "@/lib/dieline/export/svg";
 import { dielineToCricutSvg, CRICUT_STEPS } from "@/lib/dieline/export/cricut";
@@ -148,6 +149,8 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const [quoteBox, setQuoteBox] = useState<QuoteBox | null>(null);
   // The quote form is in English only for now.
   const quoteOn = locale === "en" && isFeatureOn("printQuote");
+  // The feedback form is in English only for now.
+  const feedbackOn = locale === "en";
   const tracked = useRef(new Set<string>());
   // Keep the chosen style's card in view in the picker strip, without scrolling the page.
   const strip = useRef<HTMLDivElement>(null);
@@ -258,7 +261,9 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
       }
       trackEvent("dieline_export", { ...pageParams, box_type: state.style, format, style: state.style, unit, mode: state.mode });
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : copy.fileFailed);
+      const problem = error instanceof Error ? error.message : copy.fileFailed;
+      window.alert(problem);
+      if (feedbackOn) offerFeedback({ title: "The download failed.", source: "generator-download-failed", kind: "problem", context: { ...feedbackContext(), file: format, error: problem } });
     } finally {
       setBusy(null);
     }
@@ -285,6 +290,11 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
       material, thickness: state.thickness, link: `${window.location.pathname}?${query}` });
     trackEvent("print_quote_opened", { ...pageParams, box_type: state.style });
   };
+
+  // What the feedback form sends along: the box on screen.
+  const feedbackContext = () => ({ box: styleName(meta), size: `${state.length} x ${state.width} x ${state.depth} ${unit}`, measured: copy.modes[state.mode].label.toLowerCase(), board: `${state.thickness} mm` });
+  const askFeedback = (source: string, kind?: "problem" | "request" | "idea", prompt?: string, extra: Record<string, string> = {}) =>
+    openFeedback({ source, kind, prompt, context: { ...feedbackContext(), ...extra } });
 
   // The Studio takes the template's inside size: width across the front, height, depth front to back.
   const studioHref = output ? studioTemplateHref(meta.templateId, {
@@ -315,6 +325,8 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
       </button>)}
     </div>
 
+    {feedbackOn ? <p className="dg-request">Don&apos;t see your box? <button type="button" onClick={() => askFeedback("generator-style-request", "request", "Which box do you need? Describe it, or name a FEFCO or ECMA code, and what it is for.")}>Request a box style</button></p> : null}
+
     {presets.length ? <div className="dg-presets" role="group" aria-label={copy.commonSizes}>
       <span>{copy.commonSizes}</span>
       {presets.map(preset => <button key={preset.label} type="button" onClick={() => choosePreset(preset)} title={preset.note}
@@ -331,7 +343,10 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
               <button type="button" aria-pressed={showLabels} onClick={() => setShowLabels(value => !value)}>{copy.names}</button>
               <button type="button" aria-pressed={showSizes} onClick={() => setShowSizes(value => !value)}>{copy.sizes}</button>
             </div>} />
-          : <div className="dg-preview dg-error" role="alert">{"error" in result ? result.error : null}</div>}
+          : <div className="dg-preview dg-error" role="alert">
+            <p>{"error" in result ? result.error : null}</p>
+            {feedbackOn ? <button type="button" className="dg-error-ask" onClick={() => askFeedback("generator-size-error", "request", "What size do you need, and what is the box for?", { error: "error" in result ? result.error : "" })}>Need this size? Tell us</button> : null}
+          </div>}
       </div>
 
       <aside className="dg-inspector" aria-label={copy.settings}>
@@ -386,7 +401,10 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
           <div><dt>{copy.inside}</dt><dd>{inner}</dd></div>
           <div><dt>{copy.cricutMat}</dt><dd>{cricutFits ? copy.cricutFits : copy.tooLarge}</dd></div>
         </dl> : null}
-        {output?.warnings.length ? <ul className="dg-warnings" role="status">{output.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul> : null}
+        {output?.warnings.length ? <div className="dg-warnings" role="status">
+          <ul>{output.warnings.map(warning => <li key={warning}>{warning}</li>)}</ul>
+          {feedbackOn ? <button type="button" className="dg-warnings-ask" onClick={() => askFeedback("generator-size-warning", "request", "What size do you need, and what is the box for?", { warning: output.warnings.join(" ") })}>Need this size? Tell us</button> : null}
+        </div> : null}
 
         <section className="dg-panel dg-export">
           <h3>{copy.exportTitle}</h3>
@@ -406,6 +424,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
           <button type="button" className="dg-secondary" onClick={share} disabled={!output}>{copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />} {copied ? copy.linkCopied : copy.copyLink}</button>
           {quoteOn ? <button type="button" className="dg-secondary" onClick={openQuote} disabled={!output}><Printer aria-hidden="true" /> Get this box printed</button> : null}
           <p className="dg-note">{copy.note}</p>
+          {feedbackOn ? <button type="button" className="dg-feedback" onClick={() => askFeedback("generator-panel")}><MessageSquarePlus aria-hidden="true" /> Missing something? Send feedback</button> : null}
         </section>
       </aside>
     </div>

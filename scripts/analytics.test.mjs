@@ -134,8 +134,8 @@ function callback(name,context={}) {
 test('image completion follows a successful renderer download; failure and preview navigation are distinct',async()=>{
   const settings={size:'2k',format:'jpg',background:{kind:'transparent'},angles:'set'};
   for (const outcome of [true,false,'throw']) {
-    const dispatched=[];
-    const {handler,events}=callback('exportImage',{workflowStep:'preview',mode:'3d',selectedTemplateId:'reverse-tuck',setMessage:()=>{},imageSettings:settings,imageBusy:false,setImageBusy:()=>{},floorShadow:true,renderStyle:'realistic',
+    const dispatched=[],offers=[];
+    const {handler,events}=callback('exportImage',{offerFeedback:detail=>offers.push(detail),family:'Reverse tuck end',workflowStep:'preview',mode:'3d',selectedTemplateId:'reverse-tuck',setMessage:()=>{},imageSettings:settings,imageBusy:false,setImageBusy:()=>{},floorShadow:true,renderStyle:'realistic',
       imageBackground:value=>value.format==='jpg'&&value.background.kind==='transparent'?{kind:'color',color:'#ffffff'}:value.background,
       POST_EXPORT_FEEDBACK_EVENT:'feedback',CustomEvent:class{constructor(type,init){this.type=type;this.detail=init.detail;}},window:{dispatchEvent:event=>dispatched.push(event)},
       engineRef:{current:{exportImage:async received=>{assert.equal(received,settings);if(outcome==='throw')throw Error('Canvas');return outcome;}}}});
@@ -147,6 +147,9 @@ test('image completion follows a successful renderer download; failure and previ
     assert.equal(events[1][1].image_background,'color');
     assert.equal(events[1][1].image_angles,'set');
     assert.equal(dispatched.length,outcome===true?1:0);
+    // A thrown export offers the feedback form; a renderer that was not ready yet does not.
+    assert.equal(offers.length,outcome==='throw'?1:0);
+    if(outcome==='throw')assert.equal(offers[0].source,'studio-export-failed');
   }
   const pending=callback('exportImage',{workflowStep:'design',mode:'dieline',goToWorkflowStep:()=>{},setMessage:()=>{}});
   await pending.handler();
@@ -323,12 +326,12 @@ test('PDF completion follows generated download; generation failures are reporte
   visit(shellAst);
   assert.ok(callback);
   for(const success of [true,false]){
-    const events=[],statuses=[];
+    const events=[],statuses=[],offers=[];
     let resolveDownload;
     const pending=new Promise(resolve=>{resolveDownload=resolve;});
     const context={Error,performance,exports:{},pdfRunning:{current:false},pdfExportOptions:{bleedMm:3},pdfBaseColor:null,artworkByPanel:{},
       selectedTemplateId:'fixture',dimensions:{},openingMode:'closed',splitTopHingeSide:'side_a',layers:[],artworkScope:'outside',
-      setPrintError:()=>{},setPrinting:()=>{},onPdfStatus:(...args)=>statuses.push(args),trackEvent:(...args)=>events.push(args),
+      offerFeedback:detail=>offers.push(detail),setPrintError:()=>{},setPrinting:()=>{},onPdfStatus:(...args)=>statuses.push(args),trackEvent:(...args)=>events.push(args),
       require:()=>({downloadDielinePdf:async()=>{await pending;if(!success)throw Error('Image failed');return {widthMm:100,heightMm:200};}})};
     vm.runInNewContext(transpile('exports.handler = '+callback.getText(shellAst)),context);
     const first=context.exports.handler();
@@ -343,6 +346,8 @@ test('PDF completion follows generated download; generation failures are reporte
     assert.equal(context.pdfRunning.current,false);
     assert.equal(statuses.at(-1)[0],false);
     if(!success)assert.equal(statuses.at(-1)[1],'Image failed');
+    assert.equal(offers.length,success?0:1);
+    if(!success)assert.equal(offers[0].context.error,'Image failed');
   }
 });
 

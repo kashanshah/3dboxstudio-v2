@@ -169,6 +169,8 @@ export const en = {
   "studio.redo_ctrl_shift_z": "Redo · Ctrl/⌘+Shift+Z",
   "studio.share_this_design": "Share this design",
   "studio.share": "Share",
+  "studio.feedback": "Feedback",
+  "studio.feedback_help": "Report a problem, ask for a box or size, or suggest an idea",
   "studio.box_design_workflow": "Box design workflow",
   "studio.camera_angle": "Camera angle",
   "studio.choose_camera_angle": "Choose camera angle",
