@@ -1,5 +1,7 @@
 'use client';
 
+// First, so the components' own stylesheets below still come after it.
+import './studio-shell.css';
 import { trackEvent } from '@/lib/analytics';
 import { PostExportFeedback, POST_EXPORT_FEEDBACK_EVENT } from './post-export-feedback';
 import { offerFeedback, openFeedback } from '@/lib/feedback-events';
