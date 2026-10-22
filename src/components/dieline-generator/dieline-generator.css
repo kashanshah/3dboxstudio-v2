@@ -62,7 +62,14 @@
 .dg-legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:9px 14px;border-top:1px solid var(--dg-line);font-size:12.5px;color:#475467}
 .dg-legend span{display:inline-flex;align-items:center;gap:6px}
 .dg-legend svg{width:22px;height:6px}
-.dg-error{display:grid;place-items:center;min-height:380px;padding:24px;color:#b42318;font-weight:600;text-align:center}
+.dg-error{display:grid;place-content:center;justify-items:center;gap:12px;min-height:380px;padding:24px;color:#b42318;font-weight:600;text-align:center}
+.dg-error p{margin:0;max-width:46ch}
+.dg-error-ask{padding:8px 14px;border:1px solid #fda29b;border-radius:999px;background:#fff;color:#b42318;font-size:13.5px;font-weight:700}
+.dg-request{margin:-2px 0 10px;font-size:13px;color:var(--dg-muted)}
+.dg-request button{padding:0;border:0;background:none;color:var(--dg-accent);font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.dg-feedback{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 0 0;border:0;background:none;color:#475467;font-size:13px;font-weight:600}
+.dg-feedback:hover{color:var(--dg-accent)}
+.dg-feedback svg{width:15px;height:15px}
 
 /* Inspector */
 .dg-inspector{display:grid;gap:10px;min-width:0}
@@ -99,7 +106,9 @@
 .dg-summary div{display:flex;justify-content:space-between;gap:10px;font-size:13px}
 .dg-summary dt{color:var(--dg-muted)}
 .dg-summary dd{margin:0;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
-.dg-warnings{margin:0;padding:10px 12px 10px 28px;border:1px solid #fedf89;border-radius:12px;background:#fffaeb;color:#93370d;font-size:13px}
+.dg-warnings{margin:0;padding:10px 12px;border:1px solid #fedf89;border-radius:12px;background:#fffaeb;color:#93370d;font-size:13px}
+.dg-warnings ul{margin:0;padding-left:16px}
+.dg-warnings-ask{margin-top:6px;padding:0;border:0;background:none;color:#93370d;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:2px}
 .dg-export{display:grid;gap:8px}
 .dg-export>h3{margin-bottom:2px}
 .dg-export-row{display:grid}
