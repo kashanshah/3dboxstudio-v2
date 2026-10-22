@@ -420,7 +420,8 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
           </button>
           <p className="dg-hint-text">{copy.exports[exportFormat].hint} {copy.noAccount}</p>
           {exportFormat === "cricut" ? <details className="dg-cricut"><summary>{copy.howToCut}</summary><ol>{(copy.cricutSteps ?? CRICUT_STEPS).map(stepText => <li key={stepText}>{stepText}</li>)}</ol></details> : null}
-          {studioHref ? <Link className="dg-primary" href={studioHref} onClick={openIn3d}><Box aria-hidden="true" /> {copy.open3d}</Link> : null}
+          {/* nofollow: each size is its own editor URL, and the editor (or the sign-in it sends visitors to) is noindex. */}
+          {studioHref ? <Link className="dg-primary" href={studioHref} rel="nofollow" onClick={openIn3d}><Box aria-hidden="true" /> {copy.open3d}</Link> : null}
           <button type="button" className="dg-secondary" onClick={share} disabled={!output}>{copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />} {copied ? copy.linkCopied : copy.copyLink}</button>
           {quoteOn ? <button type="button" className="dg-secondary" onClick={openQuote} disabled={!output}><Printer aria-hidden="true" /> Get this box printed</button> : null}
           <p className="dg-note">{copy.note}</p>

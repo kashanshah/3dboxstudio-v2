@@ -43,7 +43,7 @@ export function TemplateCards({ cards, filters }: { cards: TemplateCard[]; filte
         <small>Default {card.size} · any size</small>
         <div className="template-card-actions">
           <Link href={`/box-templates/${card.slug}`}>Sizes &amp; dieline <ArrowRight /></Link>
-          <Link className="is-primary" href={card.studioHref}>Open in Studio</Link>
+          <Link className="is-primary" href={card.studioHref} rel="nofollow">Open in Studio</Link>
         </div>
       </div>
     </article>)}</div>
