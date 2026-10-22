@@ -48,7 +48,7 @@ export default function V2WhatsNewPage(){
         <h1>A new Studio for turning flat packaging into <em>real 3D.</em></h1>
         <p>V2 connects structure, size, materials, dieline artwork, 3D review, Projects, sharing, and exports in one clearer packaging workflow.</p>
         <div className={styles.heroActions}>
-          <Link className={styles.primaryCta} href="/studio?ref=v2-whats-new&cta=hero">Open the new Studio <ArrowRight size={18}/></Link>
+          <Link className={styles.primaryCta} href="/studio?ref=v2-whats-new&cta=hero" rel="nofollow">Open the new Studio <ArrowRight size={18}/></Link>
           <a className={styles.secondaryCta} href="#workflow">Explore what changed</a>
         </div>
         <div className={styles.heroProof}>
@@ -156,7 +156,7 @@ export default function V2WhatsNewPage(){
       <span className={styles.eyebrow}>V2 is live</span>
       <h2>Open your next box in the new Studio.</h2>
       <p>Choose a structure, set the size, place the artwork, and inspect the result in 3D.</p>
-      <Link className={styles.primaryCta} href="/studio?ref=v2-whats-new&cta=closing">Open 3DBoxStudio <ArrowRight size={18}/></Link>
+      <Link className={styles.primaryCta} href="/studio?ref=v2-whats-new&cta=closing" rel="nofollow">Open 3DBoxStudio <ArrowRight size={18}/></Link>
     </section>
   </ZoomGallery></main><SiteFooter/><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }
