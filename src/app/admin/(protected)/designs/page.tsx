@@ -69,6 +69,7 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
                   <th>Box</th>
                   <th aria-sort={ariaSort('images')}><AdminSortLink label="Images" column="images" sort={sort} dir={dir} numeric href={sortHref} /></th>
                   <th>Feedback</th>
+                  <th aria-sort={ariaSort('created')}><AdminSortLink label="Created" column="created" sort={sort} dir={dir} numeric href={sortHref} /></th>
                   <th aria-sort={ariaSort('updated')}><AdminSortLink label="Updated" column="updated" sort={sort} dir={dir} numeric href={sortHref} /></th>
                   <th><span className="sr-only">Preview</span></th>
                 </tr>
@@ -85,10 +86,11 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
                     <td>{adminTemplateName(design.templateId) ?? '—'}<small className="admin-cell-sub">{design.size ?? ''}</small></td>
                     <td>{design.imageCount.toLocaleString('en-US')}</td>
                     <td>{design.rating ? <><span className="admin-stars" aria-label={`${design.rating.average} of 5`}>{adminStars(design.rating.average)}</span><small className="admin-cell-sub">{design.rating.count} rating{design.rating.count === 1 ? '' : 's'}</small></> : <span className="admin-muted">—</span>}</td>
+                    <td className="admin-nowrap">{adminRelative(design.createdAt)}</td>
                     <td className="admin-nowrap">{adminRelative(design.updatedAt)}</td>
                     <td><a className="admin-link" href={design.previewHref} target="_blank" rel="noopener noreferrer">Preview</a></td>
                   </tr>
-                )) : <tr><td colSpan={8}>No designs match this search.</td></tr>}
+                )) : <tr><td colSpan={9}>No designs match this search.</td></tr>}
               </tbody>
             </table>
           </div>
