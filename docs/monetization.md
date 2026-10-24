@@ -11,7 +11,7 @@ To try a flag on one deployment, set `NEXT_PUBLIC_FEATURES` to a comma-separated
 | Flag | Status | Pro | What it is |
 | --- | --- | --- | --- |
 | `printQuote` | draft | no | "Get this box printed" on the dieline generator |
-| `welcomeEmails` | draft | no | Welcome email and one follow-up for new accounts (`src/server/onboarding-emails.ts`) |
+| `welcomeEmails` | on | no | Welcome email and one follow-up for new accounts (`src/server/onboarding-emails.ts`) |
 | `clientShares` | beta | yes | Share links with your own name and logo, and an optional password (plain share links stay free) |
 | `nesting` | off | yes | Nest several dielines on a press sheet |
 | `costEstimate` | off | yes | Estimated print cost for a quantity and board |
@@ -70,7 +70,7 @@ Behind the `welcomeEmails` flag (`src/server/onboarding-emails.ts`, copy in `src
 - Only accounts that got the welcome get the follow-up, so turning this on never emails existing accounts. A follow-up that cannot go out within 10 days is dropped.
 - Both reply to the admin notification address, carry an unsubscribe link (`/unsubscribe`) and one-click unsubscribe headers. Unsubscribing stops onboarding emails only; account emails still go out.
 
-To launch: set `CRON_SECRET` in the Vercel production environment (Vercel Cron sends it to the job; without it the job refuses to run), then set `welcomeEmails` to `'on'`.
+On since 2026-10-24. The follow-up job needs `CRON_SECRET` in the Vercel production environment (Vercel Cron sends it to the job; without it the job refuses to run, and only welcomes go out). To stop both emails, set `welcomeEmails` back to `'off'`.
 
 ## Client share links (Pro)
 
