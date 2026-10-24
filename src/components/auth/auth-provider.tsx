@@ -13,6 +13,8 @@ export type AuthUser={
   hasPassword:boolean;
   createdAt:string;
   signupMethod:string|null;
+  /** Pro access given in the admin: beta Pro features (src/lib/features.ts). */
+  pro?:boolean;
 };
 
 type AuthMode='signin'|'signup';

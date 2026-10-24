@@ -202,3 +202,5 @@ a.admin-thumb-strip{color:var(--admin-text);text-decoration:none}
 .admin-search-results .admin-search-design>span{display:grid;gap:2px;min-width:0}
 /* Visually hidden labels inside scrolled tables stay inside them. */
 .admin-table-wrap,.admin-design-thumb{position:relative}
+.admin-pro-access{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:10px 12px;border:1px solid var(--admin-line);border-radius:10px}
+.admin-pro-access>span{display:grid;gap:2px}

@@ -31,7 +31,7 @@ const { ADMIN_READ_MODEL_SCHEMA } = require('../src/server/admin/read-model-sche
 async function setup() {
   db = new PGlite();
   await db.exec(LEGACY_SYNC_SCHEMA);
-  await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now(),
+  await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, pro_access_at timestamptz, created_at timestamptz default now(),
       utm_source text, utm_medium text, utm_campaign text, utm_term text, utm_content text, signup_landing_page text, signup_landing_type text, signup_conversion_page text, signup_referrer text, migrated_from text);
     CREATE TABLE sessions(token text primary key, user_id text, created_at timestamptz default now());
     CREATE TABLE oauth_accounts(provider text, provider_account_id text, user_id text);

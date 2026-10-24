@@ -58,6 +58,8 @@ const V2_SCHEMA = [
   `,
   // Onboarding emails (src/server/onboarding-emails.ts). The unsubscribe token
   // is kept as is so every email can carry the same link; it only unsubscribes.
+  // Pro access an admin gave the account (beta Pro features, src/lib/features.ts).
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS pro_access_at TIMESTAMPTZ`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_email_sent_at TIMESTAMPTZ`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS follow_up_email_sent_at TIMESTAMPTZ`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_unsubscribed_at TIMESTAMPTZ`,

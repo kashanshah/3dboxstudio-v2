@@ -37,7 +37,7 @@ test('admin catalog links media to owners and designs without inventing a design
   db = new PGlite();
   try {
     await db.exec(LEGACY_SYNC_SCHEMA);
-    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now(), utm_source text, utm_campaign text, signup_landing_page text, signup_landing_type text, signup_referrer text, migrated_from text);
+    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, pro_access_at timestamptz, created_at timestamptz default now(), utm_source text, utm_campaign text, signup_landing_page text, signup_landing_type text, signup_referrer text, migrated_from text);
       CREATE TABLE sessions(token text primary key, user_id text, created_at timestamptz default now());
       CREATE TABLE workspace_projects(id text primary key, user_id text not null, name text not null, is_default boolean not null default false, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, workspace_project_id text, created_at timestamptz default now(), updated_at timestamptz default now());
@@ -172,7 +172,7 @@ test('admin lists survive malformed legacy payloads, sort by real image counts, 
   db = new PGlite();
   try {
     await db.exec(LEGACY_SYNC_SCHEMA);
-    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, created_at timestamptz default now(), utm_source text, utm_campaign text, signup_landing_page text, signup_landing_type text, signup_referrer text, migrated_from text);
+    await db.exec(`CREATE TABLE users(id text primary key, email text, name text, email_verified_at timestamptz, signup_method text, pro_access_at timestamptz, created_at timestamptz default now(), utm_source text, utm_campaign text, signup_landing_page text, signup_landing_type text, signup_referrer text, migrated_from text);
       CREATE TABLE sessions(token text primary key, user_id text, created_at timestamptz default now());
       CREATE TABLE workspace_projects(id text primary key, user_id text not null, name text not null, is_default boolean not null default false, created_at timestamptz default now(), updated_at timestamptz default now());
       CREATE TABLE projects(id text primary key, name text, user_id text, studio_state jsonb, preview_image_key text, workspace_project_id text, created_at timestamptz default now(), updated_at timestamptz default now());

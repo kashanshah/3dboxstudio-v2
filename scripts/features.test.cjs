@@ -26,11 +26,11 @@ const withEnv=(env,run)=>{
   try{return run();}finally{process.env=saved;}
 };
 
-test('Pro flags are stubs: off everywhere unless a deployment asks for one',()=>{
+test('Pro flags are off for everyone unless a deployment asks for one',()=>{
   const pro=Object.entries(FEATURES).filter(([,feature])=>feature.pro);
   assert.deepEqual(pro.map(([id])=>id).sort(),['apiKeys','bulkExport','clientShares','costEstimate','nesting','savedDielines']);
   for(const [id,feature] of pro){
-    assert.equal(feature.status,'off',`${id} should be off`);
+    assert.ok(['off','beta'].includes(feature.status),`${id} should be off, or beta for Pro accounts`);
     withEnv({NEXT_PUBLIC_SHOW_DRAFTS:'true',NEXT_PUBLIC_FEATURES:undefined},()=>assert.equal(isFeatureOn(id),false));
   }
   withEnv({NEXT_PUBLIC_FEATURES:'nesting, apiKeys'},()=>{assert.equal(isFeatureOn('nesting'),true);assert.equal(isFeatureOn('apiKeys'),true);assert.equal(isFeatureOn('bulkExport'),false);});
@@ -77,4 +77,18 @@ test('quote requests are refused without consent, contact details or a real box'
   assert.match(error({box:{...box,link:'https://example.com/phish'}}),/size/);
   assert.match(error({box:{...box,link:'//example.com/x'}}),/size/);
   assert.equal(parseQuoteRequest(null).ok,false);
+});
+
+test('a beta Pro feature is on only for accounts given Pro access',()=>{
+  const {canUseFeature}=require(features);
+  assert.equal(FEATURES.clientShares.status,'beta');
+  withEnv({NEXT_PUBLIC_SHOW_DRAFTS:'true',NEXT_PUBLIC_FEATURES:undefined},()=>{
+    assert.equal(isFeatureOn('clientShares'),false);
+    assert.equal(canUseFeature('clientShares',null),false);
+    assert.equal(canUseFeature('clientShares',{pro:false}),false);
+    assert.equal(canUseFeature('clientShares',{pro:true}),true);
+    assert.equal(canUseFeature('nesting',{pro:true}),false,'an off Pro feature stays off');
+    assert.equal(canUseFeature('printQuote',{pro:false}),true,'a non-Pro feature follows its flag');
+  });
+  withEnv({NEXT_PUBLIC_FEATURES:'clientShares'},()=>assert.equal(canUseFeature('clientShares',null),true));
 });

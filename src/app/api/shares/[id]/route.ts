@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/server/auth/session';
 import { guardAuthAction } from '@/server/auth/action-request';
 import { revokeDesignShare } from '@/server/design-shares';
 import { getShareSettings, parseShareSettings, ShareSettingsError, updateShareSettings } from '@/server/client-shares';
-import { isFeatureOn } from '@/lib/features';
+import { canUseFeature } from '@/lib/features';
 
 export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){
   const denied=guardAuthAction(req,'design-share-revoke',30,5*60_000);if(denied)return denied;
@@ -23,9 +23,9 @@ export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
 
 export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
   const denied=guardAuthAction(req,'design-share-settings',30,5*60_000);if(denied)return denied;
-  if(!isFeatureOn('clientShares'))return NextResponse.json({error:'Not found.'},{status:404});
   const user=await getCurrentUser();
   if(!user)return NextResponse.json({error:'Sign in to manage share links.'},{status:401});
+  if(!canUseFeature('clientShares',user))return NextResponse.json({error:'Branded links are part of Pro.'},{status:403});
   const parsed=parseShareSettings(await req.json().catch(()=>({})));
   if(!parsed.ok)return NextResponse.json({error:parsed.error},{status:400});
   try{
