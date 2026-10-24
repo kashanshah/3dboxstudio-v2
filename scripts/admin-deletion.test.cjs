@@ -10,7 +10,8 @@ let db, failStorage = false, beforeTransaction = null, authenticated = true;
 let sessionUser = 'u1', cookieCleared = false;
 const accountRows = { u1: { id:'u1', email:'ada@example.com', password_hash:'hash:right', signup_method:'email' }, u2: { id:'u2', email:'bob@example.com', password_hash:null, signup_method:'google' } };
 const deletedKeys = [];
-const query = (text, params = []) => ({ text, params, then(resolve, reject) { return db.query(text, params).then(r => r.rows).then(resolve, reject); } });
+let bytesRead = 0;
+const query = (text, params = []) => ({ text, params, then(resolve, reject) { return db.query(text, params).then(r => { bytesRead += JSON.stringify(r.rows).length; return r.rows; }).then(resolve, reject); } });
 const sql = { query, transaction: async queries => {
   if (beforeTransaction) { const mutate = beforeTransaction; beforeTransaction = null; await mutate(); }
   await db.exec('BEGIN');
@@ -155,10 +156,30 @@ test('admin cascade deletion', async t => {
       await db.query("UPDATE projects SET name='Renamed' WHERE id='d1'");
       await assert.rejects(executeDeletion('design','d1',p.token),e=>e.status===409);
       const fresh=await previewDeletion('design','d1');
-      beforeTransaction=()=>db.query("INSERT INTO media_assets VALUES('raced','u1','New','v2/uploads/new.png')");
+      // Another design starts using the image that only d1 used, between the
+      // preview and the delete: deleting the file now would break it.
+      beforeTransaction=()=>db.query("UPDATE projects SET studio_state=jsonb_set(studio_state,'{mediaAssets}','[{\"id\":\"m2\",\"url\":\"/api/media/m2\"}]') WHERE id='d2'");
       await assert.rejects(executeDeletion('design','d1',fresh.token),e=>e.status===409);
       assert.equal(await count('projects'),2); assert.equal(deletedKeys.length,0);
+      // A change that has nothing to do with d1 (another account's upload) does not block it.
+      const later=await previewDeletion('design','d1');
+      beforeTransaction=()=>db.query("INSERT INTO media_assets VALUES('raced','u2','New','v2/uploads/new.png')");
+      await executeDeletion('design','d1',later.token);
+      assert.equal(await count('projects'),1);
+      assert.ok(!deletedKeys.includes('v2/uploads/only.png'),'the image d2 now uses is kept');
       await assert.rejects(previewDeletion('media',mediaFileId('../secret')),e=>e.status===404);
+    } finally { await db.close(); }
+  });
+  await t.test('only the records a deletion touches are read, however large the rest of the site is', async () => {
+    await setup(); try {
+      // Another account with many large designs (the whole-site snapshot this
+      // replaced grew past Postgres's 64 MB limit and every deletion failed).
+      const big = { artworkByPanel:{}, outsideArtworkLayers:[{ name:'x'.repeat(200_000) }], insideArtworkLayers:[], mediaAssets:[] };
+      for (let i = 0; i < 40; i++) await db.query('INSERT INTO projects(id,user_id,workspace_project_id,name,studio_state) VALUES($1,$2,$3,$4,$5)', [`big${i}`,'u2','f3',`Big ${i}`,big]);
+      bytesRead = 0;
+      await remove('design','d1');
+      assert.ok(bytesRead < 200_000, `read ${bytesRead} bytes; the other account holds 8 MB`);
+      assert.equal(await count('projects'), 41);
     } finally { await db.close(); }
   });
   await t.test('storage failures remain durable and retry safely', async () => {
