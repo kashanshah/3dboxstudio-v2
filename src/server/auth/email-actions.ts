@@ -40,4 +40,5 @@ export async function issueEmailAction(user:UserRow,kind:'verify'|'reset'){
  catch(error){await sql.query(`DELETE FROM ${table} WHERE token=$1`,[digest]);throw error;}
 }
 export async function resetPassword(token:string,password:string){const rows=await getSql().query(RESET_PASSWORD_SQL,[tokenDigest(token),await hashPassword(password)]);return (rows as unknown[]).length>0;}
-export async function verifyEmail(token:string){const rows=await getSql().query(VERIFY_EMAIL_SQL,[tokenDigest(token)]);return (rows as unknown[]).length>0;}
+/** The verified user's id, or null when the link is invalid, expired or used. */
+export async function verifyEmail(token:string){const rows=await getSql().query(VERIFY_EMAIL_SQL,[tokenDigest(token)]) as {id:string}[];return rows[0]?.id??null;}

@@ -2,7 +2,7 @@ export const PRIVACY_PAGE_TITLE = "Privacy Policy";
 export const PRIVACY_PAGE_DESCRIPTION =
   "How 3D Box Studio collects, uses, and protects your information when you use the free online box designer, create an account, save designs, or contact us.";
 
-export const PRIVACY_EFFECTIVE_DATE = "2026-10-13";
+export const PRIVACY_EFFECTIVE_DATE = "2026-10-24";
 
 export type PrivacySection =
   | { type: "h2"; text: string }
@@ -43,6 +43,16 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     type: "p",
     text: "If you submit our contact form, we collect the information you provide (such as your name, email address, topic, subject, and message). Submissions are stored in our internal systems so we can review and respond. We use Cloudflare Turnstile to help prevent automated spam before a message is sent.",
   },
+  { type: "h2", text: "Feedback" },
+  {
+    type: "p",
+    text: "If you send feedback from the Studio or the dieline generator, we collect your message, what it is about, the page you sent it from and the details shown in the form (such as the box style and size, or an error message). An email address is optional and only used to reply. Feedback is stored with contact messages and checked with Cloudflare Turnstile.",
+  },
+  { type: "h2", text: "Print quote requests" },
+  {
+    type: "p",
+    text: "If you ask us to get a box printed, we collect the box, its size and material, the quantity and printing options you choose, and your name, email address, country and notes. We share the request with printing partners so they can quote for it, only after you agree to this in the form. Each partner handles your details under its own privacy policy, and we do not sell them.",
+  },
   { type: "h2", text: "Usage analytics" },
   {
     type: "p",
@@ -65,7 +75,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "Signed-in hint (3dbs_signed_in cookie, 3dbs_session_checked in local storage) — lets pages skip checking your session when you are not signed in. Contains no account information.",
       "Analytics — Google Analytics and PostHog (product analytics and session recordings) set cookies or use local storage to measure how the site is used. In the EEA, the UK and Switzerland they only run after you accept in the cookie banner; elsewhere they run by default. You can accept or decline at any time from \"Cookie settings\" in the site footer. Uploaded artwork is excluded from session recordings.",
       "Consent choice (3dbs_analytics_consent, 3dbs_consent_region) — stored in your browser to remember your cookie choice and whether consent is required where you are.",
-      "Cloudflare Turnstile — a third-party script loads on the contact form to verify that submissions come from a person.",
+      "Cloudflare Turnstile — a third-party script loads on the contact, feedback and print quote forms to verify that submissions come from a person.",
       "Buy Me a Coffee widget — a third-party script may load when you interact with our support widget.",
     ],
   },
@@ -80,6 +90,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       "Provide, operate, and improve the studio and website.",
       "Authenticate you and maintain your account.",
+      "Send a welcome email when you create an account and one follow-up a few days later, with tips for getting started. Each has an unsubscribe link; account emails such as password resets are not affected.",
       "Save, load, and share your designs when you use cloud features.",
       "Send transactional emails (such as email verification and password reset) via Resend.",
       "Respond to contact form messages.",
@@ -95,7 +106,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   { type: "h2", text: "How we share information" },
   {
     type: "p",
-    text: "We do not sell your personal information. We share data only with service providers that help us run 3D Box Studio, including:",
+    text: "We do not sell your personal information. We share data only with service providers that help us run 3D Box Studio, and with printing partners when you ask for a print quote, including:",
   },
   {
     type: "ul",
@@ -106,7 +117,8 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "Resend — transactional email delivery.",
       "Google — OAuth sign-in and, when enabled, Google Analytics.",
       "PostHog — product analytics and, when enabled, session replay.",
-      "Cloudflare — Turnstile bot protection on the contact form.",
+      "Cloudflare — Turnstile bot protection on the contact, feedback and print quote forms.",
+      "Printing partners — print quote requests, only when you ask for a quote and agree to share it.",
     ],
   },
   {

@@ -11,6 +11,7 @@ To try a flag on one deployment, set `NEXT_PUBLIC_FEATURES` to a comma-separated
 | Flag | Status | Pro | What it is |
 | --- | --- | --- | --- |
 | `printQuote` | draft | no | "Get this box printed" on the dieline generator |
+| `welcomeEmails` | draft | no | Welcome email and one follow-up for new accounts (`src/server/onboarding-emails.ts`) |
 | `nesting` | off | yes | Nest several dielines on a press sheet |
 | `costEstimate` | off | yes | Estimated print cost for a quantity and board |
 | `savedDielines` | off | yes | A library of saved generator boxes (Studio projects stay free) |
@@ -35,5 +36,37 @@ On submit, `POST /api/print-quote` does the following:
 The API returns 404 while the flag is off. There is no printing partner integration.
 
 To launch it, set `printQuote` to `'on'`. Before that:
-- update the privacy policy to say quote requests may be shared with printing partners;
-- decide who replies, and how fast.
+- ~~update the privacy policy to say quote requests may be shared with printing partners~~ (done 2026-10-24, "Print quote requests" in `src/content/privacy.ts`);
+- decide who replies, and how fast;
+- agree terms with at least one printing partner (below).
+
+### Printing partners to approach
+
+Partner with printers that print from the customer's own dieline and artwork, not with packaging sites that have their own online box designer (such as Packhelp and Arka): sending visitors there teaches them to design there next time.
+
+Keep the visitor on 3D Box Studio: the quote form takes the request here and we pass it on, so the printer quotes for the box designed here. The partner pays a fixed fee per lead or a share of orders, under a written agreement. Offer printing only once the dieline is finished or exported, never mid-design.
+
+These printers advertise low minimums and custom quotes. The terms come from their own marketing as of October 2026: confirm them before agreeing anything, and check none of them pushes visitors into an online designer of its own.
+
+| Printer | Why | To check |
+| --- | --- | --- |
+| The Best Price Boxes | No minimum, free design help and digital proofs, matches written competitor quotes | Whether it prints from a customer dieline; lead fee or share of orders |
+| Dream Custom Boxes | No minimum, mailer boxes from about $0.50 each | Whether it prints from a customer dieline; lead fee or share of orders |
+| BoxUp | US, no minimum, single sample box | Whether it prints from a customer dieline or only from its own designer |
+
+## Affiliate links
+
+Only for products that do not compete with the Studio: what people buy to make the box they designed here. No links to packaging sites with their own box designer. Never in the Studio canvas or the export flow, and always marked as an affiliate link.
+
+- **Cutting machines and materials**: Cricut runs a programme on Impact (listings say 4% on machines up to 10–12% on materials and Cricut Access). Silhouette products sell through resellers on ShareASale at about 5%. Fits the Cricut and Silhouette crafter pages and the cutting-machine export note.
+- **Card stock and tools**: Amazon Associates (a few percent on small orders). Only worth it on guides that already recommend a board or a scoring tool.
+
+## Welcome emails
+
+Behind the `welcomeEmails` flag (`src/server/onboarding-emails.ts`, copy in `src/server/email/templates.ts`, previews in Admin → Emails):
+- **Welcome**: sent once when an email sign-up verifies its address, or a Google account is created. Lists the Studio, the dieline generator and the templates, and asks what they are making.
+- **Follow-up**: sent once, 3 days after the welcome, by a daily job (`/api/cron/onboarding-emails`, scheduled in `vercel.json`). It suggests sharing and exporting to people who saved a design, and the three first steps to people who have not.
+- Only accounts that got the welcome get the follow-up, so turning this on never emails existing accounts. A follow-up that cannot go out within 10 days is dropped.
+- Both reply to the admin notification address, carry an unsubscribe link (`/unsubscribe`) and one-click unsubscribe headers. Unsubscribing stops onboarding emails only; account emails still go out.
+
+To launch: set `CRON_SECRET` in the Vercel production environment (Vercel Cron sends it to the job; without it the job refuses to run), then set `welcomeEmails` to `'on'`.

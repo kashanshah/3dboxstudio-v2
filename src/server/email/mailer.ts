@@ -5,12 +5,12 @@ import { resendApiUrl } from './resend-api';
 
 const SEND_TIMEOUT_MS=10_000;
 
-export async function sendEmail(input:{to:string;subject:string;html:string;text?:string;replyTo?:string}) {
+export async function sendEmail(input:{to:string;subject:string;html:string;text?:string;replyTo?:string;headers?:Record<string,string>}) {
   const key=requireEnv('RESEND_API_KEY');
   // Resend's sandbox sender only delivers to the Resend account owner, so a
   // missing EMAIL_FROM must fail loudly in production rather than silently.
   const from=process.env.VERCEL_ENV==='production'?requireEnv('EMAIL_FROM'):optionalEnv('EMAIL_FROM','3D Box Studio <onboarding@resend.dev>');
-  const response=await fetch(resendApiUrl('/emails'),{method:'POST',signal:AbortSignal.timeout(SEND_TIMEOUT_MS),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({from,to:input.to,subject:input.subject,html:input.html,text:input.text,...(input.replyTo?{reply_to:input.replyTo}:{})})});
+  const response=await fetch(resendApiUrl('/emails'),{method:'POST',signal:AbortSignal.timeout(SEND_TIMEOUT_MS),headers:{Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify({from,to:input.to,subject:input.subject,html:input.html,text:input.text,...(input.replyTo?{reply_to:input.replyTo}:{}),...(input.headers?{headers:input.headers}:{})})});
   if(!response.ok) throw new Error(`Resend request failed (${response.status}): ${await response.text().catch(()=> '')}`);
 }
 export async function adminAlertEmail() {
