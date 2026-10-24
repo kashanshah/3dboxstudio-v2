@@ -1,5 +1,15 @@
 import type { NextConfig } from 'next';
 import { localizedHome, localizedHomeLocales } from './src/content/localized-home';
+import { BOX_TEMPLATE_SLUGS } from './src/content/box-template-slugs';
+
+// Box template pages under the names people and AI assistants guess: the
+// style without "-box" (/box-templates/auto-lock-bottom) and the template id
+// (/box-templates/reverse-tuck-carton). Both arrive from ChatGPT answers.
+const pages = new Set(Object.values(BOX_TEMPLATE_SLUGS));
+const templateAliases = new Map<string, string>();
+for (const [id, slug] of Object.entries(BOX_TEMPLATE_SLUGS)) {
+  for (const alias of [slug.replace(/-box$/, ''), id]) if (!pages.has(alias)) templateAliases.set(alias, slug);
+}
 
 // Translated home pages; Google ignores <html lang>, so declare the language here too.
 const contentLanguage = [
@@ -41,6 +51,7 @@ const nextConfig: NextConfig = {
       { source: '/es/terms', destination: '/terms', permanent: true },
       { source: '/de/terms', destination: '/terms', permanent: true },
       { source: '/zh/terms', destination: '/terms', permanent: true },
+      ...[...templateAliases].map(([alias, slug]) => ({ source: `/box-templates/${alias}`, destination: `/box-templates/${slug}`, permanent: true })),
     ];
   },
   async headers() {
