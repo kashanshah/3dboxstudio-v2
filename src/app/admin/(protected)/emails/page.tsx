@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { AdminEmailTable } from '@/components/admin/admin-email-table';
 import { AdminPageHeader } from '@/components/admin-page-header';
 import { listSentEmails, sentEmailCursor } from '@/server/email/resend-log';
+import { AdminEmailTemplateViewer } from '@/components/admin-email-template-viewer';
 
 export const metadata: Metadata = { title: 'Admin — Emails' };
 
@@ -15,10 +16,22 @@ function listHref(cursor?: { after?: string; before?: string }): string {
   return query ? `/admin/emails?${query}` : '/admin/emails';
 }
 
-type Props = { searchParams: Promise<{ after?: string; before?: string }> };
+type Props = { searchParams: Promise<{ after?: string; before?: string; tab?: string }> };
+
+function Tabs({ active }: { active: 'sent' | 'templates' }) {
+  return <div className="admin-tabs">
+    <Link className={active === 'sent' ? 'is-active' : undefined} href="/admin/emails">Sent</Link>
+    <Link className={active === 'templates' ? 'is-active' : undefined} href="/admin/emails?tab=templates">Templates</Link>
+  </div>;
+}
 
 export default async function AdminEmailsPage({ searchParams }: Props) {
   const params = await searchParams;
+  if (params.tab === 'templates') return <>
+    <AdminPageHeader title="Emails" description="Every email the site sends, rendered from the live template code. Send yourself a test to see one in your inbox." />
+    <Tabs active="templates" />
+    <AdminEmailTemplateViewer />
+  </>;
   const after = sentEmailCursor(params.after);
   const before = after ? undefined : sentEmailCursor(params.before);
   const result = await listSentEmails({ after, before });
@@ -32,6 +45,7 @@ export default async function AdminEmailsPage({ searchParams }: Props) {
   return (
     <>
       <AdminPageHeader title="Emails" description="Messages sent through Resend, newest first." />
+      <Tabs active="sent" />
       {!result.ok ? (
         <p className="admin-error">{result.error}</p>
       ) : (
