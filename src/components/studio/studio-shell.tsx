@@ -2099,10 +2099,11 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       trackEvent(exported?'export_completed':'export_failed', {...context, ...(exported?{}:{failure_category:'renderer_not_ready'})});
       if (exported) window.dispatchEvent(new CustomEvent(POST_EXPORT_FEEDBACK_EVENT, {detail:{format:imageSettings.format,templateId:selectedTemplateId}}));
       setMessage(exported ? (imageSettings.angles==='set' ? 'Four views downloaded as a ZIP' : `${imageSettings.format.toUpperCase()} image downloaded`) : 'Renderer is not ready yet');
-    } catch {
-      trackEvent('export_failed', {...context, failure_category:'render_error'});
-      setMessage('Could not export the image. Please try again.');
-      offerFeedback({title:'The image export failed.',source:'studio-export-failed',kind:'problem',context:{box:family,export:`${imageSettings.format} ${imageSettings.size}`}});
+    } catch (error) {
+      const unfoldable = error instanceof Error && error.name === 'UnfoldableSheetError';
+      trackEvent('export_failed', {...context, failure_category: unfoldable ? 'unfoldable_size' : 'render_error'});
+      setMessage(unfoldable ? UNFOLDABLE_EXPORT_MESSAGE : 'Could not export the image. Please try again.');
+      if (!unfoldable) offerFeedback({title:'The image export failed.',source:'studio-export-failed',kind:'problem',context:{box:family,export:`${imageSettings.format} ${imageSettings.size}`}});
     } finally {
       setImageBusy(false);
     }
@@ -2126,9 +2127,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       setMessage(exported ? 'MP4 video downloaded' : 'Renderer is not ready yet');
     } catch (error) {
       const unsupported = error instanceof Error && error.name === 'VideoExportUnsupportedError';
-      trackEvent('export_failed', {...context, failure_category: unsupported ? 'unsupported_browser' : 'render_error'});
-      setMessage(unsupported ? error.message : 'Could not create the video. Please try again.');
-      if (!unsupported) offerFeedback({title:'The video export failed.',source:'studio-export-failed',kind:'problem',context:{box:family,export:'mp4'}});
+      const unfoldable = error instanceof Error && error.name === 'UnfoldableSheetError';
+      trackEvent('export_failed', {...context, failure_category: unsupported ? 'unsupported_browser' : unfoldable ? 'unfoldable_size' : 'render_error'});
+      setMessage(unsupported ? error.message : unfoldable ? UNFOLDABLE_EXPORT_MESSAGE : 'Could not create the video. Please try again.');
+      if (!unsupported && !unfoldable) offerFeedback({title:'The video export failed.',source:'studio-export-failed',kind:'problem',context:{box:family,export:'mp4'}});
     } finally {
       setVideoProgress(null);
     }
@@ -3568,7 +3570,7 @@ function DielinePrototype({
     } catch(error) {
       const message=error instanceof Error?error.message:'Could not prepare the PDF. Please retry.';
       setPrintError(message);
-      trackEvent('export_failed',{...context,failure_category:'pdf_generation',duration_ms:Math.round(performance.now()-startedAt)});
+      trackEvent('export_failed',{...context,failure_category:'pdf_generation',error_name:error instanceof Error?error.name:'unknown',error_message:message.slice(0,200),duration_ms:Math.round(performance.now()-startedAt)});
       offerFeedback({title:'The PDF export failed.',source:'studio-export-failed',kind:'problem',context:{box:selectedTemplateId,export:'pdf',error:message}});
       onPdfStatus(false,message);
     } finally {
@@ -4602,6 +4604,9 @@ const showSizesSetting = (() => {
     },
   };
 })();
+
+/** An image or video asked for while the size entered is too small for the box to fold. */
+const UNFOLDABLE_EXPORT_MESSAGE = 'This size is too small to fold into a box, so there is no 3D view to download. Make the box bigger and try again.';
 
 const MIN_BOX_MM = 1, MAX_BOX_MM = 3000, MIN_BOARD_MM = 0.1, MAX_BOARD_MM = 2;
 

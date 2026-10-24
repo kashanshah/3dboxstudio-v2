@@ -96,6 +96,16 @@ export function restingSetback(thickness: number) {
   return Math.max(-w / 2, (2 / Math.PI - 0.5) * w - t * 1.05);
 }
 
+/**
+ * The sheet can't be folded at this size: a panel has shrunk so far that it
+ * no longer meets the panel it hinges on (a 1 mm wall under a 1.5 mm board's
+ * ears, say). Sizes like this pass through the size fields as someone types,
+ * so the 3D view keeps its last box rather than treating this as a crash.
+ */
+export class UnfoldableSheetError extends Error {
+  constructor(message: string) { super(message); this.name = 'UnfoldableSheetError'; }
+}
+
 export function foldSheet(input: FoldSheetInput): Mesh[] {
   const t = Math.max(0.05, input.thickness);
   const crease = t * CREASE_WIDTH;
@@ -115,7 +125,7 @@ export function foldSheet(input: FoldSheetInput): Mesh[] {
       const child = byId.get(hinge.child);
       if (!child) continue;
       const shared = sharedEdge(parent.outline, child.outline);
-      if (!shared) throw new Error(`No crease between ${hinge.parent} and ${hinge.child}`);
+      if (!shared) throw new UnfoldableSheetError(`No crease between ${hinge.parent} and ${hinge.child}`);
       const q0 = flat(shared.start), q1 = flat(shared.end);
       const along = normalize(sub(q1, q0));
       if (hinge.sharp || (parent.piece && parent.piece === child.piece)) {

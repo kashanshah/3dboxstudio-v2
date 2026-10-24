@@ -960,3 +960,27 @@ test('the dieline exports as SVG and DXF at 1:1, cut and crease on their own lay
     assert.ok(Math.abs(Number(mapped[20])-(height-first.start.y))<1e-3&&Math.abs(Number(mapped[10])-first.start.x)<1e-3);
   }
 });
+
+test('a box too small to fold says so with its own error, and every size its checks pass folds',()=>{
+  // Sizes apply as they are typed, so a 1 mm side passes through on the way
+  // to 150: the 3D view keeps its last box for these, and only these.
+  const {UnfoldableSheetError}=require('../src/lib/packaging/fold-sheet.ts');
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const options={openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'};
+    const fold=dimensions=>runtime.buildMeshes({dimensions:runtime.sanitizeParameters(dimensions),formation:100,opening:0,...options,color:[1,1,1],interiorColor:[1,1,1]});
+    for(const key of ['width','height','depth']){
+      const dimensions={...template.defaultDimensions,[key]:1};
+      try{fold(dimensions);}catch(error){
+        assert.ok(error instanceof UnfoldableSheetError,`${template.id} at ${key} 1 mm: ${error.message}`);
+        assert.ok(runtime.getSizeProblems(dimensions,options).length,`${template.id} folds at ${key} 1 mm only after its size checks fail`);
+      }
+    }
+    for(const width of [40,90,250])for(const height of [40,90,250])for(const depth of [40,90,250]){
+      const dimensions={...template.defaultDimensions,width,height,depth};
+      if(runtime.getSizeProblems(dimensions,options).length)continue;
+      assert.doesNotThrow(()=>fold(dimensions),`${template.id} ${width}×${height}×${depth}`);
+    }
+  }
+});

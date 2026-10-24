@@ -37,6 +37,7 @@ import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 import type { ImageBackground } from '@/lib/packaging/image-export';
 import { CORRUGATED_THICKNESS, type Mesh } from '@/lib/packaging/template-mesh';
 import { requireTemplateRuntime } from '@/lib/packaging/template-runtime';
+import { UnfoldableSheetError } from '@/lib/packaging/fold-sheet';
 import {
   artworkUrlSignature,
   defaultScene,
@@ -108,12 +109,16 @@ type CartonUniforms = {
 
 type ArtworkEntry = { texture: Texture; url: string; loaded: boolean; width: number; height: number };
 
+/** Scene fields that decide the folded shape. */
+const FOLD_KEYS = ['dimensions', 'templateId', 'opening', 'formation', 'openingMode', 'splitTopHingeSide'] as const satisfies (keyof Scene)[];
 /** Scene fields that change what is drawn, as opposed to where it is seen from. */
 const CONTENT_KEYS: (keyof Scene)[] = ['dimensions', 'templateId', 'opening', 'formation', 'openingMode', 'splitTopHingeSide', 'material', 'outsideColor', 'insideColor', 'artworkByPanel', 'hoverPanel', 'renderStyle'];
 
 const OVERLAY_COLOR = new Color().setRGB(0, 0.46, 0.77, SRGBColorSpace);
 
 export type CartonRenderer = ReturnType<typeof createCartonRenderer>;
+/** A scene that couldn't be folded, and why. */
+export type Unfoldable = { error: UnfoldableSheetError; scene: Scene };
 
 export function createCartonRenderer(canvas: HTMLCanvasElement) {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: 'high-performance' });
@@ -168,6 +173,10 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
   const objects: ThreeMesh<BufferGeometry, MeshPhysicalMaterial>[] = [];
   let scene: Scene = defaultScene();
   let meshes: Mesh[] = [];
+  // The scene last set when it couldn't be folded (too small for its board)
+  // and why, while the last box that could be stays on screen.
+  let unfoldable: Unfoldable | null = null;
+  const unfoldableListeners = new Set<(problem: Unfoldable | null) => void>();
   let pixelRatio = Math.min(3, window.devicePixelRatio || 1);
   // While a video is being recorded the canvas renders at the video size on
   // a backdrop, and live scene updates wait until recording ends.
@@ -441,7 +450,23 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
       scene = { ...next, dimensions: requireTemplateRuntime(next.templateId).sanitizeParameters(next.dimensions) };
       if (artworkChanged) syncArtwork(next.artworkByPanel);
       // Orbiting, zooming and panning only move the camera.
-      if (artworkChanged || !meshes.length || CONTENT_KEYS.some(key => previous[key] !== next[key])) syncMeshes();
+      if (artworkChanged || !meshes.length || CONTENT_KEYS.some(key => previous[key] !== next[key])) {
+        let problem: Unfoldable | null = null;
+        try {
+          syncMeshes();
+        } catch (error) {
+          if (!(error instanceof UnfoldableSheetError)) throw error;
+          // A size passing through the fields as someone types (1 mm on the
+          // way to 150) can be too small to fold. Keep the last box that
+          // folds, seen from the new camera, until the size can be made.
+          problem = { error, scene };
+          scene = { ...scene, ...Object.fromEntries(FOLD_KEYS.map(key => [key, previous[key]])) };
+        }
+        if (problem || unfoldable) {
+          unfoldable = problem;
+          for (const listener of unfoldableListeners) listener(problem);
+        }
+      }
       render();
     },
     render,
@@ -499,6 +524,12 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     resize() {
       render();
     },
+    /** Calls `listener` with each scene set that can't be folded (and why), and with null once one can; returns the unsubscribe. */
+    onUnfoldable(listener: (problem: Unfoldable | null) => void) {
+      unfoldableListeners.add(listener);
+      listener(unfoldable);
+      return () => { unfoldableListeners.delete(listener); };
+    },
     /** The scene as last set by the page. */
     currentScene() {
       return capture ? capture.liveScene : scene;
@@ -506,6 +537,8 @@ export function createCartonRenderer(canvas: HTMLCanvasElement) {
     /** Start drawing frames at a fixed size, for a video or image, on the studio gradient, a colour or (images only) nothing. */
     beginCapture(width: number, height: number, background: ImageBackground = { kind: 'studio' }) {
       if (capture) return;
+      // Images and videos are of the size entered, never the last one that folded.
+      if (unfoldable) throw unfoldable.error;
       capture = { width, height, liveScene: scene };
       if (background.kind === 'color') world.background = new Color(background.color);
       else if (background.kind === 'studio') world.background = backdrop ??= backdropTexture();

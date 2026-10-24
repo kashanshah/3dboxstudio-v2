@@ -16,6 +16,7 @@ import type { LegacyOpeningMode } from '@/lib/studio-project';
 import { trackEvent } from '@/lib/analytics';
 import { cameraForPreset, clamp, easeInOutCubic, shortestAngleDelta, type RenderStyle } from './carton-scene';
 import type { CartonRenderer } from './carton-renderer';
+import { getTemplateRuntime } from '@/lib/packaging/template-runtime';
 import type { VideoSettings } from '@/lib/packaging/video-timeline';
 import { zipFiles, type ImageSettings } from '@/lib/packaging/image-export';
 
@@ -33,6 +34,15 @@ function reportRenderFailure(reason: 'unavailable' | 'lost' | 'load_failed', tem
   if (renderFailureReported) return;
   renderFailureReported = true;
   trackEvent('preview_render_failed', { reason, template_id: templateId, app_version: 'v2' });
+}
+
+// A size too small to fold, reported once per template and page: typing
+// through such sizes is common and shouldn't flood the events.
+const unfoldableReported = new Set<string>();
+function reportUnfoldable(templateId: string, message: string) {
+  if (unfoldableReported.has(templateId)) return;
+  unfoldableReported.add(templateId);
+  trackEvent('preview_render_failed', { reason: 'unfoldable_size', template_id: templateId, error_message: message.slice(0, 200), app_version: 'v2' });
 }
 
 export type CartonEngineHandle = {
@@ -359,6 +369,21 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     });
   }, [rendererVersion, dimensions, templateId, opening, formation, openingMode, splitTopHingeSide, material, outsideColor, insideColor, artworkByPanel, yaw, pitch, zoom, viewPan, lightIntensity, hoverPanel, renderStyle, floorShadow]);
 
+  // A size the sheet can't be folded at keeps the last box that folds on
+  // screen, with the template's own reason the size can't be made.
+  const [unfoldable, setUnfoldable] = useState<string | null>(null);
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    return renderer.onUnfoldable(problem => {
+      if (!problem) { setUnfoldable(null); return; }
+      const { error, scene } = problem;
+      reportUnfoldable(scene.templateId, error.message);
+      const reason = getTemplateRuntime(scene.templateId)?.getSizeProblems?.(scene.dimensions, { openingMode: scene.openingMode, splitTopHingeSide: scene.splitTopHingeSide })[0];
+      setUnfoldable(reason ?? 'This size is too small to fold.');
+    });
+  }, [rendererVersion]);
+
   // Measurement lines follow the box through every frame drawn: orbiting,
   // zooming and resizing. They hide while an animation moves the box.
   const [lines, setLines] = useState<MeasureLine[] | null>(null);
@@ -463,7 +488,9 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
       onPointerEnter={() => setHoverPanel(spot.panel)} onPointerLeave={() => setHoverPanel(null)}>
       {flapMeasures.find(item => item.key === spot.key)?.node}
     </span>)}
-  </div>}{!measures && measuresHint && <div className="carton-engine-measures-hint" role="status">{measuresHint}</div>}</>;
+  </div>}{unfoldable ? <div className="carton-engine-measures-hint is-unfoldable" role="status">
+    <strong>Too small to fold in 3D, showing the last size that folds.</strong> {unfoldable}
+  </div> : !measures && measuresHint && <div className="carton-engine-measures-hint" role="status">{measuresHint}</div>}</>;
 });
 
 function downloadBlob(blob: Blob, filename: string) {
