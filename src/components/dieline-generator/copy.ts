@@ -22,6 +22,8 @@ export type GeneratorCopy = {
   settings: string; size: string; units: string; measuredAs: string;
   modes: Record<DimensionMode, { label: string; hint: string }>;
   fields: Record<FieldKey, { letter: string; label: string; hint: string }>;
+  /** Styles whose three sizes mean something else (a hexagon box's across the flats and lid depth). */
+  styleFields: Record<string, Partial<Record<FieldKey, { letter: string; label: string; hint: string }>>>;
   fieldLabel: (label: string, unit: string, hint: string) => string;
   board: string; material: string; custom: string; thickness: (points: number) => string;
   window: string; windowToggle: string; windowBorder: string;
@@ -54,6 +56,13 @@ const en: GeneratorCopy = {
     length: { letter: "L", label: "Length", hint: "the opening's long side" },
     width: { letter: "W", label: "Width", hint: "the opening's short side" },
     depth: { letter: "D", label: "Depth", hint: "the height" },
+  },
+  styleFields: {
+    "hexagon-box": {
+      length: { letter: "F", label: "Across flats", hint: "the inside, from one flat side to the one opposite" },
+      width: { letter: "L", label: "Lid depth", hint: "how far the lid comes down over the base" },
+      depth: { letter: "H", label: "Height", hint: "the inside height of the base" },
+    },
   },
   fieldLabel: (label, unit, hint) => `${label} in ${unit}, ${hint}`,
   board: "Board", material: "Material", custom: "Custom", thickness: points => `Board thickness, ${points} pt`,
@@ -106,6 +115,13 @@ const es: GeneratorCopy = {
     length: { letter: "L", label: "Largo", hint: "el lado largo de la abertura" },
     width: { letter: "A", label: "Ancho", hint: "el lado corto de la abertura" },
     depth: { letter: "H", label: "Alto", hint: "la altura" },
+  },
+  styleFields: {
+    "hexagon-box": {
+      length: { letter: "C", label: "Entre caras", hint: "el interior, de una cara plana a la opuesta" },
+      width: { letter: "T", label: "Alto de la tapa", hint: "cuánto baja la tapa sobre la base" },
+      depth: { letter: "H", label: "Alto", hint: "la altura interior de la base" },
+    },
   },
   fieldLabel: (label, unit, hint) => `${label} en ${unit}, ${hint}`,
   board: "Cartón", material: "Material", custom: "Personalizado", thickness: points => `Grosor del cartón, ${points} pt`,
@@ -162,6 +178,7 @@ const es: GeneratorCopy = {
     "four-corner-tray": "Bandeja de cuatro esquinas",
     "telescope-box": "Caja telescópica (bandeja con tapa)",
     "cake-box": "Caja de tarta (esquinas bloqueadas, ventana opcional)",
+    "hexagon-box": "Caja hexagonal (base y tapa)",
   },
   drag: "Arrastra para cambiar",
   preview: {
@@ -174,3 +191,8 @@ const es: GeneratorCopy = {
 };
 
 export const GENERATOR_COPY: Record<GeneratorLocale, GeneratorCopy> = { en, es };
+
+/** The three size fields as `style` names them. */
+export function fieldsFor(copy: GeneratorCopy, style: string): GeneratorCopy["fields"] {
+  return { ...copy.fields, ...copy.styleFields[style] };
+}

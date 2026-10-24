@@ -14,6 +14,7 @@ import { gableBoxDefinition } from '@/lib/packaging/parametric/definitions/gable
 import { drawerBoxDefinition } from '@/lib/packaging/parametric/definitions/drawer-box';
 import { trayBoxDefinition, telescopeBoxDefinition } from '@/lib/packaging/parametric/definitions/tray-box';
 import { cakeBoxDefinition } from '@/lib/packaging/parametric/definitions/cake-box';
+import { hexagonBoxDefinition } from '@/lib/packaging/parametric/definitions/hexagon-box';
 
 export type PackagingFamily =
   | 'folding-carton'
@@ -43,6 +44,12 @@ export type TemplateParameterDefinition = {
   max?: number;
   step?: number;
   defaultValue: number;
+  /**
+   * The edge of the 3D box this size is drawn along when sizes are shown:
+   * by default width along x, height along y and depth along z. Null when it
+   * isn't one of the box's outside extents (a hexagon box's lid depth).
+   */
+  measuredAlong?: 'x' | 'y' | 'z' | null;
 };
 
 export type ArtworkRegionDefinition = {
@@ -114,6 +121,7 @@ export const PACKAGING_TEMPLATES: PackagingTemplateDefinition[] = [
   fromDefinition(trayBoxDefinition),
   fromDefinition(telescopeBoxDefinition),
   fromDefinition(cakeBoxDefinition),
+  fromDefinition(hexagonBoxDefinition),
   fromDefinition(rigidLidBaseDefinition),
 ];
 

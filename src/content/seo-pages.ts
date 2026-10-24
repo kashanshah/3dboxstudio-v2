@@ -29,14 +29,14 @@ export const SEO_PAGES = {
   printable: {
     path: '/printable-box-templates',
     title: 'Printable Box Templates with Measurements (Free)',
-    description: 'Free printable box templates in any size: type your measurements, print the dieline at 100% on A4 or Letter, cut, score and fold. 15 styles, no sign-up.',
+    description: 'Free printable box templates in any size: type your measurements, print the dieline at 100% on A4 or Letter, cut, score and fold. 16 styles, no sign-up.',
     status: 'draft',
     priority: 0.8,
   },
   cricut: {
     path: '/cricut-box-templates',
     title: 'Cricut Box Templates: Free SVG in Any Size',
-    description: 'Make a Cricut box template in your exact size: cut and score SVG sized in inches, for Design Space and Silhouette. 15 box styles, free, no account.',
+    description: 'Make a Cricut box template in your exact size: cut and score SVG sized in inches, for Design Space and Silhouette. 16 box styles, free, no account.',
     status: 'draft',
     priority: 0.8,
   },
@@ -50,7 +50,7 @@ export const SEO_PAGES = {
   templatemaker: {
     path: '/templatemaker-alternative',
     title: 'Templatemaker Alternative: Dielines with a 3D Preview',
-    description: 'A free alternative to Templatemaker for box dielines: 15 styles, SVG, PDF and DXF without an account, and the box folded in 3D. Compared fairly.',
+    description: 'A free alternative to Templatemaker for box dielines: 16 styles, SVG, PDF and DXF without an account, and the box folded in 3D. Compared fairly.',
     status: 'draft',
     priority: 0.7,
   },

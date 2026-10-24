@@ -22,6 +22,11 @@ type Measure = Record<'length' | 'width' | 'depth', [panel: string, side: 'width
 const WALLS: Measure = { length: ['front', 'width'], width: ['left', 'width'], depth: ['front', 'height'] };
 const TRAY: Measure = { length: ['bottom', 'width'], width: ['bottom', 'height'], depth: ['front', 'height'] };
 /** A drawer box is measured by its sleeve, which is its outside. */
+/**
+ * A hexagon box's three sizes are across the flats (its bottom's height on the
+ * sheet), the lid depth and the height, each up its own walls.
+ */
+const HEXAGON: Measure = { length: ['bottom', 'height'], width: ['lidFront', 'height'], depth: ['front', 'height'] };
 const SLEEVE: Measure = { length: ['sleeveBottom', 'width'], width: ['sleeveBottom', 'height'], depth: ['sleeveLeft', 'width'] };
 
 type StyleSpec = Omit<DielineStyle, 'params' | 'generate' | 'modes' | 'defaults'> & {
@@ -49,6 +54,7 @@ const STYLE_SPECS: StyleSpec[] = [
   { id: 'four-corner-tray', name: 'Four-corner tray', category: 'Folding carton', templateId: 'tray-box', measure: TRAY },
   { id: 'telescope-box', name: 'Telescope box (tray with lid)', category: 'Folding carton', templateId: 'telescope-box', measure: TRAY },
   { id: 'cake-box', name: 'Cake box (lock corners, optional window)', category: 'Folding carton', templateId: 'cake-box', measure: TRAY },
+  { id: 'hexagon-box', name: 'Hexagon box (lid and base)', category: 'Folding carton', templateId: 'hexagon-box', measure: HEXAGON },
 ];
 
 const runtimeOf = (spec: StyleSpec): TemplateRuntime => {

@@ -85,7 +85,8 @@ type Props = {
   floorShadow?: boolean;
   /**
    * Measurement labels for the box's width (x), height (y) and depth (z),
-   * drawn along its nearest edges; null hides them.
+   * drawn along its nearest edges; null hides them, and a null label leaves
+   * that edge unmeasured.
    */
   measures?: { x: ReactNode; y: ReactNode; z: ReactNode } | null;
   /** Shown in place of the measurements while they can't be drawn (a flat or half-folded box). */
@@ -476,13 +477,13 @@ export const CartonEngine = forwardRef<CartonEngineHandle, Props>(function Carto
     onPointerLeave={() => { dragRef.current = null; setHoverPanel(null); }}
   />{measures && lines && <div className="carton-engine-measures">
     <svg aria-hidden="true">
-      {lines.map(line => <g key={line.axis}>
+      {lines.filter(line => measures[line.axis] != null).map(line => <g key={line.axis}>
         <line className="is-extension" x1={line.start.x} y1={line.start.y} x2={line.from.x} y2={line.from.y}/>
         <line className="is-extension" x1={line.end.x} y1={line.end.y} x2={line.to.x} y2={line.to.y}/>
         <line className="is-dimension" x1={line.from.x} y1={line.from.y} x2={line.to.x} y2={line.to.y}/>
       </g>)}
     </svg>
-    {lines.map(line => <span key={line.axis} className="carton-engine-measure-label" style={{ left: line.label.x, top: line.label.y }}>{measures[line.axis]}</span>)}
+    {lines.filter(line => measures[line.axis] != null).map(line => <span key={line.axis} className="carton-engine-measure-label" style={{ left: line.label.x, top: line.label.y }}>{measures[line.axis]}</span>)}
   </div>}{flapMeasures && flapSpots.length > 0 && <div className="carton-engine-measures">
     {flapSpots.map(spot => <span key={spot.key} className="carton-engine-measure-label is-flap" style={{ left: spot.x, top: spot.y }}
       onPointerEnter={() => setHoverPanel(spot.panel)} onPointerLeave={() => setHoverPanel(null)}>

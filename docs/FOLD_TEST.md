@@ -41,6 +41,7 @@ The unit tests (`scripts/dieline.test.cjs`) check the arithmetic: panel sizes in
 | Four-corner tray | 120 × 80 × 40 | card | Each ear glues flat inside its side wall; the walls stand square without bowing. |
 | Telescope box (tray with lid) | 120 × 80 × 50 | card | The lid slides over the base without forcing and doesn't drop off when the box is lifted by the lid; try the lid at full height too. |
 | Cake box | 150 × 150 × 80 | card | The side walls fold double over the ears and their tabs lock into the base slots; the lid tuck and side flaps close. With a window (border 25 mm), the window is centred and leaves the lid stiff enough. |
+| Hexagon box (lid and base) | 100 across the flats × 70 high, lid 25 | card | Each tube's walls meet at 120° all round with the glue flap flat inside the back right wall; the five flaps fit inside the hexagon without overlapping and glue flat to it; a 100 mm disc sits inside the base; the lid slides over the base without forcing and rests on its rim. In the generator the sizes are across the flats (length), lid depth (width) and height (depth). |
 
 ## Record
 

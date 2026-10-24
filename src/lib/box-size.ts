@@ -48,7 +48,7 @@ export function suggestStyles(weight: Weight, use: Use): { slug: string; why: st
       heavy: [{ slug: 'split-top-box', why: 'The regular slotted carton in B-flute or double wall.' }, { slug: 'mailer-box', why: 'In B-flute, for heavier subscription and e-commerce boxes.' }],
     },
     gift: {
-      light: [{ slug: 'drawer-box', why: 'A sliding tray for jewellery, chocolates and small gifts.' }, { slug: 'pillow-box', why: 'A light favour box that closes without glue.' }, { slug: 'rigid-box', why: 'A rigid lid and base for a premium feel.' }],
+      light: [{ slug: 'drawer-box', why: 'A sliding tray for jewellery, chocolates and small gifts.' }, { slug: 'pillow-box', why: 'A light favour box that closes without glue.' }, { slug: 'rigid-box', why: 'A rigid lid and base for a premium feel.' }, { slug: 'hexagon-box', why: 'A six-sided box with a lift-off lid for candles, chocolates and tea.' }],
       medium: [{ slug: 'rigid-box', why: 'Greyboard walls that hold their shape.' }, { slug: 'telescope-box', why: 'A lift-off lid at folding-carton cost.' }, { slug: 'drawer-box', why: 'A sliding reveal for sets.' }],
       heavy: [{ slug: 'rigid-box', why: 'Thick greyboard for heavy gift sets.' }, { slug: 'telescope-box', why: 'Full-telescope lid in E-flute for strength.' }, { slug: 'mailer-box', why: 'A presentation box that also ships.' }],
     },

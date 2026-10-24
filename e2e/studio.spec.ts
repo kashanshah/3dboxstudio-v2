@@ -218,3 +218,25 @@ test('the first visit shows the studio tour, which can be skipped', async ({ pag
   await tour.getByText('Skip tour', { exact: true }).click();
   await expect(tour).toBeHidden();
 });
+
+test('a hexagon box is created, named by its own sizes, and folds in 3D', async ({ page }) => {
+  // The new design dialog names the hexagon's sizes as the template does.
+  await page.goto('/studio/editor?template=hexagon-box');
+  await expect(page.locator('label[for="new-design-width"]')).toContainText('Across flats');
+  await expect(page.locator('label[for="new-design-depth"]')).toContainText('Lid depth');
+  await createDesign(page, 'E2E hexagon', { width: 100, height: 70, depth: 25 }, 'hexagon-box');
+  await expect(page.locator('label').filter({ hasText: /^Across flats/ }).first()).toBeVisible();
+
+  await page.getByRole('button', { name: /^3\s*Preview/ }).click();
+  const canvas = page.locator('canvas.carton-engine-canvas').first();
+  await expect(canvas).toBeVisible();
+  await expect(page.getByText('This view hit a problem')).toHaveCount(0);
+  await expect(page.getByRole('status').filter({ hasText: 'Too small to fold in 3D' })).toHaveCount(0);
+  // The 3D view draws the box: the canvas is not one flat colour.
+  await expect.poll(async () => {
+    const shot = await canvas.screenshot();
+    const { default: sharp } = await import('sharp');
+    const { channels } = await sharp(shot).stats();
+    return Math.max(...channels.slice(0, 3).map(channel => channel.stdev));
+  }).toBeGreaterThan(10);
+});

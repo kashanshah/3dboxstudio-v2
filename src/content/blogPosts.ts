@@ -119,6 +119,7 @@ const BLOG_CATEGORY_BY_SLUG: Record<string, BlogCategoryId> = {
   "auto-lock-bottom-box-crash-lock": "tools",
   "how-to-make-a-pillow-box": "tools",
   "how-to-make-a-gable-box": "tools",
+  "how-to-make-a-hexagon-box": "tools",
   "how-to-make-a-drawer-box": "tools",
   "box-dieline-svg-dxf-export": "tools",
   "box-template-svg-cricut-laser-cutter": "tools",
@@ -2635,6 +2636,74 @@ const ALL_BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Before production" },
       { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. For a production run, especially for food, send your printer the size and the cutting template, ask them to confirm the board, the crease allowances and the glue tabs, and check whether the board needs a food-safe or grease-resistant coating." },
       { type: "cta", label: "Make a gable box dieline in your size", href: "/box-templates/gable-box" },
+      { type: "faq" }
+    ],
+  },
+  {
+    slug: "how-to-make-a-hexagon-box",
+    title: "How to Make a Hexagon Box with a Lid: Template, Sizes and Folding",
+    seoTitle: "How to Make a Hexagon Box: Free Template & Dieline | 3D Box Studio",
+    description: "How a six-sided hexagon box with a lift-off lid is made, how to measure it across the flats, how its glued tube and flaps fold, and how to make the hexagon box dieline in your size, design it and fold it in 3D for free.",
+    published: "2026-10-24",
+    readMinutes: 6,
+    keywords: ["how to make a hexagon box","hexagon box template","hexagon box dieline","hexagonal box with lid","six sided box template","hexagon gift box","hexagon candle box","hexagon box svg"],
+    imageAlt: "A hexagon box dieline with the lid and base on one sheet, next to the folded hexagon box closed and with its lid lifted",
+    relatedSlugs: ["candle-home-fragrance-packaging-preview","gift-box-packaging-luxury-preview","box-dieline-svg-dxf-export"],
+    faqs: [
+      { question: "What is a hexagon box?", answer: "A six-sided box: a regular hexagonal base and a lid that lifts off it. It works like a telescope box with six walls instead of four, and suits candles, jars, chocolates, tea, soap and small gifts." },
+      { question: "Is there a free hexagon box template?", answer: "Yes. The hexagon box template in 3D Box Studio is free. Enter the size across the flats, the height and the lid depth and it draws the base and the lid on one sheet, and folds them in 3D. The dieline downloads free with no account; designing in the Studio needs a free account." },
+      { question: "How do you measure a hexagon box?", answer: "Across the flats: the inside distance from one flat side to the one opposite. Across the corners is about 1.15 times that. For a round product such as a candle, the diameter must fit across the flats, the narrowest part of the hexagon." },
+      { question: "How long is each side of a hexagon box?", answer: "Each side of a regular hexagon is the size across the flats divided by √3, about 0.577 times it. A box 100 mm across the flats has walls about 58 mm wide. The template works this out for you, a board wider at the creases." },
+      { question: "Can I download the hexagon box dieline?", answer: "Yes. Download it as SVG, PDF, DXF, PNG or a Cricut file from the template page, or export a 1:1 PDF with your artwork from the Studio. Cut and crease lines are on separate layers." },
+    ],
+    sections: [
+      { type: "p", text: "A hexagon box stands out on a shelf in a way a rectangular carton can't, and its six sides wrap round a candle or a jar more closely than four. It is a favourite for candles, chocolates, tea and small gifts. It looks hard to make, but it is two simple pieces: a base and a lid, each a six-sided tube closed at one end." },
+      { type: "p", text: "This guide explains how a hexagon box is built, how to measure it, and how to make the dieline in your own size with the free [hexagon box template](/box-templates/hexagon-box), then design it and watch it fold in 3D." },
+      { type: "h2", text: "How a hexagon box works" },
+      { type: "p", text: "The base and the lid are made the same way, and both are cut from one sheet. Each is a straight-line hexagonal carton, the way hexagonal cartons are usually glued:" },
+      { type: "ol", items: [
+        "Six walls stand in a row, each one side of the hexagon. A glue flap at the end of the row is stuck inside the last wall, which turns the row into a six-sided tube. Each wall turns 60° on the one before it, so neighbouring walls meet at 120°.",
+        "A hexagon panel is hinged on the back wall: the base's bottom, or the lid's top.",
+        "Each of the other five walls has a flap with 60° sides. The five flaps fold in and fit together inside the hexagon, and the hexagon panel is glued onto them.",
+        "The lid is a little larger than the base, so it slides down over the base's walls with some play, and its walls are only as deep as you choose."
+      ] },
+      { type: "p", text: "Because every wall stands upright in the row, artwork reads the right way up on all six walls and can run round the box across the creases, like a label. A hexagon box can also be drawn as a flower, with six walls round the hexagon and an ear on each wall glued to the next; that needs six glue joints and turns four walls at an angle on the sheet." },
+      { type: "callout", text: "You can watch this in the Studio: open the [hexagon box template](/box-templates/hexagon-box) and drag the fold slider from flat to closed. The flaps stand up, the walls wrap round into a hexagon, and the lid turns over and lands on the base." },
+      { type: "h2", text: "Choosing the size" },
+      { type: "ul", items: [
+        "Across the flats (the template's width): the inside distance from one flat wall to the one opposite. Measure the product's widest point and add a few millimetres. A round product's diameter goes here, since this is the narrowest part of a hexagon.",
+        "Across the corners: about 1.15 times the size across the flats. Use it to check the box fits a shelf or an outer carton.",
+        "Height: the inside height of the base, from its floor to its rim.",
+        "Lid depth: how far the lid comes down over the base. A quarter to a third of the height is easy to lift; up to the full height covers the base completely."
+      ] },
+      { type: "p", text: "As a starting point: a pillar candle up to 80 mm across fits a box 90 mm across the flats and 110 mm tall, and a layer of truffles one about 110 mm across and 40 mm tall. The template page has these as presets." },
+      { type: "callout", text: "Measuring the product first? See [inside vs outside box dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions) for how much room to leave." },
+      { type: "h2", text: "Make the hexagon box dieline in your size" },
+      { type: "ol", items: [
+        "Open the [hexagon box template](/box-templates/hexagon-box) and pick a preset or type the size across the flats, the height and the lid depth in millimetres or inches. The dieline redraws as you type.",
+        "Set the board thickness. Under Flaps and allowances you can also set the lid play, the glue flap and the flaps.",
+        "Download the dieline as SVG, PDF, DXF, PNG or a Cricut file, or open it in the Studio to place artwork on the walls, the lid and the bottom.",
+        "Fold it in 3D to check the design on the closed box, then export a 1:1 PDF, or the cutting template as [SVG or DXF](/blog/box-dieline-svg-dxf-export)."
+      ] },
+      { type: "h2", text: "Folding it by hand" },
+      { type: "ol", items: [
+        "Cut along the solid lines and score the dashed lines, then fold every score back and forth once so it bends cleanly.",
+        "For each piece, glue the glue flap inside the back right wall, the last wall in the row, to make a six-sided tube. Let it dry.",
+        "Fold the five flaps in, put glue on them, and fold the hexagon panel over them. Press it on from inside the tube until the glue holds.",
+        "Do the same with the lid, then put the lid on the base."
+      ] },
+      { type: "callout", text: "Cutting at home? Both pieces are on one sheet; on a Cricut, cut them on two mats if the sheet is larger than 12 × 24 in. See [box templates for Cricut and laser cutters](/blog/box-template-svg-cricut-laser-cutter)." },
+      { type: "h2", text: "Designing for a hexagon box" },
+      { type: "ul", items: [
+        "Put the main logo on the front wall, the fourth in the row. When the box sits on a shelf, the front and the two walls beside it face the customer.",
+        "Use the lid top for the brand or a pattern: it is the first thing seen from above.",
+        "A pattern or a band of colour can run round all six walls across the creases, since they sit side by side on the sheet.",
+        "Keep text a few millimetres away from the creases between walls, where the board bends.",
+        "Leave the glue flap and the faces of the flaps free of ink and varnish so the glue holds."
+      ] },
+      { type: "h2", text: "Before production" },
+      { type: "p", text: "The template is drawn from your size and board thickness, which is what you need for design, proofs, samples and quotes. For a production run, send your printer the size and the cutting template and ask them to confirm the board, the crease allowances and the lid play, and how they glue the flaps." },
+      { type: "cta", label: "Make a hexagon box dieline in your size", href: "/box-templates/hexagon-box" },
       { type: "faq" }
     ],
   },

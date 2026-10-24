@@ -1677,11 +1677,16 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   // Sizes are edited in the Box and Design steps; Preview shows the box alone.
   const sizesOnBox = showSizes && workflowStep !== 'preview';
   // On the 3D box once it's fully formed; an open lid is measured closed.
-  const boxMeasures = sizesOnBox && mode === '3d' && formation >= 99.5 ? {
-    x: <SizeChip size={boxSize('width')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
-    y: <SizeChip size={boxSize('height')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
-    z: <SizeChip size={boxSize('depth')} unit={measurementUnit} onCommit={setMeasuredSize}/>,
-  } : null;
+  // Each size along the edge its template names (width along x unless it says otherwise).
+  const measuredOn = (axis: 'x' | 'y' | 'z') => (['width', 'height', 'depth'] as const).find(key => {
+    const control = selectedTemplate.parameters.find(parameter => parameter.key === key);
+    return (control && control.measuredAlong !== undefined ? control.measuredAlong : ({ width: 'x', height: 'y', depth: 'z' } as const)[key]) === axis;
+  });
+  const boxMeasure = (axis: 'x' | 'y' | 'z') => {
+    const key = measuredOn(axis);
+    return key ? <SizeChip size={boxSize(key)} unit={measurementUnit} onCommit={setMeasuredSize}/> : null;
+  };
+  const boxMeasures = sizesOnBox && mode === '3d' && formation >= 99.5 ? { x: boxMeasure('x'), y: boxMeasure('y'), z: boxMeasure('z') } : null;
   const panelSizes = useMemo(
     () => showSizes || (designPanel === 'sizes' && workflowStep === 'design') ? getTemplateRuntime(selectedTemplateId)?.getPanelSizes?.(dimensions, { openingMode, splitTopHingeSide }) ?? null : null,
     [showSizes, designPanel, workflowStep, selectedTemplateId, dimensions, openingMode, splitTopHingeSide],
@@ -2613,7 +2618,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
                 </div>
                 <div className="pro-new-design-size-grid">
                   {(['width','height','depth'] as const).map(axis=><label key={axis} htmlFor={`new-design-${axis}`}>
-                    <span>{axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
+                    <span>{selectedTemplate.parameters.find(parameter=>parameter.key===axis)?.label??axis[0].toUpperCase()+axis.slice(1)} <small>({measurementUnit})</small></span>
                     <input id={`new-design-${axis}`} key={`${selectedTemplateId}-${measurementUnit}-${axis}`} type="number" required min={measurementUnit==='mm'?MIN_BOX_MM:MIN_BOX_MM/25.4} max={measurementUnit==='mm'?MAX_BOX_MM:MAX_BOX_MM/25.4} step="any" defaultValue={formatDimension(dimensions[axis],measurementUnit)} onChange={event=>{
                       const millimetres=parseDimension(event.currentTarget.valueAsNumber,measurementUnit);
                       if(Number.isFinite(millimetres)&&millimetres>=MIN_BOX_MM&&millimetres<=MAX_BOX_MM)setDimensions(current=>({...current,[axis]:millimetres}));
@@ -2753,6 +2758,11 @@ function Inspector(props: {
     // Each template takes the boards it is made from: folding board, or corrugated.
     const board = selectedTemplate.parameters.find(parameter => parameter.key === 'thickness');
     const boardMin = board?.min ?? MIN_BOARD_MM, boardMax = board?.max ?? MAX_BOARD_MM;
+    // A template that names a size its own way (a hexagon box's across the flats) shows that name.
+    const sizeLabel = (key: 'width' | 'height' | 'depth', letter: string) => {
+      const label = selectedTemplate.parameters.find(parameter => parameter.key === key)?.label;
+      return label && label !== key[0].toUpperCase() + key.slice(1) ? label : letter;
+    };
 
     return <div className="pro-inspector-content pro-structure-content">
       <div className="pro-structure-tabs" role="tablist" aria-label={t("studio.box_settings")}>
@@ -2791,11 +2801,11 @@ function Inspector(props: {
                   </div>
                 </div>
                 <div className="pro-current-box-size-fields" aria-label={t("studio.finished_box_size")}>
-                  <label><small>{t("studio.w_2")}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.width} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,width:mm})}/></label>
+                  <label><small>{sizeLabel('width', t("studio.w_2"))}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.width} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,width:mm})}/></label>
                   <i>×</i>
-                  <label><small>{t("studio.h_2")}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.height} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,height:mm})}/></label>
+                  <label><small>{sizeLabel('height', t("studio.h_2"))}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.height} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,height:mm})}/></label>
                   <i>×</i>
-                  <label><small>{t("studio.d_2")}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.depth} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,depth:mm})}/></label>
+                  <label><small>{sizeLabel('depth', t("studio.d_2"))}</small><DimensionInput min={props.measurementUnit === 'mm' ? 1 : 0.04} step={props.measurementUnit === 'mm' ? 1 : 0.01} valueMm={props.dimensions.depth} unit={props.measurementUnit} minMm={MIN_BOX_MM} maxMm={MAX_BOX_MM} onCommit={mm=>props.setDimensions({...props.dimensions,depth:mm})}/></label>
                   <em>{props.measurementUnit}</em>
                 </div>
                 <button type="button" className="pro-reset-box-size" title={t("studio.restore_this_template_s_default_width_height_and_depth")} onClick={() => {

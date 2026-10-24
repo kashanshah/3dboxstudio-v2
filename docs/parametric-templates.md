@@ -56,6 +56,8 @@ Every panel the fold engine folds is a rigid piece of board. A pillow box's face
 
 The pillow box folds each face as nine strips bowed into a lens. Each end flap is a surface from its crease, carried by the strips, to its edge. That edge runs straight on from the face while the box is open, then swings in to the pinch at the middle of the closed end.
 
+Model panels also fold panels with more than four corners: the hexagon box folds each hexagon panel as two four-corner halves joined flat across its middle, the near half carrying the back wall's crease and the walls hinged round the tube. The same box gives its glued back right wall a `model` shape that runs on past its free end by half a crease, so the seam closes over the glue flap's bend in 3D as it does in board.
+
 Model panels also cut holes the rigid model can't: the gable box folds each handle as pieces round its finger hole (a strip below and above it, one either side, and slices filling the round ends), joined by flat sharp hinges, so the hole shows in 3D. Its triangular gable ends and gussets give a four-corner `fold` shape that repeats one corner.
 
 A model panel with a `when` is left out when the formula is 0. The cake box folds its lid as a frame round its window, and fills the middle with a fifth piece, `when: 'window == 0'`, when no window is cut. The window itself is four lines in `cuts`, with the same condition reversed. An adjustable size that only moves cuts inside a panel, like the window's border, highlights that panel in the Studio.
@@ -99,7 +101,7 @@ Expansion happens before the definition is checked or compiled. The split top bo
 - description and tags
 - thumbnail
 - capabilities
-- the size controls (label, unit, step, limits, default)
+- the size controls (label, unit, step, limits, default). A label can rename a size (the hexagon box's width is "Across flats" and its depth "Lid depth"); the Studio's size fields show the new name. `measuredAlong` says which edge of the 3D box "Show sizes" draws a size along, by default width along x, height along y and depth along z, or `null` for a size that isn't one of the box's outside extents
 - the default box
 - the artwork regions
 
@@ -194,8 +196,9 @@ A definition is rejected, naming the template, when:
 | `src/lib/packaging/parametric/definitions/tray-box.ts` | Four-corner tray (glued corner ears) and the telescope box: a base tray and a lid tray that fits over it, two pieces on one sheet |
 | `src/lib/packaging/parametric/definitions/cake-box.ts` | Cake box: the mailer's structure in card, with a short lid tuck and side flaps and an optional window cut in the lid |
 | `src/lib/packaging/parametric/definitions/gable-box.ts` | Gable box: a roof and a handle with a finger hole over the front and back, gusseted gable ends, and the auto-lock bottom's flaps |
+| `src/lib/packaging/parametric/definitions/hexagon-box.ts` | Hexagon box: a base and a lid on one sheet, each a straight-line hexagonal carton (six walls glued into a tube, a hexagon panel on the back wall, five glued flaps with 60° sides); width is the inside across the flats and depth the lid depth |
 | `src/lib/packaging/templates/split-top/` | `runtime.ts` compiles the definition; `geometry.ts` gives the flat side to layout migrations and template pages; `sheet-v1.ts` stays frozen for migrations |
-| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `gable-box/`, `drawer-box/`, `tray-box/`, `telescope-box/`, `cake-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
+| `src/lib/packaging/templates/base-box/`, `reverse-tuck/`, `auto-lock-bottom/`, `snap-lock-bottom/`, `pillow-box/`, `gable-box/`, `drawer-box/`, `tray-box/`, `telescope-box/`, `cake-box/`, `hexagon-box/`, `pizza-box/`, `sleeve-box/`, `mailer-box/` | `runtime.ts` compiles the definition; `geometry.ts` / `export.ts` give the flat side to layout migrations and template pages |
 | `scripts/reference/` | The hand-written versions, frozen, used only by the parity tests |
 | `scripts/parametric-templates.test.cjs` | Parity, arcs, live wiring and definition-check tests |
 

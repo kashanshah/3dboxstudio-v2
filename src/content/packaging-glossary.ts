@@ -6,6 +6,7 @@
 export type GlossaryTerm = { term: string; id: string; aka?: string[]; definition: string };
 
 export const GLOSSARY: GlossaryTerm[] = [
+  { term: 'Across the flats', id: 'across-the-flats', definition: 'For a hexagonal or octagonal box, the distance between two opposite flat sides; across the corners is wider (for a hexagon, about 1.15 times). It is the narrowest part of the box, so it is the size a round product must fit. The [hexagon box template](/box-templates/hexagon-box) is sized this way.' },
   { term: 'Auto lock bottom', id: 'auto-lock-bottom', aka: ['crash lock bottom'], definition: 'A carton bottom whose flaps are glued at the factory so it springs into place, locked, when the flat carton is opened. Faster to pack and stronger than a tuck bottom; see the [auto lock bottom box](/box-templates/auto-lock-bottom-box).' },
   { term: 'Bleed', id: 'bleed', definition: 'Artwork that runs past the cut line, usually 3 mm (1/8 in), so a slightly misaligned cut still leaves colour to the edge. On a dieline it is drawn as a line outside the cut.' },
   { term: 'Board', id: 'board', aka: ['paperboard'], definition: 'The sheet material a box is made from: folding boxboard and SBS for cartons, corrugated board for shipping boxes, greyboard for rigid boxes.' },
@@ -22,6 +23,7 @@ export const GLOSSARY: GlossaryTerm[] = [
   { term: 'Glue flap', id: 'glue-flap', aka: ['manufacturer\'s joint'], definition: 'The narrow flap along one side of a carton that is glued to the opposite panel to close the tube. Usually 12–15 mm wide, with angled ends.' },
   { term: 'Grain direction', id: 'grain', definition: 'The direction the board\'s fibres run. Board folds more cleanly across the grain and is stiffer along it, so printers lay cartons out with the grain in a chosen direction.' },
   { term: 'gsm', id: 'gsm', aka: ['grams per square metre'], definition: 'The weight of paper or board: grams per square metre. It does not convert directly to thickness, because boards of the same weight differ in density.' },
+  { term: 'Hexagon box', id: 'hexagon-box', definition: 'A six-sided box, usually a base and a lift-off lid, for candles, chocolates and gifts. Each piece is often glued as a straight-line carton: six walls in a row glued into a tube and closed by a hexagon panel. See the [hexagon box template](/box-templates/hexagon-box).' },
   { term: 'Imposition', id: 'imposition', aka: ['nesting', 'step and repeat'], definition: 'Arranging several dielines on one press sheet to use as much of it as possible. Shapes that interlock save board.' },
   { term: 'Inside dimensions', id: 'inside-dimensions', aka: ['I.D.'], definition: 'The space inside the box, length × width × depth: the size the product needs. The usual way to order a box. See [inside vs outside dimensions](/blog/how-to-measure-a-box-inside-vs-outside-dimensions).' },
   { term: 'Kiss cut', id: 'kiss-cut', definition: 'A cut through only the top layer of a material, such as a label from its backing; on board, a partial cut that weakens a line for tearing or folding.' },

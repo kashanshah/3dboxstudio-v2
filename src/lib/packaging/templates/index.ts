@@ -13,6 +13,7 @@ import { drawerBoxRuntime } from './drawer-box/runtime';
 import { trayBoxRuntime } from './tray-box/runtime';
 import { telescopeBoxRuntime } from './telescope-box/runtime';
 import { cakeBoxRuntime } from './cake-box/runtime';
+import { hexagonBoxRuntime } from './hexagon-box/runtime';
 
 export const BUILT_IN_TEMPLATE_RUNTIMES=[
   baseBoxRuntime,
@@ -30,4 +31,5 @@ export const BUILT_IN_TEMPLATE_RUNTIMES=[
   trayBoxRuntime,
   telescopeBoxRuntime,
   cakeBoxRuntime,
+  hexagonBoxRuntime,
 ] as const;

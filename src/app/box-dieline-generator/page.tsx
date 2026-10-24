@@ -9,9 +9,9 @@ import { MoreTools } from "@/components/seo/more-tools";
 
 export const metadata: Metadata = {
   title: { absolute: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio" },
-  description: "Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",
+  description: "Draw a box dieline to your size in 16 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",
   alternates: { canonical: "/box-dieline-generator", languages: { en: '/box-dieline-generator', es: '/es/box-dieline-generator', 'x-default': '/box-dieline-generator' } },
-  openGraph: { images:[defaultOgImage], title: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio", description: "Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.", type: "website" }
+  openGraph: { images:[defaultOgImage], title: "Free Box Dieline Generator: SVG, PDF, DXF | 3D Box Studio", description: "Draw a box dieline to your size in 16 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.", type: "website" }
 };
 
 const sections = [
@@ -19,7 +19,7 @@ const sections = [
     "title": "Free, with no account",
     "body": "The generator above runs in your browser. Pick a style, type the length, width and depth in millimetres or inches, choose whether they are the inside, the outside or crease to crease, and pick your board. The dieline redraws as you type, with cut, crease, glue, bleed and safe-zone lines. Downloads need no sign-up, carry no watermark and have no limit.",
     "bullets": [
-      "15 styles: tuck end, snap lock and auto lock bottom cartons, mailer (FEFCO 0427), shipping carton (FEFCO 0201), pillow, gable, sleeve, pizza, drawer, tray, telescope, cake and rigid boxes",
+      "16 styles: tuck end, snap lock and auto lock bottom cartons, mailer (FEFCO 0427), shipping carton (FEFCO 0201), pillow, gable, sleeve, pizza, drawer, tray, telescope, hexagon, cake and rigid boxes",
       "Inside, outside or manufacture sizes, with board thickness worked in",
       "SVG, PDF (one page or tiled on A4 or Letter), DXF, PNG and a Cricut or Silhouette file",
       "A link that reopens the same box, to send to a printer or a colleague"
@@ -110,8 +110,8 @@ const faqs = [
 export default function Page(){
   const url=new URL("/box-dieline-generator",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
-    {"@type":"WebPage",name:"Free box dieline generator: draw it to size, download it, fold it in 3D.",description:"Draw a box dieline to your size in 15 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",url},
-    {"@type":"SoftwareApplication",name:"Box dieline generator",applicationCategory:"DesignApplication",operatingSystem:"Any (runs in the browser)",url,offers:{"@type":"Offer",price:"0",priceCurrency:"USD"},featureList:["15 box styles","Inside, outside and manufacture sizes","SVG, PDF, DXF and PNG downloads","Cricut and Silhouette cut files","Tiled PDF for home printers","No sign-up"]},
+    {"@type":"WebPage",name:"Free box dieline generator: draw it to size, download it, fold it in 3D.",description:"Draw a box dieline to your size in 16 styles and download it free as SVG, PDF, DXF, PNG or a Cricut file. No sign-up, no watermark. Then fold it in 3D.",url},
+    {"@type":"SoftwareApplication",name:"Box dieline generator",applicationCategory:"DesignApplication",operatingSystem:"Any (runs in the browser)",url,offers:{"@type":"Offer",price:"0",priceCurrency:"USD"},featureList:["16 box styles","Inside, outside and manufacture sizes","SVG, PDF, DXF and PNG downloads","Cricut and Silhouette cut files","Tiled PDF for home printers","No sign-up"]},
     breadcrumbSchema([{name:"Box dieline generator",path:"/box-dieline-generator"}]),
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};

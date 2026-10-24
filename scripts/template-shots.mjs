@@ -20,4 +20,5 @@ export const SHOTS = [
   { id: 'tray-box', mode: 'lid_from_back', progress: 100, yaw: -0.6, pitch: 0.75, outside: '#3f7f4a' },
   { id: 'telescope-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.5, outside: '#1d3b5c' },
   { id: 'cake-box', mode: 'lid_from_back', progress: 80, yaw: -0.6, pitch: 0.45, outside: '#f2b8c6' },
+  { id: 'hexagon-box', mode: 'lid_from_back', progress: 85, yaw: -0.6, pitch: 0.45, outside: '#c8963e' },
 ];

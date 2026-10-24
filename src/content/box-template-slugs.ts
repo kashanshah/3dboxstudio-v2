@@ -12,6 +12,7 @@ export const BOX_TEMPLATE_SLUGS: Record<string, string> = {
   'tray-box': 'tray-box',
   'telescope-box': 'telescope-box',
   'cake-box': 'cake-box',
+  'hexagon-box': 'hexagon-box',
   'pizza-box': 'pizza-box',
   'mailer-box': 'mailer-box',
   'rigid-lid-base': 'rigid-box',
