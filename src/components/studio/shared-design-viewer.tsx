@@ -131,6 +131,19 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
     setZoom(clamped);setViewPan(nextPan);
   };
 
+  // Wheel zooms the box instead of scrolling the page. React's onWheel is
+  // passive, so its preventDefault() is ignored (and warns); listen directly.
+  useEffect(()=>{
+    const wrap=canvasWrapRef.current;
+    if(!wrap)return;
+    const wheel=(event:WheelEvent)=>{
+      event.preventDefault();
+      applyZoom(wheelStudioZoom(zoomRef.current,event.deltaY,event.deltaMode,event.ctrlKey),event.clientX,event.clientY);
+    };
+    wrap.addEventListener('wheel',wheel,{passive:false});
+    return()=>wrap.removeEventListener('wheel',wheel);
+  // applyZoom reads refs only, so the first render's copy stays correct.
+  },[]);
   // Touch screens: pinch to zoom around the fingers, two fingers to pan.
   useEffect(()=>{
     const wrap=canvasWrapRef.current;
@@ -158,11 +171,6 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
       <div
         ref={canvasWrapRef}
         className="shared-design-canvas"
-        onWheel={event=>{
-          event.preventDefault();
-          const next=wheelStudioZoom(zoomRef.current,event.deltaY,event.deltaMode,event.ctrlKey);
-          applyZoom(next,event.clientX,event.clientY);
-        }}
       >
         <CartonEngine
           dimensions={state.dimensions}
