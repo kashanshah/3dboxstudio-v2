@@ -22,6 +22,8 @@ export type AdminUserRow = {
   campaign: string | null;
   landing: string | null;
   migrated: boolean;
+  /** When an admin gave the account Pro access (beta Pro features), or null. */
+  proSince: string | null;
   /** Latest design save or sign-in. */
   lastActiveAt: string | null;
   recentDesigns: { id: string; name: string; thumbnailUrl: string | null }[];
@@ -159,7 +161,7 @@ function userActivitySql(id: string) {
 }
 
 const USER_FIELDS = `u.id, u.name, u.email, u.email_verified_at, u.signup_method, u.created_at,
-  u.utm_source, u.utm_campaign, u.signup_landing_page, u.signup_landing_type, u.signup_referrer, u.migrated_from`;
+  u.utm_source, u.utm_campaign, u.signup_landing_page, u.signup_landing_type, u.signup_referrer, u.migrated_from, u.pro_access_at`;
 
 /** One user's projects, designs and distinct images (`id` is the user id expression). */
 function userCountsSql(id: string) {
@@ -424,6 +426,7 @@ type UserQueryRow = {
   signup_landing_type?: string | null;
   signup_referrer?: string | null;
   migrated_from?: string | null;
+  pro_access_at?: string | Date | null;
   last_active_at?: string | Date | null;
   recent_designs?: unknown;
   project_count: number;
@@ -453,6 +456,7 @@ function presentUser(row: UserQueryRow): AdminUserRow {
     campaign: row.utm_campaign?.trim() || null,
     landing: row.signup_landing_page?.trim() || row.signup_landing_type?.trim() || null,
     migrated: Boolean(row.migrated_from),
+    proSince: iso(row.pro_access_at ?? null),
     lastActiveAt: iso(row.last_active_at),
     recentDesigns: recent.flatMap((item) => typeof item.id === 'string' ? [{
       id: item.id,

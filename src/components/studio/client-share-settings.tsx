@@ -1,14 +1,22 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { BRAND_NAME_MAX, SHARE_PASSWORD_MAX, SHARE_PASSWORD_MIN } from '@/lib/share-brand';
+import { canUseFeature } from '@/lib/features';
+import { useAuth } from '@/components/auth/auth-provider';
 
-type Settings={brandName:string|null;logoAssetId:string|null;hasPassword:boolean};
+type ShareSettings={brandName:string|null;logoAssetId:string|null;hasPassword:boolean};
 type Asset={id:string;name:string;url:string;mimeType:string};
 
-// Pro, behind the clientShares flag: in the share dialog, the owner can put
-// their own name and logo on the link instead of ours, and ask for a password.
+// Pro (the clientShares flag, or Pro access given in the admin): in the share
+// dialog, the owner can put their own name and logo on the link instead of
+// ours, and ask for a password.
 export function ClientShareSettings({shareId}:{shareId:string}){
-  const [settings,setSettings]=useState<Settings|null>(null);
+  const {user}=useAuth();
+  return canUseFeature('clientShares',user)?<Settings shareId={shareId}/>:null;
+}
+
+function Settings({shareId}:{shareId:string}){
+  const [settings,setSettings]=useState<ShareSettings|null>(null);
   const [assets,setAssets]=useState<Asset[]>([]);
   const [brandName,setBrandName]=useState('');
   const [logoAssetId,setLogoAssetId]=useState('');
@@ -23,7 +31,7 @@ export function ClientShareSettings({shareId}:{shareId:string}){
       fetch('/api/media').then(response=>response.ok?response.json():{assets:[]}),
     ]).then(([shared,media])=>{
       if(cancelled||!shared)return;
-      const loaded=shared.settings as Settings;
+      const loaded=shared.settings as ShareSettings;
       setSettings(loaded);setBrandName(loaded.brandName??'');setLogoAssetId(loaded.logoAssetId??'');
       setAssets(((media?.assets??[]) as Asset[]).filter(asset=>asset.mimeType.startsWith('image/')));
     }).catch(()=>{if(!cancelled)setStatus('Could not load the link settings.');});
@@ -34,7 +42,7 @@ export function ClientShareSettings({shareId}:{shareId:string}){
     setBusy(true);setStatus('');
     try{
       const response=await fetch(`/api/shares/${encodeURIComponent(shareId)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({brandName,logoAssetId:logoAssetId||null,...change})});
-      const body=await response.json().catch(()=>({})) as {settings?:Settings;error?:string};
+      const body=await response.json().catch(()=>({})) as {settings?:ShareSettings;error?:string};
       if(!response.ok||!body.settings){setStatus(body.error??'Could not save the link settings.');return;}
       setSettings(body.settings);setPassword('');
       setStatus(change.password===null?'Password removed':change.password?'Saved. The link now asks for the password.':'Saved');

@@ -27,7 +27,13 @@ export function AdminUserProfileView({ profile, afterDelete }: { profile: AdminU
       <span className={p.verified ? 'admin-chip is-good' : 'admin-chip is-warn'}>{p.verified ? `Verified ${adminDate(p.verifiedAt)}` : 'Email not verified'}</span>
       {p.migrated ? <span className="admin-chip">Moved from the previous studio</span> : null}
       {p.activeShares ? <span className="admin-chip">{adminCount(p.activeShares, 'active share link')}</span> : null}
+      {p.proSince ? <span className="admin-chip is-good">Pro since {adminDate(p.proSince)}</span> : null}
     </div>
+    <form className="admin-pro-access" method="post" action={`/api/admin/users/${encodeURIComponent(p.id)}/pro`}>
+      <span><strong>Pro access</strong> <small className="admin-muted">Beta Pro features, such as branded links for clients. No billing.</small></span>
+      {p.proSince ? <button type="submit" className="admin-text-button">Remove Pro access</button>
+        : <><input type="hidden" name="pro" value="on" /><button type="submit" className="admin-text-button">Give Pro access</button></>}
+    </form>
     <dl className="admin-facts">
       <Fact label="Joined">{adminDate(p.createdAt)}</Fact>
       <Fact label="Last active">{adminRelative(p.lastActiveAt)}</Fact>

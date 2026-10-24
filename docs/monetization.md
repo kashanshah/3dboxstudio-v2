@@ -4,7 +4,7 @@ Plumbing for paid extras later. Nothing here charges anyone, and nothing that is
 
 ## Feature flags
 
-`src/lib/features.ts` holds every flag. A flag is `'off'` (nowhere), `'draft'` (Vercel previews and development only, like draft pages) or `'on'` (everywhere). `isFeatureOn(id)` works on the server and in the browser.
+`src/lib/features.ts` holds every flag. A flag is `'off'` (nowhere), `'draft'` (Vercel previews and development only, like draft pages), `'beta'` (a Pro flag only: on for accounts given Pro access in the admin) or `'on'` (everywhere). `isFeatureOn(id)` says whether a flag is on for the whole deployment; `canUseFeature(id, user)` also counts the account's Pro access. Both work on the server and in the browser.
 
 To try a flag on one deployment, set `NEXT_PUBLIC_FEATURES` to a comma-separated list of ids, for example `NEXT_PUBLIC_FEATURES=printQuote,nesting`. It is read at build time, so redeploy after changing it.
 
@@ -12,7 +12,7 @@ To try a flag on one deployment, set `NEXT_PUBLIC_FEATURES` to a comma-separated
 | --- | --- | --- | --- |
 | `printQuote` | draft | no | "Get this box printed" on the dieline generator |
 | `welcomeEmails` | draft | no | Welcome email and one follow-up for new accounts (`src/server/onboarding-emails.ts`) |
-| `clientShares` | off | yes | Share links with your own name and logo, and an optional password (plain share links stay free) |
+| `clientShares` | beta | yes | Share links with your own name and logo, and an optional password (plain share links stay free) |
 | `nesting` | off | yes | Nest several dielines on a press sheet |
 | `costEstimate` | off | yes | Estimated print cost for a quantity and board |
 | `savedDielines` | off | yes | A library of saved generator boxes (Studio projects stay free) |
@@ -74,11 +74,15 @@ To launch: set `CRON_SECRET` in the Vercel production environment (Vercel Cron s
 
 ## Client share links (Pro)
 
-Behind the `clientShares` flag, off everywhere. No billing yet: whoever can use the Studio on a deployment with the flag on can use it.
+Behind the `clientShares` flag, in beta: on for accounts given Pro access (below), off for everyone else. No billing yet.
 
 - **Brand**: the owner picks a business name and a logo from their image library in the share dialog. The shared page then shows their logo (or name) instead of 3D Box Studio's, with no "Design your own box" promotion, and leaves 3D Box Studio out of the page title.
 - **Password**: optional, 4 to 128 characters, stored as an scrypt hash. Visitors get a password page (`ShareUnlockForm`); the right password sets a 30-day cookie derived from the share id and the password hash, so changing or removing the password ends every unlocked visit. The design's images (`/api/shares/[id]/media/...`) need the same cookie (the logo does not: the password page shows it), the page title hides the design name until unlocked, and old `/preview/<token>` links stop working while a password is set. The unlock form allows 10 tries per 15 minutes.
-- Setting a brand or password needs the flag (`PATCH /api/shares/[id]`); once set they are always honoured, so switching the flag off never opens a protected share.
+- Setting a brand or password needs Pro access or the flag (`PATCH /api/shares/[id]`); once set they are always honoured, so switching the flag off never opens a protected share.
 - Code: `src/server/client-shares.ts`, `src/components/studio/client-share-settings.tsx`, tests in `scripts/client-shares.test.cjs`.
 
-To try it on one deployment: `NEXT_PUBLIC_FEATURES=clientShares`. Before charging for it, it needs a per-account Pro entitlement (and billing) instead of a deployment-wide flag.
+To try it on one deployment for everyone: `NEXT_PUBLIC_FEATURES=clientShares`.
+
+## Pro access
+
+Admin → Users → a user's popup → **Give Pro access** (or **Remove Pro access**). It stores the date in `users.pro_access_at` and turns on every `'beta'` Pro feature for that account; nothing is charged. Use it to hand beta features to a few designers and hear what they think. Billing would later set the same column, or replace it with a subscription record.
