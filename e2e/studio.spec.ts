@@ -25,9 +25,9 @@ async function openDesignStep(page: Page) {
   await settled(page.locator('.pro-dieline-live'));
 }
 
-/** A new reverse tuck carton, through the "Create a box design" dialog. */
-async function createDesign(page: Page, name: string, size = { width: 100, height: 150, depth: 50 }) {
-  await page.goto('/studio/editor?template=reverse-tuck-carton');
+/** A new box (a reverse tuck carton unless named), through the "Create a box design" dialog. */
+async function createDesign(page: Page, name: string, size = { width: 100, height: 150, depth: 50 }, template = 'reverse-tuck-carton') {
+  await page.goto(`/studio/editor?template=${template}`);
   await page.locator('#new-design-name').fill(name);
   await page.locator('#new-design-width').fill(String(size.width));
   await page.locator('#new-design-height').fill(String(size.height));
@@ -120,6 +120,26 @@ test('a size handle follows the pointer and changes the size one for one', async
   await page.mouse.up();
   const width = Number((await handle.getAttribute('aria-label'))?.match(/Width ([\d.]+) mm/)?.[1]);
   expect(width).toBeGreaterThan(100);
+});
+
+test('a size too small to fold keeps the 3D view up and says why', async ({ page }) => {
+  // Sizes apply as they're typed, so 1 mm passes through on the way to 150;
+  // at 1 mm a mailer's ears no longer meet its walls on 1.5 mm board.
+  await createDesign(page, 'E2E tiny mailer', { width: 220, height: 80, depth: 160 }, 'mailer-box');
+  await openDesignStep(page);
+  await setSheetSize(page, 'Height', 1);
+  await page.getByRole('button', { name: /^3\s*Preview/ }).click();
+  const note = page.getByRole('status').filter({ hasText: 'Too small to fold in 3D' });
+  await expect(note).toBeVisible();
+  await expect(note).toContainText('Use a height of at least 20 mm');
+  await expect(page.getByText('This view hit a problem')).toHaveCount(0);
+
+  // Back to a size that folds: the box follows and the note goes.
+  await openDesignStep(page);
+  await setSheetSize(page, 'Height', 150);
+  await page.getByRole('button', { name: /^3\s*Preview/ }).click();
+  await expect(note).toHaveCount(0);
+  await expect(page.getByText('This view hit a problem')).toHaveCount(0);
 });
 
 test('download the 1:1 print PDF', async ({ page }) => {

@@ -874,6 +874,8 @@ body{font-size:var(--type-body)}
 
 /* Flap drag handles: a grip on each flap's free edge. */
 .carton-engine-measures-hint{position:absolute;left:50%;top:16px;transform:translateX(-50%);z-index:3;padding:6px 12px;border:1px solid #dce5ef;border-radius:999px;background:rgba(255,255,255,.94);color:var(--muted);font-size:12px;font-weight:600;pointer-events:none;box-shadow:0 2px 8px rgba(15,23,42,.06)}
+.carton-engine-measures-hint.is-unfoldable{width:max-content;max-width:min(46ch,calc(100% - 32px));border-color:#f3d9a4;border-radius:12px;background:rgba(255,251,240,.96);color:#5b4a1f;font-weight:500;line-height:1.45;text-align:center}
+.carton-engine-measures-hint.is-unfoldable strong{display:block;color:#3d3214;font-weight:650}
 
 /* Studio type scale. Every size in the editor is one of these six, so the
    canvas leads and panels stay calm: caps labels, help and units, body and
