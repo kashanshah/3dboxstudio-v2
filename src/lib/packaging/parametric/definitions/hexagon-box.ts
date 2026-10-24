@@ -1,5 +1,5 @@
 import type { Expr } from '../expression';
-import type { HingeSpec, ModelPanelSpec, PanelSpec, ParametricTemplate } from '../format';
+import type { HingeSpec, LineSpec, ModelPanelSpec, PanelSpec, ParametricTemplate } from '../format';
 import { pairedPanelRegions, panelRegions } from './artwork-regions';
 
 // A hexagon box: a regular hexagonal base and a lid that fits over it, cut
@@ -46,7 +46,7 @@ const capOf = (p: Piece) => (p === 'base' ? 'bottom' : 'lidTop');
  * one side of it and the hexagon and flaps on the other: below the base's
  * walls, above the lid's (dir is the way they go down the sheet).
  */
-function pieceSheet(p: Piece): { panels: PanelSpec[]; model: ModelPanelSpec[] } {
+function pieceSheet(p: Piece): { panels: PanelSpec[]; model: ModelPanelSpec[]; slits: LineSpec[] } {
   const v = (name: string) => `${p}${name}`;
   const [x0, c, s, a, h, flap] = [v('X0'), v('C'), v('S'), v('A'), v('H'), v('Flap')];
   const dir = p === 'base' ? 1 : -1;
@@ -69,15 +69,19 @@ function pieceSheet(p: Piece): { panels: PanelSpec[]; model: ModelPanelSpec[] } 
       ...(k === 5 ? { model: [[wallX(k), top], [`${wallX(k)} + ${wallW(k)} + seamReach`, top], [`${wallX(k)} + ${wallW(k)} + seamReach`, bottom], [wallX(k), bottom]] } : {}),
     })),
     // A flap on every wall but the back, which the hexagon hinges on. Its
-    // sides run at 60° to the crease, a relief in from each end.
+    // sides run at 60° to the crease, a relief in from each end against the
+    // next flap. Beside the hexagon there is no relief: the back left flap's
+    // side runs along the hexagon's edge, so one cut parts them rather than
+    // two close together leaving a sliver.
     ...WALLS.slice(1).map((wall, i): PanelSpec => {
       const k = i + 1;
       const [xa, xb] = [wallX(k), `${wallX(k)} + ${wallW(k)}`];
+      const start = k === 1 ? xa : `${xa} + relief`;
       return {
         id: id(p, `${wall.id}Flap`), label: label(p, `${wall.label} FLAP`), kind: 'flap', layer: 0, closureFlap: true,
         outline: [
-          [`${xa} + relief`, c], [`${xb} - relief`, c],
-          [`${xb} - relief - ${flap} / sqrt(3)`, out(flap)], [`${xa} + relief + ${flap} / sqrt(3)`, out(flap)],
+          [start, c], [`${xb} - relief`, c],
+          [`${xb} - relief - ${flap} / sqrt(3)`, out(flap)], [`${start} + ${flap} / sqrt(3)`, out(flap)],
         ],
       };
     }),
@@ -87,8 +91,12 @@ function pieceSheet(p: Piece): { panels: PanelSpec[]; model: ModelPanelSpec[] } 
     [x0, c], [`${x0} + ${s}`, c], [`${x0} + 1.5 * ${s}`, out(a)],
     [`${x0} + ${s}`, out(`2 * ${a}`)], [x0, out(`2 * ${a}`)], [`${x0} - 0.5 * ${s}`, out(a)],
   ];
+  // Where the back left flap's side ends on the hexagon's edge: a corner of
+  // the cut outline, so the edge they share is one cut.
+  const flapEnd: [Expr, Expr] = [`${x0} + ${s} + ${flap} / sqrt(3)`, out(flap)];
   panels.push({
-    id: capOf(p), label: p === 'base' ? 'BOTTOM' : 'LID TOP', kind: 'body', layer: 2, outline: corners,
+    id: capOf(p), label: p === 'base' ? 'BOTTOM' : 'LID TOP', kind: 'body', layer: 2,
+    outline: [corners[0], corners[1], flapEnd, ...corners.slice(2)],
     // The model folds it as two halves (below); this is only the shape the format asks for.
     fold: [corners[0], corners[1], corners[3], corners[4]],
     ...(p === 'lid' ? { artworkRotation: 180 as const } : {}),
@@ -99,7 +107,8 @@ function pieceSheet(p: Piece): { panels: PanelSpec[]; model: ModelPanelSpec[] } 
     { id: `${capOf(p)}Near`, of: capOf(p), outline: [corners[0], corners[1], corners[2], corners[5]] },
     { id: `${capOf(p)}Far`, of: capOf(p), outline: [corners[5], corners[2], corners[3], corners[4]] },
   ];
-  return { panels, model };
+  // That shared edge is cut, not creased.
+  return { panels, model, slits: [{ from: corners[1], to: flapEnd }] };
 }
 
 function pieceHinges(p: Piece): HingeSpec[] {
@@ -168,6 +177,7 @@ export const hexagonBoxDefinition = {
     { key: 'lidFlap', label: 'Lid flaps', min: 4, max: flapMax('lid') },
   ],
   panels: [...lid.panels, ...base.panels],
+  slits: [...lid.slits, ...base.slits],
   validations: [
     { require: 'width >= 40', message: 'The hexagon is too small for its flaps and glue flap. Use a width across the flats of at least 40 mm.' },
     { require: 'height >= max(15, 6 * t)', message: 'The base is too shallow for its glue flap. Use a height of at least {max(15, 6 * t)} mm.' },

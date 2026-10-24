@@ -682,7 +682,12 @@ test('the hexagon box glues into two hexagonal tubes, the lid fitting over the b
       const id=name=>p?`lid${name[0].toUpperCase()}${name.slice(1)}`:name;
       const cap=p?'lidTop':'bottom';
       // The hexagon is regular, crease to crease a board more across the flats than the inside (the lid's, more again).
-      const corners=panel(cap).outline;
+      // Six corners, and one more on the edge where the back left flap's side ends.
+      const outline=panel(cap).outline;
+      const corners=outline.filter((point,i)=>{
+        const a=outline[(i+outline.length-1)%outline.length],b=outline[(i+1)%outline.length];
+        return Math.abs((point.x-a.x)*(b.y-a.y)-(point.y-a.y)*(b.x-a.x))>1e-6;
+      });
       assert.equal(corners.length,6,`${cap} has six corners`);
       const sides=corners.map((a,i)=>Math.hypot(corners[(i+1)%6].x-a.x,corners[(i+1)%6].y-a.y));
       for(const side of sides)within(side,sides[0],1e-9,`${cap} sides (${size})`);
@@ -699,8 +704,23 @@ test('the hexagon box glues into two hexagonal tubes, the lid fitting over the b
         within(Math.abs(Math.atan2(Math.abs(d.y-a.y),d.x-a.x)*180/Math.PI),60,1e-6,`${ids[k]} flap side angle (${size})`);
       }
       assert.ok(sheet.crease.some(line=>along(line,ids[0],id('glue'))),`the glue flap creases onto ${ids[0]} (${size})`);
-      // The flap beside the hexagon is cut free of it, not creased to it.
-      assert.ok(!sheet.crease.some(line=>along(line,cap,`${ids[1]}Flap`)),`${ids[1]} flap is cut free of the ${cap} (${size})`);
+      // The flap beside the hexagon shares its edge, parted by one cut, not creased to it.
+      assert.ok(!sheet.crease.some(line=>along(line,cap,`${ids[1]}Flap`)),`${ids[1]} flap is not creased to the ${cap} (${size})`);
+      const shared=sheet.cut.filter(line=>along(line,cap,`${ids[1]}Flap`));
+      assert.equal(shared.length,1,`${ids[1]} flap and the ${cap} share one cut (${size})`);
+    }
+
+    // No two parallel cuts run close together: a sliver of waste on a die,
+    // and card that tears between them on a cutting machine.
+    const segments=sheet.cut.map(line=>({...line,length:Math.hypot(line.end.x-line.start.x,line.end.y-line.start.y)})).filter(line=>line.length>1e-6);
+    for(const [i,a] of segments.entries())for(const b of segments.slice(i+1)){
+      const [ux,uy]=[(a.end.x-a.start.x)/a.length,(a.end.y-a.start.y)/a.length];
+      if(Math.abs(ux*(b.end.y-b.start.y)-uy*(b.end.x-b.start.x))>b.length*Math.sin(Math.PI/180))continue;
+      const gap=Math.abs((b.start.x-a.start.x)*uy-(b.start.y-a.start.y)*ux);
+      if(gap<1e-6)continue;
+      const along1=(b.start.x-a.start.x)*ux+(b.start.y-a.start.y)*uy,along2=(b.end.x-a.start.x)*ux+(b.end.y-a.start.y)*uy;
+      const overlap=Math.min(a.length,Math.max(along1,along2))-Math.max(0,Math.min(along1,along2));
+      if(overlap>1)assert.ok(gap>=2,`parallel cuts ${gap.toFixed(2)} mm apart for ${overlap.toFixed(1)} mm (${size})`);
     }
 
     // Closed: walls meet at 120°, the base is the size entered inside, the
