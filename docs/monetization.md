@@ -41,16 +41,16 @@ To launch it, set `printQuote` to `'on'`. Before that:
 
 ### Printing partners to approach
 
-Partner with printers that print from the customer's own dieline and artwork, not with packaging sites that have their own online box designer (Packhelp, Arka, Pacdora's printing): sending visitors there teaches them to design there next time.
+Partner with printers that print from the customer's own dieline and artwork, not with packaging sites that have their own online box designer (such as Packhelp and Arka): sending visitors there teaches them to design there next time.
 
 Keep the visitor on 3D Box Studio: the quote form takes the request here and we pass it on, so the printer quotes for the box designed here. The partner pays a fixed fee per lead or a share of orders, under a written agreement. Offer printing only once the dieline is finished or exported, never mid-design.
 
-These printers advertise low minimums and quote from customer files. The terms come from their own marketing as of October 2026: confirm them before agreeing anything, and check none of them pushes visitors into an online designer of its own.
+These printers advertise low minimums and custom quotes. The terms come from their own marketing as of October 2026: confirm them before agreeing anything, and check none of them pushes visitors into an online designer of its own.
 
 | Printer | Why | To check |
 | --- | --- | --- |
-| The Best Price Boxes | No minimum, free design help, quotes from customer files, matches written competitor quotes | Lead fee or share of orders |
-| Dream Custom Boxes | No minimum, mailer boxes from about $0.50 each | Lead fee or share of orders |
+| The Best Price Boxes | No minimum, free design help and digital proofs, matches written competitor quotes | Whether it prints from a customer dieline; lead fee or share of orders |
+| Dream Custom Boxes | No minimum, mailer boxes from about $0.50 each | Whether it prints from a customer dieline; lead fee or share of orders |
 | BoxUp | US, no minimum, single sample box | Whether it prints from a customer dieline or only from its own designer |
 
 ## Affiliate links
