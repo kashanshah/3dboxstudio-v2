@@ -87,6 +87,19 @@ test.describe('signed in', () => {
     await user.close();
   });
 
+  test('emails: every template previews under Templates, and a test lands in the admin inbox', async ({ page }) => {
+    await openAdmin(page, '/admin/emails?tab=templates');
+    for (const label of ['Welcome', 'Welcome follow-up · no design yet', 'Welcome follow-up · has a design', 'Email verification', 'Password reset']) {
+      await expect(page.getByRole('button', { name: new RegExp(`^${label}`) }).first()).toBeVisible();
+    }
+    await page.getByRole('button', { name: /^Welcome follow-up · has a design/ }).click();
+    await expect(page.frameLocator('iframe.admin-template-preview').getByText('Share it')).toBeVisible();
+    await page.getByRole('button', { name: 'Send a test to me' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Sent to' })).toBeVisible();
+    const email = await latestEmailTo(siteEnv.ADMIN_EMAIL, /^\[Test\] Your box design/);
+    expect(email.subject).toBe('[Test] Your box design: share it and export it');
+  });
+
   test('designs and search find the design and its owner', async ({ page }) => {
     await openAdmin(page, '/admin/designs');
     await expect(page.getByRole('row').filter({ hasText: DESIGN_NAME }).first()).toBeVisible();
@@ -116,7 +129,7 @@ test.describe('signed in', () => {
 
   test('the dashboard and every admin page load', async ({ page }) => {
     await openAdmin(page);
-    for (const path of ['/admin/users', '/admin/designs', '/admin/media', '/admin/contacts', '/admin/feedback', '/admin/emails', '/admin/campaigns', '/admin/settings', '/admin/search']) {
+    for (const path of ['/admin/emails?tab=templates', '/admin/users', '/admin/designs', '/admin/media', '/admin/contacts', '/admin/feedback', '/admin/emails', '/admin/campaigns', '/admin/settings', '/admin/search']) {
       await openAdmin(page, path);
     }
   });

@@ -109,7 +109,7 @@ export function renderOnboardingFollowUpTemplate(input: { name?: string | null; 
   const ask = 'Stuck, or missing a box style or feature? Reply to this email. A real person reads it.';
   const [cta, ctaUrl] = input.hasDesign ? ['Open your designs', studio] : ['Choose a box template', templates];
   return {
-    subject: input.hasDesign ? 'Your box design: share it, export it, print it' : 'Your first box in three steps',
+    subject: input.hasDesign ? 'Your box design: share it and export it' : 'Your first box in three steps',
     text: `${textGreeting(input.name)}\n\n${intro}\n\n${tips.map(([title, body]) => `- ${title}: ${body}`).join('\n')}\n\n${cta}: ${ctaUrl}\n\n${ask}\n\nYou get this because you created a 3D Box Studio account. This is the last of our two welcome emails. Unsubscribe: ${unsubscribe}`,
     html: shell(input.hasDesign ? 'Share, export and size your box.' : 'Template, artwork, 3D preview.', 'Getting started', input.hasDesign ? 'Make the most of your design' : 'Your first box in three steps',
       greeting(input.name) + paragraph(esc(intro)) + bullets(tips.map(([title, body]) => `<b>${esc(title)}</b>: ${esc(body)}`)) + button(ctaUrl, cta) + paragraph(esc(ask))
@@ -168,6 +168,7 @@ export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
   const unsubscribeUrl = appUrl('/unsubscribe?token=sample-preview-token');
   const welcome = renderWelcomeTemplate({ name: 'Alex', unsubscribeUrl });
   const followUp = renderOnboardingFollowUpTemplate({ name: 'Alex', hasDesign: false, unsubscribeUrl });
+  const followUpDesigned = renderOnboardingFollowUpTemplate({ name: 'Alex', hasDesign: true, unsubscribeUrl });
   const verification = renderVerificationTemplate({ name: 'Alex', verifyUrl: appUrl('/verify-email?token=sample-preview-token') });
   const reset = renderPasswordResetTemplate({ name: 'Alex', resetUrl: appUrl('/reset-password?token=sample-preview-token') });
   return [
@@ -175,7 +176,8 @@ export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
     { id: 'admin-print-quote', label: 'Admin · Print quote request', description: 'Sent to the configured admin address for each "Get this box printed" request. Replies go to the visitor.', ...quote, sourcePath: 'src/server/email/templates.ts' },
     { id: 'admin-site-feedback', label: 'Admin · Site feedback', description: 'Sent to the configured admin address for feedback from the Studio and the dieline generator, when contact notifications are on. Replies go to the visitor when they gave an email.', ...feedback, sourcePath: 'src/server/email/templates.ts' },
     { id: 'welcome', label: 'Welcome', description: 'Sent once when an account is verified (email sign-up) or created with Google, while the welcomeEmails feature is on. Replies go to the admin address.', ...welcome, sourcePath: 'src/server/email/templates.ts' },
-    { id: 'onboarding-follow-up', label: 'Welcome follow-up', description: 'Sent once, 3 days after the welcome, by the daily onboarding job. Suggests next steps by whether the person has saved a design (this preview: none yet).', ...followUp, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'onboarding-follow-up', label: 'Welcome follow-up · no design yet', description: 'Sent once, 3 days after the welcome, to people who have not saved a design yet.', ...followUp, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'onboarding-follow-up-designed', label: 'Welcome follow-up · has a design', description: 'Sent once, 3 days after the welcome, to people who have saved a design.', ...followUpDesigned, sourcePath: 'src/server/email/templates.ts' },
     { id: 'verification', label: 'Email verification', description: 'Sent after email signup or a verification resend. One-use link expires in 24 hours.', ...verification, sourcePath: 'src/server/email/templates.ts' },
     { id: 'password-reset', label: 'Password reset', description: 'Sent for password recovery. One-use link expires in 1 hour.', ...reset, sourcePath: 'src/server/email/templates.ts' },
   ];

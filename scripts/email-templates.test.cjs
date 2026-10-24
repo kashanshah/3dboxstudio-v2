@@ -5,7 +5,7 @@ Module._resolveFilename=function(request,...args){return resolve.call(this,reque
 require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);
 const {getEmailTemplatePreviews,renderVerificationTemplate,renderPasswordResetTemplate,renderAdminContactTemplate}=require('../src/server/email/templates.ts');
 test('all email previews include readable HTML and plain text; active previews use production renderers',()=>{
- const previews=getEmailTemplatePreviews();assert.equal(previews.length,7);
+ const previews=getEmailTemplatePreviews();assert.equal(previews.length,8);
  for(const item of previews){assert.match(item.html,/<html lang="en">/);assert.match(item.html,/role="presentation"/);assert.match(item.html,/mso-padding-alt/);assert.match(item.html,/\/brand\/logo-horizontal-light\.png/);assert.match(item.html,/alt="3DBoxStudio"/);assert.doesNotMatch(item.html,/<script|\.svg|future account flow/);assert.ok(item.text.length>100);}
  for(const [id,render,prop,pathname] of [['verification',renderVerificationTemplate,'verifyUrl','/verify-email'],['password-reset',renderPasswordResetTemplate,'resetUrl','/reset-password']]){
   const preview=previews.find(x=>x.id===id),url=preview.text.match(/https?:\/\/[^\s]+/)[0];assert.equal(new URL(url).pathname,pathname);
