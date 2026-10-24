@@ -234,9 +234,19 @@ test('a hexagon box is created, named by its own sizes, and folds in 3D', async 
   await expect(page.getByRole('status').filter({ hasText: 'Too small to fold in 3D' })).toHaveCount(0);
   // The 3D view draws the box: the canvas is not one flat colour.
   await expect.poll(async () => {
-    const shot = await canvas.screenshot();
-    const { default: sharp } = await import('sharp');
-    const { channels } = await sharp(shot).stats();
-    return Math.max(...channels.slice(0, 3).map(channel => channel.stdev));
+    const shot = (await canvas.screenshot()).toString('base64');
+    // The screenshot's brightness spread, measured in the page.
+    return page.evaluate(async png => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const context = Object.assign(document.createElement('canvas'), { width: image.width, height: image.height }).getContext('2d')!;
+      context.drawImage(image, 0, 0);
+      const data = context.getImageData(0, 0, image.width, image.height).data;
+      let sum = 0, squares = 0;
+      for (let i = 0; i < data.length; i += 4) { const value = (data[i] + data[i + 1] + data[i + 2]) / 3; sum += value; squares += value * value; }
+      const count = data.length / 4, mean = sum / count;
+      return Math.sqrt(squares / count - mean * mean);
+    }, shot);
   }).toBeGreaterThan(10);
 });
