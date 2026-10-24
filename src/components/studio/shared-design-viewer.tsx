@@ -12,10 +12,14 @@ import { attachTouchPinch } from '@/lib/touch-pinch';
 import { getTemplateAssemblyState, getTemplateRuntime, templateAssemblyValuesForProgress } from '@/lib/packaging/template-runtime';
 import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packaging/full-dieline-artwork';
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
+import type { ShareBrand } from '@/lib/share-brand';
+import { SharedBrand } from '@/components/studio/shared-brand';
 
 const PROMO_HREF='/studio?ref=shared-design';
 
-export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean}){
+/** brand: a client share's own name and logo, shown instead of 3D Box Studio's (src/server/client-shares.ts). */
+export function SharedDesignViewer({name,state:savedState,legacy,promo:showPromo=true,brand=null}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean;brand?:ShareBrand|null}){
+  const promo=showPromo&&!brand;
   const state=useMemo(()=>migrateStudioLayout(savedState),[savedState]);
   const runtime=getTemplateRuntime(state.templateId);
   if(!runtime)throw new Error(`No runtime is registered for template: ${state.templateId}`);
@@ -161,9 +165,9 @@ export function SharedDesignViewer({name,state:savedState,legacy,promo=true}:{na
 
   return <main className="shared-design-viewer">
     <header className="shared-design-header">
-      <Brand/>
+      {brand?<SharedBrand brand={brand}/>:<Brand/>}
       <div><strong>{name}</strong><span>{legacy?'Legacy shared design':'Shared design'} · View only</span></div>
-      {promo
+      {brand?<span/>:promo
         ? <Link className="shared-design-header-cta" href={PROMO_HREF} onClick={()=>trackEvent('shared_design_cta_clicked',{placement:'header'})}>Design your own box — free <ArrowRight size={15}/></Link>
         : <Link href="/studio">Open 3D Box Studio</Link>}
     </header>

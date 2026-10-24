@@ -41,6 +41,8 @@ for (const route of routes) {
         'next/server': { NextResponse },
         '@/server/media-response-headers': helper,
         '@/server/design-shares': { getMigratedShareAsset: async () => meta, getShareMedia: async () => meta },
+        'next/headers': { cookies: async () => ({ get: () => undefined }) },
+        '@/server/client-shares': { isShareUnlocked: () => true, unlockCookieName: id => `share_unlock_${id}` },
         '@/server/media-assets': {
           readStoredObject: async () => ({ body: new Blob([bytes]).stream(), byteSize: bytes.length, contentType: 'image/png' }),
           readMediaAsset: async () => ({ body: new Blob([bytes]).stream(), byteSize: bytes.length, contentType: 'image/png', row: meta }),

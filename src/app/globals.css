@@ -888,3 +888,16 @@ body{font-size:var(--type-body)}
   --fs-panel:16px;
   --fs-display:20px;
 }
+
+/* Client shares: the owner's logo or name instead of ours, and the password page. */
+.shared-brand{display:inline-flex;align-items:center;min-width:0;max-width:220px}
+.shared-brand img{display:block;max-height:40px;max-width:100%;width:auto;object-fit:contain}
+.shared-brand b{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.share-unlock-page{min-height:100vh}
+.share-unlock{max-width:380px;margin:12vh auto 0;padding:0 16px;display:grid;gap:14px;text-align:center}
+.share-unlock>svg{justify-self:center;width:32px;height:32px;color:var(--accent)}
+.share-unlock h1{margin:0;font-size:24px}
+.share-unlock p{margin:0;color:var(--muted)}
+.share-unlock label{display:grid;gap:6px;text-align:left;font-weight:700;font-size:14px}
+.share-unlock input{height:44px;padding:0 12px;border:1px solid var(--line);border-radius:9px;font:inherit}
+.share-unlock .share-unlock-error{color:#b42318}

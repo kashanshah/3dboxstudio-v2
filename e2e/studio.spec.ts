@@ -1,4 +1,6 @@
 import { readFile } from 'node:fs/promises';
+import { randomBytes, scryptSync } from 'node:crypto';
+import { DB_PORT } from './support/env';
 import type { Locator, Page } from '@playwright/test';
 import { test, expect } from './support/fixtures';
 import { USER_STATE } from './support/user';
@@ -167,6 +169,43 @@ test('a share link opens for someone who is signed out', async ({ page, browser 
   expect(response?.status()).toBe(200);
   await expect(visitorPage.getByText('E2E shared').first()).toBeVisible();
   await expect(visitorPage.locator('canvas').first()).toBeVisible();
+  expect(errors).toEqual([]);
+  await visitor.close();
+});
+
+// Setting a brand and password needs the Pro clientShares flag, which this
+// build does not have; once set they are always honoured, so set them in the
+// database and check what a visitor sees.
+test('a password-protected client share asks for the password, then shows the owner\'s name', async ({ page, browser }) => {
+  await createDesign(page, 'E2E client box');
+  await page.getByRole('button', { name: 'Share', exact: true }).click();
+  const path = new URL(await page.getByLabel('Share link').inputValue()).pathname;
+  const shareId = path.split('/').pop()!;
+  const salt = randomBytes(16);
+  const hash = `${salt.toString('hex')}:${scryptSync('open sesame', salt, 64).toString('hex')}`;
+  const updated = await fetch(`http://127.0.0.1:${DB_PORT}/sql`, { method: 'POST', body: JSON.stringify({
+    query: "UPDATE design_shares SET brand_name='Acme Packaging', password_hash=$1 WHERE id=$2", params: [hash, shareId],
+  }) });
+  expect(updated.ok).toBe(true);
+
+  const visitor = await browser.newContext();
+  const visitorPage = await visitor.newPage();
+  const errors: string[] = [];
+  visitorPage.on('pageerror', (error) => errors.push(error.message));
+  await visitorPage.goto(path);
+  await expect(visitorPage.getByRole('heading', { name: 'This design is password protected' })).toBeVisible();
+  await expect(visitorPage.getByText('E2E client box')).toHaveCount(0);
+  await expect(visitorPage).toHaveTitle('Shared design');
+  await visitorPage.getByLabel('Password').fill('wrong');
+  await visitorPage.getByRole('button', { name: 'View design' }).click();
+  await expect(visitorPage.getByText('That password is not right.')).toBeVisible();
+  await visitorPage.getByLabel('Password').fill('open sesame');
+  await visitorPage.getByRole('button', { name: 'View design' }).click();
+  await expect(visitorPage.getByText('E2E client box').first()).toBeVisible();
+  await expect(visitorPage.getByText('Acme Packaging').first()).toBeVisible();
+  await expect(visitorPage.locator('canvas').first()).toBeVisible();
+  await expect(visitorPage.getByText('Design your own box, free')).toHaveCount(0);
+  await expect(visitorPage).toHaveTitle('E2E client box | Acme Packaging');
   expect(errors).toEqual([]);
   await visitor.close();
 });

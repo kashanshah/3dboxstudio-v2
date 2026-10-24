@@ -16,6 +16,7 @@ export type Feature = { status: FeatureStatus; pro: boolean; summary: string };
 export const FEATURES = {
   printQuote: { status: 'draft', pro: false, summary: 'Get this box printed: a quote request form on the dieline generator, emailed to the admin.' },
   welcomeEmails: { status: 'draft', pro: false, summary: 'A welcome email when an account is verified, and one follow-up 3 days later, each with an unsubscribe link.' },
+  clientShares: { status: 'off', pro: true, summary: 'Branded links for clients: your name and logo instead of ours, and an optional password. Plain share links stay free.' },
   nesting: { status: 'off', pro: true, summary: 'Nest several dielines on a press sheet (imposition).' },
   costEstimate: { status: 'off', pro: true, summary: 'An estimated print cost for a box at a given quantity and board.' },
   savedDielines: { status: 'off', pro: true, summary: 'A library of saved generator boxes. Saving Studio projects stays free.' },

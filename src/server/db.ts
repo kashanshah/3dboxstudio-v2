@@ -190,6 +190,11 @@ const V2_SCHEMA = [
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_preview_token ON design_shares(preview_token) WHERE preview_token IS NOT NULL`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_design_shares_project_active ON design_shares(project_id) WHERE project_id IS NOT NULL AND revoked_at IS NULL`,
   `CREATE INDEX IF NOT EXISTS idx_design_shares_user_updated ON design_shares(user_id,updated_at DESC)`,
+  // Client share links (src/server/client-shares.ts): the owner's name and
+  // logo instead of ours, and an optional password (scrypt hash).
+  `ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS brand_name TEXT`,
+  `ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS brand_logo_asset_id TEXT`,
+  `ALTER TABLE design_shares ADD COLUMN IF NOT EXISTS password_hash TEXT`,
   // Migrated V1 shares were inserted with user_id NULL when the owner was not
   // yet a V2 user. Attribute them to the owning V2 user (V1 user ids are kept
   // as users.id) so owners can manage/revoke them through the V2 share API.

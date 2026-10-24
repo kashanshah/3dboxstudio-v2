@@ -3789,3 +3789,18 @@
 .pro-video-colour code{font-size:var(--fs-meta);color:#26354a}
 /* A shaped flap's name at its centroid (a glue tab past a 45° crease). */
 .dl-live .dl-label.is-anchored{position:absolute;transform:translate(-50%,-50%)}
+/* Pro client share settings in the share dialog (client-share-settings.tsx). */
+.client-share-settings{display:grid;gap:12px;padding-top:14px;border-top:1px solid var(--line)}
+.client-share-settings h3{margin:0;font-size:14px}
+.client-share-settings h3 small{margin-left:6px;padding:2px 6px;border-radius:6px;background:var(--accent);color:#fff;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.client-share-settings label{display:grid;gap:5px;font-size:13px;font-weight:600}
+.client-share-settings input[type=password],.client-share-settings input:not([type]){height:38px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit;font-weight:400}
+.client-share-settings fieldset{margin:0;padding:0;border:0;display:grid;gap:6px}
+.client-share-settings legend{margin-bottom:6px;font-size:13px;font-weight:600}
+.client-share-logos{display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow:auto}
+.client-share-logos label{width:58px;height:58px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-weight:400}
+.client-share-logos label.is-checked{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.client-share-logos input{position:absolute;opacity:0;pointer-events:none}
+.client-share-logos img{max-width:48px;max-height:48px;object-fit:contain}
+.client-share-actions{display:flex;justify-content:flex-end;gap:8px}
+.client-share-status{margin:0;font-size:13px}
