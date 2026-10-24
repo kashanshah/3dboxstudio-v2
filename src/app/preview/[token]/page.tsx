@@ -14,5 +14,5 @@ export default async function LegacyPreviewPage({params}:{params:Promise<{token:
   const {token}=await params;
   const share=await getPreviewShare(token);
   if(!share)notFound();
-  return <SharedDesignViewer name={share.name} state={share.state} legacy={share.legacy}/>;
+  return <SharedDesignViewer name={share.name} state={share.state} legacy={share.legacy} brand={share.brand}/>;
 }

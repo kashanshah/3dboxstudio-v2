@@ -4,6 +4,7 @@ import { validProjectState,type StudioProjectState } from '@/lib/studio-project'
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
 import { decodeRouteParam } from '@/lib/route-params';
 import { ensureLegacyStoredObject } from '@/server/media-assets';
+import { shareBrand,type ShareBrand } from '@/server/client-shares';
 
 const SHARE_TOKEN_RE=/^[0-9A-Za-z]{10,24}$/;
 function createShareId(){return randomBytes(12).toString('base64url').replace(/[-_]/g,'').slice(0,14);}
@@ -19,7 +20,8 @@ function rewriteMediaUrls(state:StudioProjectState,shareId:string):StudioProject
  };
 }
 
-export type PublicShare={id:string;name:string;state:StudioProjectState;legacy:boolean;updatedAt:string|null};
+/** passwordHash is for the server to check a visitor's unlock cookie; never send it to the browser. */
+export type PublicShare={id:string;name:string;state:StudioProjectState;legacy:boolean;updatedAt:string|null;brand:ShareBrand|null;passwordHash:string|null};
 
 export type LegacyShareRow={source:string;source_id:string;payload:unknown};
 
@@ -64,6 +66,8 @@ function legacyRowToPublicShare(row:LegacyShareRow):PublicShare|null{
   state:converted.state,
   legacy:true,
   updatedAt:converted.updatedAt,
+  brand:null,
+  passwordHash:null,
  };
 }
 
@@ -104,7 +108,7 @@ export async function upsertDesignShare(userId:string,input:{projectId?:string|n
  return rows[0];
 }
 
-type ShareRow={id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string;user_id:string|null;legacy_assets:unknown;active:boolean};
+type ShareRow={id:string;name:string;studio_state:unknown;legacy_source:boolean;updated_at:string;user_id:string|null;legacy_assets:unknown;active:boolean;brand_name?:string|null;brand_logo_asset_id?:string|null;password_hash?:string|null};
 type Sql=ReturnType<typeof getSql>;
 
 function legacyPreviewToken(payload:unknown){
@@ -130,7 +134,7 @@ async function findShareRows(sql:Sql,where:{id?:string|null;previewToken?:string
  // and expired rows are returned too so callers can refuse to fall back to
  // legacy_records for a share its owner revoked.
  return await sql`
-  SELECT id,name,studio_state,legacy_source,updated_at,user_id,legacy_assets,
+  SELECT id,name,studio_state,legacy_source,updated_at,user_id,legacy_assets,brand_name,brand_logo_asset_id,password_hash,
          (revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())) AS active
   FROM design_shares
   WHERE id=${where.id??null} OR (${where.previewToken??null}::text IS NOT NULL AND preview_token=${where.previewToken??null})
@@ -184,7 +188,8 @@ export async function ensureLegacyShareRow(sql:Sql,legacy:LegacyShareRow):Promis
 
 function publicShareFromRow(row:ShareRow):PublicShare|null{
  if(!row.active||!validProjectState(row.studio_state))return null;
- return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at};
+ return {id:row.id,name:row.name,state:rewriteMediaUrls(row.studio_state,row.id),legacy:row.legacy_source,updatedAt:row.updated_at,
+  brand:shareBrand(row.id,{brand_name:row.brand_name??null,brand_logo_asset_id:row.brand_logo_asset_id??null}),passwordHash:row.password_hash??null};
 }
 
 async function activeLegacyShareRecord(sql:Sql,where:{sourceId?:string;previewToken?:string;ownerId?:string}){
@@ -253,6 +258,10 @@ export async function getPublicShare(id:string,countView=true):Promise<PublicSha
  return share;
 }
 
+export async function countShareView(id:string){
+ await getSql()`UPDATE design_shares SET view_count=view_count+1 WHERE id=${id}`;
+}
+
 export async function getPreviewShare(previewToken:string):Promise<PublicShare|null>{
  if(!SHARE_TOKEN_RE.test(previewToken))return null;
  await ensureV2Schema();
@@ -262,7 +271,9 @@ export async function getPreviewShare(previewToken:string):Promise<PublicShare|n
   const legacy=await activeLegacyShareRecord(sql,{previewToken});
   if(legacy)row=await ensureLegacyShareRow(sql,legacy);
  }
- return row?publicShareFromRow(row):null;
+ // Preview links predate passwords and have no way to ask for one.
+ const share=row?publicShareFromRow(row):null;
+ return share&&!share.passwordHash?share:null;
 }
 
 export async function getMigratedShareAsset(id:string,faceId:string){
@@ -364,15 +375,16 @@ export async function getShareMedia(id:string,assetId:string){
  await ensureV2Schema();
  const sql=getSql();
  const rows=await sql`
-  SELECT ds.user_id,ds.studio_state,ma.storage_key,ma.mime_type,ma.name
+  SELECT ds.user_id,ds.studio_state,ds.brand_logo_asset_id,ds.password_hash,ma.storage_key,ma.mime_type,ma.name
   FROM design_shares ds
   JOIN media_assets ma ON ma.user_id=ds.user_id AND ma.id=${assetId}
   WHERE ds.id=${id} AND ds.revoked_at IS NULL
   LIMIT 1
- ` as {user_id:string;studio_state:unknown;storage_key:string;mime_type:string;name:string}[];
+ ` as {user_id:string;studio_state:unknown;brand_logo_asset_id:string|null;password_hash:string|null;storage_key:string;mime_type:string;name:string}[];
  const row=rows[0];
  if(!row||!validProjectState(row.studio_state))return null;
  const ids=new Set([
+  row.brand_logo_asset_id,
   ...row.studio_state.mediaAssets.map(item=>item.id),
   ...Object.values(row.studio_state.artworkByPanel).map(item=>item.assetId).filter(Boolean),
   ...row.studio_state.outsideArtworkLayers.map(item=>item.assetId).filter(Boolean),

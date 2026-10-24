@@ -12,13 +12,14 @@ To try a flag on one deployment, set `NEXT_PUBLIC_FEATURES` to a comma-separated
 | --- | --- | --- | --- |
 | `printQuote` | draft | no | "Get this box printed" on the dieline generator |
 | `welcomeEmails` | draft | no | Welcome email and one follow-up for new accounts (`src/server/onboarding-emails.ts`) |
+| `clientShares` | off | yes | Share links with your own name and logo, and an optional password (plain share links stay free) |
 | `nesting` | off | yes | Nest several dielines on a press sheet |
 | `costEstimate` | off | yes | Estimated print cost for a quantity and board |
 | `savedDielines` | off | yes | A library of saved generator boxes (Studio projects stay free) |
 | `bulkExport` | off | yes | Many sizes or styles in one zip (single files stay free) |
 | `apiKeys` | off | yes | API keys to generate dielines from other software |
 
-The Pro flags are names only: no feature is built behind them yet.
+`clientShares` is built (below). The other Pro flags are names only: no feature is built behind them yet.
 
 ## Get this box printed
 
@@ -70,3 +71,14 @@ Behind the `welcomeEmails` flag (`src/server/onboarding-emails.ts`, copy in `src
 - Both reply to the admin notification address, carry an unsubscribe link (`/unsubscribe`) and one-click unsubscribe headers. Unsubscribing stops onboarding emails only; account emails still go out.
 
 To launch: set `CRON_SECRET` in the Vercel production environment (Vercel Cron sends it to the job; without it the job refuses to run), then set `welcomeEmails` to `'on'`.
+
+## Client share links (Pro)
+
+Behind the `clientShares` flag, off everywhere. No billing yet: whoever can use the Studio on a deployment with the flag on can use it.
+
+- **Brand**: the owner picks a business name and a logo from their image library in the share dialog. The shared page then shows their logo (or name) instead of 3D Box Studio's, with no "Design your own box" promotion, and leaves 3D Box Studio out of the page title.
+- **Password**: optional, 4 to 128 characters, stored as an scrypt hash. Visitors get a password page (`ShareUnlockForm`); the right password sets a 30-day cookie derived from the share id and the password hash, so changing or removing the password ends every unlocked visit. The design's images (`/api/shares/[id]/media/...`) need the same cookie (the logo does not: the password page shows it), the page title hides the design name until unlocked, and old `/preview/<token>` links stop working while a password is set. The unlock form allows 10 tries per 15 minutes.
+- Setting a brand or password needs the flag (`PATCH /api/shares/[id]`); once set they are always honoured, so switching the flag off never opens a protected share.
+- Code: `src/server/client-shares.ts`, `src/components/studio/client-share-settings.tsx`, tests in `scripts/client-shares.test.cjs`.
+
+To try it on one deployment: `NEXT_PUBLIC_FEATURES=clientShares`. Before charging for it, it needs a per-account Pro entitlement (and billing) instead of a deployment-wide flag.

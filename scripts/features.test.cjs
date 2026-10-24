@@ -28,7 +28,7 @@ const withEnv=(env,run)=>{
 
 test('Pro flags are stubs: off everywhere unless a deployment asks for one',()=>{
   const pro=Object.entries(FEATURES).filter(([,feature])=>feature.pro);
-  assert.deepEqual(pro.map(([id])=>id).sort(),['apiKeys','bulkExport','costEstimate','nesting','savedDielines']);
+  assert.deepEqual(pro.map(([id])=>id).sort(),['apiKeys','bulkExport','clientShares','costEstimate','nesting','savedDielines']);
   for(const [id,feature] of pro){
     assert.equal(feature.status,'off',`${id} should be off`);
     withEnv({NEXT_PUBLIC_SHOW_DRAFTS:'true',NEXT_PUBLIC_FEATURES:undefined},()=>assert.equal(isFeatureOn(id),false));
@@ -40,7 +40,7 @@ test('no Pro flag gates something that is free today',()=>{
   // Free today: every download format, the Studio, saved Studio projects, share links, image and video export.
   const free=/\b(svg|pdf|dxf|png|jpg|mp4|cricut|share link|studio project|3d preview|download)s?\b/i;
   for(const [id,feature] of Object.entries(FEATURES).filter(([,item])=>item.pro)){
-    const claim=feature.summary.replace(/(Saving Studio projects|Single files) stays? free\./,'');
+    const claim=feature.summary.replace(/(Saving Studio projects|Single files|Plain share links) stays? free\./,'');
     assert.doesNotMatch(claim,free,`${id} mentions a free feature: ${feature.summary}`);
   }
 });
