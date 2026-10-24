@@ -4,6 +4,7 @@ import { siteEnv } from './support/env';
 import { ADMIN_STATE, TEST_USER, USER_STATE } from './support/user';
 
 const DESIGN_NAME = 'E2E admin design';
+let designId = '';
 
 // A saved design for the test user, so the admin lists have something in them.
 test.beforeAll(async ({ browser }) => {
@@ -17,6 +18,7 @@ test.beforeAll(async ({ browser }) => {
   };
   const response = await context.request.post('/api/projects', { data: { name: DESIGN_NAME, state, preview } });
   expect(response.ok(), await response.text()).toBe(true);
+  designId = (await response.json()).project.id;
   await context.close();
 });
 
@@ -60,6 +62,29 @@ test.describe('signed in', () => {
     expect((await page.request.get((await preview.getAttribute('href'))!)).status()).toBe(200);
     await page.keyboard.press('Escape');
     await expect(page).not.toHaveURL(/view=/);
+  });
+
+  test('Pro access: given in the user popup, it lets that account brand its share links', async ({ page, browser }) => {
+    const user = await browser.newContext({ storageState: USER_STATE });
+    const shared = await user.request.post('/api/shares', { data: { projectId: designId } });
+    expect(shared.ok(), await shared.text()).toBe(true);
+    const shareId = (await shared.json()).share.id;
+    const brand = () => user.request.patch(`/api/shares/${shareId}`, { data: { brandName: 'Acme Packaging' } });
+    expect((await brand()).status()).toBe(403);
+
+    await openAdmin(page, '/admin/users');
+    await page.getByRole('row').filter({ hasText: TEST_USER.email }).getByRole('link').first().click();
+    const drawer = page.locator('.admin-drawer');
+    await drawer.getByRole('button', { name: 'Give Pro access' }).click();
+    await expect(drawer.getByText(/^Pro since /)).toBeVisible();
+    const branded = await brand();
+    expect(branded.status()).toBe(200);
+    expect((await branded.json()).settings.brandName).toBe('Acme Packaging');
+
+    await drawer.getByRole('button', { name: 'Remove Pro access' }).click();
+    await expect(drawer.getByRole('button', { name: 'Give Pro access' })).toBeVisible();
+    expect((await brand()).status()).toBe(403);
+    await user.close();
   });
 
   test('designs and search find the design and its owner', async ({ page }) => {

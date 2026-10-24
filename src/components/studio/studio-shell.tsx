@@ -3,7 +3,6 @@
 // First, so the components' own stylesheets below still come after it.
 import './studio-shell.css';
 import { ClientShareSettings } from '@/components/studio/client-share-settings';
-import { isFeatureOn } from '@/lib/features';
 import { trackEvent } from '@/lib/analytics';
 import { PostExportFeedback, POST_EXPORT_FEEDBACK_EVENT } from './post-export-feedback';
 import { offerFeedback, openFeedback } from '@/lib/feedback-events';
@@ -2569,7 +2568,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
         </div>
         {shareUrl&&<div className="pro-share-link-row"><input readOnly value={shareUrl} aria-label={t("studio.share_link_2")}/><button type="button" className="pro-secondary-button" onClick={async()=>{try{await navigator.clipboard.writeText(shareUrl);setShareCopied(true);setMessage('Share link copied');window.setTimeout(()=>setShareCopied(false),1800);}catch{setShareCopied(false);setMessage('Could not copy share link');}}}>{shareCopied?<><Check size={15}/> Copied</>:t("studio.copy")}</button></div>}
         {shareError&&<p className="pro-transfer-error" role="alert">{shareError}</p>}
-        {shareUrl&&shareId&&isFeatureOn('clientShares')&&<ClientShareSettings shareId={shareId}/>}
+        {shareUrl&&shareId&&<ClientShareSettings shareId={shareId}/>}
         <div className="pro-confirm-actions">
           {shareUrl&&<button type="button" className="pro-secondary-button is-danger-text" disabled={shareBusy} onClick={()=>void revokeShare()}>{t("studio.disable_link")}</button>}
           <button type="button" className="pro-primary" disabled={shareBusy} onClick={()=>setShareOpen(false)}>{t("studio.done")}</button>

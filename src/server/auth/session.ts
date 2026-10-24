@@ -62,7 +62,7 @@ export async function deleteCurrentSession(){
 async function rowForSession(value:string):Promise<UserRow|null>{
   const sql=getSql();
   const rows=await sql`
-    SELECT u.id,u.email,u.name,u.password_hash,u.email_verified_at,u.created_at,u.signup_method
+    SELECT u.id,u.email,u.name,u.password_hash,u.email_verified_at,u.created_at,u.signup_method,u.pro_access_at
     FROM sessions s JOIN users u ON u.id=s.user_id
     WHERE s.token=${value} AND s.expires_at>NOW()
     LIMIT 1

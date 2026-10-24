@@ -139,7 +139,7 @@ test('workspace rename and empty-only delete enforce ownership, default protecti
 const {CLAIM_UNVERIFIED_ACCOUNT_SQL}=require('../src/server/auth/users.ts');
 test('Google claiming an unverified account removes the squatter password, sessions and tokens',async()=>{
  const db=new PGlite();try{
- await db.exec(`CREATE TABLE users(id text primary key,email text,name text,password_hash text,email_verified_at timestamptz,created_at timestamptz default now(),signup_method text);CREATE TABLE sessions(token text,user_id text);CREATE TABLE password_reset_tokens(token text,user_id text);CREATE TABLE email_verification_tokens(token text,user_id text);
+ await db.exec(`CREATE TABLE users(id text primary key,email text,name text,password_hash text,email_verified_at timestamptz,created_at timestamptz default now(),signup_method text, pro_access_at timestamptz);CREATE TABLE sessions(token text,user_id text);CREATE TABLE password_reset_tokens(token text,user_id text);CREATE TABLE email_verification_tokens(token text,user_id text);
  INSERT INTO users(id,email,password_hash,email_verified_at) VALUES('squat','victim@example.com','attacker-hash',NULL),('owned','owner@example.com','owner-hash',NOW());
  INSERT INTO sessions VALUES('attacker-session','squat'),('owner-session','owned');INSERT INTO password_reset_tokens VALUES('r','squat');INSERT INTO email_verification_tokens VALUES('v','squat');`);
  const claimed=(await db.query(CLAIM_UNVERIFIED_ACCOUNT_SQL,['squat'])).rows;
