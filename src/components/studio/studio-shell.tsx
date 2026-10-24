@@ -3355,6 +3355,9 @@ function DielinePrototype({
   const setSizeNow=useRef(onSetMeasuredSize);
   useLayoutEffect(()=>{setSizeNow.current=onSetMeasuredSize;});
   const [draggingSize,setDraggingSize]=useState<string|null>(null);
+  // While an artwork handle is held, the dieline's size handles and labels step aside (and the
+  // other way round), so neither covers the spot being adjusted.
+  const [artworkGestureActive,setArtworkGestureActive]=useState(false);
   // While a handle is dragged, the far edge of its panel stays where it is
   // on screen (the sheet is centred, so it would otherwise move too) and the
   // dragged edge follows the pointer.
@@ -3721,9 +3724,10 @@ function DielinePrototype({
     event.stopPropagation();
     setTransformFeedback(null);
     selectArtworkLayer(layer.id);
-    const element = event.currentTarget.closest('.pro-full-artwork-transform') as HTMLDivElement | null;
+    const element = event.currentTarget.closest('.pro-full-artwork-transform, .pro-transform-overlay') as HTMLDivElement | null;
     const container = element?.parentElement;
     if (!element || !container) return;
+    setArtworkGestureActive(true);
     const rect = container.getBoundingClientRect();
     const {x:pointerX,y:pointerY}=pointerIn(container,event);
     const centerX = rect.left + rect.width * layer.transform.x / 100;
@@ -3877,6 +3881,7 @@ function DielinePrototype({
     if (!gesture || gesture.pointerId !== event.pointerId) return;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     gestureRef.current=null;
+    setArtworkGestureActive(false);
     setTransformFeedback(null);
     setSnapGuides(null);
   };
@@ -4085,7 +4090,7 @@ function DielinePrototype({
 
       <div
         ref={printBoardRef}
-        className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}${boardFileDragActive ? ' is-file-drop-target' : ''}`}
+        className={`pro-dieline pro-dieline-live${layers.length ? ' has-full-layout-editor' : ''}${boardFileDragActive ? ' is-file-drop-target' : ''}${artworkGestureActive ? ' is-adjusting-artwork' : ''}${draggingSize ? ' is-adjusting-size' : ''}`}
         style={{
           width:`${visualWidth}px`,
           height:`${visualHeight}px`,
@@ -4169,22 +4174,39 @@ function DielinePrototype({
             onPointerMove={updateLayerGesture}
             onPointerUp={endLayerGesture}
             onPointerCancel={endLayerGesture}
+            onLostPointerCapture={endLayerGesture}
           >
             <span className="pro-artwork-transform-hit-area" aria-label={layer.name}/>
-            {selected && <>
-              <span className="pro-transform-box" aria-hidden="true"/>
-              {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle => <button
-                key={handle}
-                type="button"
-                className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`}
-                aria-label={`Resize selected artwork from ${handle}`}
-                onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}
-              />)}
-              <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={t("studio.rotate_selected_artwork")} title={t("studio.rotate_freely_hold_shift_to_snap_to_15_increments")} onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>
-              {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
-            </>}
           </div>;
         })}
+        {/* The selected artwork's frame and handles sit above the dieline's size handles and
+            labels, so a corner can always be grabbed even where a size handle sits; the artwork
+            itself stays under the cut and crease lines. Only the handles take the pointer. */}
+        {selectedLayer && selectedLayer.visible!==false && <div
+          className="pro-transform-overlay"
+          style={{
+            left:`${selectedLayer.transform.x}%`,
+            top:`${selectedLayer.transform.y}%`,
+            width:`${selectedLayer.transform.width}%`,
+            height:`${selectedLayer.transform.height}%`,
+            transform:`translate(-50%,-50%) rotate(${selectedLayer.transform.rotation}deg)`,
+          }}
+          onPointerMove={updateLayerGesture}
+          onPointerUp={endLayerGesture}
+          onPointerCancel={endLayerGesture}
+          onLostPointerCapture={endLayerGesture}
+        >
+          <span className="pro-transform-box" aria-hidden="true"/>
+          {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle => <button
+            key={handle}
+            type="button"
+            className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`}
+            aria-label={`Resize selected artwork from ${handle}`}
+            onPointerDown={event=>beginLayerGesture(event,selectedLayer,'resize',handle)}
+          />)}
+          <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={t("studio.rotate_selected_artwork")} title={t("studio.rotate_freely_hold_shift_to_snap_to_15_increments")} onPointerDown={event=>beginLayerGesture(event,selectedLayer,'rotate')}><RotateCw size={13}/></button>
+          {transformFeedback&&<span className="pro-transform-feedback">{transformFeedback}</span>}
+        </div>}
         {snapGuides && !snapGuides.onPanel && <SnapGuides guides={snapGuides}/>}
 
         {cartonPanels.map(item => {
@@ -4252,7 +4274,7 @@ function DielinePrototype({
           return <div key={item.id} className="pro-side-artwork-transform-surface" data-turned={item.artworkRotation===180?'180':undefined} style={{left:cssPercent(item.x/bounds.width*100),top:cssPercent(item.y/bounds.height*100),width:cssPercent(item.width/bounds.width*100),height:cssPercent(item.height/bounds.height*100),transform:item.artworkRotation===180?'rotate(180deg)':undefined}}>
             <div className="pro-full-artwork-transform pro-side-artwork-transform is-selected" style={{left:`${transform.x}%`,top:`${transform.y}%`,width:`${transform.width}%`,height:`${transform.height}%`,transform:`translate(-50%,-50%) rotate(${transform.rotation}deg)`}}
               aria-label={`Move ${selectedPanel} artwork`}
-              onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture}>
+              onPointerDown={event=>beginLayerGesture(event,layer,'move')} onPointerMove={updateLayerGesture} onPointerUp={endLayerGesture} onPointerCancel={endLayerGesture} onLostPointerCapture={endLayerGesture}>
               <span className="pro-transform-box" aria-hidden="true"/>
               {(['nw','n','ne','e','se','s','sw','w'] as const).map(handle=><button key={handle} type="button" className={`pro-transform-handle pro-transform-resize pro-transform-${handle}`} aria-label={`Resize ${selectedPanel} artwork from ${handle}`} onPointerDown={event=>beginLayerGesture(event,layer,'resize',handle)}/>)}
               <button type="button" className="pro-transform-handle pro-transform-rotate" aria-label={`Rotate ${selectedPanel} artwork`} title={t("studio.rotate_snaps_near_15_increments")} onPointerDown={event=>beginLayerGesture(event,layer,'rotate')}><RotateCw size={13}/></button>

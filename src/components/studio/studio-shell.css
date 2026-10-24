@@ -3646,6 +3646,14 @@
 :is(.pro-dieline-sizes,.carton-engine-measures) .dl-size-input.is-adjustment{border-color:#d97706}
 .carton-engine-measure-label .dl-size-chip,.carton-engine-measure-label .dl-size-input{height:24px;font-size:var(--fs-meta)}
 .pro-dieline-size-handles{position:absolute;inset:0;z-index:31;pointer-events:none}
+/* The selected artwork's frame and handles, drawn above the size handles (z 31) and labels. */
+.pro-transform-overlay{position:absolute;z-index:32;transform-origin:center;pointer-events:none}
+.pro-transform-overlay .pro-transform-handle{pointer-events:auto}
+/* While one control is held, the others step aside so they don't cover the spot being adjusted:
+   artwork handles hide the dieline's size handles and labels, and a size handle hides the
+   artwork handles. Hidden, not removed, so nothing re-measures or jumps on release. */
+.pro-dieline-live.is-adjusting-artwork :is(.pro-dieline-size-handles,.pro-dieline-sizes){visibility:hidden}
+.pro-dieline-live.is-adjusting-size :is(.pro-transform-handle,.pro-transform-box,.pro-transform-feedback){visibility:hidden}
 .pro-dieline-size-handles .dl-size-handle{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;padding:0;border:1.5px solid #fff;border-radius:999px;background:#d97706;box-shadow:0 1px 3px rgba(15,23,42,.3);touch-action:none}
 .pro-dieline-size-handles .dl-size-handle.is-x{width:8px;height:26px;cursor:ew-resize;transform:translate(-50%,calc(-50% + var(--slide,0px)))}
 .pro-dieline-size-handles .dl-size-handle.is-y{width:26px;height:8px;cursor:ns-resize;transform:translate(calc(-50% + var(--slide,0px)),-50%)}

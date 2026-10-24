@@ -124,6 +124,36 @@ test('a size handle follows the pointer and changes the size one for one', async
   expect(width).toBeGreaterThan(100);
 });
 
+test('holding a control hides the other controls until it is let go', async ({ page }) => {
+  await createDesign(page, 'E2E controls');
+  await addLogo(page);
+  await artwork(page).click();
+  const corner = page.getByRole('button', { name: 'Resize selected artwork from se' });
+  const sizeHandles = page.locator('.pro-dieline-size-handles');
+  await expect(corner).toBeVisible();
+  await expect(sizeHandles).toBeVisible();
+
+  // Resizing artwork: the dieline's size handles and labels step aside.
+  let box = (await corner.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 20);
+  await expect(sizeHandles).toBeHidden();
+  await expect(sheetSizes(page)).toBeHidden();
+  await page.mouse.up();
+  await expect(sizeHandles).toBeVisible();
+
+  // Resizing the box: the artwork handles step aside.
+  const handle = page.locator('[data-size-handle="width:front:x"]');
+  box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 10, box.y + box.height / 2);
+  await expect(corner).toBeHidden();
+  await page.mouse.up();
+  await expect(corner).toBeVisible();
+});
+
 test('a size too small to fold keeps the 3D view up and says why', async ({ page }) => {
   // Sizes apply as they're typed, so 1 mm passes through on the way to 150;
   // at 1 mm a mailer's ears no longer meet its walls on 1.5 mm board.
