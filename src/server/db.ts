@@ -56,6 +56,14 @@ const V2_SCHEMA = [
       migrated_at TIMESTAMPTZ
     )
   `,
+  // Onboarding emails (src/server/onboarding-emails.ts). The unsubscribe token
+  // is kept as is so every email can carry the same link; it only unsubscribes.
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_email_sent_at TIMESTAMPTZ`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS follow_up_email_sent_at TIMESTAMPTZ`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_unsubscribed_at TIMESTAMPTZ`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_unsubscribe_token TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_unsubscribe_token ON users(email_unsubscribe_token) WHERE email_unsubscribe_token IS NOT NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_users_follow_up_due ON users(welcome_email_sent_at) WHERE follow_up_email_sent_at IS NULL AND welcome_email_sent_at IS NOT NULL`,
   `
     CREATE TABLE IF NOT EXISTS oauth_accounts (
       provider TEXT NOT NULL,

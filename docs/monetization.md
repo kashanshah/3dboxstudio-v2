@@ -11,6 +11,7 @@ To try a flag on one deployment, set `NEXT_PUBLIC_FEATURES` to a comma-separated
 | Flag | Status | Pro | What it is |
 | --- | --- | --- | --- |
 | `printQuote` | draft | no | "Get this box printed" on the dieline generator |
+| `welcomeEmails` | draft | no | Welcome email and one follow-up for new accounts (`src/server/onboarding-emails.ts`) |
 | `nesting` | off | yes | Nest several dielines on a press sheet |
 | `costEstimate` | off | yes | Estimated print cost for a quantity and board |
 | `savedDielines` | off | yes | A library of saved generator boxes (Studio projects stay free) |
@@ -59,3 +60,13 @@ Only for products that do not compete with the Studio: what people buy to make t
 
 - **Cutting machines and materials**: Cricut runs a programme on Impact (listings say 4% on machines up to 10–12% on materials and Cricut Access). Silhouette products sell through resellers on ShareASale at about 5%. Fits the Cricut and Silhouette crafter pages and the cutting-machine export note.
 - **Card stock and tools**: Amazon Associates (a few percent on small orders). Only worth it on guides that already recommend a board or a scoring tool.
+
+## Welcome emails
+
+Behind the `welcomeEmails` flag (`src/server/onboarding-emails.ts`, copy in `src/server/email/templates.ts`, previews in Admin → Emails):
+- **Welcome**: sent once when an email sign-up verifies its address, or a Google account is created. Lists the Studio, the dieline generator and the templates, and asks what they are making.
+- **Follow-up**: sent once, 3 days after the welcome, by a daily job (`/api/cron/onboarding-emails`, scheduled in `vercel.json`). It suggests sharing and exporting to people who saved a design, and the three first steps to people who have not.
+- Only accounts that got the welcome get the follow-up, so turning this on never emails existing accounts. A follow-up that cannot go out within 10 days is dropped.
+- Both reply to the admin notification address, carry an unsubscribe link (`/unsubscribe`) and one-click unsubscribe headers. Unsubscribing stops onboarding emails only; account emails still go out.
+
+To launch: set `CRON_SECRET` in the Vercel production environment (Vercel Cron sends it to the job; without it the job refuses to run), then set `welcomeEmails` to `'on'`.

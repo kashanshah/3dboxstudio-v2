@@ -1,11 +1,12 @@
 import { cookies } from 'next/headers';
 import { safeReturnTo } from '@/lib/auth-navigation';
-import { NextResponse } from 'next/server';
+import { NextResponse,after } from 'next/server';
 import { ensureV2Schema } from '@/server/db';
 import { createSession,setSessionCookie } from '@/server/auth/session';
 import { exchangeGoogleCode,GoogleAuthError,OAUTH_RETURN_COOKIE } from '@/server/auth/google';
 import { alertAdmin } from '@/server/ops-alerts';
 import { findOrCreateGoogleUser } from '@/server/auth/users';
+import { sendWelcomeEmailSafely } from '@/server/onboarding-emails';
 import { requestOrigin } from '@/server/request-origin';
 import { captureServerUserEvent } from '@/lib/posthog-server';
 import { SIGNUP_COOKIE,SIGNUP_COOKIE_MAX_AGE } from '@/lib/analytics/signup';
@@ -32,6 +33,7 @@ export async function GET(req:Request){
     if(isNew){
       // Analytics must never turn a successful sign-in into an error page.
       await captureServerUserEvent(user.id,'user_signed_up',{method:'google'},{email:user.email,name:user.name,signup_method:user.signup_method}).catch(()=>{});
+      after(()=>sendWelcomeEmailSafely(user.id));
       response.cookies.set(SIGNUP_COOKIE,'google',{path:'/',maxAge:SIGNUP_COOKIE_MAX_AGE,sameSite:'lax',secure:origin.startsWith('https:')});
     }
     return response;

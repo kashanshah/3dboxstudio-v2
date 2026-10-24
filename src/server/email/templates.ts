@@ -63,13 +63,57 @@ export function renderPasswordResetTemplate(input: { name?: string | null; reset
       greeting(input.name) + paragraph(instructions) + button(url, 'Reset password') + paragraph(esc(expiry)) + fallback(url) + note(esc(safety))),
   };
 }
-export function renderWelcomeTemplate(input: { name?: string | null } = {}): RenderedEmail {
-  const url = appUrl('/studio');
+// Onboarding emails (src/server/onboarding-emails.ts): a welcome when an
+// account is verified, and one follow-up a few days later. Both carry an
+// unsubscribe link and ask the reader to reply with what they are making.
+function unsubscribeNote(url: string) {
+  return note(`You get this because you created a 3D Box Studio account. We send two of these emails, no more. <a href="${esc(url)}" style="color:#626779">Unsubscribe</a>`);
+}
+function bullets(items: string[]) {
+  return `<ul style="margin:0 0 20px;padding-left:20px;font-size:16px;line-height:26px">${items.map(item => `<li style="margin:0 0 8px">${item}</li>`).join('')}</ul>`;
+}
+const textGreeting = (name?: string | null) => name?.trim() ? `Hi ${name.trim()},` : 'Hi there,';
+
+export function renderWelcomeTemplate(input: { name?: string | null; unsubscribeUrl: string }): RenderedEmail {
+  const studio = appUrl('/studio'), generator = appUrl('/box-dieline-generator'), templates = appUrl('/box-templates');
+  const unsubscribe = webUrl(input.unsubscribeUrl);
+  const intro = 'Thanks for joining. Three ways to start:';
+  const ask = 'What are you making? Reply to this email and tell us. We read every reply, and it decides what we build next.';
   return {
     subject: 'Welcome to 3D Box Studio',
-    text: `${input.name?.trim() ? `Hi ${input.name.trim()},` : 'Hi there,'}\n\nWelcome to 3D Box Studio. Start with a box template, add your artwork in 2D, and check your packaging in the 3D preview.\n\nOpen Studio: ${url}\n\nYou can return to your saved designs from your Studio home.`,
-    html: shell('Your next packaging idea starts here.', 'Let’s create', 'Welcome to your Studio',
-      greeting(input.name) + paragraph('Start with a box template, add your artwork in 2D, and check your packaging in the 3D preview.') + button(url, 'Open Studio') + paragraph('You can return to your saved designs from your Studio home.') + fallback(url)),
+    text: `${textGreeting(input.name)}\n\n${intro}\n\n- Design in the 3D Studio: pick a box, add your artwork on the flat dieline and see it folded in 3D. ${studio}\n- Download a dieline in any size, free, as SVG, PDF, DXF or a Cricut and Silhouette file. ${generator}\n- Browse the box templates and what each style is good for. ${templates}\n\n${ask}\n\nYou get this because you created a 3D Box Studio account. We send two of these emails, no more. Unsubscribe: ${unsubscribe}`,
+    html: shell('Three ways to start, and one question for you.', 'Welcome', 'Welcome to 3D Box Studio',
+      greeting(input.name) + paragraph(esc(intro)) + bullets([
+        `<a href="${esc(studio)}" style="color:#0075c4">Design in the 3D Studio</a>: pick a box, add your artwork on the flat dieline and see it folded in 3D.`,
+        `<a href="${esc(generator)}" style="color:#0075c4">Download a dieline</a> in any size, free, as SVG, PDF, DXF or a Cricut and Silhouette file.`,
+        `<a href="${esc(templates)}" style="color:#0075c4">Browse the box templates</a> and what each style is good for.`,
+      ]) + button(studio, 'Open the Studio') + paragraph(esc(ask)) + unsubscribeNote(unsubscribe)),
+  };
+}
+/** A few days after the welcome. What it suggests depends on whether they have saved a design yet. */
+export function renderOnboardingFollowUpTemplate(input: { name?: string | null; hasDesign: boolean; unsubscribeUrl: string }): RenderedEmail {
+  const unsubscribe = webUrl(input.unsubscribeUrl);
+  const studio = appUrl('/studio'), templates = appUrl('/box-templates');
+  const intro = input.hasDesign
+    ? 'You have started a design. A few things people often miss:'
+    : 'You have not saved a design yet. The quickest way in:';
+  const tips = input.hasDesign ? [
+    ['Share it', 'Send a link that opens your box in 3D, no account needed to view it.'],
+    ['Export it', 'Download the print-ready dieline, a PNG or JPG mockup, or a short MP4 video.'],
+    ['Another size', 'The dieline generator draws any box style at any size, free, no account needed.'],
+  ] : [
+    ['Pick a template', 'Choose a box style and size in the Box step.'],
+    ['Add artwork', 'Drop in your logo or images and place them on each panel of the flat dieline.'],
+    ['Check it in 3D', 'Fold it in the preview, then download the dieline or a mockup.'],
+  ];
+  const ask = 'Stuck, or missing a box style or feature? Reply to this email. A real person reads it.';
+  const [cta, ctaUrl] = input.hasDesign ? ['Open your designs', studio] : ['Choose a box template', templates];
+  return {
+    subject: input.hasDesign ? 'Your box design: share it, export it, print it' : 'Your first box in three steps',
+    text: `${textGreeting(input.name)}\n\n${intro}\n\n${tips.map(([title, body]) => `- ${title}: ${body}`).join('\n')}\n\n${cta}: ${ctaUrl}\n\n${ask}\n\nYou get this because you created a 3D Box Studio account. This is the last of our two welcome emails. Unsubscribe: ${unsubscribe}`,
+    html: shell(input.hasDesign ? 'Share, export and size your box.' : 'Template, artwork, 3D preview.', 'Getting started', input.hasDesign ? 'Make the most of your design' : 'Your first box in three steps',
+      greeting(input.name) + paragraph(esc(intro)) + bullets(tips.map(([title, body]) => `<b>${esc(title)}</b>: ${esc(body)}`)) + button(ctaUrl, cta) + paragraph(esc(ask))
+      + note(`You get this because you created a 3D Box Studio account. This is the last of our two welcome emails. <a href="${esc(unsubscribe)}" style="color:#626779">Unsubscribe</a>`)),
   };
 }
 function row(label: string, value: string) {
@@ -121,14 +165,17 @@ export function getEmailTemplatePreviews(): EmailTemplatePreview[] {
     ['About', 'A box or size I need'], ['Message', 'A hexagon box for candles, about 80 mm across. Is that planned?'], ['Reply to', 'alex@example.com'],
     ['Sent from', 'generator-style-request'], ['Page', '/box-dieline-generator'], ['style', 'Reverse tuck end'], ['size', '80 x 80 x 100 mm'],
   ] });
-  const welcome = renderWelcomeTemplate({ name: 'Alex' });
+  const unsubscribeUrl = appUrl('/unsubscribe?token=sample-preview-token');
+  const welcome = renderWelcomeTemplate({ name: 'Alex', unsubscribeUrl });
+  const followUp = renderOnboardingFollowUpTemplate({ name: 'Alex', hasDesign: false, unsubscribeUrl });
   const verification = renderVerificationTemplate({ name: 'Alex', verifyUrl: appUrl('/verify-email?token=sample-preview-token') });
   const reset = renderPasswordResetTemplate({ name: 'Alex', resetUrl: appUrl('/reset-password?token=sample-preview-token') });
   return [
     { id: 'admin-contact-submission', label: 'Admin · Contact submission', description: 'Sent to the configured admin address when contact notifications are enabled. Replies go to the visitor.', ...contact, sourcePath: 'src/server/email/templates.ts' },
     { id: 'admin-print-quote', label: 'Admin · Print quote request', description: 'Sent to the configured admin address for each "Get this box printed" request. Replies go to the visitor.', ...quote, sourcePath: 'src/server/email/templates.ts' },
     { id: 'admin-site-feedback', label: 'Admin · Site feedback', description: 'Sent to the configured admin address for feedback from the Studio and the dieline generator, when contact notifications are on. Replies go to the visitor when they gave an email.', ...feedback, sourcePath: 'src/server/email/templates.ts' },
-    { id: 'welcome', label: 'Welcome', description: 'Preview only. Available as a template; not automatically sent.', ...welcome, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'welcome', label: 'Welcome', description: 'Sent once when an account is verified (email sign-up) or created with Google, while the welcomeEmails feature is on. Replies go to the admin address.', ...welcome, sourcePath: 'src/server/email/templates.ts' },
+    { id: 'onboarding-follow-up', label: 'Welcome follow-up', description: 'Sent once, 3 days after the welcome, by the daily onboarding job. Suggests next steps by whether the person has saved a design (this preview: none yet).', ...followUp, sourcePath: 'src/server/email/templates.ts' },
     { id: 'verification', label: 'Email verification', description: 'Sent after email signup or a verification resend. One-use link expires in 24 hours.', ...verification, sourcePath: 'src/server/email/templates.ts' },
     { id: 'password-reset', label: 'Password reset', description: 'Sent for password recovery. One-use link expires in 1 hour.', ...reset, sourcePath: 'src/server/email/templates.ts' },
   ];

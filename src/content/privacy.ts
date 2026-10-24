@@ -90,6 +90,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       "Provide, operate, and improve the studio and website.",
       "Authenticate you and maintain your account.",
+      "Send a welcome email when you create an account and one follow-up a few days later, with tips for getting started. Each has an unsubscribe link; account emails such as password resets are not affected.",
       "Save, load, and share your designs when you use cloud features.",
       "Send transactional emails (such as email verification and password reset) via Resend.",
       "Respond to contact form messages.",
