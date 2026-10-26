@@ -1,4 +1,5 @@
-import { DIELINE_STYLES, getDielineStyle } from './styles';
+import { applyTemplateCatalog, getDielineStyle } from './styles';
+import type { TemplateSettingsRecord } from '@/lib/packaging/template-catalog';
 import { parsePath } from './export/paths';
 import { defaultState, type GeneratorState } from './state';
 import type { DielineOutput, DielineStyle, DimensionMode, Units } from './types';
@@ -10,11 +11,12 @@ import type { DielineOutput, DielineStyle, DimensionMode, Units } from './types'
 /** A style's card in the generator's picker: its cut outline at the default size. */
 export type StyleThumb = { id: string; name: string; code?: string; templateId: string; modes: DimensionMode[]; measure?: DielineStyle['measure']; options?: DielineStyle['options']; viewBox: string; d: string };
 
-export type GeneratorSetup = { styles: StyleThumb[]; initial: GeneratorState; output: DielineOutput };
+/** catalog: the Admin → Templates settings the page was drawn with, applied again in the browser. */
+export type GeneratorSetup = { styles: StyleThumb[]; initial: GeneratorState; output: DielineOutput; catalog: TemplateSettingsRecord[] };
 
 /** Cut lines rounded to whole millimetres, small enough to send with the page. */
-export function styleThumbnails(): StyleThumb[] {
-  return DIELINE_STYLES.map(style => {
+export function styleThumbnails(styles: DielineStyle[]): StyleThumb[] {
+  return styles.map(style => {
     const d = style.defaults;
     const output = style.generate({ styleId: style.id, ...d, units: 'mm', dimensionMode: style.modes[0] });
     const runs = output.paths.filter(path => path.type === 'cut').flatMap(path => parsePath(path.d));
@@ -29,8 +31,9 @@ export function styleThumbnails(): StyleThumb[] {
 }
 
 /** The picker and the first box for a page: a style at its defaults, or at the page's first suggested size. */
-export function generatorSetup(styleId: string, preset?: { length: number; width: number; depth: number; units: Units }): GeneratorSetup {
-  const style = getDielineStyle(styleId) ?? DIELINE_STYLES[0];
+export function generatorSetup(styleId: string, preset?: { length: number; width: number; depth: number; units: Units }, catalog: TemplateSettingsRecord[] = []): GeneratorSetup {
+  const styles = applyTemplateCatalog(catalog);
+  const style = getDielineStyle(styleId) ?? styles[0];
   const initial = preset
     ? { ...defaultState(style, preset.units), length: preset.length, width: preset.width, depth: preset.depth }
     : defaultState(style);
@@ -38,5 +41,5 @@ export function generatorSetup(styleId: string, preset?: { length: number; width
     styleId: style.id, length: initial.length, width: initial.width, depth: initial.depth, units: initial.units,
     dimensionMode: initial.mode, thickness: initial.units === 'in' ? initial.thickness / 25.4 : initial.thickness, options: {},
   });
-  return { styles: styleThumbnails(), initial, output };
+  return { styles: styleThumbnails(styles), initial, output, catalog };
 }

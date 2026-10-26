@@ -5,6 +5,7 @@ import { validProjectState } from '@/lib/studio-project';
 import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
 import { decodeRouteParam } from '@/lib/route-params';
 import { ensureLegacyMediaForDesign } from '@/server/legacy-media';
+import { ensureTemplatesRegistered } from '@/server/templates';
 
 export type WorkspaceDesign={id:string;name:string;updatedAt:string;preview:string|null;legacy:boolean;href:string|null;favorite:boolean;workspaceProjectId:string|null};
 
@@ -78,6 +79,7 @@ export async function getWorkspaceDesigns(userId:string,search='',sort='recent',
 }
 
 export async function getStudioProject(userId:string,id:string):Promise<SavedStudioProject|null>{
+ await ensureTemplatesRegistered();
  await ensureV2Schema();const sql=getSql();
  const projectId=decodeRouteParam(id);
  const rows=await sql`SELECT id,name,studio_state,updated_at,is_favorite,revision,workspace_project_id FROM projects WHERE id=${projectId} AND user_id=${userId} LIMIT 1` as {id:string;name:string;studio_state:unknown;updated_at:string;is_favorite:boolean;revision:number;workspace_project_id:string|null}[];

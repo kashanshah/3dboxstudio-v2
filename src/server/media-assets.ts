@@ -410,3 +410,34 @@ export async function copyStoredObjectToUser(userId:string,source:{storageKey:st
   ` as MediaAssetRow[];
   return toDto(rows[0]);
 }
+
+// Template card pictures (Admin → Templates). Public, like the built-in
+// renders in /images/templates, so they live under their own prefix and are
+// served by /api/template-images/[id] to everyone. Raster only: an SVG could
+// carry script onto the public pages.
+const TEMPLATE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+export const MAX_TEMPLATE_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function templateImageKey(id: string) {
+  const configuredPrefix = optionalEnv('AWS_S3_PREFIX', 'v2/uploads/').replace(/^\/+|\/+$/g, '');
+  return `${configuredPrefix ? `${configuredPrefix}/` : ''}templates/${id}`;
+}
+
+export async function uploadTemplateImage(file: File): Promise<string> {
+  const mimeType = inferArtworkMimeType(file.name, file.type);
+  if (!TEMPLATE_IMAGE_TYPES.includes(mimeType)) throw new ArtworkUploadError('Use a PNG, JPG or WebP picture.', 'unsupported_type');
+  if (!file.size) throw new ArtworkUploadError('The selected image is empty.', 'empty');
+  if (file.size > MAX_TEMPLATE_IMAGE_BYTES) throw new ArtworkUploadError('The picture must be 5 MB or smaller.', 'too_large');
+  const id = randomUUID();
+  await s3().send(new PutObjectCommand({
+    Bucket: bucket(), Key: templateImageKey(id), Body: Buffer.from(await file.arrayBuffer()),
+    ContentType: mimeType, CacheControl: 'public, max-age=31536000, immutable',
+  }));
+  return `/api/template-images/${id}`;
+}
+
+export async function readTemplateImage(id: string) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+  const object = await readStoredObject(templateImageKey(id));
+  return object && TEMPLATE_IMAGE_TYPES.includes(object.contentType) ? object : null;
+}

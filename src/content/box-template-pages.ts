@@ -901,12 +901,12 @@ export function getBoxTemplatePage(slug: string) {
   return BOX_TEMPLATE_PAGES.find(page => page.slug === slug);
 }
 
-/** 2–4 styles to suggest from a page: its own list, or those sharing most of its tags. */
-export function relatedTemplatePages(page: BoxTemplatePage, count = 4): BoxTemplatePage[] {
-  if (page.related?.length) return page.related.map(slug => getBoxTemplatePage(slug)).filter((other): other is BoxTemplatePage => other !== undefined).slice(0, count);
+/** 2–4 styles to suggest from a page: its own list, or those sharing most of its tags. `hidden`: template ids an admin made inactive. */
+export function relatedTemplatePages(page: BoxTemplatePage, count = 4, hidden: ReadonlySet<string> = new Set()): BoxTemplatePage[] {
+  if (page.related?.length) return page.related.map(slug => getBoxTemplatePage(slug)).filter((other): other is BoxTemplatePage => other !== undefined && !hidden.has(other.templateId)).slice(0, count);
   const shared = (other: BoxTemplatePage) => other.tags.filter(tag => page.tags.includes(tag)).length;
   return BOX_TEMPLATE_PAGES
-    .filter(other => other.slug !== page.slug)
+    .filter(other => other.slug !== page.slug && !hidden.has(other.templateId))
     .map((other, index) => ({ other, score: shared(other) * 10 + (other.tags[0] === page.tags[0] ? 5 : 0) - index * 0.01 }))
     .sort((a, b) => b.score - a.score)
     .slice(0, count)

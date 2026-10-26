@@ -5,7 +5,11 @@ import Link from "next/link";
 import { ArrowRight, Search, X } from "lucide-react";
 import { matchesTemplateSearch } from "@/lib/template-search";
 
-export type TemplateCard = { slug: string; name: string; description: string; tags: string[]; image: string; video?: string; size: string; studioHref: string; /** Prepared by templateSearchText. */ searchText?: string };
+/**
+ * pageHref: the template's own page; templates an admin added have none and
+ * link to the generator (generatorHref) instead. image: null draws a plain tile.
+ */
+export type TemplateCard = { slug: string; pageHref?: string; generatorHref?: string; name: string; description: string; tags: string[]; image: string | null; video?: string; size: string; studioHref: string; /** Prepared by templateSearchText. */ searchText?: string };
 
 export function TemplateCards({ cards, filters }: { cards: TemplateCard[]; filters: boolean }) {
   const [tag, setTag] = useState<string | null>(null);
@@ -31,22 +35,25 @@ export function TemplateCards({ cards, filters }: { cards: TemplateCard[]; filte
       <p>No template matches {query ? <>&ldquo;{query}&rdquo;</> : "this filter"}{query && tag ? ` in ${tag}` : ""}.</p>
       <button type="button" onClick={reset}>Show all templates</button>
     </div>}
-    <div className="template-card-grid">{shown.map(card => <article className="template-card" key={card.slug}>
-      <Link className="template-card-media" href={`/box-templates/${card.slug}`} tabIndex={-1} aria-hidden="true">
-        <Image src={card.image} alt="" fill sizes="(max-width: 900px) 90vw, 380px" />
+    <div className="template-card-grid">{shown.map(card => {
+      const href = card.pageHref ?? card.generatorHref ?? card.studioHref;
+      return <article className="template-card" key={card.slug}>
+      <Link className="template-card-media" href={href} tabIndex={-1} aria-hidden="true" {...(card.pageHref ? {} : { rel: "nofollow" })}>
+        {card.image && <Image src={card.image} alt="" fill sizes="(max-width: 900px) 90vw, 380px" unoptimized={card.image.startsWith("/api/")} />}
         {card.video && <FoldClip src={card.video} />}
       </Link>
       <div className="template-card-body">
         <span className="template-card-tag">{card.tags[0]}</span>
-        <h3><Link href={`/box-templates/${card.slug}`}>{card.name}</Link></h3>
+        <h3><Link href={href} {...(card.pageHref ? {} : { rel: "nofollow" })}>{card.name}</Link></h3>
         <p>{card.description}</p>
         <small>Default {card.size} · any size</small>
         <div className="template-card-actions">
-          <Link href={`/box-templates/${card.slug}`}>Sizes &amp; dieline <ArrowRight /></Link>
+          <Link href={card.pageHref ?? card.generatorHref ?? card.studioHref} {...(card.pageHref ? {} : { rel: "nofollow" })}>Sizes &amp; dieline <ArrowRight /></Link>
           <Link className="is-primary" href={card.studioHref} rel="nofollow">Open in Studio</Link>
         </div>
       </div>
-    </article>)}</div>
+    </article>;
+    })}</div>
   </>;
 }
 

@@ -5,9 +5,13 @@ import { CompareTable, ComparisonLinks } from "@/components/compare-table";
 import { SEO_PAGES, seoPageMetadata, servedSeoPage } from "@/content/seo-pages";
 import { breadcrumbSchema, jsonLd } from "@/lib/seo";
 import { site } from "@/lib/site";
+import { withStyleCount } from "@/lib/template-count-copy";
+import { activeStyleCountNow } from "@/server/templates";
 
 const page = SEO_PAGES.templatemaker;
-export const metadata: Metadata = seoPageMetadata(page);
+export async function generateMetadata(): Promise<Metadata> {
+  return withStyleCount(seoPageMetadata(page), await activeStyleCountNow());
+}
 
 // Sources for the Templatemaker column, checked 2026-10-20 (vendor pages via
 // search index; the pages could not be fetched directly, so recheck in a
@@ -59,13 +63,14 @@ const faqs = [
   { question: "Can I sell products made with the templates?", answer: "Yes. Boxes made from 3D Box Studio dielines can be used for products you sell, at no cost." },
 ];
 
-export default function Page() {
+export default async function Page() {
   if (!servedSeoPage(page)) notFound();
+  const copy = withStyleCount({ description: page.description, rows, sections, faqs }, await activeStyleCountNow());
   const url = new URL(page.path, site.url).toString();
   const crumbs = [{ name: "Box dieline generator", path: "/box-dieline-generator" }, { name: "Templatemaker alternative", path: page.path }];
   const schema = [
-    { "@type": "WebPage", name: page.title, description: page.description, url },
-    { "@type": "FAQPage", mainEntity: faqs.map(item => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })) },
+    { "@type": "WebPage", name: page.title, description: copy.description, url },
+    { "@type": "FAQPage", mainEntity: copy.faqs.map(item => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })) },
   ];
   return <><MarketingProductPage
     breadcrumbs={crumbs}
@@ -75,9 +80,9 @@ export default function Page() {
     primaryCta="Start designing free"
     secondaryHref="/box-dieline-generator"
     secondaryLabel="Open the dieline generator"
-    sections={sections}
-    faqs={faqs}
+    sections={copy.sections}
+    faqs={copy.faqs}
     about
-    afterHero={<><CompareTable competitor="Templatemaker" rows={rows} checked="Templatemaker details from templatemaker.nl (home, help, licence and business pages), checked 20 October 2026; check templatemaker.nl for current features." /><ComparisonLinks current={page.path} /></>}
+    afterHero={<><CompareTable competitor="Templatemaker" rows={copy.rows} checked="Templatemaker details from templatemaker.nl (home, help, licence and business pages), checked 20 October 2026; check templatemaker.nl for current features." /><ComparisonLinks current={page.path} /></>}
   /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema(crumbs), ...schema) }} /></>;
 }

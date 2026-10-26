@@ -4,7 +4,7 @@ import { useI18n, useTranslations } from '@/components/i18n/locale-provider';
 import { formatDate } from '@/lib/i18n';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect,useRef,useState } from 'react';
+import { useEffect,useMemo,useRef,useState } from 'react';
 import { menuKeyDown,useDialogFocus,useMenuFocus } from './use-dialog-focus';
 import { Box,FilePlus2,Search,Clock3,Star,UserRound,PackageOpen,Folder,FolderPlus,Plus,Layers3,Sparkles,MoreHorizontal,ChevronDown,Pencil,Trash2,Move,ExternalLink,ArrowRight,X,Copy } from 'lucide-react';
 import { Brand } from '@/components/site-shell';
@@ -12,13 +12,14 @@ import { AccountButton } from './account-button';
 import type { AuthUser } from './auth-provider';
 import type { WorkspaceDesign } from '@/server/projects';
 import type { WorkspaceProject } from '@/server/workspace-projects';
-import { PACKAGING_TEMPLATES } from '@/lib/packaging/template-registry';
+import { PACKAGING_TEMPLATES, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
+import { listedTemplates, NO_TEMPLATE_RECORDS, resolveTemplateCatalog, type TemplateSettingsRecord } from '@/lib/packaging/template-catalog';
 import { TemplateVisual } from '@/components/studio/template-visual';
 import './studio-home.css';
 import './auth-pages.css';
 
 export function StudioHome({
-  user,designs,total,projects,activeProjectId,search,sort,page,
+  user,designs,total,projects,activeProjectId,search,sort,page,templateRecords=NO_TEMPLATE_RECORDS,
 }:{
   user:AuthUser;
   designs:WorkspaceDesign[];
@@ -28,6 +29,8 @@ export function StudioHome({
   search:string;
   sort:string;
   page:number;
+  /** Admin → Templates settings (template-catalog.ts). */
+  templateRecords?:readonly TemplateSettingsRecord[];
 }){
   const { t, locale } = useI18n();
 
@@ -67,9 +70,9 @@ export function StudioHome({
  const libraryDesigns=designs
    .filter(design=>!deletedDesignIds.has(design.id))
    .map(design=>Object.prototype.hasOwnProperty.call(favoriteOverrides,design.id)?{...design,favorite:favoriteOverrides[design.id]}:design);
- const readyTemplates=PACKAGING_TEMPLATES.filter(template=>template.status==='ready');
+ const readyTemplates=useMemo(()=>listedTemplates(resolveTemplateCatalog(templateRecords)),[templateRecords]);
  const upcomingTemplates=PACKAGING_TEMPLATES.filter(template=>template.status!=='ready');
- const templateCard=(template:(typeof PACKAGING_TEMPLATES)[number])=><article className="studio-template-card" key={template.id}><div className="studio-template-art"><TemplateVisual template={template}/></div><div className="studio-template-card-copy"><div><h3>{getPackagingTemplateCopy(template, t).shortName}</h3><p>{getPackagingTemplateCopy(template, t).category}</p></div>{template.status==='ready'?<Link className="button button-secondary button-small" href={`/studio/editor?template=${template.id}${activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:''}`}><PackageOpen size={16}/>{" " + t("workspace.use_template")}</Link>:<span className="studio-legacy-label">{t("workspace.coming_soon")}</span>}</div></article>;
+ const templateCard=(template:PackagingTemplateDefinition)=><article className="studio-template-card" key={template.id}><div className="studio-template-art"><TemplateVisual template={template}/></div><div className="studio-template-card-copy"><div><h3>{getPackagingTemplateCopy(template, t).shortName}</h3><p>{getPackagingTemplateCopy(template, t).category}</p></div>{template.status==='ready'?<Link className="button button-secondary button-small" href={`/studio/editor?template=${template.id}${activeProjectId?`&workspace=${encodeURIComponent(activeProjectId)}`:''}`}><PackageOpen size={16}/>{" " + t("workspace.use_template")}</Link>:<span className="studio-legacy-label">{t("workspace.coming_soon")}</span>}</div></article>;
  const recentDesigns=!search&&sort==='recent'&&page===1?libraryDesigns.slice(0,4):[];
  const favoriteDesigns=!search&&page===1?libraryDesigns.filter(design=>design.favorite).slice(0,4):[];
  useEffect(()=>{

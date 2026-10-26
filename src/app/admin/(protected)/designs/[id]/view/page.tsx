@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { SharedDesignViewer } from '@/components/studio/shared-design-viewer';
 import { decodeRouteParam } from '@/lib/route-params';
 import { getAdminDesignView } from '@/server/admin/catalog';
+import { jsonDefinitionFor } from '@/server/templates';
 
 export const metadata: Metadata = {
   title: 'Admin — Design preview',
@@ -15,5 +16,5 @@ export default async function AdminDesignViewPage({ params }: Props) {
   const { id: rawId } = await params;
   const design = await getAdminDesignView(decodeRouteParam(rawId));
   if (!design) notFound();
-  return <SharedDesignViewer name={design.name} state={design.state} legacy={design.legacy} promo={false} />;
+  return <SharedDesignViewer name={design.name} state={design.state} templateDefinition={await jsonDefinitionFor(design.state.templateId)} legacy={design.legacy} promo={false} />;
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { MarketingProductPage } from "@/components/marketing-product-page";
 import { CompareTable, ComparisonLinks } from "@/components/compare-table";
 import { site, defaultOgImage } from "@/lib/site";
+import { withStyleCount } from "@/lib/template-count-copy";
+import { activeStyleCountNow } from "@/server/templates";
 
 export const metadata: Metadata = {
   title: { absolute: "Pacdora Alternative for Free 3D Box Mockups | 3D Box Studio" },
@@ -86,11 +88,12 @@ const faqs = [
   }
 ];
 
-export default function Page(){
+export default async function Page(){
+  const copy=withStyleCount({rows,sections,faqs},await activeStyleCountNow());
   const url=new URL("/pacdora-alternative",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
     {"@type":"WebPage",name:"A focused Pacdora alternative for browser-based 3D box design.",description:"Looking for a Pacdora alternative? Compare a focused browser workflow for custom box dimensions, dieline artwork, 3D packaging previews, PNG and MP4 export, free SVG/DXF dielines, saving and sharing.",url},
-    {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
+    {"@type":"FAQPage",mainEntity:copy.faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
-  return <><MarketingProductPage eyebrow="Pacdora alternative" title="A focused Pacdora alternative for browser-based 3D box design." intro="If your main job is to choose a box structure, set dimensions, place artwork, preview it in 3D, and share or export the result, 3D Box Studio offers a simpler focused workflow. It is not intended to copy every feature of Pacdora." secondaryHref="/blog/free-pacdora-alternative-3d-box-mockups" secondaryLabel="Read the detailed comparison" sections={sections} faqs={faqs} afterHero={<><CompareTable competitor="Pacdora" rows={rows} checked="Pacdora details from pacdora.com (pricing, dieline generator, mockups and printing pages), checked 20 October 2026; check pacdora.com for current plans and features." /><ComparisonLinks current="/pacdora-alternative" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><MarketingProductPage eyebrow="Pacdora alternative" title="A focused Pacdora alternative for browser-based 3D box design." intro="If your main job is to choose a box structure, set dimensions, place artwork, preview it in 3D, and share or export the result, 3D Box Studio offers a simpler focused workflow. It is not intended to copy every feature of Pacdora." secondaryHref="/blog/free-pacdora-alternative-3d-box-mockups" secondaryLabel="Read the detailed comparison" sections={copy.sections} faqs={copy.faqs} afterHero={<><CompareTable competitor="Pacdora" rows={copy.rows} checked="Pacdora details from pacdora.com (pricing, dieline generator, mockups and printing pages), checked 20 October 2026; check pacdora.com for current plans and features." /><ComparisonLinks current="/pacdora-alternative" /></>} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

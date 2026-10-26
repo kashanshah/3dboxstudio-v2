@@ -7,7 +7,8 @@ import { getCurrentUser } from '@/server/auth/session';
 import { getStudioProject } from '@/server/projects';
 import Link from 'next/link';
 import { site, defaultOgImage } from '@/lib/site';
-import { getPackagingTemplate } from '@/lib/packaging/template-registry';
+import { clientTemplateRecords, listedTemplates, resolveTemplateCatalog } from '@/lib/packaging/template-catalog';
+import { getTemplateSettings } from '@/server/templates';
 import { decodeRouteParam } from '@/lib/route-params';
 import { listWorkspaceProjects } from '@/server/workspace-projects';
 import { editorReturnPath, requestedDimensions, requestedHingeSide } from '@/lib/studio-entry';
@@ -25,18 +26,21 @@ export const metadata: Metadata = {
 };
 
 export default async function Studio({searchParams}:{searchParams:Promise<{project?:string;template?:string;workspace?:string;w?:string;h?:string;d?:string;t?:string;a?:string;hinge?:string;unit?:string}>}) {
-  const params=await searchParams,user=await getCurrentUser();
+  const [params,user,templateRecords]=await Promise.all([searchParams,getCurrentUser(),getTemplateSettings()]);
   const projectId=params.project?decodeRouteParam(params.project):undefined;
   // Keep the template and size picked on a marketing page through sign-in.
   if(!user) redirect(`/login?next=${encodeURIComponent(editorReturnPath(params))}`);
   const project=projectId?await getStudioProject(user.id,projectId):null;
   if(projectId&&!project)notFound();
   const newDesignProjects=project?undefined:(await listWorkspaceProjects(user.id)).map(({id,name,isDefault,designCount})=>({id,name,isDefault,designCount}));
-  const requestedTemplate=!project&&params.template?getPackagingTemplate(params.template):null;
-  const initialTemplateId=requestedTemplate?.status==='ready'?requestedTemplate.id:undefined;
+  // A listed template or named template; an inactive one falls back to the default.
+  const listed=listedTemplates(resolveTemplateCatalog(templateRecords));
+  const requestedTemplate=!project&&params.template?listed.find(entry=>entry.id===params.template)??null:null;
+  const initialTemplateId=requestedTemplate?.status==='ready'?requestedTemplate.templateId:undefined;
+  const initialPresetId=initialTemplateId?requestedTemplate?.presetId:undefined;
   const initialDimensions=initialTemplateId&&requestedTemplate?.defaultDimensions?requestedDimensions(params,requestedTemplate.defaultDimensions):undefined;
   const initialUnit=initialTemplateId&&(params.unit==='in'||params.unit==='mm')?params.unit:undefined;
   const initialHingeSide=initialTemplateId?requestedHingeSide(params):undefined;
   const schema={'@context':'https://schema.org','@type':'WebApplication',name:'3D Box Studio',alternateName:'Free 3D Box Designer',applicationCategory:'DesignApplication',operatingSystem:'Any',browserRequirements:'Requires JavaScript. WebGL recommended.',offers:{'@type':'Offer',price:'0',priceCurrency:'USD',description:'Free account required'},description,url:new URL('/studio',site.url).toString(),featureList:['Custom box dimensions','Packaging materials','Opening simulation','Per-face artwork upload','Interactive 3D preview','PNG export']};
-  return <><StudioShell key={project?.id??`${initialTemplateId??'new'}:${params.workspace??'default'}:${initialDimensions?`${initialDimensions.width}x${initialDimensions.height}x${initialDimensions.depth}x${initialDimensions.thickness}`:''}:${initialHingeSide??''}`} initialProject={project??undefined} initialWorkspaceProjectId={params.workspace??project?.workspaceProjectId??undefined} initialTemplateId={initialTemplateId} initialDimensions={initialDimensions} initialUnit={initialUnit} initialSplitTopHingeSide={initialHingeSide} newDesignProjects={newDesignProjects}/><SignedInHintRepair/>{!user.emailVerified&&<div className="editor-verification-reminder"><Link href="/verify-email">Verify your email</Link></div>}<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
+  return <><StudioShell key={project?.id??`${initialPresetId??initialTemplateId??'new'}:${params.workspace??'default'}:${initialDimensions?`${initialDimensions.width}x${initialDimensions.height}x${initialDimensions.depth}x${initialDimensions.thickness}`:''}:${initialHingeSide??''}`} initialProject={project??undefined} initialWorkspaceProjectId={params.workspace??project?.workspaceProjectId??undefined} initialTemplateId={initialTemplateId} initialPresetId={initialPresetId} templateRecords={clientTemplateRecords(templateRecords,[project?.state.templateId])} initialDimensions={initialDimensions} initialUnit={initialUnit} initialSplitTopHingeSide={initialHingeSide} newDesignProjects={newDesignProjects}/><SignedInHintRepair/>{!user.emailVerified&&<div className="editor-verification-reminder"><Link href="/verify-email">Verify your email</Link></div>}<script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

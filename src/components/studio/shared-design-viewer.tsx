@@ -14,12 +14,18 @@ import { rasterizeFullDielineLayers, rasterizePanelArtwork } from '@/lib/packagi
 import type { ArtworkByPanel } from '@/lib/packaging/artwork';
 import type { ShareBrand } from '@/lib/share-brand';
 import { SharedBrand } from '@/components/studio/shared-brand';
+import { registerJsonTemplates } from '@/lib/packaging/json-templates';
+import type { ParametricTemplate } from '@/lib/packaging/parametric/format';
 
 const PROMO_HREF='/studio?ref=shared-design';
 
-/** brand: a client share's own name and logo, shown instead of 3D Box Studio's (src/server/client-shares.ts). */
-export function SharedDesignViewer({name,state:savedState,legacy,promo:showPromo=true,brand=null}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean;brand?:ShareBrand|null}){
+/**
+ * brand: a client share's own name and logo, shown instead of 3D Box Studio's (src/server/client-shares.ts).
+ * templateDefinition: the design's template when an admin uploaded it (json-templates.ts).
+ */
+export function SharedDesignViewer({name,state:savedState,legacy,promo:showPromo=true,brand=null,templateDefinition=null}:{name:string;state:StudioProjectState;legacy:boolean;promo?:boolean;brand?:ShareBrand|null;templateDefinition?:ParametricTemplate|null}){
   const promo=showPromo&&!brand;
+  if(templateDefinition)registerJsonTemplates([templateDefinition]);
   const state=useMemo(()=>migrateStudioLayout(savedState),[savedState]);
   const runtime=getTemplateRuntime(state.templateId);
   if(!runtime)throw new Error(`No runtime is registered for template: ${state.templateId}`);

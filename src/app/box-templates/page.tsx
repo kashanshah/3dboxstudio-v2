@@ -3,6 +3,9 @@ import Link from "next/link";
 import { MarketingProductPage } from "@/components/marketing-product-page";
 import { TemplatePageLinks } from "@/components/template-page-links";
 import { site, defaultOgImage } from "@/lib/site";
+import { inactiveTemplateIds, listedTemplates } from "@/lib/packaging/template-catalog";
+import { getPackagingTemplateCopy } from "@/lib/i18n/template-copy";
+import { getTemplateCatalog } from "@/server/templates";
 
 export const metadata: Metadata = {
   title: { absolute: "3D Box Templates & Packaging Structures | 3D Box Studio" },
@@ -29,10 +32,11 @@ const sections = [
     "body": "Dimensions, dieline geometry, panel mapping, folds, and opening behavior belong to each template so adding a new structure does not require changing the rules for every existing box."
   }
 ];
-const faqs = [
+const FAQS = [
   {
     "question": "Which box templates are available?",
-    "answer": "Reverse tuck end carton, straight tuck end box, auto lock bottom box, snap lock bottom box, pillow box, gable box, drawer box, four-corner tray, telescope box, hexagon box, cake box, pizza box, split top box, mailer box, sleeve box and rigid lid and base box are ready now."
+    // Filled in from the catalog: whatever is active now (Admin → Templates).
+    "answer": ""
   },
   {
     "question": "Can I resize a template?",
@@ -56,17 +60,27 @@ const faqs = [
   }
 ];
 
-export default function Page(){
+/** "a, b and c are ready now." */
+function availableAnswer(names: string[]) {
+  const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names.join("");
+  return `${list.charAt(0).toUpperCase()}${list.slice(1)} ${names.length === 1 ? "is" : "are"} ready now.`;
+}
+
+export default async function Page(){
+  const catalog = await getTemplateCatalog();
+  const hidden = inactiveTemplateIds(catalog);
+  const names = listedTemplates(catalog).map(entry => getPackagingTemplateCopy(entry).name.toLowerCase());
+  const faqs = FAQS.map(item => item.question === "Which box templates are available?" ? { ...item, answer: availableAnswer(names) } : item);
   const url=new URL("/box-templates",site.url).toString();
   const schema={"@context":"https://schema.org","@graph":[
     {"@type":"WebPage",name:"Box templates built for real packaging structures.",description:"Explore the template-based packaging approach in 3D Box Studio. Choose supported box structures, set finished dimensions, design the flat layout, and preview folding/opening behavior in 3D.",url},
     {"@type":"FAQPage",mainEntity:faqs.map(item=>({"@type":"Question",name:item.question,acceptedAnswer:{"@type":"Answer",text:item.answer}}))}
   ]};
   const heroAside=<div className="template-hero-visual" aria-label="Illustration of several packaging structure templates">
-    <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>
-    <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Locking tray, hinged lid</span><i/></Link>
-    <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Slotted shipper</span><i/></Link>
-    <Link className="template-hero-note" href="/box-templates/hexagon-box">New: hexagon box with a lid</Link>
+    {!hidden.has("reverse-tuck-carton") && <Link className="template-hero-card" href="/box-templates/reverse-tuck-end-box"><strong>Reverse tuck end</strong><span>Folding carton</span><i/></Link>}
+    {!hidden.has("pizza-box") && <Link className="template-hero-card" href="/box-templates/pizza-box"><strong>Pizza box</strong><span>Locking tray, hinged lid</span><i/></Link>}
+    {!hidden.has("split-top-box") && <Link className="template-hero-card" href="/box-templates/split-top-box"><strong>Split top</strong><span>Slotted shipper</span><i/></Link>}
+    {!hidden.has("hexagon-box") && <Link className="template-hero-note" href="/box-templates/hexagon-box">New: hexagon box with a lid</Link>}
   </div>;
   return <><MarketingProductPage alternates={{ es: '/es/box-templates' }} eyebrow="Box templates" title="Box templates built for real packaging structures." intro="Choose a supported structure, set its finished dimensions, design on its generated flat layout, and preview the package using that template's own geometry and opening behavior." secondaryHref="/studio" secondaryLabel="Open the template browser" sections={sections} faqs={faqs} heroAside={heroAside} afterHero={<TemplatePageLinks filters />} /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(schema)}}/></>;
 }

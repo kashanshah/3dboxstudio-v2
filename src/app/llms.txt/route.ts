@@ -1,8 +1,31 @@
 import { BLOG_POSTS } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
+import { activeStyleCount, inactiveTemplateIds, listedTemplates } from '@/lib/packaging/template-catalog';
+import { withStyleCount } from '@/lib/template-count-copy';
+import { getTemplateCatalog } from '@/server/templates';
 
 export const dynamic = 'force-static';
+
+/** How each built-in template is described; templates an admin made inactive are left out. */
+const TEMPLATE_PHRASES: [templateId: string, phrase: string][] = [
+  ['reverse-tuck-carton', 'reverse tuck end carton'],
+  ['base-box', 'straight tuck end box'],
+  ['auto-lock-bottom-box', 'auto lock bottom (crash lock) box with a pre-glued self-locking bottom'],
+  ['snap-lock-bottom-box', 'snap lock (1-2-3) bottom box that closes by hand without glue'],
+  ['pillow-box', 'pillow box with curved ends that close when pushed in'],
+  ['gable-box', 'gable box with a pitched roof, carry handle and auto-lock bottom'],
+  ['drawer-box', 'drawer box (a tray that slides out of a sleeve, with thumb notches)'],
+  ['tray-box', 'four-corner tray (glued corners)'],
+  ['telescope-box', 'telescope box (a four-corner tray with a lift-off lid tray, adjustable lid height)'],
+  ['hexagon-box', 'hexagon box (a six-sided base and lift-off lid, each a glued tube closed by a hexagon panel; sized across the flats, with the height and lid depth)'],
+  ['cake-box', 'cake box (one piece, corners locked without glue, optional lid window)'],
+  ['split-top-box', 'split top box'],
+  ['pizza-box', 'pizza box'],
+  ['mailer-box', 'mailer box (FEFCO 0427)'],
+  ['sleeve-box', 'sleeve box'],
+  ['rigid-lid-base', 'rigid lid and base box (two-piece set-up box with corner ears, turn-ins, adjustable lid height and turn-in depth)'],
+];
 
 const url = (path: string) => new URL(path, site.url).toString();
 
@@ -11,12 +34,19 @@ const url = (path: string) => new URL(path, site.url).toString();
  * where the canonical pages are, for AI assistants and answer engines. Keep the
  * facts in line with the FAQ; assistants repeat what they read here.
  */
-export function GET() {
+export async function GET() {
+  const catalog = await getTemplateCatalog();
+  const hidden = inactiveTemplateIds(catalog);
+  const phrases = [
+    ...TEMPLATE_PHRASES.filter(([id]) => !hidden.has(id)).map(([, phrase]) => phrase),
+    ...listedTemplates(catalog).filter(entry => entry.source !== 'built-in').map(entry => entry.name),
+  ];
+  const available = phrases.length > 1 ? `${phrases.slice(0, -1).join(', ')} and ${phrases.at(-1)}` : phrases.join('');
   const guides = [...BLOG_POSTS]
     .sort((a, b) => (b.updated ?? b.published).localeCompare(a.updated ?? a.published))
     .map(post => `- [${post.title}](${url(`/blog/${post.slug}`)}): ${post.description}`);
 
-  const templates = BOX_TEMPLATE_PAGES.map(page => `- [${page.name} template](${url(`/box-templates/${page.slug}`)}): ${page.description}`);
+  const templates = BOX_TEMPLATE_PAGES.filter(page => !hidden.has(page.templateId)).map(page => `- [${page.name} template](${url(`/box-templates/${page.slug}`)}): ${page.description}`);
 
   const body = `# 3D Box Studio
 
@@ -25,7 +55,7 @@ export function GET() {
 ## Key facts
 
 - Price: free. The box dieline generator (/box-dieline-generator and each /box-templates page) needs no account: dielines for 16 box styles download as SVG, PDF (one page or tiled on A4/Letter), DXF, PNG and a Cricut/Silhouette SVG, sized by inside, outside or crease-to-crease dimensions, with no watermark or limit. A free account is required to use the Studio (artwork, 3D folding, saving, mockup and video export). Shared preview links can be opened by anyone without an account.
-- Box templates available now: reverse tuck end carton, straight tuck end box, auto lock bottom (crash lock) box with a pre-glued self-locking bottom, snap lock (1-2-3) bottom box that closes by hand without glue, pillow box with curved ends that close when pushed in, gable box with a pitched roof, carry handle and auto-lock bottom, drawer box (a tray that slides out of a sleeve, with thumb notches), four-corner tray (glued corners), telescope box (a four-corner tray with a lift-off lid tray, adjustable lid height), hexagon box (a six-sided base and lift-off lid, each a glued tube closed by a hexagon panel; sized across the flats, with the height and lid depth), cake box (one piece, corners locked without glue, optional lid window), split top box, pizza box, mailer box (FEFCO 0427), sleeve box and rigid lid and base box (two-piece set-up box with corner ears, turn-ins, adjustable lid height and turn-in depth). Flap and panel sizes can be adjusted per side on most templates.
+- Box templates available now: ${available}. Flap and panel sizes can be adjusted per side on most templates.
 - Workflow: 1) Box — structure, finished size and material; 2) Design — images and text (9 bundled fonts) on the outside and inside of the dieline with cut, crease and bleed guides, and an artboard (the dieline plus bleed) that full-sheet artwork can be made to fit; 3) Preview & Download — fold from flat to closed in 3D, then export.
 - Exports: PNG mockup images from the 3D view; a 1:1 vector PDF dieline (outside or inside, adjustable bleed, cut and crease lines, calibration ruler); the cutting template on its own as SVG or DXF (R12) at 1:1 in millimetres, with cut and crease lines on separate CUT and CREASE layers, for die makers, CAD programs, cutting tables, Cricut and laser cutters. An MP4 video of 6, 10 or 15 seconds (1080p, 720p on phones): fold and turn (flat to closed, then one turn), turntable, or open and close (the lid opens as the box turns); turntable and open and close loop seamlessly; studio, white or any colour background.
 - Sharing: view-only interactive 3D links for clients and teammates.
@@ -65,7 +95,7 @@ ${guides.join('\n')}
 - [Terms of service](${url('/terms')})
 `;
 
-  return new Response(body, {
+  return new Response(withStyleCount(body, activeStyleCount(catalog)), {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'public, max-age=3600, s-maxage=86400',

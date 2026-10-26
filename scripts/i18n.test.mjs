@@ -55,7 +55,7 @@ test('template presentation preserves English display copy and all geometry iden
   assert.equal(JSON.stringify(PACKAGING_TEMPLATES), before);
 });
 test('sitemap advertises actual translated content and excludes redirecting Studio locale URLs', async () => {
-  const xml = await load('src/app/sitemap.xml/route.ts').GET().text();
+  const xml = await (await load('src/app/sitemap.xml/route.ts').GET()).text();
   assert.ok(xml.includes('hreflang="fr"'));
   assert.ok(xml.includes('/fr/blog/how-to-create-3d-product-box-mockup-online'));
   assert.doesNotMatch(xml, /\/(fr|es|de|zh)\/studio/);

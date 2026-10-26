@@ -7,6 +7,7 @@ import { getAdminDesignLegacyMedia } from '@/server/admin/catalog';
 import { ensureV2Schema, getSql } from '@/server/db';
 import { copyStoredObjectToUser, type MediaAssetDto } from '@/server/media-assets';
 import { resolveWorkspaceProjectId } from '@/server/workspace-projects';
+import { ensureTemplatesRegistered } from '@/server/templates';
 
 // Admins open any design (V2 or legacy) in the editor by copying it into the
 // Studio account they are signed in to, to try what its owner could and could
@@ -64,6 +65,7 @@ function referencedAssetIds(state: StudioProjectState) {
 }
 
 async function copyProjectDesign(designId: string, userId: string) {
+  await ensureTemplatesRegistered();
   const sql = getSql();
   const rows = await sql`
     SELECT id, user_id, name, studio_state, preview_image_key FROM projects WHERE id=${designId} LIMIT 1

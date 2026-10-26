@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPreviewShare } from '@/server/design-shares';
 import { SharedDesignViewer } from '@/components/studio/shared-design-viewer';
+import { jsonDefinitionFor } from '@/server/templates';
 
 export async function generateMetadata({params}:{params:Promise<{token:string}>}):Promise<Metadata>{
   const {token}=await params;
@@ -14,5 +15,5 @@ export default async function LegacyPreviewPage({params}:{params:Promise<{token:
   const {token}=await params;
   const share=await getPreviewShare(token);
   if(!share)notFound();
-  return <SharedDesignViewer name={share.name} state={share.state} legacy={share.legacy} brand={share.brand}/>;
+  return <SharedDesignViewer name={share.name} state={share.state} templateDefinition={await jsonDefinitionFor(share.state.templateId)} legacy={share.legacy} brand={share.brand}/>;
 }

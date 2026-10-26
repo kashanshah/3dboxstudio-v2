@@ -9,9 +9,13 @@ import { SEO_PAGES, seoPageMetadata, servedSeoPage } from '@/content/seo-pages';
 import { CRICUT_STEPS } from '@/lib/dieline/export/cricut';
 import { generatorSetup } from '@/lib/dieline/thumbnails';
 import { softwareApplicationSchema } from '@/lib/seo';
+import { withStyleCount } from '@/lib/template-count-copy';
+import { activeStyleCountNow, getTemplateSettings } from '@/server/templates';
 
 const page = SEO_PAGES.cricut;
-export const metadata: Metadata = seoPageMetadata(page);
+export async function generateMetadata(): Promise<Metadata> {
+  return withStyleCount(seoPageMetadata(page), await activeStyleCountNow());
+}
 
 const faqs = [
   { question: 'How do I make a box template for Cricut in my size?', answer: 'Choose a box style above, type your measurements, keep Cricut / Silhouette SVG selected under Export and download it. Upload the SVG to Design Space, set the blue lines to Score, attach, and cut on cardstock.' },
@@ -21,19 +25,20 @@ const faqs = [
   { question: 'What is the biggest box I can cut?', answer: 'On a 12 × 24 in mat the cut area is about 11.5 × 23.5 in (292 × 597 mm) flat. The generator tells you whether your box fits; if not, make it smaller, print and hand-cut the tiled PDF, or use a cutting table with the DXF.' },
 ];
 
-export default function CricutBoxTemplatesPage() {
+export default async function CricutBoxTemplatesPage() {
   if (!servedSeoPage(page)) notFound();
+  const [count, templateRecords] = await Promise.all([activeStyleCountNow(), getTemplateSettings()]);
   return <LandingPage
     crumbs={[{ name: 'Box templates', path: '/box-templates' }, { name: 'Cricut box templates', path: page.path }]}
     eyebrow="Cricut and Silhouette"
     title="Cricut box templates in your exact size"
-    intro="Make a box SVG for Cricut Design Space or Silhouette in the size you need: cut lines in black, score lines in blue, sized in inches so it imports at the right size. 16 box styles, free, no account."
+    intro={withStyleCount("Make a box SVG for Cricut Design Space or Silhouette in the size you need: cut lines in black, score lines in blue, sized in inches so it imports at the right size. 16 box styles, free, no account.", count)}
     updated="2026-10-20"
     schema={[
-      softwareApplicationSchema({ name: 'Cricut box template maker', path: page.path, description: page.description, features: ['Cut and score SVG sized in inches', 'DXF for Silhouette Studio Basic', 'Any size in inches or mm', 'Mat-size check', '16 box styles', 'No sign-up'] }),
+      softwareApplicationSchema({ name: 'Cricut box template maker', path: page.path, description: withStyleCount(page.description, count), features: ['Cut and score SVG sized in inches', 'DXF for Silhouette Studio Basic', 'Any size in inches or mm', 'Mat-size check', withStyleCount('16 box styles', count), 'No sign-up'] }),
       { '@type': 'FAQPage', mainEntity: faqs.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
     ]}>
-    <DielineGenerator setup={generatorSetup('gable-box', { length: 4, width: 2.5, depth: 3.5, units: 'in' })} title="Make your Cricut box" defaultExport="cricut"
+    <DielineGenerator setup={generatorSetup('gable-box', { length: 4, width: 2.5, depth: 3.5, units: 'in' }, templateRecords)} title="Make your Cricut box" defaultExport="cricut"
       page={{ type: 'dieline_generator', slug: 'cricut-box-templates' }} />
 
     <div className="btp-sections">

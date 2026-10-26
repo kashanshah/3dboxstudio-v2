@@ -9,9 +9,13 @@ import { getBoxTemplatePage } from '@/content/box-template-pages';
 import { SEO_PAGES, seoPageMetadata, servedSeoPage } from '@/content/seo-pages';
 import { generatorSetup } from '@/lib/dieline/thumbnails';
 import { softwareApplicationSchema } from '@/lib/seo';
+import { withStyleCount } from '@/lib/template-count-copy';
+import { activeStyleCountNow, getTemplateSettings } from '@/server/templates';
 
 const page = SEO_PAGES.printable;
-export const metadata: Metadata = seoPageMetadata(page);
+export async function generateMetadata(): Promise<Metadata> {
+  return withStyleCount(seoPageMetadata(page), await activeStyleCountNow());
+}
 
 // Box styles that fold well from card on a home printer, with a size people often make them in.
 const CRAFT_STYLES = [
@@ -32,8 +36,9 @@ const faqs = [
   { question: 'Is it free?', answer: 'Yes. Every template downloads free as PDF, SVG, DXF, PNG or a Cricut file, without an account, a watermark or a limit.' },
 ];
 
-export default function PrintableBoxTemplatesPage() {
+export default async function PrintableBoxTemplatesPage() {
   if (!servedSeoPage(page)) notFound();
+  const [count, templateRecords] = await Promise.all([activeStyleCountNow(), getTemplateSettings()]);
   const styles = CRAFT_STYLES.flatMap(item => {
     const template = getBoxTemplatePage(item.slug);
     return template ? [{ ...item, name: template.name }] : [];
@@ -45,10 +50,10 @@ export default function PrintableBoxTemplatesPage() {
     intro="Pick a box, type the measurements you need, and print the template at 100% on A4 or Letter: cut on the red lines, score the dashed ones and fold. Free, with no sign-up."
     updated="2026-10-20"
     schema={[
-      softwareApplicationSchema({ name: 'Printable box template maker', path: page.path, description: page.description, features: ['Any size in mm or inches', 'Tiled PDF for A4 and Letter with alignment marks', '50 mm scale bar to check the print', '16 box styles', 'No sign-up'] }),
+      softwareApplicationSchema({ name: 'Printable box template maker', path: page.path, description: withStyleCount(page.description, count), features: ['Any size in mm or inches', 'Tiled PDF for A4 and Letter with alignment marks', '50 mm scale bar to check the print', withStyleCount('16 box styles', count), 'No sign-up'] }),
       { '@type': 'FAQPage', mainEntity: faqs.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
     ]}>
-    <DielineGenerator setup={generatorSetup('pillow-box', { length: 6, width: 3.5, depth: 1.5, units: 'in' })} title="Make your printable template" defaultExport="pdf_letter"
+    <DielineGenerator setup={generatorSetup('pillow-box', { length: 6, width: 3.5, depth: 1.5, units: 'in' }, templateRecords)} title="Make your printable template" defaultExport="pdf_letter"
       page={{ type: 'dieline_generator', slug: 'printable-box-templates' }} />
 
     <div className="btp-sections">

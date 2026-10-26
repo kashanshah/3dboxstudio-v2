@@ -4,7 +4,6 @@ import { AdminPageHeader } from '@/components/admin-page-header';
 import { AdminListSearch } from '@/components/admin/admin-list-search';
 import { AdminDesignThumb } from '@/components/admin/admin-design-thumb';
 import { adminCount, adminRelative } from '@/components/admin/admin-format';
-import { adminTemplateName } from '@/lib/admin-template-name';
 import { formatMediaSize } from '@/lib/admin-media';
 import { listDesigns, listMedia, listUsers, parseAdminQuery } from '@/server/admin/catalog';
 import { listAdminContacts } from '@/server/admin/contacts';
@@ -39,7 +38,7 @@ export default async function AdminSearchPage({ searchParams }: Props) {
       <Section title="Designs" total={results[1].total} more={`/admin/designs?q=${encoded}`}>
         {results[1].items.map((design) => <li key={design.id}><Link className="admin-search-design" href={`/admin/designs?q=${encoded}&view=${encodeURIComponent(design.id)}`}>
           <AdminDesignThumb src={design.thumbnailUrl} name={design.name} />
-          <span><strong>{design.name}</strong><small>{[design.user?.name, adminTemplateName(design.templateId), adminRelative(design.updatedAt)].filter(Boolean).join(' · ')}</small></span>
+          <span><strong>{design.name}</strong><small>{[design.user?.name, design.templateName, adminRelative(design.updatedAt)].filter(Boolean).join(' · ')}</small></span>
         </Link></li>)}
       </Section>
       <Section title="Images" total={results[2].total} more={`/admin/media?q=${encoded}`}>
