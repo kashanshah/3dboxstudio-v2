@@ -111,13 +111,20 @@ function pieceSheet(p: Piece): { panels: PanelSpec[]; model: ModelPanelSpec[]; s
   return { panels, model, slits: [{ from: corners[1], to: flapEnd }] };
 }
 
+// The front wall stays still, as a tuck-end carton's does: the walls fold
+// back round it both ways to meet behind, the back wall carrying the glue
+// flap and the hexagon.
+const BACKWARD = ['frontLeft', 'backLeft', 'back'];
+const FORWARD = ['frontRight', 'backRight'];
 function pieceHinges(p: Piece): HingeSpec[] {
   const cap = capOf(p);
+  const chain = (walls: string[], angle: Expr): HingeSpec[] => walls.map((wall, i) => ({ child: id(p, wall), parent: id(p, i === 0 ? 'front' : walls[i - 1]), angle }));
   return [
+    ...chain(BACKWARD, 'wrap'),
+    ...chain(FORWARD, 'wrap'),
+    // The hexagon folds under the tube (over it, on the lid) from the back wall.
+    { child: `${cap}Near`, parent: id(p, 'back'), angle: 'turnBack' },
     { child: `${cap}Far`, parent: `${cap}Near`, angle: 0, sharp: true },
-    { child: id(p, 'back'), parent: `${cap}Near`, angle: 'turnBack' },
-    // Round the tube: each wall turns 60° on the one before it.
-    ...WALLS.slice(1).map((wall, i): HingeSpec => ({ child: id(p, wall.id), parent: id(p, WALLS[i].id), angle: 'wrap' })),
     // The glue flap turns in behind the back right wall.
     { child: id(p, 'glue'), parent: id(p, 'back'), angle: 'turnGlue', setback: 'foldT * 1.2' },
     // The flaps fold in onto the inside of the hexagon.
@@ -190,51 +197,46 @@ export const hexagonBoxDefinition = {
     { text: 'Artwork prints exactly as laid out on the design grid.' },
   ],
   fold: {
-    root: 'bottomNear',
+    root: 'front',
     thickness: 'max(0.05, min(thickness, width * 0.03))',
-    // Printed side down, so the walls fold up round the bottom; the back wall
-    // ends up at the back. The flat sheet is centred, and slides across to
-    // centre the base as its walls rise.
-    matrix: [-1, 0, 0, 0, 0, 0, -1, 0, 0, -1, 0, 0, 'baseCx + shiftX', '-height / 2', '-baseCy + shiftZ', 1],
+    // As a tuck-end carton is shown: the sheet stands facing you, the front
+    // walls stay still and the others fold back round them into two upright
+    // tubes, the lid's row above the base's as on the sheet. The flaps fold
+    // in, the hexagons close the base's bottom and the lid's top, and the lid
+    // drops onto the base. Until the bottom folds under, the base's hexagon
+    // hangs below the floor line, as a tuck-end carton's bottom flaps do.
+    matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, '-frontCx', 'frontCy - height / 2 + baseH / 2', 'baseA', 1],
     motions: [
-      ['baseCx', 'bottom.x + bottom.width / 2'], ['baseCy', 'bottom.y + bottom.height / 2'],
-      ['spread', '1 - stage(formation, 0.12, 0.45)'],
-      ['shiftX', 'spread * ((lidBackRight.x + lidBackRight.width) / 2 - baseCx)'],
-      ['shiftZ', 'spread * (baseCy - (bottom.y + bottom.height) / 2)'],
-      // The flaps and glue flaps stand up first, then the back wall rises and
-      // the others wrap round to meet it, carrying the flaps in over the hexagon.
-      ['turnFlaps', 'stage(formation, 0, 0.25) * (pi / 2)'],
-      ['turnGlue', 'stage(formation, 0.05, 0.3) * (pi / 3)'],
-      ['turnBack', 'stage(formation, 0.2, 0.5) * (pi / 2)'],
-      ['wrap', 'stage(formation, 0.4, 0.78) * (pi / 3)'],
+      ['frontCx', 'front.x + front.width / 2'], ['frontCy', 'front.y + front.height / 2'],
+      ['lidFrontCx', 'lidFront.x + lidFront.width / 2'], ['lidFrontCy', 'lidFront.y + lidFront.height / 2'],
+      ['turnGlue', 'stage(formation, 0.05, 0.25) * (pi / 3)'],
+      ['wrap', 'stage(formation, 0.1, 0.55) * (pi / 3)'],
+      ['turnFlaps', 'stage(formation, 0.5, 0.65) * (pi / 2)'],
+      ['turnBack', 'stage(formation, 0.6, 0.75) * (pi / 2)'],
       ['seamReach', 'foldCrease'],
       ['flapSetback', 'foldT * 1.05'],
-      // Then the lid turns over in an arc and lands on the base's rim;
-      // opening lifts it off and moves it back.
-      ['place', 'stage(formation, 0.8, 1)'],
-      ['flipC', 'cos(pi * place)'], ['flipS', 'sin(pi * place)'],
-      ['lidCx', 'lidTop.x + lidTop.width / 2'], ['lidCy', 'lidTop.y + lidTop.height / 2'],
+      // The lid comes in from where it is on the sheet over the base's front,
+      // its front a little further forward (it is the wider tube), then drops
+      // onto the base's rim; opening lifts it off and moves it back.
+      ['gather', 'stage(formation, 0.1, 0.55)'],
+      ['drop', 'stage(formation, 0.8, 1)'],
       ['lift', 'stage(opening, 0, 1) * (lidH + height * 0.5)'],
       ['backOff', 'stage(opening, 0.3, 1) * width * 0.75'],
       ['seat', 'baseH - height / 2 + 2.4 * foldT'],
-      // Where the lid top's centre goes: on the centred sheet while flat, then
-      // waiting just behind the base while its walls wrap, then over it.
-      ['restX', 'spread * ((lidBackRight.x + lidBackRight.width) / 2 - lidCx)'],
-      ['restZ', 'spread * (lidCy - (bottom.y + bottom.height) / 2) - (1 - spread) * (baseA + lidA + 15)'],
-      ['lidX', '(1 - place) * restX'],
-      ['lidY', '(1 - place) * (-height / 2) + place * (seat + lift) + flipS * (lidH + height)'],
-      ['lidZ', '(1 - place) * restZ - place * backOff'],
+      ['lidFlatY', 'frontCy - height / 2 + baseH / 2'],
+      // seat is where the lid top's centre rests; the lid's front stands
+      // half its height and the bend of its top crease (0.65 of a board) below that,
+      // to a hair above, so the lid rests on the rim and never in it.
+      ['lidSeatY', 'lidFrontCy + seat - lidH / 2 - 0.65 * foldT'],
     ],
     hinges: [...pieceHinges('base'), ...pieceHinges('lid')],
     pieces: [{
-      root: 'lidTopNear',
-      // The base's placement turned about the x axis by pi * place, moved so
-      // the lid top's centre lands at (lidX, lidY, lidZ).
+      root: 'lidFront',
       matrix: [
-        -1, 0, 0, 0,
-        0, 'flipS', '-flipC', 0,
-        0, '-flipC', '-flipS', 0,
-        'lidX + lidCx', 'lidY + flipS * lidCy', 'lidZ - flipC * lidCy', 1,
+        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
+        '-lidFrontCx + (1 - gather) * (lidFrontCx - frontCx)',
+        '(1 - drop) * lidFlatY + drop * lidSeatY + lift',
+        'baseA + gather * (lidA - baseA) - backOff', 1,
       ],
     }],
     modelPanels: [...base.model, ...lid.model],
