@@ -28,7 +28,7 @@ const rows = [
   { label: "File formats", ours: "SVG, PDF (1:1 or tiled on A4/Letter), DXF, PNG and a Cricut SVG", theirs: "PDF (including tiled), DXF, SVG, PNG and SignCut" },
   { label: "Line types", ours: "Cut, crease, glue, bleed and safe zone on separate, colour-coded layers", theirs: "Cut and fold lines; perforated cut lines in DXF" },
   { label: "3D preview", ours: "The box folds and opens in 3D as you change the size; add artwork and export PNG or MP4", theirs: "No 3D preview found" },
-  { label: "Template range", ours: "15 box structures, from tuck end cartons and mailers to cake, telescope and rigid boxes", theirs: "A wide range of shapes beyond boxes, such as polyhedra, envelopes, bags and cones" },
+  { label: "Template range", ours: "16 box structures, from tuck end cartons and mailers to cake, telescope, hexagon and rigid boxes", theirs: "A wide range of shapes beyond boxes, such as polyhedra, envelopes, bags and cones" },
   { label: "Artwork", ours: "Place artwork on the dieline in the Studio and download a print PDF with bleed", theirs: "Templates only; add artwork in your own design software" },
 ];
 
@@ -55,7 +55,7 @@ const faqs = [
   { question: "Is 3D Box Studio related to Templatemaker?", answer: "No. They are separate, independent products. Both make free templates in a custom size; 3D Box Studio focuses on boxes and adds a 3D preview and artwork." },
   { question: "Do I need an account to download a dieline?", answer: "No. The box dieline generator downloads SVG, PDF, DXF, PNG and Cricut files without an account. A free account is needed only to design artwork in the Studio." },
   { question: "Can I see the box in 3D before I cut it?", answer: "Yes. The box folds and opens in 3D as you type its size, and you can drag the panels to resize it." },
-  { question: "Does 3D Box Studio make envelopes or polyhedra?", answer: "No. It draws 15 box structures. For envelopes, polyhedra and other craft shapes, Templatemaker has a wider range." },
+  { question: "Does 3D Box Studio make envelopes or polyhedra?", answer: "No. It draws 16 box structures. For envelopes, polyhedra and other craft shapes, Templatemaker has a wider range." },
   { question: "Can I sell products made with the templates?", answer: "Yes. Boxes made from 3D Box Studio dielines can be used for products you sell, at no cost." },
 ];
 

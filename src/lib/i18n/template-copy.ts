@@ -93,6 +93,12 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
     "category": "templates.cake-box.category",
     "description": "templates.cake-box.description"
   },
+  "hexagon-box": {
+    "name": "templates.hexagon-box.name",
+    "shortName": "templates.hexagon-box.shortName",
+    "category": "templates.hexagon-box.category",
+    "description": "templates.hexagon-box.description"
+  },
 };
 
 /** Localize display fields only. Geometry, panel names, category filters and persisted IDs remain stable. */

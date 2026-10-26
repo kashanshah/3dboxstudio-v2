@@ -45,7 +45,7 @@ export default function PrintableBoxTemplatesPage() {
     intro="Pick a box, type the measurements you need, and print the template at 100% on A4 or Letter: cut on the red lines, score the dashed ones and fold. Free, with no sign-up."
     updated="2026-10-20"
     schema={[
-      softwareApplicationSchema({ name: 'Printable box template maker', path: page.path, description: page.description, features: ['Any size in mm or inches', 'Tiled PDF for A4 and Letter with alignment marks', '50 mm scale bar to check the print', '15 box styles', 'No sign-up'] }),
+      softwareApplicationSchema({ name: 'Printable box template maker', path: page.path, description: page.description, features: ['Any size in mm or inches', 'Tiled PDF for A4 and Letter with alignment marks', '50 mm scale bar to check the print', '16 box styles', 'No sign-up'] }),
       { '@type': 'FAQPage', mainEntity: faqs.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
     ]}>
     <DielineGenerator setup={generatorSetup('pillow-box', { length: 6, width: 3.5, depth: 1.5, units: 'in' })} title="Make your printable template" defaultExport="pdf_letter"

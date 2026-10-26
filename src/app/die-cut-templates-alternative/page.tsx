@@ -30,7 +30,7 @@ const rows = [
   { label: "Box sizing", ours: "Any size: inside, outside or crease-to-crease, in mm or inches, plus board thickness", theirs: "Any size on paid templates, with board thickness" },
   { label: "File formats", ours: "SVG, PDF (1:1 or tiled on A4/Letter), DXF, PNG and a Cricut SVG", theirs: "DXF, SVG and PDF" },
   { label: "3D preview", ours: "The box folds and opens in 3D as you change the size; add artwork and export PNG or MP4", theirs: "3D mockups" },
-  { label: "Template range", ours: "15 box structures, from tuck end cartons and mailers to cake, telescope and rigid boxes", theirs: "A library of tens of thousands of templates, including many FEFCO and ECMA styles" },
+  { label: "Template range", ours: "16 box structures, from tuck end cartons and mailers to cake, telescope, hexagon and rigid boxes", theirs: "A library of tens of thousands of templates, including many FEFCO and ECMA styles" },
   { label: "Production tools", ours: "Not offered: send the dieline to your printer, who nests and prices it", theirs: "Nesting and imposition, a manufacturing cost calculator, an Illustrator plug-in and an API" },
 ];
 
@@ -41,7 +41,7 @@ const sections = [
   },
   {
     title: "Where 3D Box Studio is the better choice",
-    body: "If the box you need is one of the common styles (tuck end, auto lock or snap lock bottom, mailer, split top shipping, gable, pillow, drawer, sleeve, tray, telescope, cake or rigid), 3D Box Studio draws it in your exact size for free, with no account and no credits. You see the box fold in 3D as you change it, and can add artwork and export mockups.",
+    body: "If the box you need is one of the common styles (tuck end, auto lock or snap lock bottom, mailer, split top shipping, gable, pillow, drawer, sleeve, tray, telescope, hexagon, cake or rigid), 3D Box Studio draws it in your exact size for free, with no account and no credits. You see the box fold in 3D as you change it, and can add artwork and export mockups.",
   },
   {
     title: "Paying for one box",
@@ -56,7 +56,7 @@ const sections = [
 const faqs = [
   { question: "Is 3D Box Studio related to Die Cut Templates?", answer: "No. They are separate, independent products." },
   { question: "Is 3D Box Studio really free?", answer: "Yes. Every box style downloads as SVG, PDF, DXF, PNG or a Cricut file in any size, without an account, credits or a watermark. A free account is needed only to design artwork in the Studio." },
-  { question: "Which box styles can I make?", answer: "15 structures: reverse and straight tuck end, auto lock and snap lock bottom cartons, mailer (FEFCO 0427), split top shipping box (FEFCO 0201), pillow, gable, drawer, pizza, sleeve, four-corner tray, telescope, cake and rigid lid and base boxes." },
+  { question: "Which box styles can I make?", answer: "16 structures: reverse and straight tuck end, auto lock and snap lock bottom cartons, mailer (FEFCO 0427), split top shipping box (FEFCO 0201), pillow, gable, drawer, pizza, sleeve, four-corner tray, telescope, hexagon, cake and rigid lid and base boxes." },
   { question: "Does 3D Box Studio nest dielines on a sheet?", answer: "No. Printers and converters usually nest and impose the dieline themselves. Send them the DXF or PDF." },
   { question: "Do the dielines allow for board thickness?", answer: "Yes. Set the thickness and the panels and flaps adjust so the inside size stays as you typed it." },
 ];

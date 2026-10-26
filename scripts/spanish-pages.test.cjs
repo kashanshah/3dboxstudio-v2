@@ -43,5 +43,12 @@ test('the Spanish generator copy covers every key, style and material', async ()
   for (const style of DIELINE_STYLES) assert.ok(es.styleNames[style.id], `Spanish name for ${style.id}`);
   for (const material of MATERIALS) assert.ok(es.materials[material.id], `Spanish name for ${material.id}`);
   assert.equal(new Set(Object.values(es.fields).map(field => field.letter)).size, 3, 'distinct field letters');
+  // Styles that name their sizes their own way (a hexagon box's across the flats) do so in both languages.
+  assert.deepEqual(keys(es.styleFields), keys(en.styleFields));
+  for (const [style, fields] of Object.entries(es.styleFields)) {
+    assert.ok(DIELINE_STYLES.some(item => item.id === style), `${style} is a style`);
+    assert.deepEqual(keys(fields), keys(en.styleFields[style]), style);
+    for (const copy of [en, es]) assert.equal(new Set(Object.values({ ...copy.fields, ...copy.styleFields[style] }).map(field => field.letter)).size, 3, `distinct field letters for ${style}`);
+  }
   assert.equal(es.enterAbove('Largo'), 'Introduce un largo mayor que cero.');
 });

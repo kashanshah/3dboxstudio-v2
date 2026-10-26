@@ -38,6 +38,8 @@ const MEASURED={
   'mailer-box':TRAY,'shipping-box-rsc':WALLS,'gable-box':WALLS,'sleeve-box':WALLS,'pizza-box':TRAY,
   'drawer-box':{length:['sleeveBottom','x'],width:['sleeveBottom','y'],depth:['sleeveLeft','x']},
   'rigid-lid-and-base':TRAY,'four-corner-tray':TRAY,'telescope-box':TRAY,'cake-box':TRAY,
+  // Across the flats is the hexagon bottom's height on the sheet; the lid depth and height are up the walls.
+  'hexagon-box':{length:['bottom','y'],width:['lidFront','y'],depth:['front','y']},
 };
 
 const input=(style,overrides={})=>({styleId:style.id,...style.defaults,units:'mm',dimensionMode:'inner',...overrides});
@@ -57,8 +59,8 @@ function measure(style,output){
 }
 const close=(actual,expected,tolerance,message)=>assert.ok(Math.abs(actual-expected)<=tolerance,`${message}: ${actual} is not within ${tolerance} of ${expected}`);
 
-test('there are fifteen styles with unique ids, each found by id',()=>{
-  assert.equal(DIELINE_STYLES.length,15);
+test('there are sixteen styles with unique ids, each found by id',()=>{
+  assert.equal(DIELINE_STYLES.length,16);
   assert.equal(new Set(DIELINE_STYLES.map(style=>style.id)).size,DIELINE_STYLES.length);
   for(const style of DIELINE_STYLES){
     assert.equal(getDielineStyle(style.id),style);
@@ -153,7 +155,7 @@ test('every piece has one closed cut outline that does not cross itself',()=>{
   for(const style of DIELINE_STYLES){
     const output=generateDieline(input(style,{dimensionMode:style.modes[0]}));
     const pieces=pieceOutlines(segments(output,'cut'),output.panels.map(panel=>panel.polygon));
-    const expected=['drawer-box','rigid-lid-and-base','telescope-box'].includes(style.id)?2:1;
+    const expected=['drawer-box','rigid-lid-and-base','telescope-box','hexagon-box'].includes(style.id)?2:1;
     assert.equal(pieces.length,expected,`${style.id} pieces`);
     for(const piece of pieces){
       assert.ok(isClosed([...piece,piece[0]]),`${style.id}: an outline is open`);

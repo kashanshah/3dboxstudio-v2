@@ -14,6 +14,20 @@ export type Release = {
 // The changelog sorts entries newest first, independent of their position here.
 export const releases: Release[] = [
   {
+    id: 'hexagon-box',
+    date: '2026-10-24',
+    title: 'New template: hexagon box with a lid',
+    summary: 'A six-sided box with a lift-off lid, for candles, chocolates, tea, soap and small gifts, in the Studio and the free dieline generator.',
+    tags: ['New'],
+    landingPage: { href: '/box-templates/hexagon-box', label: 'See the hexagon box template' },
+    highlights: [
+      'Sized by the inside across the flats, the height of the base and the lid depth; the lid is drawn to slide over the base with a little play.',
+      'The base and the lid are on one sheet. Each is six walls in a row glued into a tube, closed by a hexagon panel and five flaps, so artwork stands upright on every wall.',
+      'In 3D the walls wrap round into a hexagon, the flaps fold in, and the lid turns over and lands on the base; opening lifts it off.',
+      'Set the lid play, the glue flap and the flaps in the Studio or the generator, and read the guide How to Make a Hexagon Box.',
+    ],
+  },
+  {
     id: 'free-dieline-generator',
     date: '2026-10-16',
     title: 'Free dieline generator, and tray, telescope and cake boxes',

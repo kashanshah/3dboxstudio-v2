@@ -27,10 +27,10 @@ export default function CricutBoxTemplatesPage() {
     crumbs={[{ name: 'Box templates', path: '/box-templates' }, { name: 'Cricut box templates', path: page.path }]}
     eyebrow="Cricut and Silhouette"
     title="Cricut box templates in your exact size"
-    intro="Make a box SVG for Cricut Design Space or Silhouette in the size you need: cut lines in black, score lines in blue, sized in inches so it imports at the right size. 15 box styles, free, no account."
+    intro="Make a box SVG for Cricut Design Space or Silhouette in the size you need: cut lines in black, score lines in blue, sized in inches so it imports at the right size. 16 box styles, free, no account."
     updated="2026-10-20"
     schema={[
-      softwareApplicationSchema({ name: 'Cricut box template maker', path: page.path, description: page.description, features: ['Cut and score SVG sized in inches', 'DXF for Silhouette Studio Basic', 'Any size in inches or mm', 'Mat-size check', '15 box styles', 'No sign-up'] }),
+      softwareApplicationSchema({ name: 'Cricut box template maker', path: page.path, description: page.description, features: ['Cut and score SVG sized in inches', 'DXF for Silhouette Studio Basic', 'Any size in inches or mm', 'Mat-size check', '16 box styles', 'No sign-up'] }),
       { '@type': 'FAQPage', mainEntity: faqs.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
     ]}>
     <DielineGenerator setup={generatorSetup('gable-box', { length: 4, width: 2.5, depth: 3.5, units: 'in' })} title="Make your Cricut box" defaultExport="cricut"

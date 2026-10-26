@@ -136,7 +136,7 @@ export default async function BlogPostPage({ params }: Props) {
       <ul>
         <li><Link href="/3d-box-mockup-generator"><strong>3D box mockup generator</strong><span>Turn your artwork into a 3D box mockup from real dimensions.</span></Link></li>
         <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Draw a dieline to your size and download SVG, PDF or DXF free, with no account.</span></Link></li>
-        <li><Link href="/box-templates"><strong>Box templates</strong><span>15 styles, from tuck end cartons and mailers to trays, cake boxes and rigid boxes.</span></Link></li>
+        <li><Link href="/box-templates"><strong>Box templates</strong><span>16 styles, from tuck end cartons and mailers to trays, hexagon boxes, cake boxes and rigid boxes.</span></Link></li>
         <li><Link href="/pacdora-alternative"><strong>Pacdora alternative</strong><span>A free browser workflow for dieline-to-3D packaging previews.</span></Link></li>
       </ul>
     </nav>

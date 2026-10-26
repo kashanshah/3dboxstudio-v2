@@ -40,7 +40,7 @@ export default async function SpanishDielineGeneratorPage({ params }: Props) {
     breadcrumbSchema(crumbs, HOME),
     softwareApplicationSchema({
       name: 'Generador de troqueles de cajas', path: PATH, description: page.description,
-      features: ['15 estilos de caja', 'Medidas interiores, exteriores y de fabricación', 'Descargas en SVG, PDF, DXF y PNG', 'Archivos para Cricut y Silhouette', 'PDF en mosaico para imprimir en casa', 'Sin registro'],
+      features: ['16 estilos de caja', 'Medidas interiores, exteriores y de fabricación', 'Descargas en SVG, PDF, DXF y PNG', 'Archivos para Cricut y Silhouette', 'PDF en mosaico para imprimir en casa', 'Sin registro'],
     }),
     { '@type': 'FAQPage', inLanguage: 'es', mainEntity: page.faqs.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
   );

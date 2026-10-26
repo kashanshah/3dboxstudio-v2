@@ -53,7 +53,7 @@ export default async function SpanishBoxTemplatesPage({ params }: Props) {
         <h2 id="es-templates-title">Plantillas en español</h2>
         <div className="btp-cards">
           {ES_BOX_TEMPLATE_PAGES.map(page => <Link key={page.slug} href={`/es/box-templates/${page.slug}`}><b>{page.name}</b><span>{page.description}</span></Link>)}
-          <Link href="/es/box-dieline-generator"><b>Generador de troqueles</b><span>Los 15 estilos de caja, a tu medida, con descarga gratis.</span></Link>
+          <Link href="/es/box-dieline-generator"><b>Generador de troqueles</b><span>Los 16 estilos de caja, a tu medida, con descarga gratis.</span></Link>
         </div>
         <h2>Más plantillas (en inglés)</h2>
         <ul className="btp-guides">

@@ -313,6 +313,7 @@ const {snapLockBottomDefinition}=require('../src/lib/packaging/parametric/defini
 const {pillowBoxDefinition}=require('../src/lib/packaging/parametric/definitions/pillow-box.ts');
 const {gableBoxDefinition}=require('../src/lib/packaging/parametric/definitions/gable-box.ts');
 const {drawerBoxDefinition}=require('../src/lib/packaging/parametric/definitions/drawer-box.ts');
+const {hexagonBoxDefinition}=require('../src/lib/packaging/parametric/definitions/hexagon-box.ts');
 const {rigidLidBaseDefinition}=require('../src/lib/packaging/parametric/definitions/rigid-lid-base.ts');
 // The hand-written version this definition replaced, frozen for comparison.
 const pizzaReference=require('./reference/pizza-box/runtime.ts').pizzaBoxRuntime;
@@ -364,7 +365,7 @@ test('the studio, layout migrations and template pages build the pizza box from 
 test('every ready template is built from a parametric definition',()=>{
   const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
   for(const template of getReadyPackagingTemplates()){
-    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box','drawer-box':'drawer-box','tray-box':'tray-box','telescope-box':'telescope-box','cake-box':'cake-box'}[template.id],'runtime.ts'),'utf8');
+    const source=fs.readFileSync(path.resolve(__dirname,'../src/lib/packaging/templates',{'split-top-box':'split-top','base-box':'base-box','reverse-tuck-carton':'reverse-tuck','pizza-box':'pizza-box','sleeve-box':'sleeve-box','mailer-box':'mailer-box','rigid-lid-base':'rigid-lid-base','auto-lock-bottom-box':'auto-lock-bottom','snap-lock-bottom-box':'snap-lock-bottom','pillow-box':'pillow-box','gable-box':'gable-box','drawer-box':'drawer-box','tray-box':'tray-box','telescope-box':'telescope-box','cake-box':'cake-box','hexagon-box':'hexagon-box'}[template.id],'runtime.ts'),'utf8');
     assert.match(source,/compileParametricTemplate\(/,`${template.id} is not built from a definition`);
   }
 });
@@ -388,7 +389,7 @@ test('repeat blocks expand in order, keep value types, nest, and refuse unfilled
 test('every catalog entry agrees with its definition',()=>{
   const {panelName}=require('../src/lib/packaging/templates/folded-box.ts');
   const {getPackagingTemplate}=require('../src/lib/packaging/template-registry.ts');
-  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition,gableBoxDefinition,drawerBoxDefinition];
+  const definitions=[splitTopDefinition,baseBoxDefinition,reverseTuckDefinition,pizzaBoxDefinition,sleeveBoxDefinition,mailerBoxDefinition,rigidLidBaseDefinition,autoLockBottomDefinition,snapLockBottomDefinition,pillowBoxDefinition,gableBoxDefinition,drawerBoxDefinition,hexagonBoxDefinition];
   for(const definition of definitions){
     const catalog=definition.catalog;
     assert.ok(catalog,`${definition.templateId} has no catalog entry`);
@@ -666,6 +667,137 @@ test('the drawer box tray fits inside its sleeve, slides out of the front, and t
     }
   }
   assert.throws(()=>box.getExportGeometry({width:120,height:10,depth:80,thickness:0.5}),/at least 15 mm/);
+});
+
+test('the hexagon box glues into two hexagonal tubes, the lid fitting over the base with play',()=>{
+  const box=getTemplateRuntime('hexagon-box');
+  const within=(a,b,tol,label)=>assert.ok(Math.abs(a-b)<=tol,`${label}: ${a} differs from ${b} by more than ${tol}`);
+  const walls=['Back','Back Left','Front Left','Front','Front Right','Back Right'];
+  for(const dimensions of [{width:100,height:70,depth:25,thickness:0.5},{width:40,height:15,depth:10,thickness:0.3},{width:400,height:300,depth:120,thickness:2}]){
+    const t=dimensions.thickness,size=`${dimensions.width}×${dimensions.height}×${dimensions.depth} on ${t} mm`;
+    const sheet=box.getExportGeometry(dimensions);
+    const panel=id=>sheet.panels.find(item=>item.id===id);
+    const along=(line,a,b)=>[line.start,line.end].every(point=>[a,b].every(id=>onOutline(panel(id).outline,point)));
+    for(const p of ['','lid']){
+      const id=name=>p?`lid${name[0].toUpperCase()}${name.slice(1)}`:name;
+      const cap=p?'lidTop':'bottom';
+      // The hexagon is regular, crease to crease a board more across the flats than the inside (the lid's, more again).
+      // Six corners, and one more on the edge where the back left flap's side ends.
+      const outline=panel(cap).outline;
+      const corners=outline.filter((point,i)=>{
+        const a=outline[(i+outline.length-1)%outline.length],b=outline[(i+1)%outline.length];
+        return Math.abs((point.x-a.x)*(b.y-a.y)-(point.y-a.y)*(b.x-a.x))>1e-6;
+      });
+      assert.equal(corners.length,6,`${cap} has six corners`);
+      const sides=corners.map((a,i)=>Math.hypot(corners[(i+1)%6].x-a.x,corners[(i+1)%6].y-a.y));
+      for(const side of sides)within(side,sides[0],1e-9,`${cap} sides (${size})`);
+      if(!p)within(sides[0]*Math.sqrt(3),dimensions.width+t,1e-9,`bottom across the flats (${size})`);
+      else assert.ok(sides[0]*Math.sqrt(3)>dimensions.width+3*t,`the lid is wider than the base's outside (${size})`);
+      // Creases: the hexagon on the back wall, each wall on the next, the glue flap, and a flap on each other wall.
+      const ids=['back','backLeft','frontLeft','front','frontRight','backRight'].map(id);
+      assert.ok(sheet.crease.some(line=>along(line,cap,ids[0])),`${cap} creases onto ${ids[0]} (${size})`);
+      for(let k=1;k<6;k++){
+        assert.ok(sheet.crease.some(line=>along(line,ids[k-1],ids[k])),`${ids[k]} creases onto ${ids[k-1]} (${size})`);
+        assert.ok(sheet.crease.some(line=>along(line,ids[k],`${ids[k]}Flap`)),`${ids[k]} has a flap (${size})`);
+        // Its sides run at 60° to the crease.
+        const [a,,,d]=panel(`${ids[k]}Flap`).outline;
+        within(Math.abs(Math.atan2(Math.abs(d.y-a.y),d.x-a.x)*180/Math.PI),60,1e-6,`${ids[k]} flap side angle (${size})`);
+      }
+      assert.ok(sheet.crease.some(line=>along(line,ids[0],id('glue'))),`the glue flap creases onto ${ids[0]} (${size})`);
+      // The flap beside the hexagon shares its edge, parted by one cut, not creased to it.
+      assert.ok(!sheet.crease.some(line=>along(line,cap,`${ids[1]}Flap`)),`${ids[1]} flap is not creased to the ${cap} (${size})`);
+      const shared=sheet.cut.filter(line=>along(line,cap,`${ids[1]}Flap`));
+      assert.equal(shared.length,1,`${ids[1]} flap and the ${cap} share one cut (${size})`);
+    }
+
+    // No two parallel cuts run close together: a sliver of waste on a die,
+    // and card that tears between them on a cutting machine.
+    const segments=sheet.cut.map(line=>({...line,length:Math.hypot(line.end.x-line.start.x,line.end.y-line.start.y)})).filter(line=>line.length>1e-6);
+    for(const [i,a] of segments.entries())for(const b of segments.slice(i+1)){
+      const [ux,uy]=[(a.end.x-a.start.x)/a.length,(a.end.y-a.start.y)/a.length];
+      if(Math.abs(ux*(b.end.y-b.start.y)-uy*(b.end.x-b.start.x))>b.length*Math.sin(Math.PI/180))continue;
+      const gap=Math.abs((b.start.x-a.start.x)*uy-(b.start.y-a.start.y)*ux);
+      if(gap<1e-6)continue;
+      const along1=(b.start.x-a.start.x)*ux+(b.start.y-a.start.y)*uy,along2=(b.end.x-a.start.x)*ux+(b.end.y-a.start.y)*uy;
+      const overlap=Math.min(a.length,Math.max(along1,along2))-Math.max(0,Math.min(along1,along2));
+      if(overlap>1)assert.ok(gap>=2,`parallel cuts ${gap.toFixed(2)} mm apart for ${overlap.toFixed(1)} mm (${size})`);
+    }
+
+    // Closed: walls meet at 120°, the base is the size entered inside, the
+    // flaps lie on the inside of the hexagon, the glue flaps inside their
+    // walls, and the lid stands clear round the base and rests on its rim.
+    const meshes=box.buildMeshes({dimensions,formation:100,opening:0,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+    const points=name=>meshes.filter(mesh=>mesh.panel===name).flatMap(mesh=>{const out=[];for(let i=0;i<mesh.vertices.length;i+=8)out.push([mesh.vertices[i],mesh.vertices[i+1],mesh.vertices[i+2]]);return out;});
+    // Each wall's outside as a vertical plane: a point on it and its outward normal.
+    const plane=name=>{
+      const quad=meshes.find(mesh=>mesh.panel===name&&mesh.pickCorners).pickCorners;
+      const u=quad[1].map((v,k)=>v-quad[0][k]),w=quad[3].map((v,k)=>v-quad[0][k]);
+      let n=[u[1]*w[2]-u[2]*w[1],u[2]*w[0]-u[0]*w[2],u[0]*w[1]-u[1]*w[0]];
+      const length=Math.hypot(...n);n=n.map(v=>v/length);
+      if(n[0]*quad[0][0]+n[2]*quad[0][2]<0)n=n.map(v=>-v);
+      assert.ok(Math.abs(n[1])<1e-6,`${name} stands upright (${size})`);
+      return {at:quad[0],n,out:point=>point.reduce((sum,v,k)=>sum+(v-quad[0][k])*n[k],0)};
+    };
+    const base=walls.map(plane),lid=walls.map(name=>plane(`Lid ${name}`));
+    for(let k=0;k<6;k++){
+      const [a,b]=[base[k].n,base[(k+1)%6].n];
+      within(Math.acos(a[0]*b[0]+a[2]*b[2])*180/Math.PI,60,0.2,`${walls[k]} and ${walls[(k+1)%6]} meet at 120° (${size})`);
+    }
+    within(-base[0].out(base[3].at)-2*t,dimensions.width,t,`inside across the flats (${size})`);
+    const floor=Math.max(...['Back Left','Front Left','Front','Front Right','Back Right'].flatMap(name=>points(`${name} Flap`).map(point=>point[1])))+t;
+    const rim=Math.max(...walls.flatMap(name=>points(name).map(point=>point[1])));
+    within(rim-floor,dimensions.height,t,`inside height (${size})`);
+    // Inside every base wall: the flaps and glue flap; inside every lid wall,
+    // and outside every base wall: the lid's flaps and glue flap.
+    const inside=(planes,name,label)=>{for(const plane of planes)for(const point of points(name))assert.ok(plane.out(point)<=-t+0.1*t,`${label} ${name} stays inside its walls (${size})`);};
+    // Each lid wall clears the base wall it faces where they overlap; the lid's glue flap clears the base's back right wall.
+    const outside=(plane,name)=>{for(const point of points(name)){
+      if(point[1]<rim)assert.ok(plane.out(point)>=-1e-6,`${name} stays outside the base (${size})`);
+    }};
+    for(const name of ['Glue','Back Left Flap','Front Left Flap','Front Flap','Front Right Flap','Back Right Flap'])inside(base,name,'the base');
+    for(const name of ['Lid Glue','Lid Back Left Flap','Lid Front Left Flap','Lid Front Flap','Lid Front Right Flap','Lid Back Right Flap'])inside(lid,name,'the lid');
+    walls.forEach((wall,k)=>outside(base[k],`Lid ${wall}`));
+    outside(base[5],'Lid Glue');
+    // The flaps lie on the hexagon: above its inside face, and clear of it by a hair.
+    const bottom=Math.max(...points('Bottom').map(point=>point[1]))+t;
+    for(const name of ['Back Left Flap','Front Left Flap','Front Flap','Front Right Flap','Back Right Flap']){
+      const low=Math.min(...points(name).map(point=>point[1]));
+      assert.ok(low>=bottom-1e-6&&low<=bottom+0.2*t,`${name} lies on the bottom: ${low} over ${bottom} (${size})`);
+    }
+    // The lid comes down over the base by its depth and rests its flaps on the rim.
+    const lidFlaps=Math.min(...['Lid Back Left Flap','Lid Front Left Flap','Lid Front Flap','Lid Front Right Flap','Lid Back Right Flap'].flatMap(name=>points(name).map(point=>point[1])))-t;
+    assert.ok(lidFlaps>=rim-1e-6&&lidFlaps<=rim+0.2*t,`the lid rests on the rim: ${lidFlaps} over ${rim} (${size})`);
+    const lidRim=Math.min(...walls.flatMap(name=>points(`Lid ${name}`).map(point=>point[1])));
+    within(lidFlaps-lidRim,dimensions.depth,t,`lid depth (${size})`);
+  }
+  assert.throws(()=>box.getExportGeometry({width:100,height:70,depth:80,thickness:0.5}),/lid depth of at most 70 mm/);
+  assert.throws(()=>box.getExportGeometry({width:30,height:70,depth:25,thickness:0.5}),/across the flats of at least 40 mm/);
+});
+
+test('every hexagon box its size checks pass folds, with its flaps and play at their limits',()=>{
+  // The 3D view is only ever given a size that folds: anything that passes
+  // the template's checks, across board, size and adjustable sizes.
+  const {UnfoldableSheetError}=require('../src/lib/packaging/fold-sheet.ts');
+  const box=getTemplateRuntime('hexagon-box');
+  const fold=dimensions=>box.buildMeshes({dimensions:box.sanitizeParameters(dimensions),formation:100,opening:0,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+  let folded=0;
+  for(const thickness of [0.3,0.5,1,2])for(const width of [1,20,40,41,75,150,400])for(const height of [1,10,15,16,40,120,300])for(const depth of [1,5,10,12,30,120,300]){
+    const dimensions={width,height,depth,thickness};
+    const problems=box.getSizeProblems(dimensions);
+    if(problems.length){
+      // Too small or too deep to fold: either it still folds, or it says so with the fold engine's own error.
+      try{fold(dimensions);}catch(error){assert.ok(error instanceof UnfoldableSheetError,`${JSON.stringify(dimensions)}: ${error.message}`);}
+      continue;
+    }
+    const sizes=box.getAdjustableSizes(dimensions);
+    for(const extreme of [undefined,-1e9,1e9]){
+      const adjusted=extreme===undefined?dimensions:{...dimensions,adjustments:Object.fromEntries(sizes.map(size=>[size.key,extreme]))};
+      assert.doesNotThrow(()=>fold(adjusted),`${JSON.stringify(adjusted)} folds`);
+      assert.doesNotThrow(()=>box.getExportGeometry(adjusted),`${JSON.stringify(adjusted)} exports`);
+      folded++;
+    }
+  }
+  assert.ok(folded>100,`only ${folded} sizes passed the checks`);
 });
 
 function onOutline(outline,point){

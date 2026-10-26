@@ -72,7 +72,7 @@ export const DIELINE_GUIDES: BlogPost[] = [
     faqs: [
       { question: 'Is a dieline the same as a die cut?', answer: 'No. The dieline is the drawing; die cutting is the process of cutting board with a die made from it. A die cut box is one cut that way.' },
       { question: 'Who makes the dieline, the designer or the printer?', answer: 'Either. Printers often supply one for their standard styles; designers generate or draw one for a custom size. Either way, the printer confirms it before making the die.' },
-      { question: 'Can I get a dieline for free?', answer: 'Yes. The [box dieline generator](/box-dieline-generator) draws 15 styles in any size and downloads them as SVG, PDF, DXF, PNG or a Cricut file with no account and no watermark.' },
+      { question: 'Can I get a dieline for free?', answer: 'Yes. The [box dieline generator](/box-dieline-generator) draws 16 styles in any size and downloads them as SVG, PDF, DXF, PNG or a Cricut file with no account and no watermark.' },
       { question: 'What colour should dieline lines be?', answer: 'There is no single standard. Cut lines are often red or magenta and creases blue or green, each on its own layer and set as a spot colour so they never print. Ask your printer which they expect.' },
     ],
   },
@@ -330,7 +330,7 @@ export const DIELINE_GUIDES: BlogPost[] = [
     relatedSlugs: ['box-template-svg-cricut-laser-cutter', 'how-to-make-a-gable-box', 'how-to-make-a-pillow-box'],
     sections: [
       { type: 'p', text: 'To make a box on a Cricut, download a box SVG in your size with separate cut and score lines, upload it to Design Space, set the score lines to Score, attach everything, and cut it from cardstock. Then fold on the scores and glue the flap. The whole job takes about 15 minutes.' },
-      { type: 'p', text: 'The [Cricut box templates](/cricut-box-templates) page makes the SVG in any size for 15 box styles, free and with no account.' },
+      { type: 'p', text: 'The [Cricut box templates](/cricut-box-templates) page makes the SVG in any size for 16 box styles, free and with no account.' },
       { type: 'h2', text: 'What do you need?' },
       { type: 'ul', items: [
         'A Cricut Maker, Explore or Joy Xtra, and a mat big enough for the flat box.',
@@ -347,6 +347,7 @@ export const DIELINE_GUIDES: BlogPost[] = [
         ['[Reverse tuck end](/box-templates/reverse-tuck-end-box)', 'Candles, soap and small products'],
         ['[Drawer box](/box-templates/drawer-box)', 'Jewellery and small gifts'],
         ['[Telescope box](/box-templates/telescope-box)', 'Gift boxes with a lift-off lid'],
+        ['[Hexagon box](/box-templates/hexagon-box)', 'Candles and gifts, six-sided with a lid'],
       ] },
       { type: 'h2', text: 'Step 2: upload it to Design Space' },
       { type: 'ol', items: [

@@ -517,10 +517,14 @@ test('dimension changes flow through each ready template runtime',()=>{
     // walls stand inside it; a pizza box's front is as wide as its base, cut 1.4
     // boards wider so the single side walls stand inside it; a rigid box's and
     // a drawer box's tray, a board each side for the turn-ins.
-    // An auto-lock or snap-lock bottom's walls are three boards taller for its layered floor, as are a gable box's.
+    // An auto-lock or snap-lock bottom's walls are three boards taller for its layered floor, as are a gable box's;
+    // a hexagon box's one and a half, for its bottom and the flaps glued on it.
     const widthAllowance={'mailer-box':5.5,'cake-box':5.5,'pizza-box':1.4,'rigid-lid-base':1,'drawer-box':1}[template.id]??0;
-    const heightAllowance={'auto-lock-bottom-box':2,'snap-lock-bottom-box':2,'gable-box':2}[template.id]??0;
-    within(front.width,changed.width+widthAllowance*changed.thickness,changed.thickness,`${template.id} front width`);
+    const heightAllowance={'auto-lock-bottom-box':2,'snap-lock-bottom-box':2,'gable-box':2,'hexagon-box':1.5}[template.id]??0;
+    // A hexagon box's width is across the flats: each wall is one side of the
+    // hexagon, crease to crease a board more across, over √3.
+    const frontWidth=template.id==='hexagon-box'?(changed.width+changed.thickness)/Math.sqrt(3):changed.width+widthAllowance*changed.thickness;
+    within(front.width,frontWidth,changed.thickness,`${template.id} front width`);
     // A pillow box's sizes are outside ones, and its face is cut as wide as its bow across the box.
     const h=changed.height/2,R=(changed.depth**2/4+h*h)/(2*h);
     const frontHeight=template.id==='pillow-box'?2*R*Math.asin(changed.depth/(2*R)):changed.height+heightAllowance*changed.thickness;
@@ -592,6 +596,7 @@ test('ready templates keep runtime, geometry and renderer ownership in template 
     'tray-box':'tray-box',
     'telescope-box':'telescope-box',
     'cake-box':'cake-box',
+    'hexagon-box':'hexagon-box',
   };
   for(const template of getReadyPackagingTemplates()){
     const folder=folders[template.id];

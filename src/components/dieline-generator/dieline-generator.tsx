@@ -18,7 +18,7 @@ import {
 } from "@/lib/dieline/state";
 import { studioTemplateHref } from "@/lib/studio-entry";
 import { DielinePreview, type Axis, type ResizeHandle } from "./dieline-preview";
-import { GENERATOR_COPY, type GeneratorCopy, type GeneratorExportId, type GeneratorLocale } from "./copy";
+import { fieldsFor, GENERATOR_COPY, type GeneratorCopy, type GeneratorExportId, type GeneratorLocale } from "./copy";
 import "./dieline-generator.css";
 
 // "Get this box printed" loads only when opened.
@@ -82,10 +82,11 @@ function restoredState(loaded: Engine, initial: GeneratorState) {
 
 /** The dieline for the settings, or what is wrong with them, in plain words. */
 function generate(style: DielineStyle, state: GeneratorState, text: Text, copy: GeneratorCopy): { output: DielineOutput } | { error: string } {
+  const fields = fieldsFor(copy, style.id);
   for (const field of FIELDS) {
     const value = Number(text[field]);
-    if (!text[field].trim() || !Number.isFinite(value) || value <= 0) return { error: copy.enterAbove(copy.fields[field].label) };
-    if (value * (state.units === "in" ? MM_PER_IN : 1) > 3000) return { error: copy.overThreeMetres(copy.fields[field].label) };
+    if (!text[field].trim() || !Number.isFinite(value) || value <= 0) return { error: copy.enterAbove(fields[field].label) };
+    if (value * (state.units === "in" ? MM_PER_IN : 1) > 3000) return { error: copy.overThreeMetres(fields[field].label) };
   }
   if (!(state.thickness >= 0.1 && state.thickness <= 10)) return { error: copy.thicknessRange };
   try {
@@ -164,6 +165,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   }, [chosen]);
 
   const meta = thumbs.find(thumb => thumb.id === state.style) ?? thumbs[0];
+  const fields = fieldsFor(copy, meta.id);
   const style = loaded?.getDielineStyle(state.style) ?? null;
   const unit = state.units;
   const format = (mm: number) => (unit === "in" ? `${(mm / MM_PER_IN).toFixed(2)} in` : `${Math.round(mm * 10) / 10} mm`);
@@ -308,7 +310,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
 
   const step = unit === "in" ? 0.05 : 1;
   const mmPerUnit = unit === "in" ? MM_PER_IN : 1;
-  const handles: ResizeHandle[] = meta.measure ? FIELDS.map(field => ({ axis: field, label: copy.fields[field].label, panel: meta.measure![field][0], side: meta.measure![field][1] })) : [];
+  const handles: ResizeHandle[] = meta.measure ? FIELDS.map(field => ({ axis: field, label: fields[field].label, panel: meta.measure![field][0], side: meta.measure![field][1] })) : [];
   const resize = (axis: Axis, value: number) => { void loadEngine(); setSize(axis, String(value)); };
 
   return <section className={`dg${className ? ` ${className}` : ""}`} aria-labelledby={`${id}-title`} onPointerDownCapture={() => void loadEngine()} onFocusCapture={() => void loadEngine()}>
@@ -358,7 +360,7 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
             </div>
           </div>
           <div className="dg-dims">
-            {FIELDS.map(field => <ScrubField key={field} letter={copy.fields[field].letter} label={copy.fieldLabel(copy.fields[field].label, unit, copy.fields[field].hint)} value={text[field]} step={step} drag={copy.drag}
+            {FIELDS.map(field => <ScrubField key={field} letter={fields[field].letter} label={copy.fieldLabel(fields[field].label, unit, fields[field].hint)} value={text[field]} step={step} drag={copy.drag}
               onChange={value => setSize(field, value)} />)}
           </div>
           <div className="dg-seg dg-seg-wide" role="radiogroup" aria-label={copy.measuredAs}>

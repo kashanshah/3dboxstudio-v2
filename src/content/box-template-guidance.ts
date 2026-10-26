@@ -105,6 +105,12 @@ export const TEMPLATE_GUIDANCE: Record<string, TemplateGuidance> = {
     notIdealFor: ['Very heavy products in card: use E-flute or a full-depth lid', 'Products that need a tamper-evident closure'],
     materials: [CARD_HEAVY, E_FLUTE, KRAFT],
   },
+  'hexagon-box': {
+    status: 'draft',
+    bestFor: ['Candles, jars and other round products', 'Chocolates, tea, soap and small gifts', 'Shelf displays where the shape stands out'],
+    notIdealFor: ['Shipping without an outer box', 'Heavy products in card: use a thicker board', 'Packing many to a carton, where hexagons waste space'],
+    materials: [CARD, CARD_HEAVY, KRAFT],
+  },
   'cake-box': {
     status: 'draft',
     bestFor: ['Cakes, cupcakes and pastries', 'Cookies and macarons, with a window', 'Bakery takeaway'],

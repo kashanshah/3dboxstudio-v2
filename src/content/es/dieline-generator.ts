@@ -3,7 +3,7 @@
 
 export const ES_GENERATOR_PAGE = {
   title: 'Generador de troqueles de cajas gratis: SVG, PDF, DXF | 3D Box Studio',
-  description: 'Dibuja el troquel de una caja a tu medida en 15 estilos y descárgalo gratis en SVG, PDF, DXF, PNG o para Cricut. Sin registro y sin marca de agua. Después, pliégala en 3D.',
+  description: 'Dibuja el troquel de una caja a tu medida en 16 estilos y descárgalo gratis en SVG, PDF, DXF, PNG o para Cricut. Sin registro y sin marca de agua. Después, pliégala en 3D.',
   h1: 'Generador de troqueles de cajas gratis',
   intro: 'Elige un estilo de caja, escribe tus medidas y descarga el troquel en SVG, PDF, DXF, PNG o como archivo para Cricut. Gratis, sin cuenta, sin marca de agua y sin límites.',
   sections: [
@@ -11,7 +11,7 @@ export const ES_GENERATOR_PAGE = {
       title: 'Gratis y sin cuenta',
       body: 'El generador funciona en tu navegador. Elige un estilo, escribe el largo, el ancho y el alto en milímetros o pulgadas, indica si son medidas interiores, exteriores o de hendido a hendido, y elige el cartón. El troquel se redibuja mientras escribes, con líneas de corte, hendido, pegado, sangrado y zona segura. Las descargas no piden registro, no llevan marca de agua y no tienen límite.',
       bullets: [
-        '15 estilos: estuches de cierre inverso y recto, fondo semiautomático y automático, caja postal (FEFCO 0427), caja americana (FEFCO 0201), caja almohada, caja con asa, funda, caja de pizza, caja cajón, bandeja, caja telescópica, caja de tarta y caja rígida',
+        '16 estilos: estuches de cierre inverso y recto, fondo semiautomático y automático, caja postal (FEFCO 0427), caja americana (FEFCO 0201), caja almohada, caja con asa, funda, caja de pizza, caja cajón, bandeja, caja telescópica, caja hexagonal, caja de tarta y caja rígida',
         'Medidas interiores, exteriores o de fabricación, con el grosor del cartón incluido',
         'SVG, PDF (una página o en mosaico A4 o Carta), DXF, PNG y un archivo para Cricut o Silhouette',
         'Un enlace que vuelve a abrir la misma caja, para enviarlo a la imprenta o a un compañero',

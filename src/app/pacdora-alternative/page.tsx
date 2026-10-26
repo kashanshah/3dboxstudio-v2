@@ -28,7 +28,7 @@ const rows = [
   { label: "Flap and panel sizes", ours: "Adjust each flap and panel on the dieline or the 3D box, with drag handles", theirs: "Depends on the template" },
   { label: "Dieline export", ours: "1:1 PDF with artwork and bleed, plus SVG and DXF with cut and crease layers, free", theirs: "Dieline downloads in several formats; limits depend on plan" },
   { label: "3D preview", ours: "Real-time fold and open, orbit, PNG or JPG up to 4K with product shots, and an MP4 up to 15 seconds", theirs: "Photoreal mockups, animations and video" },
-  { label: "Template range", ours: "15 box structures: tuck end, auto lock and snap lock bottom cartons, pillow, gable, drawer, mailer, pizza, shipping, sleeve, four-corner tray, telescope, cake and rigid boxes", theirs: "3,000+ box dieline templates and 7,000+ 3D mockups, including bags, bottles, cans and other packaging" },
+  { label: "Template range", ours: "16 box structures: tuck end, auto lock and snap lock bottom cartons, pillow, gable, drawer, mailer, pizza, shipping, sleeve, four-corner tray, telescope, hexagon, cake and rigid boxes", theirs: "3,000+ box dieline templates and 7,000+ 3D mockups, including bags, bottles, cans and other packaging" },
   { label: "Printing", ours: "Not offered: download the dieline and send it to any printer", theirs: "Print-on-demand service" },
   { label: "Sharing", ours: "View-only interactive 3D link", theirs: "Share links and exported files" },
 ];
