@@ -19,6 +19,7 @@ function loadDb(sql, legacy = legacySchema()) {
     if (name === './env') return {requireEnv:key => key};
     if (name === './legacy-schema') return {LEGACY_SYNC_SCHEMA:legacy};
     if (name === './admin/read-model-schema') return {ADMIN_READ_MODEL_SCHEMA:[]};
+    if (name === './template-sql') { const sqlExports = {}; vm.runInNewContext(transpile('src/server/template-sql.ts'), {exports:sqlExports}); return sqlExports; }
     throw new Error('unexpected import ' + name);
   }});
   return exports;

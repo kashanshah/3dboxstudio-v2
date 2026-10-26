@@ -2,9 +2,12 @@ import type { PackagingTemplateDefinition } from '@/lib/packaging/template-regis
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import { svgNumber, svgPoints } from '@/lib/svg-number';
 import { getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime } from '@/lib/packaging/template-runtime';
+import { templateIdOf } from '@/lib/packaging/template-catalog';
 
-export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition;dimensions?:CartonDimensions;compact?:boolean}) {
-  const visualClass = template.id === 'pizza-box'
+export function TemplateVisual({template,dimensions,compact=false}:{template:PackagingTemplateDefinition&{templateId?:string};dimensions?:CartonDimensions;compact?:boolean}) {
+  // A named template is drawn by its style.
+  const templateId = templateIdOf(template);
+  const visualClass = templateId === 'pizza-box'
     ? 'is-pizza'
     : template.family === 'bottle'
     ? 'is-bottle'
@@ -20,17 +23,17 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
               ? 'is-rigid'
               : template.family === 'corrugated'
                 ? 'is-corrugated'
-                : template.id.includes('sleeve')
+                : templateId.includes('sleeve')
                   ? 'is-sleeve'
                   : 'is-carton';
 
   const size = dimensions ?? template.defaultDimensions;
-  const runtime = getTemplateRuntime(template.id);
+  const runtime = getTemplateRuntime(templateId);
   const photo = template.thumbnail;
   // A render of the finished box in front of the template's real cutting
   // dieline, so the card shows both the flat sheet and the result.
   if (photo && runtime && size) {
-    const dieline = getTemplateExportGeometry(template.id, size);
+    const dieline = getTemplateExportGeometry(templateId, size);
     const pad = Math.max(dieline.bounds.width, dieline.bounds.height) * 0.02;
     const n = svgNumber;
     const line = (segment: { start: { x: number; y: number }; end: { x: number; y: number } }) => `M${n(segment.start.x)} ${n(segment.start.y)}L${n(segment.end.x)} ${n(segment.end.y)}`;
@@ -44,7 +47,7 @@ export function TemplateVisual({template,dimensions,compact=false}:{template:Pac
       <img className="pro-template-photo" src={photo} alt="" loading="lazy" decoding="async"/>
     </span>;
   }
-  const geometry = runtime && size ? getTemplateGeometry(template.id,size) : null;
+  const geometry = runtime && size ? getTemplateGeometry(templateId,size) : null;
   const bounds = geometry?.bounds;
   const hasRealDieline = !!geometry;
 

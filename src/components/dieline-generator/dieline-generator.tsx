@@ -72,9 +72,9 @@ const restoredCache = new Map<string, GeneratorState | null>();
 function restoredState(loaded: Engine, initial: GeneratorState) {
   const key = `${window.location.search}|${JSON.stringify(initial)}`;
   if (!restoredCache.has(key)) {
-    const fromUrl = decodeState(new URLSearchParams(window.location.search), loaded.DIELINE_STYLES, initial);
+    const fromUrl = decodeState(new URLSearchParams(window.location.search), loaded.dielineStyles(), initial);
     const saved = fromUrl ? null : readStorage();
-    const fromStorage = saved?.style === initial.style ? decodeState(encodeState(saved), loaded.DIELINE_STYLES, initial) : null;
+    const fromStorage = saved?.style === initial.style ? decodeState(encodeState(saved), loaded.dielineStyles(), initial) : null;
     restoredCache.set(key, fromUrl ?? fromStorage);
   }
   return restoredCache.get(key)!;
@@ -133,6 +133,8 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
   const pageParams = page ? { page_slug: page.slug, page_type: page.type } : {};
   const { styles: thumbs, initial } = setup;
   const loaded = useSyncExternalStore(subscribeEngine, () => engine, () => null);
+  // The page's template catalog (Admin → Templates), so the styles match the server's.
+  loaded?.applyTemplateCatalog(setup.catalog);
   // A shared link's settings, else this visitor's last box of this style:
   // read once in the browser; the server drew the page's defaults.
   const restored = loaded ? restoredState(loaded, initial) : null;
@@ -202,7 +204,9 @@ export function DielineGenerator({ setup, presets = [], title = "Make your dieli
 
   const chooseStyle = async (styleId: string) => {
     if (styleId === state.style) return;
-    const next = (await loadEngine()).getDielineStyle(styleId);
+    const engine = await loadEngine();
+    engine.applyTemplateCatalog(setup.catalog);
+    const next = engine.getDielineStyle(styleId);
     if (!next) return;
     const fresh = defaultState(next, unit);
     apply({ ...fresh, mode: next.modes.includes(state.mode) ? state.mode : fresh.mode });

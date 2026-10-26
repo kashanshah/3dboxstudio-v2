@@ -12,6 +12,8 @@ import { BlogShareButtons } from '@/components/blog-share-buttons';
 import { BLOG_POSTS, getBlogPostBySlug, getBlogCategory, getBlogCategoryLabel, getBlogPostImagePath } from '@/content/blogPosts';
 import { site } from '@/lib/site';
 import { FR_BLOG_POSTS } from '@/content/blogLocales/fr';
+import { withStyleCount } from '@/lib/template-count-copy';
+import { activeStyleCountNow } from '@/server/templates';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -55,8 +57,10 @@ function headingId(text: string, index: number) {
 
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
-  if (!post) notFound();
+  const count = await activeStyleCountNow();
+  const written = getBlogPostBySlug(slug);
+  if (!written) notFound();
+  const post = withStyleCount(written, count);
 
   const canonical = new URL(`/blog/${post.slug}`, site.url).toString();
   const toc = post.sections.flatMap((section, index) => section.type === 'h2' ? [{ id: headingId(section.text, index), text: section.text }] : []);
@@ -136,7 +140,7 @@ export default async function BlogPostPage({ params }: Props) {
       <ul>
         <li><Link href="/3d-box-mockup-generator"><strong>3D box mockup generator</strong><span>Turn your artwork into a 3D box mockup from real dimensions.</span></Link></li>
         <li><Link href="/box-dieline-generator"><strong>Box dieline generator</strong><span>Draw a dieline to your size and download SVG, PDF or DXF free, with no account.</span></Link></li>
-        <li><Link href="/box-templates"><strong>Box templates</strong><span>16 styles, from tuck end cartons and mailers to trays, hexagon boxes, cake boxes and rigid boxes.</span></Link></li>
+        <li><Link href="/box-templates"><strong>Box templates</strong><span>{count} styles, from tuck end cartons and mailers to trays, hexagon boxes, cake boxes and rigid boxes.</span></Link></li>
         <li><Link href="/pacdora-alternative"><strong>Pacdora alternative</strong><span>A free browser workflow for dieline-to-3D packaging previews.</span></Link></li>
       </ul>
     </nav>

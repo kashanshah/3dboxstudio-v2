@@ -6,12 +6,14 @@ import { FaqSection } from '@/components/faq-section';
 import { DielineGenerator } from '@/components/dieline-generator/dieline-generator';
 import { generatorSetup } from '@/lib/dieline/thumbnails';
 import { ES_BOX_TEMPLATE_PAGES } from '@/content/es/box-template-pages';
-import { ES_GENERATOR_PAGE as page } from '@/content/es/dieline-generator';
+import { ES_GENERATOR_PAGE as generatorPage } from '@/content/es/dieline-generator';
 import { defaultOgImage, site } from '@/lib/site';
 import { Breadcrumbs } from '@/components/seo/breadcrumbs';
 import { UseTheFile } from '@/components/seo/use-the-file';
 import { breadcrumbSchema, jsonLd, softwareApplicationSchema } from '@/lib/seo';
 import '../../box-template-page.css';
+import { withStyleCount } from '@/lib/template-count-copy';
+import { activeStyleCountNow, getTemplateSettings } from '@/server/templates';
 
 // Spanish /es/box-dieline-generator.
 
@@ -24,15 +26,21 @@ const LANGUAGES = { en: '/box-dieline-generator', es: PATH, 'x-default': '/box-d
 export const dynamicParams = false;
 export function generateStaticParams() { return [{ locale: 'es' }]; }
 
-export const metadata: Metadata = {
-  title: { absolute: page.title },
-  description: page.description,
+export async function generateMetadata(): Promise<Metadata> {
+  return withStyleCount(baseMetadata, await activeStyleCountNow());
+}
+
+const baseMetadata: Metadata = {
+  title: { absolute: generatorPage.title },
+  description: generatorPage.description,
   alternates: { canonical: PATH, languages: LANGUAGES },
-  openGraph: { images: [defaultOgImage], title: page.title, description: page.description, type: 'website', url: PATH, locale: 'es_ES' },
+  openGraph: { images: [defaultOgImage], title: generatorPage.title, description: generatorPage.description, type: 'website', url: PATH, locale: 'es_ES' },
 };
 
 export default async function SpanishDielineGeneratorPage({ params }: Props) {
   if ((await params).locale !== 'es') notFound();
+  const [count, templateRecords] = await Promise.all([activeStyleCountNow(), getTemplateSettings()]);
+  const page = withStyleCount(generatorPage, count);
   const url = new URL(PATH, site.url).toString();
   const crumbs = [{ name: 'Generador de troqueles', path: PATH }];
   const schema = jsonLd(
@@ -40,7 +48,7 @@ export default async function SpanishDielineGeneratorPage({ params }: Props) {
     breadcrumbSchema(crumbs, HOME),
     softwareApplicationSchema({
       name: 'Generador de troqueles de cajas', path: PATH, description: page.description,
-      features: ['16 estilos de caja', 'Medidas interiores, exteriores y de fabricación', 'Descargas en SVG, PDF, DXF y PNG', 'Archivos para Cricut y Silhouette', 'PDF en mosaico para imprimir en casa', 'Sin registro'],
+      features: [withStyleCount('16 estilos de caja', count), 'Medidas interiores, exteriores y de fabricación', 'Descargas en SVG, PDF, DXF y PNG', 'Archivos para Cricut y Silhouette', 'PDF en mosaico para imprimir en casa', 'Sin registro'],
     }),
     { '@type': 'FAQPage', inLanguage: 'es', mainEntity: page.faqs.map(item => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })) },
   );
@@ -55,7 +63,7 @@ export default async function SpanishDielineGeneratorPage({ params }: Props) {
         <p>{page.intro}</p>
       </header>
 
-      <DielineGenerator setup={generatorSetup('reverse-tuck-end')} locale="es" title="Elige un estilo y unas medidas" page={{ type: 'dieline_generator', slug: 'es/box-dieline-generator' }} />
+      <DielineGenerator setup={generatorSetup('reverse-tuck-end', undefined, templateRecords)} locale="es" title="Elige un estilo y unas medidas" page={{ type: 'dieline_generator', slug: 'es/box-dieline-generator' }} />
 
       <div className="btp-sections">
         {page.sections.map(section => <section key={section.title}>

@@ -111,7 +111,8 @@ function parse(source: string): Node {
     if (/^[\d.]/.test(token)) return { k: 'num', v: Number(token) };
     if (/^[A-Za-z_]/.test(token)) {
       if (peek() !== '(') return { k: 'var', name: token };
-      if (!(token in FUNCTIONS)) throw new ExpressionError(`Unknown function "${token}" in "${source}"`);
+      // Own keys only: `in` would also reach Object.prototype ("constructor").
+      if (!Object.hasOwn(FUNCTIONS, token)) throw new ExpressionError(`Unknown function "${token}" in "${source}"`);
       take('(');
       const args: Node[] = [];
       if (peek() !== ')') {
@@ -184,12 +185,16 @@ function run(node: Node, scope: Scope, source: string): number {
 }
 
 const parsed = new Map<string, Node>();
+// Uploaded definitions bring expressions of their own, so the cache is
+// bounded rather than growing with every one ever seen.
+const PARSED_LIMIT = 20_000;
 
 /** Parses once and caches, so a definition is checked on its first use. */
 export function compileExpression(source: string) {
   let tree = parsed.get(source);
   if (!tree) {
     tree = parse(source);
+    if (parsed.size >= PARSED_LIMIT) parsed.clear();
     parsed.set(source, tree);
   }
   return tree;

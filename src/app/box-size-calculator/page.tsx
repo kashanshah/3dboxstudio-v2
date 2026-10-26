@@ -9,6 +9,8 @@ import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
 import { SEO_PAGES, seoPageMetadata, servedSeoPage } from '@/content/seo-pages';
 import { styleForTemplate } from '@/lib/dieline/styles';
 import { softwareApplicationSchema } from '@/lib/seo';
+import { inactiveTemplateIds } from '@/lib/packaging/template-catalog';
+import { getTemplateCatalog } from '@/server/templates';
 
 const page = SEO_PAGES.calculator;
 export const metadata: Metadata = seoPageMetadata(page);
@@ -21,9 +23,10 @@ const faqs = [
   { question: 'Is the outside size exact?', answer: 'No, it is an estimate: each box style folds its board a little differently. Open the style in the generator and choose Outside to type an exact outside size, or read it from the flat sheet.' },
 ];
 
-export default function BoxSizeCalculatorPage() {
+export default async function BoxSizeCalculatorPage() {
   if (!servedSeoPage(page)) notFound();
-  const targets: CalculatorTarget[] = BOX_TEMPLATE_PAGES.flatMap(item => {
+  const hidden = inactiveTemplateIds(await getTemplateCatalog());
+  const targets: CalculatorTarget[] = BOX_TEMPLATE_PAGES.filter(item => !hidden.has(item.templateId)).flatMap(item => {
     const style = styleForTemplate(item.templateId);
     return style ? [{ slug: item.slug, name: item.name, styleId: style.id }] : [];
   });

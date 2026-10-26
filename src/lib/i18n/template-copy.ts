@@ -104,6 +104,10 @@ const keys: Record<string, Record<keyof TemplateCopy, MessageKey>> = {
 /** Localize display fields only. Geometry, panel names, category filters and persisted IDs remain stable. */
 export function getPackagingTemplateCopy(template: PackagingTemplateDefinition, t = createTranslator()): TemplateCopy {
   const localized = keys[template.id];
+  const own = template.customCopy ?? {};
   if (!localized) return { name: template.name, shortName: template.shortName, category: template.category, description: template.description };
-  return { name: t(localized.name), shortName: t(localized.shortName), category: t(localized.category), description: t(localized.description) };
+  return {
+    name: own.name ?? t(localized.name), shortName: own.shortName ?? t(localized.shortName),
+    category: own.category ?? t(localized.category), description: own.description ?? t(localized.description),
+  };
 }

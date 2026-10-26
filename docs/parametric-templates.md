@@ -237,6 +237,17 @@ The parity tests cover:
 Next, roughly in order:
 
 1. **Retire the frozen references** in `scripts/reference/` once each template has been stable in production.
-2. **Storage and authoring.** Once definitions are stable, load them from the database and build an admin tool that previews the dieline and fold while someone edits the numbers. At that point adding a box shape is a content task, not an engineering one.
+2. **Authoring.** Uploading is done (below); next is an admin tool that previews the dieline and fold while someone edits the numbers.
+
+## Uploading a definition (Admin → Templates)
+
+An admin can paste or upload a definition as JSON under Admin → Templates → Upload JSON definition. The server (`src/lib/packaging/json-templates.ts`) checks it before saving:
+
+- its shape and size: `format`, a `templateId` that no other template uses (lowercase letters, digits and hyphens), at most 200 kB and 60,000 values once `repeat` blocks are expanded, and limits on panels, hinges, derived values, option combinations, arc segments (64) and expression length (400 characters);
+- that it compiles, its size checks run, the sheet builds, the box folds at formation 0, 50 and 100 in every variant at its default size, and the cutting template exports as SVG.
+
+It is saved as an inactive draft with a preview (the flat SVG and the 3D fold) and goes live when it is made active. The `catalog` entry is optional: whatever it leaves out gets a default (name from the id, the four sizes as controls, an artwork region for every printed panel). `catalog.thumbnail` is set by uploading a picture in the admin instead.
+
+Definitions are data: the only thing evaluated is the expression language, which reaches nothing but its own scope (function names are looked up as own keys, so `constructor(…)` is an unknown function). Saved definitions are never changed; they are registered by id on the server (`src/server/templates.ts`) and in the browser on the pages that need them (Studio, Studio home, generator, share viewer, admin preview).
 
 Out of scope for this format: bottles, cans, pouches and other curved or flexible packaging. (Board that bows, such as a pillow box, is covered by model panels and surfaces.) Their geometry isn't folded from flat panels; they will need their own format family that shares only the parameter, option and expression layers.

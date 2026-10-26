@@ -91,6 +91,11 @@ export type PackagingTemplateDefinition = {
   isDefault?: boolean;
   /** Render of the finished box for template cards (scripts/render-template-thumbnails.mjs). */
   thumbnail?: string;
+  /**
+   * Name, description or category an admin set (template-catalog.ts). They
+   * replace the translated copy, which only knows the original wording.
+   */
+  customCopy?: Partial<Pick<PackagingTemplateDefinition, 'name' | 'shortName' | 'description' | 'category'>>;
 
   status: 'ready' | 'planned';
 };
@@ -129,6 +134,20 @@ const templateMap = new Map(PACKAGING_TEMPLATES.map(template => [template.id, te
 
 export function getPackagingTemplate(id: string) {
   return templateMap.get(id) ?? null;
+}
+
+/**
+ * Adds a template that isn't built in (an uploaded JSON definition,
+ * json-templates.ts). PACKAGING_TEMPLATES stays the built-in list; lookups
+ * by id find both.
+ */
+export function registerPackagingTemplate(template: PackagingTemplateDefinition) {
+  if (templateMap.has(template.id)) throw new Error(`Template already registered: ${template.id}`);
+  templateMap.set(template.id, template);
+}
+
+export function isBuiltInTemplate(id: string) {
+  return PACKAGING_TEMPLATES.some(template => template.id === id);
 }
 
 export function getDefaultPackagingTemplate() {

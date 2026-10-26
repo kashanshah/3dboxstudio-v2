@@ -204,3 +204,66 @@ a.admin-thumb-strip{color:var(--admin-text);text-decoration:none}
 .admin-table-wrap,.admin-design-thumb{position:relative}
 .admin-pro-access{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:10px 12px;border:1px solid var(--admin-line);border-radius:10px}
 .admin-pro-access>span{display:grid;gap:2px}
+/* Admin → Templates */
+.admin-template-actions{display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 16px}
+.admin-table .admin-num{text-align:right}
+.admin-templates-table tr.is-inactive td>*:not(.admin-template-toggle){opacity:.6}
+.admin-templates-table code,.admin-page-header code{font-size:11px;color:var(--admin-muted)}
+.admin-template-toggle{display:inline-grid;gap:4px}
+.admin-template-toggle button{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 11px 0 6px;border:1px solid var(--admin-line);border-radius:999px;background:#151b23;color:var(--admin-muted);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.admin-template-toggle button i{position:relative;width:30px;height:18px;border-radius:999px;background:#2a323e;transition:background .15s}
+.admin-template-toggle button i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#8f9baa;transition:transform .15s,background .15s}
+.admin-template-toggle button[aria-checked=true]{border-color:#1f4b33;background:#10251a;color:#7ee2a8}
+.admin-template-toggle button[aria-checked=true] i{background:#1d6b41}
+.admin-template-toggle button[aria-checked=true] i::after{transform:translateX(12px);background:#e9fff1}
+.admin-template-toggle button:disabled{opacity:.6;cursor:progress}
+.admin-template-toggle .admin-error{padding:4px 8px;font-size:12px;max-width:220px}
+.admin-template-summary{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin:0 0 16px}
+.admin-template-form{display:grid;gap:14px}
+.admin-template-form .admin-settings-group{margin:4px 0 0}
+.admin-settings-field textarea,.admin-settings-field select{width:100%;border:1px solid var(--admin-line);border-radius:9px;background:#0a0d12;color:var(--admin-text);padding:10px 12px;font:inherit;font-size:14px}
+.admin-settings-field select{height:44px;padding:0 10px}
+.admin-settings-field input::placeholder,.admin-settings-field textarea::placeholder{color:#5d6876}
+.admin-settings-field small{font-size:12px}
+.admin-template-form-row{display:grid;grid-template-columns:minmax(0,1fr) 160px;gap:12px;align-items:start;max-width:480px}
+.admin-template-form .admin-settings-field{align-content:start}
+.admin-template-summary a,.admin-template-delete a{color:var(--admin-accent);text-decoration:none}
+.admin-template-size{align-items:start}
+.admin-template-size{display:grid;grid-template-columns:repeat(4,minmax(0,140px));gap:12px}
+.admin-template-picture{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.admin-template-picture>div{display:grid;gap:6px;justify-items:start}
+.admin-design-thumb.admin-template-thumb{width:120px;height:90px}
+.admin-template-upload{position:relative;overflow:hidden}
+.admin-template-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.admin-settings-field .admin-template-json{min-height:320px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;white-space:pre}
+.admin-template-form .admin-settings-field:has(.admin-template-json){max-width:none}
+.admin-template-json-error{white-space:pre-wrap;overflow-wrap:anywhere}
+.admin-template-preview-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.admin-template-preview-pair figure{display:grid;gap:8px;margin:0;min-width:0}
+.admin-template-preview-pair img{display:block;width:100%;height:320px;object-fit:contain;border-radius:10px;background:#fff;padding:12px}
+.admin-template-3d{position:relative;height:320px;border-radius:10px;overflow:hidden;background:#e9eef5}
+.admin-template-3d>*{position:absolute;inset:0}
+.admin-template-preview-pair figcaption{color:var(--admin-muted);font-size:12px}
+.admin-template-preview-pair figcaption label{display:flex;align-items:center;gap:10px}
+.admin-template-preview-pair input[type=range]{flex:1}
+.admin-template-delete{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:0 0 24px}
+/* On a phone the list keeps what's needed to act: picture, name, switch, designs. */
+@media(max-width:640px){
+  .admin-table-wrap .admin-templates-table{min-width:0}
+  .admin-templates-table th:nth-child(4),.admin-templates-table td:nth-child(4),
+  .admin-templates-table th:nth-child(6),.admin-templates-table td:nth-child(6),
+  .admin-templates-table th:nth-child(7),.admin-templates-table td:nth-child(7){display:none}
+  .admin-templates-table th,.admin-templates-table td{padding:10px 8px}
+  .admin-templates-table .admin-design-thumb{width:48px;height:36px}
+  .admin-templates-table code{display:block;overflow-wrap:anywhere}
+  .admin-template-toggle button{padding:0 8px 0 4px}
+}
+@media(max-width:760px){
+  .admin-template-preview-pair{grid-template-columns:1fr}
+  .admin-template-preview-pair img,.admin-template-3d{height:260px}
+  .admin-template-size{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-template-form-row{grid-template-columns:1fr}
+  .admin-settings-field input,.admin-settings-field textarea,.admin-settings-field select{font-size:16px}
+}
+.admin-template-select{height:42px;max-width:260px;padding:0 10px;border:1px solid var(--admin-line);border-radius:9px;background:#0a0d12;color:var(--admin-text);font:inherit;font-size:14px}
+@media(max-width:760px){.admin-template-select{flex:1;min-width:0;font-size:16px}}

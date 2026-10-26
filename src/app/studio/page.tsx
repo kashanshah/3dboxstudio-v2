@@ -7,6 +7,8 @@ import { SignedInHintRepair } from '@/components/auth/signed-in-hint-repair';
 import { getCurrentUser } from '@/server/auth/session';
 import { getWorkspaceDesigns } from '@/server/projects';
 import { listWorkspaceProjects } from '@/server/workspace-projects';
+import { getTemplateSettings } from '@/server/templates';
+import { clientTemplateRecords } from '@/lib/packaging/template-catalog';
 
 const title=translate("metadata.studio.free_3d_box_maker_packaging_mockup_generator_3d_box_studio");
 const description=translate("metadata.studio.design_cartons_and_mailer_boxes_in_a_free_online_3d_box_maker_and_packaging");
@@ -26,6 +28,6 @@ export default async function Studio({searchParams}:{searchParams:Promise<{q?:st
  const p=await searchParams,search=(p.q??'').slice(0,80),sort=p.sort==='name'?'name':'recent',page=Math.max(1,Math.min(10000,Number.parseInt(p.page??'1',10)||1));
  const projects=await listWorkspaceProjects(user.id);
  const activeProjectId=p.workspace&&projects.some(project=>project.id===p.workspace)?p.workspace:null;
- const result=await getWorkspaceDesigns(user.id,search,sort,page,activeProjectId);
- return <><StudioHome user={user} {...result} projects={projects} activeProjectId={activeProjectId} search={search} sort={sort} page={page}/><SignedInHintRepair/></>;
+ const [result,templateRecords]=await Promise.all([getWorkspaceDesigns(user.id,search,sort,page,activeProjectId),getTemplateSettings()]);
+ return <><StudioHome user={user} {...result} templateRecords={clientTemplateRecords(templateRecords)} projects={projects} activeProjectId={activeProjectId} search={search} sort={sort} page={page}/><SignedInHintRepair/></>;
 }

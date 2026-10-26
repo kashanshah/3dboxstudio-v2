@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { SiteHeader, SiteFooter } from '@/components/site-shell';
 import { FaqSection } from '@/components/faq-section';
@@ -11,6 +11,8 @@ import { BOX_TEMPLATE_PAGES, getBoxTemplatePage, relatedTemplatePages } from '@/
 import { ES_TEMPLATE_SLUGS, templateLanguageAlternates } from '@/content/es/box-template-pages';
 import { getBlogPostBySlug } from '@/content/blogPosts';
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
+import { activeStyleCount, inactiveTemplateIds } from '@/lib/packaging/template-catalog';
+import { getTemplateCatalog, getTemplateSettings } from '@/server/templates';
 import { notFoundMetadata } from '@/lib/not-found-metadata';
 import { site } from '@/lib/site';
 import '../../box-template-page.css';
@@ -22,7 +24,10 @@ import { TEMPLATE_GUIDANCE } from '@/content/box-template-guidance';
 
 type Props = { params: Promise<{ slug: string }> };
 
-export const dynamicParams = false;
+// Unknown slugs 404 from the page itself. Not dynamicParams = false: a page
+// regenerated after an admin change (a template made inactive redirects)
+// would then 404 instead, since Next serves those routes only from the cache.
+export const dynamicParams = true;
 export function generateStaticParams() { return BOX_TEMPLATE_PAGES.map(page => ({ slug: page.slug })); }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -46,9 +51,13 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
   const template = getPackagingTemplate(page.templateId);
   const style = styleForTemplate(page.templateId);
   if (!template?.defaultDimensions || template.status !== 'ready' || !style) notFound();
+  const [catalog, templateRecords] = await Promise.all([getTemplateCatalog(), getTemplateSettings()]);
+  const hidden = inactiveTemplateIds(catalog);
+  // Made inactive in the admin: back to the gallery, temporarily, so the page can return.
+  if (hidden.has(page.templateId)) redirect('/box-templates');
   // The pages list sizes as the Studio takes them; the generator as length × width × depth.
   const presets = page.presets.map(preset => ({ label: preset.label, note: preset.note, length: preset.width, width: preset.depth, depth: preset.height, units: preset.unit }));
-  const related = relatedTemplatePages(page);
+  const related = relatedTemplatePages(page, 4, hidden);
   // Best-for and materials copy, once approved (drafts show on previews).
   const guidance = TEMPLATE_GUIDANCE[page.slug] && isServed(TEMPLATE_GUIDANCE[page.slug].status) ? TEMPLATE_GUIDANCE[page.slug] : null;
   const bestFor = page.bestFor ?? guidance?.bestFor, notIdealFor = page.notIdealFor ?? guidance?.notIdealFor, materials = page.materials ?? guidance?.materials;
@@ -80,7 +89,7 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
           {ES_TEMPLATE_SLUGS.includes(page.slug) ? <> · <Link href={`/es/box-templates/${page.slug}`} hrefLang="es" lang="es">Leer en español</Link></> : null}</p>
       </header>
 
-      <DielineGenerator setup={generatorSetup(style.id, presets[0])} presets={presets} title={`Make your ${page.name.toLowerCase()} dieline`} page={{ type: 'template_page', slug: page.slug, templateId: page.templateId }} />
+      <DielineGenerator setup={generatorSetup(style.id, presets[0], templateRecords)} presets={presets} title={`Make your ${page.name.toLowerCase()} dieline`} page={{ type: 'template_page', slug: page.slug, templateId: page.templateId }} />
       <p className="btp-geometry-note">{page.geometryNote}</p>
 
       <div className="btp-sections">
@@ -109,7 +118,7 @@ export default async function BoxTemplateLandingPage({ params }: Props) {
         <h2 id="btp-related-title">Related box styles</h2>
         <div className="btp-cards">
           {related.map(other => <Link key={other.slug} href={`/box-templates/${other.slug}`}><b>{other.name}</b><span>{other.description}</span></Link>)}
-          <Link href="/box-templates"><b>All {BOX_TEMPLATE_PAGES.length} box templates</b><span>Every style, with its dieline and 3D fold.</span></Link>
+          <Link href="/box-templates"><b>All {activeStyleCount(catalog)} box templates</b><span>Every style, with its dieline and 3D fold.</span></Link>
         </div>
         {guides.length ? <>
           <h2>Related guides</h2>

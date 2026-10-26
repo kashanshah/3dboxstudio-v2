@@ -1,0 +1,482 @@
+{
+  "format": "parametric-template/1",
+  "parameters": {
+    "width": {
+      "fallback": 160,
+      "min": 1
+    },
+    "height": {
+      "fallback": 50,
+      "min": 1
+    },
+    "depth": {
+      "fallback": 110,
+      "min": 1
+    },
+    "thickness": {
+      "fallback": 0.5,
+      "min": 0.3,
+      "max": 2
+    }
+  },
+  "assembly": {
+    "control": "none",
+    "defaultOpeningMode": "lid_from_back",
+    "openingStage": "always",
+    "showsInside": 1
+  },
+  "templateId": "e2e-tray",
+  "structureKey": "tray-v1",
+  "rendererKey": "tray-v1",
+  "description": "Four-corner folding-carton tray: a bottom and four walls, with a glue ear at each corner glued inside the side walls.",
+  "derived": [
+    [
+      "t",
+      "thickness"
+    ],
+    [
+      "baseW",
+      "width + t"
+    ],
+    [
+      "baseD",
+      "depth + t"
+    ],
+    [
+      "baseH",
+      "height + t / 2"
+    ],
+    [
+      "ear",
+      "min(max(10, depth / 4), 30, depth / 2 - t)"
+    ],
+    [
+      "baseEar",
+      "ear"
+    ],
+    [
+      "baseEarTaper",
+      "min((baseH - t) / 3, baseEar * 0.4)"
+    ],
+    [
+      "baseX0",
+      "max(baseH, baseEar)"
+    ],
+    [
+      "baseY0",
+      "baseH"
+    ]
+  ],
+  "adjustable": [
+    {
+      "key": "ear",
+      "label": "Corner ears",
+      "min": 6,
+      "max": "max(6, depth / 2 - t)"
+    }
+  ],
+  "panels": [
+    {
+      "id": "bottom",
+      "label": "BOTTOM",
+      "kind": "body",
+      "rect": [
+        "baseX0",
+        "baseY0",
+        "baseW",
+        "baseD"
+      ],
+      "layer": 1
+    },
+    {
+      "id": "back",
+      "label": "BACK",
+      "kind": "body",
+      "rect": [
+        "baseX0",
+        "baseY0 - baseH",
+        "baseW",
+        "baseH"
+      ],
+      "layer": 1
+    },
+    {
+      "id": "front",
+      "label": "FRONT",
+      "kind": "body",
+      "rect": [
+        "baseX0",
+        "baseY0 + baseD",
+        "baseW",
+        "baseH"
+      ],
+      "artworkRotation": 180,
+      "layer": 1
+    },
+    {
+      "id": "left",
+      "label": "LEFT",
+      "kind": "body",
+      "rect": [
+        "baseX0 - baseH",
+        "baseY0",
+        "baseH",
+        "baseD"
+      ],
+      "layer": 1
+    },
+    {
+      "id": "right",
+      "label": "RIGHT",
+      "kind": "body",
+      "rect": [
+        "baseX0 + baseW",
+        "baseY0",
+        "baseH",
+        "baseD"
+      ],
+      "layer": 1
+    },
+    {
+      "id": "backLeftEar",
+      "label": "BACK LEFT EAR",
+      "kind": "glue",
+      "outline": [
+        [
+          "baseX0",
+          "baseY0 - t"
+        ],
+        [
+          "baseX0",
+          "baseY0 - baseH"
+        ],
+        [
+          "baseX0 - baseEar",
+          "baseY0 - baseH + baseEarTaper"
+        ],
+        [
+          "baseX0 - baseEar",
+          "baseY0 - t"
+        ]
+      ],
+      "layer": 0
+    },
+    {
+      "id": "backRightEar",
+      "label": "BACK RIGHT EAR",
+      "kind": "glue",
+      "outline": [
+        [
+          "baseX0 + baseW",
+          "baseY0 - t"
+        ],
+        [
+          "baseX0 + baseW",
+          "baseY0 - baseH"
+        ],
+        [
+          "baseX0 + baseW + baseEar",
+          "baseY0 - baseH + baseEarTaper"
+        ],
+        [
+          "baseX0 + baseW + baseEar",
+          "baseY0 - t"
+        ]
+      ],
+      "layer": 0
+    },
+    {
+      "id": "frontLeftEar",
+      "label": "FRONT LEFT EAR",
+      "kind": "glue",
+      "outline": [
+        [
+          "baseX0",
+          "baseY0 + baseD + t"
+        ],
+        [
+          "baseX0",
+          "baseY0 + baseD + baseH"
+        ],
+        [
+          "baseX0 - baseEar",
+          "baseY0 + baseD + baseH - baseEarTaper"
+        ],
+        [
+          "baseX0 - baseEar",
+          "baseY0 + baseD + t"
+        ]
+      ],
+      "layer": 0
+    },
+    {
+      "id": "frontRightEar",
+      "label": "FRONT RIGHT EAR",
+      "kind": "glue",
+      "outline": [
+        [
+          "baseX0 + baseW",
+          "baseY0 + baseD + t"
+        ],
+        [
+          "baseX0 + baseW",
+          "baseY0 + baseD + baseH"
+        ],
+        [
+          "baseX0 + baseW + baseEar",
+          "baseY0 + baseD + baseH - baseEarTaper"
+        ],
+        [
+          "baseX0 + baseW + baseEar",
+          "baseY0 + baseD + t"
+        ]
+      ],
+      "layer": 0
+    }
+  ],
+  "validations": [
+    {
+      "require": "height >= max(10, 4 * t)",
+      "message": "The tray is too shallow for this board. Use a height of at least {max(10, 4 * t)} mm."
+    },
+    {
+      "require": "width >= 20 && depth >= 20",
+      "message": "The tray is too small for its corner ears. Use a width and depth of at least 20 mm."
+    }
+  ],
+  "notes": [
+    {
+      "text": "Four-corner tray: glue each corner ear to the inside of its side wall."
+    },
+    {
+      "text": "Width, depth and height are the inside of the tray, on {t} mm board. Ask your printer to confirm the allowances for the board you choose."
+    },
+    {
+      "text": "Artwork prints exactly as laid out on the design grid."
+    }
+  ],
+  "fold": {
+    "root": "bottom",
+    "thickness": "max(0.05, min(thickness, min(width, depth) * 0.06))",
+    "matrix": [
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      -1,
+      0,
+      0,
+      -1,
+      0,
+      0,
+      "bottom.x + bottom.width / 2",
+      "-height / 2",
+      "-(bottom.y + bottom.height / 2)",
+      1
+    ],
+    "motions": [
+      [
+        "turnWalls",
+        "stage(formation, 0, 0.35) * (pi / 2)"
+      ],
+      [
+        "turnEars",
+        "stage(formation, 0.25, 0.5) * (pi / 2)"
+      ],
+      [
+        "turnSides",
+        "stage(formation, 0.45, 0.75) * (pi / 2)"
+      ],
+      [
+        "resting",
+        "foldResting"
+      ]
+    ],
+    "hinges": [
+      {
+        "child": "front",
+        "parent": "bottom",
+        "angle": "turnWalls"
+      },
+      {
+        "child": "back",
+        "parent": "bottom",
+        "angle": "turnWalls"
+      },
+      {
+        "child": "frontLeftEar",
+        "parent": "front",
+        "angle": "turnEars",
+        "setback": "foldT * 0.5"
+      },
+      {
+        "child": "frontRightEar",
+        "parent": "front",
+        "angle": "turnEars",
+        "setback": "foldT * 0.5"
+      },
+      {
+        "child": "backLeftEar",
+        "parent": "back",
+        "angle": "turnEars",
+        "setback": "foldT * 0.5"
+      },
+      {
+        "child": "backRightEar",
+        "parent": "back",
+        "angle": "turnEars",
+        "setback": "foldT * 0.5"
+      },
+      {
+        "child": "left",
+        "parent": "bottom",
+        "angle": "turnSides",
+        "setback": "resting"
+      },
+      {
+        "child": "right",
+        "parent": "bottom",
+        "angle": "turnSides",
+        "setback": "resting"
+      }
+    ]
+  },
+  "export": {
+    "kind": "cutting-template",
+    "summary": "Four-corner tray cutting template with glue ears. Your printer must approve the stock and allowances.",
+    "artworkNote": "Artwork prints exactly as laid out on the design grid."
+  },
+  "catalog": {
+    "defaultMaterial": "White board",
+    "version": 1,
+    "name": "E2E uploaded tray",
+    "shortName": "E2E tray",
+    "family": "folding-carton",
+    "category": "Custom",
+    "description": "Open tray with glued corners: for display, bakery, fruit, gift sets and inserts.",
+    "tags": [
+      "tray",
+      "four corner tray",
+      "display tray",
+      "open box",
+      "insert",
+      "bakery tray"
+    ],
+    "capabilities": [
+      "dieline",
+      "3d",
+      "fold",
+      "interior-artwork",
+      "full-dieline-artwork"
+    ],
+    "parameters": [
+      {
+        "key": "width",
+        "label": "Width",
+        "unit": "mm",
+        "min": 20,
+        "max": 600,
+        "step": 1,
+        "defaultValue": 160
+      },
+      {
+        "key": "height",
+        "label": "Height",
+        "unit": "mm",
+        "min": 10,
+        "max": 300,
+        "step": 1,
+        "defaultValue": 50
+      },
+      {
+        "key": "depth",
+        "label": "Depth",
+        "unit": "mm",
+        "min": 20,
+        "max": 600,
+        "step": 1,
+        "defaultValue": 110
+      },
+      {
+        "key": "thickness",
+        "label": "Board thickness",
+        "unit": "mm",
+        "min": 0.3,
+        "max": 2,
+        "step": 0.1,
+        "defaultValue": 0.5
+      }
+    ],
+    "artworkRegions": [
+      {
+        "id": "outside-front",
+        "label": "Front",
+        "surface": "outside",
+        "panelId": "Front"
+      },
+      {
+        "id": "outside-back",
+        "label": "Back",
+        "surface": "outside",
+        "panelId": "Back"
+      },
+      {
+        "id": "outside-left",
+        "label": "Left",
+        "surface": "outside",
+        "panelId": "Left"
+      },
+      {
+        "id": "outside-right",
+        "label": "Right",
+        "surface": "outside",
+        "panelId": "Right"
+      },
+      {
+        "id": "outside-bottom",
+        "label": "Bottom",
+        "surface": "outside",
+        "panelId": "Bottom"
+      },
+      {
+        "id": "inside-front",
+        "label": "Inside Front",
+        "surface": "inside",
+        "panelId": "Interior Front"
+      },
+      {
+        "id": "inside-back",
+        "label": "Inside Back",
+        "surface": "inside",
+        "panelId": "Interior Back"
+      },
+      {
+        "id": "inside-left",
+        "label": "Inside Left",
+        "surface": "inside",
+        "panelId": "Interior Left"
+      },
+      {
+        "id": "inside-right",
+        "label": "Inside Right",
+        "surface": "inside",
+        "panelId": "Interior Right"
+      },
+      {
+        "id": "inside-bottom",
+        "label": "Inside Bottom",
+        "surface": "inside",
+        "panelId": "Interior Bottom"
+      }
+    ],
+    "defaultDimensions": {
+      "width": 160,
+      "height": 50,
+      "depth": 110,
+      "thickness": 0.5
+    },
+    "fixedOpeningMode": "lid_from_back"
+  }
+}

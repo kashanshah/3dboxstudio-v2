@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { SiteFooter, SiteHeader } from '@/components/site-shell';
-import { ES_BOX_TEMPLATE_PAGES } from '@/content/es/box-template-pages';
-import { BOX_TEMPLATE_PAGES } from '@/content/box-template-pages';
+import { ES_BOX_TEMPLATE_PAGES, getEsBoxTemplatePage } from '@/content/es/box-template-pages';
 import { defaultOgImage, site } from '@/lib/site';
 import { Breadcrumbs } from '@/components/seo/breadcrumbs';
 import { breadcrumbSchema, jsonLd } from '@/lib/seo';
 import '../../box-template-page.css';
+import { getTemplateCatalog } from '@/server/templates';
+import { activeStyleCount, inactiveTemplateIds } from '@/lib/packaging/template-catalog';
 
 // Spanish hub: the template pages with a Spanish version, and the generator.
 
@@ -32,11 +33,14 @@ export const metadata: Metadata = {
 
 export default async function SpanishBoxTemplatesPage({ params }: Props) {
   if ((await params).locale !== 'es') notFound();
+  const catalog = await getTemplateCatalog();
+  const count = activeStyleCount(catalog), hidden = inactiveTemplateIds(catalog);
+  const pages = ES_BOX_TEMPLATE_PAGES.filter(page => !hidden.has(getEsBoxTemplatePage(page.slug)?.en.templateId ?? ''));
   const crumbs = [{ name: 'Plantillas de cajas', path: PATH }];
   const schema = jsonLd(
     { '@type': 'CollectionPage', name: 'Plantillas de cajas', description: DESCRIPTION, url: new URL(PATH, site.url).toString(), inLanguage: 'es' },
     breadcrumbSchema(crumbs, HOME),
-    { '@type': 'ItemList', itemListElement: ES_BOX_TEMPLATE_PAGES.map((page, index) => ({ '@type': 'ListItem', position: index + 1, name: page.name, url: new URL(`/es/box-templates/${page.slug}`, site.url).toString() })) },
+    { '@type': 'ItemList', itemListElement: pages.map((page, index) => ({ '@type': 'ListItem', position: index + 1, name: page.name, url: new URL(`/es/box-templates/${page.slug}`, site.url).toString() })) },
   );
 
   return <>
@@ -52,12 +56,12 @@ export default async function SpanishBoxTemplatesPage({ params }: Props) {
       <section className="btp-related" aria-labelledby="es-templates-title">
         <h2 id="es-templates-title">Plantillas en español</h2>
         <div className="btp-cards">
-          {ES_BOX_TEMPLATE_PAGES.map(page => <Link key={page.slug} href={`/es/box-templates/${page.slug}`}><b>{page.name}</b><span>{page.description}</span></Link>)}
-          <Link href="/es/box-dieline-generator"><b>Generador de troqueles</b><span>Los 16 estilos de caja, a tu medida, con descarga gratis.</span></Link>
+          {pages.map(page => <Link key={page.slug} href={`/es/box-templates/${page.slug}`}><b>{page.name}</b><span>{page.description}</span></Link>)}
+          <Link href="/es/box-dieline-generator"><b>Generador de troqueles</b><span>Los {count} estilos de caja, a tu medida, con descarga gratis.</span></Link>
         </div>
         <h2>Más plantillas (en inglés)</h2>
         <ul className="btp-guides">
-          <li><Link href="/box-templates" hrefLang="en">Las {BOX_TEMPLATE_PAGES.length} plantillas de cajas, con su troquel y su plegado en 3D <ArrowRight /></Link></li>
+          <li><Link href="/box-templates" hrefLang="en">Las {count} plantillas de cajas, con su troquel y su plegado en 3D <ArrowRight /></Link></li>
         </ul>
       </section>
     </main>

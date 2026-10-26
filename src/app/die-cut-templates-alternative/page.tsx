@@ -5,9 +5,13 @@ import { CompareTable, ComparisonLinks } from "@/components/compare-table";
 import { SEO_PAGES, seoPageMetadata, servedSeoPage } from "@/content/seo-pages";
 import { breadcrumbSchema, jsonLd } from "@/lib/seo";
 import { site } from "@/lib/site";
+import { withStyleCount } from "@/lib/template-count-copy";
+import { activeStyleCountNow } from "@/server/templates";
 
 const page = SEO_PAGES.dieCutTemplates;
-export const metadata: Metadata = seoPageMetadata(page);
+export async function generateMetadata(): Promise<Metadata> {
+  return withStyleCount(seoPageMetadata(page), await activeStyleCountNow());
+}
 
 // Sources for the Die Cut Templates column (diecuttemplates.com), checked
 // 2026-10-20 (vendor pages via search index; the pages could not be fetched
@@ -61,13 +65,14 @@ const faqs = [
   { question: "Do the dielines allow for board thickness?", answer: "Yes. Set the thickness and the panels and flaps adjust so the inside size stays as you typed it." },
 ];
 
-export default function Page() {
+export default async function Page() {
   if (!servedSeoPage(page)) notFound();
+  const copy = withStyleCount({ description: page.description, rows, sections, faqs }, await activeStyleCountNow());
   const url = new URL(page.path, site.url).toString();
   const crumbs = [{ name: "Box dieline generator", path: "/box-dieline-generator" }, { name: "Die Cut Templates alternative", path: page.path }];
   const schema = [
-    { "@type": "WebPage", name: page.title, description: page.description, url },
-    { "@type": "FAQPage", mainEntity: faqs.map(item => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })) },
+    { "@type": "WebPage", name: page.title, description: copy.description, url },
+    { "@type": "FAQPage", mainEntity: copy.faqs.map(item => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })) },
   ];
   return <><MarketingProductPage
     breadcrumbs={crumbs}
@@ -77,9 +82,9 @@ export default function Page() {
     primaryCta="Start designing free"
     secondaryHref="/box-dieline-generator"
     secondaryLabel="Open the dieline generator"
-    sections={sections}
-    faqs={faqs}
+    sections={copy.sections}
+    faqs={copy.faqs}
     about
-    afterHero={<><CompareTable competitor="Die Cut Templates" rows={rows} checked="Die Cut Templates details from diecuttemplates.com (pricing, free dielines, 3D mockups, nesting, cost calculator and FAQ pages), checked 20 October 2026; check diecuttemplates.com for current plans and prices." /><ComparisonLinks current={page.path} /></>}
+    afterHero={<><CompareTable competitor="Die Cut Templates" rows={copy.rows} checked="Die Cut Templates details from diecuttemplates.com (pricing, free dielines, 3D mockups, nesting, cost calculator and FAQ pages), checked 20 October 2026; check diecuttemplates.com for current plans and prices." /><ComparisonLinks current={page.path} /></>}
   /><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema(crumbs), ...schema) }} /></>;
 }

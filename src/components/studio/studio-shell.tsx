@@ -49,7 +49,8 @@ import type { MeasuredSize, PanelSizes } from '@/lib/packaging/parametric/sheet'
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
 import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
-import { PACKAGING_TEMPLATES, STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplateCategories, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
+import { STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplate, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
+import { catalogEntryFor, listedTemplates, NO_TEMPLATE_RECORDS, resolveTemplateCatalog, templateIdOf, type TemplateCatalogEntry, type TemplateSettingsRecord } from '@/lib/packaging/template-catalog';
 import { DEFAULT_DIELINE_PDF_OPTIONS, type DielinePdfOptions } from '@/lib/packaging/pdf-options';
 import { DEFAULT_IMAGE_SETTINGS, IMAGE_FORMATS, IMAGE_LONG_SIDE, IMAGE_LONG_SIDE_COARSE, IMAGE_SIZES, imageBackground, type ImageBackground, type ImageSettings } from '@/lib/packaging/image-export';
 import { DEFAULT_VIDEO_SETTINGS, VIDEO_LENGTHS, VIDEO_MOTIONS, VIDEO_SECONDS, videoColor, type VideoSettings } from '@/lib/packaging/video-timeline';
@@ -84,6 +85,7 @@ type MediaUploadProgress = {
 type StudioHistorySnapshot = {
   family:string;
   selectedTemplateId:string;
+  selectedEntryId:string;
   material:string;
   outsideColorMode:BaseColorMode;
   insideColorMode:BaseColorMode;
@@ -306,8 +308,11 @@ function useChangedState<T>(initial:T, same:(a:T, b:T)=>boolean = Object.is) {
   return [value,setChanged] as const;
 }
 
-export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialDimensions:requestedDimensions,initialUnit,initialSplitTopHingeSide,newDesignProjects=[]}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;initialSplitTopHingeSide?:'side_a'|'side_b';newDesignProjects?:NewDesignProject[]} = {}) {
+export function StudioShell({initialProject,initialWorkspaceProjectId,initialTemplateId,initialPresetId,initialDimensions:requestedDimensions,initialUnit,initialSplitTopHingeSide,newDesignProjects=[],templateRecords=NO_TEMPLATE_RECORDS}:{initialProject?:SavedStudioProject;initialWorkspaceProjectId?:string;initialTemplateId?:string;initialPresetId?:string;initialDimensions?:CartonDimensions;initialUnit?:MeasurementUnit;initialSplitTopHingeSide?:'side_a'|'side_b';newDesignProjects?:NewDesignProject[];/** Admin → Templates settings (template-catalog.ts). */templateRecords?:readonly TemplateSettingsRecord[]} = {}) {
   const t = useTranslations();
+  // Resolved before anything looks a template up: it registers uploaded templates' runtimes.
+  const catalog = useMemo(() => resolveTemplateCatalog(templateRecords), [templateRecords]);
+  const templates = useMemo(() => listedTemplates(catalog), [catalog]);
 
   // Designs saved on an older version of a template's design grid move onto
   // the current one, looking and printing exactly as before.
@@ -351,30 +356,42 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [tool, setTool] = useState<Tool | null>(initialProject ? 'opening' : 'structure');
   const [mode, setMode] = useState<Mode>('3d');
   const [workflowStep,setWorkflowStep] = useState<StudioArea>(initialProject ? 'preview' : 'box');
+  // A saved design opens with its own template even when an admin has made
+  // it inactive; a new one starts from a listed template.
   const requestedTemplate = !initialProject && initialTemplateId
-    ? PACKAGING_TEMPLATES.find(template => template.id === initialTemplateId && template.status === 'ready')
+    ? catalogEntryFor(templates, {templateId:initialTemplateId, presetId:initialPresetId})
     : null;
-  const initialTemplate = PACKAGING_TEMPLATES.find(template => template.id === initial?.templateId && template.status === 'ready')
+  const savedTemplate = initial?.templateId ? getPackagingTemplate(initial.templateId) : null;
+  const initialTemplate = (savedTemplate?.status === 'ready' ? catalogEntryFor(catalog, initial) ?? savedTemplate : null)
     ?? requestedTemplate
+    ?? templates.find(template => template.isDefault)
+    ?? templates[0]
     ?? getDefaultPackagingTemplate();
   if(!initialTemplate) throw new Error('No ready packaging template is configured.');
-  const initialRuntime = getTemplateRuntime(initialTemplate.id);
-  if(!initialRuntime) throw new Error(`No runtime is registered for template: ${initialTemplate.id}`);
+  const startTemplateId = templateIdOf(initialTemplate);
+  const initialRuntime = getTemplateRuntime(startTemplateId);
+  if(!initialRuntime) throw new Error(`No runtime is registered for template: ${startTemplateId}`);
   const [family, setFamily] = useState(initialTemplate.name);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate.id);
-  const selectedTemplate = PACKAGING_TEMPLATES.find(template=>template.id===selectedTemplateId) ?? initialTemplate;
+  const [selectedTemplateId, setSelectedTemplateId] = useState(startTemplateId);
+  // The catalog entry picked: a named template's id, else the template's.
+  const [selectedEntryId, setSelectedEntryId] = useState(initialTemplate.id);
+  const selectedTemplate: TemplateCatalogEntry | NonNullable<typeof initialTemplate> = catalog.find(template=>template.id===selectedEntryId&&templateIdOf(template)===selectedTemplateId)
+    ?? catalogEntryFor(catalog, {templateId:selectedTemplateId})
+    ?? getPackagingTemplate(selectedTemplateId)
+    ?? initialTemplate;
+  const selectedPresetId = (selectedTemplate as {presetId?:string}).presetId;
   const selectedTemplateCopy = getPackagingTemplateCopy(selectedTemplate,t);
   const studioOpenTracked = useRef(false);
   useEffect(() => {
     if (studioOpenTracked.current) return;
     studioOpenTracked.current = true;
-    const context = {template_id:initialTemplate.id, app_version:'v2', user_status:'signed_in'};
+    const context = {template_id:startTemplateId, app_version:'v2', user_status:'signed_in'};
     trackEvent('studio_open', context);
     if (initialProject) trackEvent('project_reopened', context);
-  }, [initialProject, initialTemplate.id]);
+  }, [initialProject, startTemplateId]);
   const [templateSearch, setTemplateSearch] = useState('');
   const [templateCategory, setTemplateCategory] = useState('All');
-  const [templatePreview,setTemplatePreview] = useState<PackagingTemplateDefinition|null>(null);
+  const [templatePreview,setTemplatePreview] = useState<TemplateCatalogEntry|null>(null);
   const [panel, setPanel] = useState('Front');
   const [artworkScope, setArtworkScope] = useState<'outside' | 'inside'>('outside');
   // A new design starts in its template's finish (a mailer in kraft, a
@@ -397,7 +414,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const [zoom, setZoom] = useState(initial?.legacySourceId ? 57.34 : 82);
   const [viewPan3d,setViewPan3d] = useState({x:0,y:0});
   const initialDimensions=initial?.dimensions ?? (requestedTemplate ? requestedDimensions : undefined) ?? initialTemplate.defaultDimensions;
-  if(!initialDimensions)throw new Error(`Ready template ${initialTemplate.id} is missing default dimensions.`);
+  if(!initialDimensions)throw new Error(`Ready template ${startTemplateId} is missing default dimensions.`);
   const [dimensions, setDimensions] = useState<CartonDimensions>(initialRuntime.sanitizeParameters(initialDimensions));
   const dimensionsNow = useRef(dimensions);
   useEffect(() => { dimensionsNow.current = dimensions; }, [dimensions]);
@@ -466,6 +483,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   const historySnapshot = useMemo<StudioHistorySnapshot>(() => ({
     family,
     selectedTemplateId,
+    selectedEntryId,
     material,
     outsideColorMode,
     insideColorMode,
@@ -483,6 +501,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   }), [
     family,
     selectedTemplateId,
+    selectedEntryId,
     material,
     outsideColorMode,
     insideColorMode,
@@ -524,6 +543,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     historyApplyingSerializedRef.current = JSON.stringify(snapshot);
     setFamily(snapshot.family);
     setSelectedTemplateId(snapshot.selectedTemplateId);
+    setSelectedEntryId(snapshot.selectedEntryId);
     setMaterial(snapshot.material);
     setOutsideColorMode(snapshot.outsideColorMode);
     setInsideColorMode(snapshot.insideColorMode);
@@ -955,18 +975,19 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
   /** Wraps a finish setter so the person's own choice outlasts template switches. */
   const chooseFinish = <T,>(setter: (value: T) => void) => (value: T) => { finishChosenRef.current = true; setter(value); };
 
-  const chooseTemplate = (template: PackagingTemplateDefinition) => {
+  const chooseTemplate = (template: TemplateCatalogEntry) => {
     if (template.status !== 'ready') {
       setMessage(`${getPackagingTemplateCopy(template, t).name} is in the catalog, but its real geometry is not ready yet`);
       return;
     }
-    const runtime=getTemplateRuntime(template.id);
+    const runtime=getTemplateRuntime(template.templateId);
     if(!runtime){
       setMessage(`${getPackagingTemplateCopy(template, t).name} does not have a registered Studio runtime yet`);
       return;
     }
-    trackEvent('template_selected', {template_id:template.id, app_version:'v2'});
-    setSelectedTemplateId(template.id);
+    trackEvent('template_selected', {template_id:template.templateId, app_version:'v2', ...(template.presetId ? {preset_id:template.presetId} : {})});
+    setSelectedTemplateId(template.templateId);
+    setSelectedEntryId(template.id);
     setFamily(template.name);
     setFormation(100);
     setOpeningMode(runtime.assembly.defaultOpeningMode);
@@ -1798,7 +1819,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
       for(const artwork of Object.values(artworkByPanel))if(artwork.assetId)usedAssetIds.add(artwork.assetId);
       for(const layer of [...outsideDielineLayers,...insideDielineLayers])if(layer.assetId)usedAssetIds.add(layer.assetId);
       const projectMediaAssets=mediaAssets.filter(asset=>usedAssetIds.has(asset.id));
-      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,layoutVersion:layoutVersionFor(selectedTemplateId),dimensions,material,opening,formation,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
+      const state: StudioProjectState = {version:1,templateId:selectedTemplateId,...(selectedPresetId?{presetId:selectedPresetId}:{}),layoutVersion:layoutVersionFor(selectedTemplateId),dimensions,material,opening,formation,openingMode,splitTopHingeSide,legacySourceId:initial?.legacySourceId,measurementUnit,artworkByPanel,outsideArtworkLayers:outsideDielineLayers,insideArtworkLayers:insideDielineLayers,mediaAssets:projectMediaAssets,outsideColorMode,insideColorMode,outsideCustomColor,insideCustomColor};
       const urls = new Map<string,string>();
       async function persist(value:unknown):Promise<unknown> {
         if (Array.isArray(value)) return Promise.all(value.map(persist));
@@ -1873,7 +1894,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     }
   }, [
     artworkByPanel, outsideDielineLayers, insideDielineLayers,
-    mediaAssets, selectedTemplateId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
+    mediaAssets, selectedTemplateId, selectedPresetId, dimensions, material, opening, openingMode, splitTopHingeSide, measurementUnit,
     outsideColorMode, insideColorMode, outsideCustomColor, insideCustomColor,
     projectName, projectRevision, projectId, workspaceProjectId, formation, initial?.legacySourceId, historySerialized, saveFingerprint, newDesignOpen, setHasUnsavedChanges,
   ]);
@@ -2509,7 +2530,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
     setTool(null);
   }}
 ><X size={18} /></button></div>
-        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={()=>void exportImage()} imageSettings={imageSettings} setImageSettings={setImageSettings} imageBusy={imageBusy} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} dielineArtwork={dielineArtwork} setDielineArtwork={setDielineArtwork} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
+        {tool && <StudioViewBoundary view="inspector"><Inspector key={tool} tool={tool} family={family} setFamily={setFamily} selectedTemplateId={selectedTemplateId} selectedTemplate={selectedTemplate} templates={templates} templateSearch={templateSearch} setTemplateSearch={setTemplateSearch} templateCategory={templateCategory} setTemplateCategory={setTemplateCategory} onChooseTemplate={chooseTemplate} onPreviewTemplate={setTemplatePreview} panel={panel} setPanel={setPanel} artworkScope={artworkScope} setArtworkScope={setArtworkScope} material={material} setMaterial={chooseFinish(setMaterial)} outsideColorMode={outsideColorMode} setOutsideColorMode={chooseFinish(setOutsideColorMode)} insideColorMode={insideColorMode} setInsideColorMode={chooseFinish(setInsideColorMode)} outsideCustomColor={outsideCustomColor} setOutsideCustomColor={chooseFinish(setOutsideCustomColor)} insideCustomColor={insideCustomColor} setInsideCustomColor={chooseFinish(setInsideCustomColor)} opening={opening} setOpening={setOpening} formation={formation} setFormation={setFormation} assemblyProgress={assemblyProgress} setAssemblyProgress={setAssemblyProgressByHand} assemblyStage={assemblyStage} hasOpeningStage={hasOpeningStage} openingMode={openingMode} setOpeningMode={setOpeningMode} splitTopHingeSide={splitTopHingeSide} setSplitTopHingeSide={setSplitTopHingeSide} dimensions={dimensions} setDimensions={resizeBox} measurementUnit={measurementUnit} setMeasurementUnit={setMeasurementUnit} artworkByPanel={artworkByPanel} setArtworkByPanel={setArtworkByPanel} mediaAssets={mediaAssets} onOpenMediaLibrary={openMediaLibrary} onRemoveArtwork={removeArtwork} onExport={()=>void exportImage()} imageSettings={imageSettings} setImageSettings={setImageSettings} imageBusy={imageBusy} onExportVideo={()=>void exportVideo()} videoProgress={videoProgress} videoSettings={videoSettings} setVideoSettings={setVideoSettings} onShare={shareDesign} shareBusy={shareBusy} canShare={Boolean(projectId)} pdfOptions={pdfExportOptions} setPdfOptions={setPdfExportOptions} pdfBusy={pdfBusy} onExportPdf={()=>{setPdfExportRequest(value=>value+1);setMessage(`Preparing ${artworkScope} 1:1 PDF…`);}} onExportDieline={exportDieline} dielineBusy={dielineBusy} dielineArtwork={dielineArtwork} setDielineArtwork={setDielineArtwork} onAnimateFold={animateFold} setMessage={setMessage} renderStyle={renderStyle} onRenderStyleChange={changeRenderStyle} floorShadow={floorShadow} setFloorShadow={setFloorShadow} /></StudioViewBoundary>}
       </aside>
     </div>
 
@@ -2597,10 +2618,10 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
             <fieldset className="pro-new-design-templates" disabled={saving}>
               <legend>Choose a template</legend>
               <div className="pro-new-design-template-grid">
-                {PACKAGING_TEMPLATES.filter(template=>template.status==='ready').map(template=><label key={template.id} className={`pro-new-design-template${selectedTemplateId===template.id?' is-selected':''}`}>
-                  <input type="radio" name="new-design-template" value={template.id} checked={selectedTemplateId===template.id} onChange={()=>chooseTemplate(template)}/>
+                {templates.map(template=><label key={template.id} className={`pro-new-design-template${selectedTemplate.id===template.id?' is-selected':''}`}>
+                  <input type="radio" name="new-design-template" value={template.id} checked={selectedTemplate.id===template.id} onChange={()=>chooseTemplate(template)}/>
                   <TemplateVisual template={template}/>
-                  <span className="pro-new-design-template-name">{getPackagingTemplateCopy(template,t).shortName}{selectedTemplateId===template.id&&<Check size={16} aria-hidden="true"/>}</span>
+                  <span className="pro-new-design-template-name">{getPackagingTemplateCopy(template,t).shortName}{selectedTemplate.id===template.id&&<Check size={16} aria-hidden="true"/>}</span>
                   <small>{getPackagingTemplateCopy(template,t).category}</small>
                 </label>)}
               </div>
@@ -2712,7 +2733,7 @@ export function StudioShell({initialProject,initialWorkspaceProjectId,initialTem
 
 function Inspector(props: {
   tool: Tool; family: string; setFamily: (v:string)=>void;
-  selectedTemplateId:string; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:PackagingTemplateDefinition)=>void; onPreviewTemplate:(template:PackagingTemplateDefinition)=>void;
+  selectedTemplateId:string; selectedTemplate:PackagingTemplateDefinition; templates:TemplateCatalogEntry[]; templateSearch:string; setTemplateSearch:(v:string)=>void; templateCategory:string; setTemplateCategory:(v:string)=>void; onChooseTemplate:(template:TemplateCatalogEntry)=>void; onPreviewTemplate:(template:TemplateCatalogEntry)=>void;
   panel:string; setPanel:(v:string)=>void;
   artworkScope:'outside'|'inside'; setArtworkScope:(v:'outside'|'inside')=>void;
   material:string; setMaterial:(v:string)=>void;
@@ -2740,21 +2761,21 @@ function Inspector(props: {
   const [exportTab,setExportTab] = useState<'image'|'video'|'pdf'|'dieline'>('image');
   const exportRuntime = getTemplateRuntime(props.selectedTemplateId);
   if (tool === 'structure') {
-    const categories = getPackagingTemplateCategories();
+    const categories = ['All', ...Array.from(new Set(props.templates.map(template => template.category)))];
     const query = props.templateSearch.trim().toLowerCase();
     // Category ids stay English; the chip shows the category as the cards name it.
     const categoryLabel = (category: string) => {
-      const member = PACKAGING_TEMPLATES.find(template => template.category === category);
+      const member = props.templates.find(template => template.category === category);
       return member ? getPackagingTemplateCopy(member, t).category : t("studio.all_templates");
     };
-    const templates = PACKAGING_TEMPLATES.filter(template => {
+    const templates = props.templates.filter(template => {
       const categoryMatch = props.templateCategory === 'All' || template.category === props.templateCategory;
       const copy = getPackagingTemplateCopy(template, t);
       const searchMatch = !query || [template.name, template.shortName, template.category, copy.name, copy.shortName, copy.category, ...template.tags]
         .some(value => value.toLowerCase().includes(query));
       return categoryMatch && searchMatch;
     });
-    const selectedTemplate = PACKAGING_TEMPLATES.find(template => template.id === props.selectedTemplateId) ?? PACKAGING_TEMPLATES[0];
+    const { selectedTemplate } = props;
     // Each template takes the boards it is made from: folding board, or corrugated.
     const board = selectedTemplate.parameters.find(parameter => parameter.key === 'thickness');
     const boardMin = board?.min ?? MIN_BOARD_MM, boardMax = board?.max ?? MAX_BOARD_MM;
@@ -2838,7 +2859,7 @@ function Inspector(props: {
 
       <div className="pro-template-grid">
         {templates.map(template => {
-          const active = template.id === props.selectedTemplateId;
+          const active = template.id === props.selectedTemplate.id;
           return <button
             key={template.id}
             className={`pro-template-card ${active ? 'is-selected' : ''} ${template.status === 'planned' ? 'is-planned' : ''}`}

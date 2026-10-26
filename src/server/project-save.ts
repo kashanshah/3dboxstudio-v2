@@ -8,9 +8,11 @@ import { resolveWorkspaceProjectId } from '@/server/workspace-projects';
 import { captureServerEvent } from '@/lib/posthog-server';
 import { emitPostHogLog } from '@/lib/posthog-logs';
 import { adoptLegacyDesign } from '@/server/legacy-designs';
+import { ensureTemplatesRegistered } from '@/server/templates';
 export async function saveProject(req:Request,id?:string){
  const denied=guardAuthAction(req,'save-project',60);if(denied)return denied;
- await ensureV2Schema();const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to save your design.'},{status:401});
+ // Uploaded templates are looked up by id when the design is checked.
+ await Promise.all([ensureV2Schema(),ensureTemplatesRegistered()]);const user=await getCurrentUser();if(!user)return NextResponse.json({error:'Sign in to save your design.'},{status:401});
  const raw=await req.text();if(Buffer.byteLength(raw)>3*1024*1024)return NextResponse.json({error:'This design exceeds the current 3 MB save limit. Use smaller artwork images and try again.'},{status:413});
  let body;try{body=JSON.parse(raw);}catch{return NextResponse.json({error:'Invalid design data.'},{status:400});}
  if(typeof body?.name!=='string'||!body.name.trim()||body.name.length>120||!validProjectState(body.state)||typeof body.preview!=='string'||!/^data:image\/png;base64,/.test(body.preview))return NextResponse.json({error:'Invalid design data.'},{status:400});

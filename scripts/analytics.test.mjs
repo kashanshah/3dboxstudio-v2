@@ -240,7 +240,7 @@ test('saves count confirmed persistence and distinguish autosaves; rejected save
     const creating=mode.startsWith('create'),failed=mode.includes('failed'),requests=[],closed=[],errors=[];
     const context={newDesignOpen:creating||mode==='unconfirmed',saveInFlightRef:{current:false},engineRef:{current:{thumbnail:()=> 'data:image/png;base64,x'}},
       newDesignPreviewRef:{current:{thumbnail:()=> 'data:image/png;base64,selected-template'}},
-      artworkByPanel:{},outsideDielineLayers:[],insideDielineLayers:[],mediaAssets:[],selectedTemplateId:creating?'pizza-box':'reverse-tuck',
+      artworkByPanel:{},outsideDielineLayers:[],insideDielineLayers:[],mediaAssets:[],selectedTemplateId:creating?'pizza-box':'reverse-tuck',selectedPresetId:undefined,
       dimensions:{width:10,height:20,length:30},material:'Kraft',opening:0,formation:100,openingMode:'closed',splitTopHingeSide:'side_a',measurementUnit:'mm',
       initial:undefined,outsideColorMode:'material',insideColorMode:'material',outsideCustomColor:'',insideCustomColor:'',projectName:'Private name',
       projectRevision:creating?undefined:1,workspaceProjectId:'private-workspace',projectId:creating?undefined:'private-project',historySerialized:'{}',saveFingerprint:'{}',

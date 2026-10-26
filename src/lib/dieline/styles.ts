@@ -2,6 +2,7 @@ import { getTemplateRuntime, type TemplateRuntime } from '@/lib/packaging/templa
 import { getPackagingTemplate } from '@/lib/packaging/template-registry';
 import type { TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
+import { listedTemplates, resolveTemplateCatalog, type TemplateCatalogEntry, type TemplateSettingsRecord } from '@/lib/packaging/template-catalog';
 import { chainSegments, offsetPolygon, pathData, pieceOutlines, sharedEdge, type Point, type Segment } from './geometry';
 import type { DielineInput, DielineOutput, DielinePath, DielineStyle, DimensionMode, Panel, StyleParam } from './types';
 
@@ -36,6 +37,8 @@ type StyleSpec = Omit<DielineStyle, 'params' | 'generate' | 'modes' | 'defaults'
   measure?: Measure;
   /** The size the template itself takes: the inside, or (pillow) the outside, which is then the only mode. */
   native?: 'inner' | 'outer';
+  /** Defaults other than the template's own (set in Admin → Templates). */
+  defaultDimensions?: CartonDimensions;
 };
 
 const STYLE_SPECS: StyleSpec[] = [
@@ -203,15 +206,76 @@ function makeStyle(spec: StyleSpec): DielineStyle {
 
 
 function defaultsOf(spec: StyleSpec): DielineStyle['defaults'] {
-  const d = getPackagingTemplate(spec.templateId)?.defaultDimensions;
+  const d = spec.defaultDimensions ?? getPackagingTemplate(spec.templateId)?.defaultDimensions;
   if (!d) throw new Error(`The ${spec.name} template has no default size.`);
   return { length: d.width, width: d.depth, depth: d.height, thickness: d.thickness };
 }
 
 export const DIELINE_STYLES: DielineStyle[] = STYLE_SPECS.map(makeStyle);
 
+const madeStyles = new Map<string, DielineStyle>();
+const styleOf = (spec: StyleSpec) => {
+  const key = JSON.stringify(spec);
+  let style = madeStyles.get(key);
+  if (!style) madeStyles.set(key, style = makeStyle(spec));
+  return style;
+};
+
+/**
+ * The styles the generator offers with the admin's template settings: the
+ * built-in styles of active templates, renamed or resized where an admin
+ * changed them, then named templates (on their style's spec) and uploaded
+ * JSON templates (sized by the inside only), in card order.
+ */
+export function catalogDielineStyles(entries: readonly TemplateCatalogEntry[]): DielineStyle[] {
+  const listed = listedTemplates(entries);
+  const byId = new Map(listed.map(entry => [entry.id, entry]));
+  const builtIn = STYLE_SPECS.flatMap((spec, index) => {
+    const entry = byId.get(spec.templateId);
+    if (!entry) return [];
+    const name = entry.customCopy?.name;
+    const original = getPackagingTemplate(spec.templateId)?.defaultDimensions;
+    const resized = entry.defaultDimensions && JSON.stringify(entry.defaultDimensions) !== JSON.stringify(original);
+    if (!name && !resized) return [DIELINE_STYLES[index]];
+    return [styleOf({ ...spec, ...(name ? { name } : {}), ...(resized ? { defaultDimensions: entry.defaultDimensions } : {}) })];
+  });
+  const added = listed.flatMap(entry => {
+    if (entry.source === 'named') {
+      const base = STYLE_SPECS.find(spec => spec.templateId === entry.templateId);
+      if (!base) return [];
+      // Its own name and no industry code: the code names the base style.
+      return [styleOf({ ...base, code: undefined, id: entry.id, name: entry.name, defaultDimensions: entry.defaultDimensions })];
+    }
+    if (entry.source === 'json') {
+      return [styleOf({ id: entry.id, name: entry.name, category: entry.family === 'corrugated' ? 'Corrugated' : entry.family === 'rigid-box' ? 'Rigid' : 'Folding carton', templateId: entry.templateId })];
+    }
+    return [];
+  });
+  return [...builtIn, ...added];
+}
+
+let current = DIELINE_STYLES;
+let currentKey = '[]';
+
+/** Switches the generator to the catalog the page was rendered with (thumbnails.ts sends it along). */
+export function applyTemplateCatalog(records: readonly TemplateSettingsRecord[]) {
+  const key = JSON.stringify(records);
+  if (key !== currentKey) {
+    const styles = records.length ? catalogDielineStyles(resolveTemplateCatalog(records)) : DIELINE_STYLES;
+    // The admin keeps at least one template active; this only guards the picker.
+    current = styles.length ? styles : DIELINE_STYLES;
+    currentKey = key;
+  }
+  return current;
+}
+
+/** The styles on offer: every built-in one until a catalog is applied. */
+export function dielineStyles() {
+  return current;
+}
+
 export function getDielineStyle(id: string) {
-  return DIELINE_STYLES.find(style => style.id === id) ?? null;
+  return current.find(style => style.id === id) ?? null;
 }
 
 /** The style drawn by a Studio template (its first, where several share one). */

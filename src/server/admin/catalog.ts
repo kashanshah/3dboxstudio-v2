@@ -5,6 +5,11 @@ import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
 import type { LocalMediaAsset } from '@/lib/packaging/artwork';
 import { decodeRouteParam } from '@/lib/route-params';
 import { validProjectState, type StudioProjectState } from '@/lib/studio-project';
+import { resolveTemplateCatalog } from '@/lib/packaging/template-catalog';
+import { getPackagingTemplate } from '@/lib/packaging/template-registry';
+import { readTemplateSettings } from '@/server/templates';
+import { LEGACY_TEMPLATE_ID, NATIVE_CATALOG_ID } from '@/server/template-sql';
+import { ensureTemplatesRegistered } from '@/server/templates';
 
 export type AdminUserRow = {
   id: string;
@@ -42,6 +47,10 @@ export type AdminDesignRow = {
   user: { id: string; name: string; email: string | null; href: string } | null;
   /** Box template id; a legacy design is mapped to the template it opens as. */
   templateId: string | null;
+  /** The named template (Admin → Templates) the design was made from, if any. */
+  presetId: string | null;
+  /** The name the admin shows for its template: the named template's, else the template's. */
+  templateName: string | null;
   /** Width × height × depth as saved, e.g. "120 × 80 × 40 mm". */
   size: string | null;
   /** The Studio project (folder) a V2 design is in. */
@@ -68,6 +77,7 @@ function legacyKey(id: string): { source: string; sourceId: string } {
 }
 
 const LEGACY_DESIGN = `lr.entity_type='shared_designs' AND lr.deleted_at IS NULL`;
+
 const LEGACY_IMAGES = `jsonb_each(CASE WHEN jsonb_typeof(lr.payload->'images')='object' THEN lr.payload->'images' ELSE '{}'::jsonb END)`;
 
 /**
@@ -127,11 +137,11 @@ const IMAGE_LATERAL = `
 const DESIGN_IMAGES = `${IMAGE_LATERAL}
   LEFT JOIN design_shares s ON NOT d.legacy AND s.project_id = d.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at > NOW())
   LEFT JOIN LATERAL (
-    SELECT p.studio_state->>'templateId' AS template_id, p.studio_state->'dimensions' AS dims, 'mm' AS unit, wp.name AS folder
+    SELECT p.studio_state->>'templateId' AS template_id, p.studio_state->>'presetId' AS preset_id, p.studio_state->'dimensions' AS dims, 'mm' AS unit, wp.name AS folder
     FROM projects p LEFT JOIN workspace_projects wp ON wp.id = p.workspace_project_id
     WHERE NOT d.legacy AND p.id = d.id
     UNION ALL
-    SELECT CASE WHEN lr.payload->'config'->>'opening' ILIKE '%split%' THEN 'split-top-box' ELSE 'base-box' END,
+    SELECT ${LEGACY_TEMPLATE_ID}, NULL,
       lr.payload->'config'->'dims', COALESCE(NULLIF(lr.payload->'config'->>'unit', ''), 'cm'), NULL
     FROM legacy_records lr
     WHERE d.legacy AND lr.source = d.legacy_source AND lr.entity_type = 'shared_designs' AND lr.source_id = d.legacy_source_id
@@ -145,7 +155,7 @@ const DESIGN_COLUMNS = `d.id, d.name, d.legacy, d.created_at, d.updated_at, d.ha
   CASE WHEN d.legacy THEN d.views ELSE COALESCE(s.view_count, 0) END AS views,
   s.id AS share_id, s.preview_token AS share_preview_token,
   COALESCE(img.image_count, 0) AS image_count, img.thumb_storage_key,
-  dm.template_id, dm.dims, dm.unit, dm.folder, fb.rating_avg, fb.rating_count,
+  dm.template_id, dm.preset_id, dm.dims, dm.unit, dm.folder, fb.rating_avg, fb.rating_count,
   d.user_id, d.user_name, d.user_email`;
 
 /** One user's latest activity and three newest designs (`id` is the user id expression). */
@@ -212,6 +222,7 @@ type DesignQueryRow = {
   has_preview?: boolean;
   thumb_storage_key?: string | null;
   template_id?: string | null;
+  preset_id?: string | null;
   dims?: unknown;
   unit?: string | null;
   folder?: string | null;
@@ -388,7 +399,14 @@ function sizeLabel(dims: unknown, unit: string | null | undefined): string | nul
   return `${round(width)} × ${round(height)} × ${round(depth)} ${unit || 'mm'}`;
 }
 
-function presentDesign(row: DesignQueryRow): AdminDesignRow {
+/** Template names by catalog id, named and uploaded templates included. */
+async function templateNames(): Promise<Map<string, string>> {
+  const records = await readTemplateSettings().catch(() => []);
+  return new Map(resolveTemplateCatalog(records).map(entry => [entry.id, entry.name]));
+}
+
+function presentDesign(row: DesignQueryRow, names: Map<string, string> = new Map()): AdminDesignRow {
+  const templateId = row.template_id?.trim() || null, presetId = row.preset_id?.trim() || null;
   return {
     id: row.id,
     name: row.name?.trim() || 'Untitled',
@@ -405,7 +423,9 @@ function presentDesign(row: DesignQueryRow): AdminDesignRow {
       email: row.user_email ?? null,
       href: adminUserHref(row.user_id),
     } : null,
-    templateId: row.template_id?.trim() || null,
+    templateId,
+    presetId,
+    templateName: (presetId ? names.get(presetId) : null) ?? (templateId ? names.get(templateId) ?? getPackagingTemplate(templateId)?.name ?? templateId : null),
     size: sizeLabel(row.dims, row.unit),
     folder: row.folder?.trim() || null,
     sharedLink: Boolean(row.legacy ? (row.preview_token || row.public_id) : row.share_id),
@@ -609,20 +629,22 @@ export async function getDesignPreviewSource(id: string): Promise<{ dataUrl: str
   return { storageKey: preview };
 }
 
-export async function listDesigns(input: { q?: string; page?: number; pageSize?: number; userId?: string; sort?: string; dir?: string } = {}): Promise<AdminPage<AdminDesignRow>> {
+export async function listDesigns(input: { q?: string; page?: number; pageSize?: number; userId?: string; sort?: string; dir?: string; template?: string } = {}): Promise<AdminPage<AdminDesignRow>> {
   await ensureV2Schema();
   const q = parseAdminQuery(input.q);
   const page = input.page ?? 1;
   const pageSize = input.pageSize ?? PAGE_SIZE;
   const offset = (page - 1) * pageSize;
   const userId = input.userId ?? '';
+  // A catalog id (Admin → Templates): designs made from that template, or from that named template.
+  const template = (input.template ?? '').trim().slice(0, 80);
   const sort = parseAdminSort(input.sort, DESIGN_SORTS, 'updated');
   const dir = parseAdminDir(input.dir, 'desc');
   const order = orderSql(DESIGN_SORT_SQL[sort], dir, 'd.id');
   // The page is chosen first; images, thumbnails and shares are then looked
   // up for its rows only (images for every row only when sorting by them).
   const rows = await getSql().query(`
-    WITH designs AS (${designsSql(`($1='' OR p.user_id=$1)`, `($1='' OR lr.payload->>'user_id'=$1)`)}),
+    WITH designs AS (${designsSql(`($1='' OR p.user_id=$1) AND ($5='' OR ${NATIVE_CATALOG_ID}=$5)`, `($1='' OR lr.payload->>'user_id'=$1) AND ($5='' OR ${LEGACY_TEMPLATE_ID}=$5)`)}),
     d AS (
       SELECT d.*, u.name AS user_name, u.email AS user_email,
         COUNT(*) OVER()::int AS total, ROW_NUMBER() OVER (ORDER BY ${order}) AS ord
@@ -636,8 +658,9 @@ export async function listDesigns(input: { q?: string; page?: number; pageSize?:
     SELECT ${DESIGN_COLUMNS}, d.total
     FROM d ${DESIGN_IMAGES}
     ORDER BY d.ord
-  `, [userId, q, pageSize, offset]) as DesignQueryRow[];
-  return { items: rows.map(presentDesign), total: Number(rows[0]?.total ?? 0), page, pageSize };
+  `, [userId, q, pageSize, offset, template]) as DesignQueryRow[];
+  const names = await templateNames();
+  return { items: rows.map(row => presentDesign(row, names)), total: Number(rows[0]?.total ?? 0), page, pageSize };
 }
 
 export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
@@ -658,7 +681,7 @@ export async function getDesign(id: string): Promise<AdminDesignDetail | null> {
   ]);
   const design = rows[0];
   if (!design) return null;
-  return { ...presentDesign(design), images: media.items };
+  return { ...presentDesign(design, await templateNames()), images: media.items };
 }
 
 export type AdminDesignView = {
@@ -669,6 +692,7 @@ export type AdminDesignView = {
 };
 
 export async function getAdminDesignView(id: string): Promise<AdminDesignView | null> {
+  await ensureTemplatesRegistered();
   await ensureV2Schema();
   const designId = decodeRouteParam(id).slice(0, 200);
   if (!designId) return null;
@@ -710,6 +734,7 @@ export async function getAdminDesignView(id: string): Promise<AdminDesignView | 
 }
 
 export async function getAdminDesignMedia(id: string, assetId: string): Promise<{ storage_key: string; mime_type: string; name: string } | null> {
+  await ensureTemplatesRegistered();
   const designId = decodeRouteParam(id).slice(0, 200);
   if (!designId || !ASSET_ID.test(assetId)) return null;
   await ensureV2Schema();

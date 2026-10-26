@@ -11,14 +11,16 @@ import { AdminDesignProfileView } from '@/components/admin/admin-design-profile'
 import { adminRelative, adminStars } from '@/components/admin/admin-format';
 import { AdminSortLink, adminListHref } from '@/components/admin/admin-sort-link';
 import { adminDesignHref } from '@/lib/admin-media';
-import { adminTemplateName } from '@/lib/admin-template-name';
+import { AdminTemplateSelect } from '@/components/admin/admin-template-select';
+import { resolveTemplateCatalog } from '@/lib/packaging/template-catalog';
+import { readTemplateSettings } from '@/server/templates';
 import { DESIGN_SORTS, listDesigns, parseAdminDir, parseAdminPage, parseAdminQuery, parseAdminSort } from '@/server/admin/catalog';
 import { getDesignProfile } from '@/server/admin/profiles';
 import { getCurrentUser } from '@/server/auth/session';
 
 export const metadata: Metadata = { title: 'Admin — Designs' };
 
-type Props = { searchParams: Promise<{ q?: string; page?: string; user?: string; sort?: string; dir?: string; view?: string }> };
+type Props = { searchParams: Promise<{ q?: string; page?: string; user?: string; sort?: string; dir?: string; view?: string; template?: string }> };
 
 const DEFAULTS = { sort: 'updated', dir: 'desc' };
 
@@ -37,8 +39,12 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
   const sort = parseAdminSort(params.sort, DESIGN_SORTS, 'updated');
   const dir = parseAdminDir(params.dir, 'desc');
   const view = (params.view ?? '').trim().slice(0, 200);
-  const result = await listDesigns({ q, page, userId, sort, dir });
-  const filters = { q, user: userId, sort, dir };
+  const template = (params.template ?? '').trim().slice(0, 80);
+  const [result, templates] = await Promise.all([
+    listDesigns({ q, page, userId, sort, dir, template }),
+    readTemplateSettings().then(resolveTemplateCatalog).catch(() => resolveTemplateCatalog([])),
+  ]);
+  const filters = { q, user: userId, sort, dir, template };
   const href = (next: number) => adminListHref('/admin/designs', { ...filters, page: next > 1 ? next : undefined }, DEFAULTS);
   // Past the last page (a stale link, or rows deleted since): back to the first.
   if (!result.items.length && result.page > 1) redirect(href(1));
@@ -52,7 +58,10 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
     <div className={view ? 'admin-split has-drawer' : 'admin-split'}>
       <div className="admin-split-main">
         <AdminPageHeader title="Designs" description="Every design, with its owner, box, images and ratings. Select one for its images and actions." />
-        <AdminListSearch action="/admin/designs" query={q} placeholder="Search design, owner name or email" hidden={{ user: userId, sort: sort === 'updated' ? '' : sort, dir: dir === 'desc' && sort === 'updated' ? '' : dir }} />
+        <AdminListSearch action="/admin/designs" query={q} placeholder="Search design, owner name or email" hidden={{ user: userId, sort: sort === 'updated' ? '' : sort, dir: dir === 'desc' && sort === 'updated' ? '' : dir }}>
+          <AdminTemplateSelect value={template} options={templates.map(entry => ({ id: entry.id, name: entry.name, active: entry.active }))} />
+        </AdminListSearch>
+        {template ? <p className="admin-filter-note">Designs using <strong>{templates.find(entry => entry.id === template)?.name ?? template}</strong> · <Link href={adminListHref('/admin/designs', { ...filters, template: undefined, page: undefined }, DEFAULTS)}>All templates</Link></p> : null}
         {userId ? <p className="admin-filter-note">Designs by <strong>{owner ? `${owner.name}${owner.email && owner.email !== owner.name ? ` (${owner.email})` : ''}` : 'this account'}</strong> · <Link href={adminListHref('/admin/designs', { q, sort, dir }, DEFAULTS)}>Show everyone&apos;s</Link></p> : null}
         <div className="admin-panel">
           <div className="admin-panel-header">
@@ -83,7 +92,7 @@ export default async function AdminDesignsPage({ searchParams }: Props) {
                       <small className="admin-cell-sub">{[design.legacy ? 'Previous studio' : design.folder, design.sharedLink ? `shared · ${design.views.toLocaleString('en-US')} views` : null].filter(Boolean).join(' · ')}</small>
                     </td>
                     <td>{design.user ? <><Link href={`/admin/users?view=${encodeURIComponent(design.user.id)}`}>{design.user.name}</Link>{design.user.email && design.user.email !== design.user.name ? <small className="admin-cell-sub">{design.user.email}</small> : null}</> : <span className="admin-muted">No account</span>}</td>
-                    <td>{adminTemplateName(design.templateId) ?? '—'}<small className="admin-cell-sub">{design.size ?? ''}</small></td>
+                    <td>{design.templateName ?? '—'}<small className="admin-cell-sub">{design.size ?? ''}</small></td>
                     <td>{design.imageCount.toLocaleString('en-US')}</td>
                     <td>{design.rating ? <><span className="admin-stars" aria-label={`${design.rating.average} of 5`}>{adminStars(design.rating.average)}</span><small className="admin-cell-sub">{design.rating.count} rating{design.rating.count === 1 ? '' : 's'}</small></> : <span className="admin-muted">—</span>}</td>
                     <td className="admin-nowrap">{adminRelative(design.createdAt)}</td>

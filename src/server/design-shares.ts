@@ -5,6 +5,7 @@ import { legacyDesignToStudioProject } from '@/lib/legacy-design-converter';
 import { decodeRouteParam } from '@/lib/route-params';
 import { ensureLegacyStoredObject } from '@/server/media-assets';
 import { shareBrand,type ShareBrand } from '@/server/client-shares';
+import { ensureTemplatesRegistered } from '@/server/templates';
 
 const SHARE_TOKEN_RE=/^[0-9A-Za-z]{10,24}$/;
 function createShareId(){return randomBytes(12).toString('base64url').replace(/[-_]/g,'').slice(0,14);}
@@ -72,6 +73,7 @@ function legacyRowToPublicShare(row:LegacyShareRow):PublicShare|null{
 }
 
 export async function upsertDesignShare(userId:string,input:{projectId?:string|null;name:string;state:unknown}){
+ await ensureTemplatesRegistered();
  await ensureV2Schema();
  if(!validProjectState(input.state))throw new Error('Invalid design state.');
  const name=input.name.trim().slice(0,120)||'Untitled design';
@@ -239,6 +241,7 @@ export async function revokeDesignShare(userId:string,id:string){
 }
 
 export async function getPublicShare(id:string,countView=true):Promise<PublicShare|null>{
+ await ensureTemplatesRegistered();
  if(!SHARE_TOKEN_RE.test(id))return null;
  await ensureV2Schema();
  const sql=getSql();
@@ -263,6 +266,7 @@ export async function countShareView(id:string){
 }
 
 export async function getPreviewShare(previewToken:string):Promise<PublicShare|null>{
+ await ensureTemplatesRegistered();
  if(!SHARE_TOKEN_RE.test(previewToken))return null;
  await ensureV2Schema();
  const sql=getSql();
@@ -371,6 +375,7 @@ export async function revokeLegacyShares(sql:Sql,legacy:LegacyShareRow,userId:st
 }
 
 export async function getShareMedia(id:string,assetId:string){
+ await ensureTemplatesRegistered();
  if(!SHARE_TOKEN_RE.test(id)||!/^[A-Za-z0-9-]+$/.test(assetId))return null;
  await ensureV2Schema();
  const sql=getSql();

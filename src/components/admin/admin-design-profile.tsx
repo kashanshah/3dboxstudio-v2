@@ -3,7 +3,6 @@ import { AdminDeleteButton } from './admin-delete-button';
 import { AdminDesignThumb } from './admin-design-thumb';
 import { AdminMediaBrowser } from './admin-media-browser';
 import { adminDate, adminRelative, adminStars } from './admin-format';
-import { adminTemplateName } from '@/lib/admin-template-name';
 import type { AdminDesignProfile } from '@/server/admin/profiles';
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
@@ -18,7 +17,7 @@ export function AdminDesignProfileView({ profile, afterDelete, studioUserEmail, 
     <div className="admin-profile-head">
       <div>
         <h3>{d.name}</h3>
-        <p>{[adminTemplateName(d.templateId), d.size].filter(Boolean).join(' · ') || (d.legacy ? 'Legacy design' : 'Studio design')}</p>
+        <p>{[d.templateName, d.size].filter(Boolean).join(' · ') || (d.legacy ? 'Legacy design' : 'Studio design')}</p>
       </div>
       <AdminDeleteButton kind="design" id={d.id} name={d.name} redirectTo={afterDelete} />
     </div>

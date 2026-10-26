@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { requestOrigin } from '@/server/request-origin';
 
 export const ADMIN_COOKIE = 'sb_admin';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -40,4 +41,13 @@ export async function clearAdminCookie() {
 }
 export async function requireAdminApi(): Promise<NextResponse | null> {
   return (await isAdminAuthenticated()) ? null : NextResponse.json({ error:'Admin authentication required.' }, { status:401 });
+}
+/** An admin change: signed in as admin, and sent from this site's own pages, never cross-site. */
+export async function requireAdminMutation(req: Request): Promise<NextResponse | null> {
+  const denied = await requireAdminApi();
+  if (denied) return denied;
+  if (req.headers.get('origin') !== requestOrigin(req) || req.headers.get('sec-fetch-site') === 'cross-site') {
+    return NextResponse.json({ error: 'Request origin is not allowed.' }, { status: 403 });
+  }
+  return null;
 }

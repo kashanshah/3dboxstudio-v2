@@ -56,7 +56,7 @@ export function AdminUserProfileView({ profile, afterDelete }: { profile: AdminU
         {p.designs.slice(0, 12).map((design) => <li key={design.id}>
           <Link href={designHref(design.id)} scroll={false}>
             <AdminDesignThumb src={design.thumbnailUrl} name={design.name} />
-            <span><strong>{design.name}</strong><small>{[adminTemplateName(design.templateId), adminRelative(design.updatedAt)].filter(Boolean).join(' · ')}</small></span>
+            <span><strong>{design.name}</strong><small>{[design.templateName, adminRelative(design.updatedAt)].filter(Boolean).join(' · ')}</small></span>
           </Link>
           <a className="admin-design-card-preview" href={design.previewHref} target="_blank" rel="noopener noreferrer" aria-label={`Preview ${design.name} in 3D`}>Preview</a>
         </li>)}

@@ -20,6 +20,11 @@ export type LegacyOpeningMode =
 export type StudioProjectState={
  version:1;
  templateId:string;
+ /**
+  * The named template (Admin → Templates) the design was started from, if
+  * any. Display only: templateId is always the style the runtime draws.
+  */
+ presetId?:string;
  dimensions:CartonDimensions;
  material:string;
  opening:number;
@@ -64,6 +69,7 @@ export function validProjectState(value:unknown):value is StudioProjectState{
  if(s.formation!==undefined&&(!Number.isFinite(s.formation)||s.formation<0||s.formation>100))return false;
  if(s.openingMode!==undefined&&!OPENING_MODES.has(s.openingMode))return false;
  if(s.splitTopHingeSide!==undefined&&!['side_a','side_b'].includes(s.splitTopHingeSide))return false;
+ if(s.presetId!==undefined&&(typeof s.presetId!=='string'||!/^[a-z][a-z0-9-]{2,60}$/.test(s.presetId)))return false;
  if(s.legacySourceId!==undefined&&(typeof s.legacySourceId!=='string'||s.legacySourceId.length>300))return false;
  if(template.fixedOpeningMode&&s.openingMode!==undefined&&s.openingMode!==template.fixedOpeningMode)return false;
  if(!s.artworkByPanel||typeof s.artworkByPanel!=='object'||Array.isArray(s.artworkByPanel)||![s.outsideArtworkLayers,s.insideArtworkLayers,s.mediaAssets].every(list=>Array.isArray(list)&&list.length<=100))return false;
