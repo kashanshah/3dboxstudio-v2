@@ -94,3 +94,24 @@ test('every box template page keeps its title and description within search limi
   }
   assert.equal(new Set(BOX_TEMPLATE_PAGES.map(page=>page.title)).size,BOX_TEMPLATE_PAGES.length);
 });
+
+test('the standard box sizes chart shows both units and finds the closest box a product fits',()=>{
+  const {BOX_SIZE_GROUPS,bothUnits,boxesThatFit,insideMm,chartBoxHref}=require('../src/lib/standard-box-sizes.ts');
+  const {getBoxTemplatePage}=require('../src/content/box-template-pages.ts');
+  const {styleForTemplate}=require('../src/lib/dieline/styles.ts');
+  const boxes=BOX_SIZE_GROUPS.flatMap(group=>group.boxes);
+  // Every box opens a real template page in a style that page draws.
+  for(const box of boxes) assert.equal(styleForTemplate(getBoxTemplatePage(box.template.slug).templateId).id,box.template.styleId,box.name);
+  const medium=boxes.find(box=>box.name==='Medium box');
+  assert.deepEqual(bothUnits(medium),{in:'18 × 18 × 16',cm:'45.7 × 45.7 × 40.6'});
+  assert.deepEqual(bothUnits(boxes.find(box=>box.name==='400 × 300 × 300 mm')),{in:'15.7 × 11.8 × 11.8',cm:'40 × 30 × 30'});
+  // Outside sizes lose a wall of board on each side.
+  assert.deepEqual(insideMm(boxes.find(box=>box.name==='400 × 300 × 200 mm')),{length:392,width:292,depth:192});
+  // 7 × 5 × 3 in with 20 mm round it, turned any way: the 10 × 8 × 6 in carton first, nothing too small.
+  const fits=boxesThatFit({length:3*25.4,width:7*25.4,depth:5*25.4},20);
+  assert.equal(fits[0].box.name,'10 × 8 × 6 in');
+  assert.ok(fits.every((fit,index)=>fit.emptyShare>0&&(index===0||fit.emptyShare>=fits[index-1].emptyShare)));
+  assert.ok(!fits.some(fit=>fit.box.name.includes('mailer')));
+  assert.equal(boxesThatFit({length:2000,width:10,depth:10},0).length,0);
+  assert.equal(chartBoxHref(medium),'/box-templates/split-top-box?style=shipping-box-rsc&l=18&w=18&d=16&u=in&mode=inner');
+});

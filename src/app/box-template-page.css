@@ -29,6 +29,13 @@
   .btp-cards{grid-template-columns:1fr}
 }
 .btp-updated{margin-top:12px!important;font-size:14px!important;color:#667085!important}
+.btp-sections>section{min-width:0}
+.btp-table-wrap{overflow-x:auto}
+.btp-table-wrap .btp-table{min-width:560px}
+.btp-table-wrap td:last-child{min-width:190px}
+.btp-sections>.btp-wide{grid-column:1/-1}
+.btp-table .btp-nowrap{white-space:nowrap}
+.btp-table a{color:#0b5fd1;text-decoration:underline;text-underline-offset:2px}
 .btp-table{width:100%;border-collapse:collapse;font-size:15px}
 .btp-table th,.btp-table td{padding:9px 10px;border-bottom:1px solid #e4e7ec;text-align:left;vertical-align:top;color:#344054}
 .btp-table thead th{font-size:13px;color:#667085;font-weight:700}

@@ -3,6 +3,7 @@ import { SEO_PAGES, servedSeoPage } from '@/content/seo-pages';
 import './seo-blocks.css';
 
 const TOOLS = [
+  { page: SEO_PAGES.sizes, name: 'Standard box sizes', blurb: 'Common box dimensions in inches and cm, and the one your product fits.' },
   { page: SEO_PAGES.calculator, name: 'Box size calculator', blurb: 'From product size to inside and outside box dimensions.' },
   { page: SEO_PAGES.printable, name: 'Printable box templates', blurb: 'Print at 100% on A4 or Letter, cut and fold.' },
   { page: SEO_PAGES.cricut, name: 'Cricut box templates', blurb: 'Cut and score SVG, sized in inches.' },

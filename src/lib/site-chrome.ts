@@ -19,7 +19,7 @@ type Words = {
   skip: string; homeLabel: string; mainNav: string; openMenu: string; closeMenu: string; openStudio: string; languages: string;
   features: string; templates: string; faq: string; guides: string; contact: string;
   product: string; studio: string; whatsNew: string; help: string;
-  tools: string; mockupGenerator: string; dielineGenerator: string; packagingDesign: string;
+  tools: string; mockupGenerator: string; dielineGenerator: string; packagingDesign: string; boxSizes: string;
   compare: string; alternative: (name: string) => string;
   company: string; privacy: string; terms: string; cookies: string;
   tagline: string; base: string;
@@ -31,7 +31,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: 'Skip to content', homeLabel: '3D Box Studio home', mainNav: 'Main navigation', openMenu: 'Open menu', closeMenu: 'Close menu', openStudio: 'Open Studio', languages: 'Language',
     features: 'Features', templates: 'Box templates', faq: 'FAQ', guides: 'Guides', contact: 'Contact',
     product: 'Product', studio: 'Studio', whatsNew: 'What’s new', help: 'Help center',
-    tools: 'Tools', mockupGenerator: '3D box mockup generator', dielineGenerator: 'Box dieline generator', packagingDesign: 'Packaging design online',
+    tools: 'Tools', mockupGenerator: '3D box mockup generator', dielineGenerator: 'Box dieline generator', packagingDesign: 'Packaging design online', boxSizes: 'Standard box sizes',
     compare: 'Compare', alternative: name => `${name} alternative`,
     company: 'Company', privacy: 'Privacy', terms: 'Terms', cookies: 'Cookie settings',
     tagline: 'Packaging ideas, made tangible.', base: 'Built for thoughtful packaging work.',
@@ -41,7 +41,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: 'Saltar al contenido', homeLabel: 'Inicio de 3D Box Studio', mainNav: 'Navegación principal', openMenu: 'Abrir menú', closeMenu: 'Cerrar menú', openStudio: 'Abrir Studio', languages: 'Idioma',
     features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', contact: 'Contacto',
     product: 'Producto', studio: 'Studio', whatsNew: 'Novedades', help: 'Centro de ayuda',
-    tools: 'Herramientas', mockupGenerator: 'Generador de mockups 3D', dielineGenerator: 'Generador de troqueles', packagingDesign: 'Diseño de packaging online',
+    tools: 'Herramientas', mockupGenerator: 'Generador de mockups 3D', dielineGenerator: 'Generador de troqueles', packagingDesign: 'Diseño de packaging online', boxSizes: 'Medidas estándar de cajas',
     compare: 'Comparar', alternative: name => `Alternativa a ${name}`,
     company: 'Empresa', privacy: 'Privacidad', terms: 'Condiciones', cookies: 'Configurar cookies',
     tagline: 'Ideas de packaging, hechas tangibles.', base: 'Hecho para trabajos de packaging cuidados.',
@@ -51,7 +51,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: 'Ir al contenido', homeLabel: 'Inicio de 3D Box Studio', mainNav: 'Navegación principal', openMenu: 'Abrir menú', closeMenu: 'Cerrar menú', openStudio: 'Abrir Studio', languages: 'Idioma',
     features: 'Funciones', templates: 'Plantillas de cajas', faq: 'Preguntas', guides: 'Guías', contact: 'Contacto',
     product: 'Producto', studio: 'Studio', whatsNew: 'Novedades', help: 'Centro de ayuda',
-    tools: 'Herramientas', mockupGenerator: 'Generador de mockups 3D', dielineGenerator: 'Generador de troqueles', packagingDesign: 'Diseño de empaques en línea',
+    tools: 'Herramientas', mockupGenerator: 'Generador de mockups 3D', dielineGenerator: 'Generador de troqueles', packagingDesign: 'Diseño de empaques en línea', boxSizes: 'Medidas estándar de cajas',
     compare: 'Comparar', alternative: name => `Alternativa a ${name}`,
     company: 'Empresa', privacy: 'Privacidad', terms: 'Términos', cookies: 'Configurar cookies',
     tagline: 'Ideas de empaque, hechas realidad.', base: 'Hecho para proyectos de empaque cuidados.',
@@ -61,7 +61,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: 'Aller au contenu', homeLabel: 'Accueil 3D Box Studio', mainNav: 'Navigation principale', openMenu: 'Ouvrir le menu', closeMenu: 'Fermer le menu', openStudio: 'Ouvrir le Studio', languages: 'Langue',
     features: 'Fonctionnalités', templates: 'Modèles de boîtes', faq: 'FAQ', guides: 'Guides', contact: 'Contact',
     product: 'Produit', studio: 'Studio', whatsNew: 'Nouveautés', help: 'Centre d’aide',
-    tools: 'Outils', mockupGenerator: 'Générateur de mockups 3D', dielineGenerator: 'Générateur de gabarits de découpe', packagingDesign: 'Design d’emballage en ligne',
+    tools: 'Outils', mockupGenerator: 'Générateur de mockups 3D', dielineGenerator: 'Générateur de gabarits de découpe', packagingDesign: 'Design d’emballage en ligne', boxSizes: 'Tailles de boîtes standard',
     compare: 'Comparer', alternative: name => `Alternative à ${name}`,
     company: 'Entreprise', privacy: 'Confidentialité', terms: 'Conditions', cookies: 'Paramètres des cookies',
     tagline: 'Des idées d’emballage, rendues concrètes.', base: 'Conçu pour un travail d’emballage soigné.',
@@ -71,7 +71,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: 'Pular para o conteúdo', homeLabel: 'Início do 3D Box Studio', mainNav: 'Navegação principal', openMenu: 'Abrir menu', closeMenu: 'Fechar menu', openStudio: 'Abrir o Studio', languages: 'Idioma',
     features: 'Recursos', templates: 'Modelos de caixa', faq: 'Perguntas', guides: 'Guias', contact: 'Contato',
     product: 'Produto', studio: 'Studio', whatsNew: 'Novidades', help: 'Central de ajuda',
-    tools: 'Ferramentas', mockupGenerator: 'Gerador de mockups 3D', dielineGenerator: 'Gerador de faca de corte', packagingDesign: 'Design de embalagens online',
+    tools: 'Ferramentas', mockupGenerator: 'Gerador de mockups 3D', dielineGenerator: 'Gerador de faca de corte', packagingDesign: 'Design de embalagens online', boxSizes: 'Tamanhos padrão de caixas',
     compare: 'Comparar', alternative: name => `Alternativa ao ${name}`,
     company: 'Empresa', privacy: 'Privacidade', terms: 'Termos', cookies: 'Configurações de cookies',
     tagline: 'Ideias de embalagem, que ganham forma.', base: 'Feito para um trabalho de embalagem cuidadoso.',
@@ -81,7 +81,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: 'Zum Inhalt springen', homeLabel: '3D Box Studio Startseite', mainNav: 'Hauptnavigation', openMenu: 'Menü öffnen', closeMenu: 'Menü schließen', openStudio: 'Studio öffnen', languages: 'Sprache',
     features: 'Funktionen', templates: 'Schachtelvorlagen', faq: 'FAQ', guides: 'Ratgeber', contact: 'Kontakt',
     product: 'Produkt', studio: 'Studio', whatsNew: 'Neuigkeiten', help: 'Hilfe',
-    tools: 'Werkzeuge', mockupGenerator: '3D-Schachtel-Mockup-Generator', dielineGenerator: 'Stanzkontur-Generator', packagingDesign: 'Verpackungsdesign online',
+    tools: 'Werkzeuge', mockupGenerator: '3D-Schachtel-Mockup-Generator', dielineGenerator: 'Stanzkontur-Generator', packagingDesign: 'Verpackungsdesign online', boxSizes: 'Standard-Kartongrößen',
     compare: 'Vergleichen', alternative: name => `${name}-Alternative`,
     company: 'Unternehmen', privacy: 'Datenschutz', terms: 'AGB', cookies: 'Cookie-Einstellungen',
     tagline: 'Verpackungsideen, greifbar gemacht.', base: 'Gemacht für sorgfältige Verpackungsarbeit.',
@@ -91,7 +91,7 @@ const WORDS: Record<ChromeLanguage, Words> = {
     skip: '跳到正文', homeLabel: '3D Box Studio 首页', mainNav: '主导航', openMenu: '打开菜单', closeMenu: '关闭菜单', openStudio: '打开 Studio', languages: '语言',
     features: '功能', templates: '盒型模板', faq: '常见问题', guides: '指南', contact: '联系我们',
     product: '产品', studio: 'Studio', whatsNew: '更新日志', help: '帮助中心',
-    tools: '工具', mockupGenerator: '3D 盒子样机生成器', dielineGenerator: '刀版图生成器', packagingDesign: '在线包装设计',
+    tools: '工具', mockupGenerator: '3D 盒子样机生成器', dielineGenerator: '刀版图生成器', packagingDesign: '在线包装设计', boxSizes: '标准纸箱尺寸',
     compare: '对比', alternative: name => `${name} 替代方案`,
     company: '公司', privacy: '隐私政策', terms: '服务条款', cookies: 'Cookie 设置',
     tagline: '让包装创意触手可及。', base: '为用心的包装设计而生。',
@@ -121,6 +121,7 @@ export function navItems(language: ChromeLanguage = 'en'): ChromeNavItem[] {
     { href: templatesHref(language), label: w.templates, hrefLang: own },
     { href: generatorHref(language), label: w.dielineGenerator, hrefLang: own },
     { href: '/3d-box-mockup-generator', label: w.mockupGenerator, hrefLang: en },
+    { href: '/box-sizes', label: w.boxSizes, hrefLang: en },
   ] };
   if (language === 'en') return [
     { label: w.features, children: [
@@ -162,6 +163,7 @@ export function footerColumns(language: ChromeLanguage = 'en'): { title: string;
       { href: generatorHref(language), label: w.dielineGenerator, hrefLang: own },
       { href: templatesHref(language), label: w.templates, hrefLang: own },
       { href: '/packaging-design-online', label: w.packagingDesign, hrefLang: en },
+      { href: '/box-sizes', label: w.boxSizes, hrefLang: en },
     ] },
     { title: w.compare, links: [
       { href: '/pacdora-alternative', label: w.alternative('Pacdora'), hrefLang: en },
