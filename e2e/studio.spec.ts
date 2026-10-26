@@ -199,6 +199,9 @@ test('a share link opens for someone who is signed out', async ({ page, browser 
   expect(response?.status()).toBe(200);
   await expect(visitorPage.getByText('E2E shared').first()).toBeVisible();
   await expect(visitorPage.locator('canvas').first()).toBeVisible();
+  // Both calls to design your own box show for a visitor and lead to the Studio.
+  await expect(visitorPage.getByRole('link', { name: 'Design your own box — free' })).toHaveAttribute('href', '/studio?ref=shared-design');
+  await expect(visitorPage.getByRole('link', { name: 'Start designing' })).toHaveAttribute('href', '/studio?ref=shared-design');
   expect(errors).toEqual([]);
   await visitor.close();
 });
