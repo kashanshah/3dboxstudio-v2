@@ -26,6 +26,13 @@ export const SEO_PAGES = {
     status: 'draft',
     priority: 0.8,
   },
+  sizes: {
+    path: '/box-sizes',
+    title: 'Standard Box Sizes Chart: Dimensions in Inches & cm',
+    description: 'Standard box sizes in inches and cm: small, medium and large boxes, cubes, mailers, metric cartons and pizza boxes. Find the box that fits your product.',
+    status: 'published',
+    priority: 0.8,
+  },
   printable: {
     path: '/printable-box-templates',
     title: 'Printable Box Templates with Measurements (Free)',

@@ -134,3 +134,25 @@ test('the header has the same four items in every language, with menus for Featu
   await nav.getByRole('button', { name: 'Features' }).click();
   await expect(nav.getByRole('link', { name: 'What’s new' })).toBeVisible();
 });
+
+test('the box sizes page is in the Tools menu and finds the standard box a product fits', async ({ page }) => {
+  await page.goto('/');
+  const nav = page.locator('.marketing-nav-links');
+  await nav.getByRole('button', { name: 'Tools' }).click();
+  await nav.getByRole('link', { name: 'Standard box sizes' }).click();
+  await expect(page).toHaveURL(/\/box-sizes$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Standard box sizes' })).toBeVisible();
+  await expect(page.getByRole('row', { name: /Medium box 18 × 18 × 16 45\.7 × 45\.7 × 40\.6/ })).toBeVisible();
+
+  // 7 × 5 × 3 in with 20 mm of cushioning on each side: the 10 × 8 × 6 in carton is the closest fit.
+  const finder = page.getByRole('region', { name: 'Find a standard box that fits' });
+  await finder.getByLabel('Length in in').fill('7');
+  await finder.getByLabel('Width in in').fill('5');
+  await finder.getByLabel('Height in in').fill('3');
+  await finder.getByRole('radio', { name: 'Cushioned' }).click();
+  const first = finder.locator('.bsc-styles a').first();
+  await expect(first).toContainText('10 × 8 × 6 in');
+  await expect(finder.getByText('8.57 × 6.57 × 4.57 in')).toBeVisible();
+  await first.click();
+  await expect(page).toHaveURL(/\/box-templates\/split-top-box\?style=shipping-box-rsc&l=10&w=8&d=6&u=in&mode=inner$/);
+});

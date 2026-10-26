@@ -2281,7 +2281,7 @@ const ALL_BLOG_POSTS: BlogPost[] = [
     seoTitle: "Standard Box Sizes in Inches & cm: Small, Medium, Large | 3D Box Studio",
     description: "Standard box sizes in inches and cm: small, medium and large shipping boxes, mailer box dimensions, metric cartons for international shipping, pizza boxes and retail cartons.",
     published: "2026-10-06",
-    updated: "2026-10-19",
+    updated: "2026-10-26",
     readMinutes: 8,
     keywords: ["standard box sizes","standard box sizes in cm","small medium large box dimensions","mailer box dimensions","shipping box sizes","international shipping box sizes","carton box dimensions","pizza box sizes"],
     imagePath: "/images/blog/corrugated-shipping-box-branding.webp",
@@ -2296,6 +2296,7 @@ const ALL_BLOG_POSTS: BlogPost[] = [
     ],
     sections: [
       { type: "p", text: "There is no single standard for box sizes. What exists are sizes that suppliers stock in volume, sizes set by product categories such as pizza, and carrier box programs. The examples below are common starting points, not specifications; always confirm the exact inside dimensions with your supplier." },
+      { type: "p", text: "For every size in one chart, in inches and cm, and the standard box your product fits, use the [standard box sizes finder](/box-sizes)." },
       { type: "h2", text: "Retail folding cartons" },
       { type: "p", text: "Folding cartons are almost always sized to the product, so there are few true stock sizes. Typical proportions look like this (width × depth × height):" },
       { type: "ul", items: [
@@ -2347,7 +2348,7 @@ const ALL_BLOG_POSTS: BlogPost[] = [
       { type: "p", text: "These footprints are outside sizes. Subtract the board thickness on each wall, about 3 to 5 mm per side for single-wall corrugated, to get the space inside. The [shipping box template](/box-templates/split-top-box) takes sizes in millimetres or inches." },
       { type: "h2", text: "Stock size or custom size?" },
       { type: "p", text: "A stock box is quicker and cheaper for small runs. A custom size removes empty space, reduces filler and dimensional-weight shipping costs, and often looks better on a shelf. The quickest way to decide is to [measure your product](/blog/how-to-measure-a-box-inside-vs-outside-dimensions), then compare the stock and custom sizes side by side in 3D." },
-      { type: "cta", label: "Compare sizes in the box templates", href: "/box-templates" },
+      { type: "cta", label: "Find the standard box your product fits", href: "/box-sizes" },
       { type: "faq" }
     ],
   },
