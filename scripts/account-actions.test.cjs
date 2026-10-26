@@ -9,11 +9,14 @@ Module._load=function(request,...args){if(request==='@/server/db')return {ensure
 Module._resolveFilename=function(request,...args){return resolve.call(this,request.startsWith('@/')?path.resolve(__dirname,'../src',request.slice(2)):request,...args);};
 require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);
 const {RESET_PASSWORD_SQL,VERIFY_EMAIL_SQL,tokenDigest,issueEmailAction}=require('../src/server/auth/email-actions.ts');
-const {isValidEmail,cleanName}=require('../src/server/auth/validation.ts');
+const {isValidEmail,cleanName,signupEmailError}=require('../src/server/auth/validation.ts');
 const {safeReturnTo}=require('../src/lib/auth-navigation.ts');
 const {validProjectState}=require('../src/lib/studio-project.ts');
 test('valid emails and names work; return URLs stay on the site',()=>{
  assert.equal(isValidEmail('kashan@example.com'),true);assert.equal(isValidEmail('bad email@example.com'),false);assert.equal(isValidEmail('a@b'),false);assert.equal(cleanName(' A   Name '),'A Name');
+ // Sign-up also refuses what the email provider can't send to; sign-in keeps the looser check.
+ assert.equal(signupEmailError('first.last@example.com'),null);assert.equal(signupEmailError('bad email@example.com'),'Enter a valid email address.');
+ for(const typo of ['first..last@gmail.com','.first@gmail.com','first.@gmail.com','first@gmail..com']){assert.match(signupEmailError(typo),/^Check your email address/,typo);assert.equal(isValidEmail(typo),true,typo);}
  for(const next of ['https://evil.example','//evil.example','/\\evil.example','/login?next=/accounts','/'])assert.equal(safeReturnTo(next),'/studio');
  assert.equal(safeReturnTo('/studio/editor?project=a'),'/studio/editor?project=a');
 });
