@@ -21,7 +21,9 @@ const TITLE = 'Plantillas de cajas gratis con troquel y mockup 3D | 3D Box Studi
 const LANGUAGES = { en: '/box-templates', es: PATH };
 const DESCRIPTION = 'Plantillas de cajas gratis: caja de cierre inverso, caja postal, caja de pizza, caja americana y caja almohada. Introduce tus medidas, descarga el troquel y pliega la caja en 3D.';
 
-export const dynamicParams = false;
+// Other locales 404 from the page itself. Not dynamicParams = false: after an
+// admin change revalidates the site, Next would answer the page with a 404.
+export const dynamicParams = true;
 export function generateStaticParams() { return [{ locale: 'es' }]; }
 
 export const metadata: Metadata = {

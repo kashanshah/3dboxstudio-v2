@@ -43,16 +43,17 @@ const cachedSettings = unstable_cache(readTemplateSettings, ['template-settings-
 
 /**
  * The settings, cached. Without a database (a build with no DATABASE_URL)
- * or outside Next (the unit tests) it falls back to reading directly, and
- * then to none: every built-in template active and unchanged.
+ * there are none: every built-in template active and unchanged. Outside Next
+ * (the unit tests) it reads directly.
  */
 export async function getTemplateSettings(): Promise<TemplateSettingsRecord[]> {
+  if (!process.env.DATABASE_URL && !process.env.NEON_FETCH_ENDPOINT) return [];
   let records: TemplateSettingsRecord[];
   try {
     records = await cachedSettings();
   } catch {
     try {
-      records = process.env.DATABASE_URL || process.env.NEON_FETCH_ENDPOINT ? await readTemplateSettings() : [];
+      records = await readTemplateSettings();
     } catch (error) {
       console.error('Template settings could not be read; showing the built-in catalog', error);
       records = [];

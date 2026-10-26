@@ -194,3 +194,22 @@ test('the designs list filters by template, with the search and sorts', async ({
   await expect(page).toHaveURL(/template=cake-box/);
   await expect(page.getByRole('row').filter({ hasText: 'E2E filter mailer' })).toHaveCount(0);
 });
+
+test('after an admin change every template page still answers, Spanish ones and their prefetches too', async ({ page }) => {
+  // A change revalidates the whole site; each page regenerates on its next visit.
+  await setActive(page, 'Sleeve Box', false);
+  await setActive(page, 'Sleeve Box', true);
+  for (const path of ['/box-templates', '/box-templates/mailer-box', '/box-dieline-generator', '/es/box-templates', '/es/box-templates/mailer-box', '/es/box-dieline-generator']) {
+    for (const headers of [{}, { RSC: '1' }] as Record<string, string>[]) {
+      const response = await page.request.get(path, { headers });
+      expect(response.status(), `${path} ${JSON.stringify(headers)}`).toBe(200);
+    }
+  }
+  // Pages that never existed still 404.
+  for (const path of ['/box-templates/no-such-box', '/fr/box-templates', '/fr/box-dieline-generator', '/es/box-templates/no-such-box']) {
+    expect((await page.request.get(path)).status(), path).toBe(404);
+  }
+  await page.goto('/es/box-templates');
+  await page.getByRole('link', { name: /Caja postal|mailer/i }).first().click();
+  await expect(page).toHaveURL(/\/es\/box-templates\/mailer-box/);
+});

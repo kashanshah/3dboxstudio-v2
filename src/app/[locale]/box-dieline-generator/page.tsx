@@ -23,7 +23,9 @@ const PATH = '/es/box-dieline-generator';
 const HOME = { name: 'Inicio', path: '/es' };
 const LANGUAGES = { en: '/box-dieline-generator', es: PATH, 'x-default': '/box-dieline-generator' };
 
-export const dynamicParams = false;
+// Other locales 404 from the page itself. Not dynamicParams = false: after an
+// admin change revalidates the site, Next would answer the page with a 404.
+export const dynamicParams = true;
 export function generateStaticParams() { return [{ locale: 'es' }]; }
 
 export async function generateMetadata(): Promise<Metadata> {
