@@ -774,6 +774,40 @@ test('the hexagon box glues into two hexagonal tubes, the lid fitting over the b
   assert.throws(()=>box.getExportGeometry({width:30,height:70,depth:25,thickness:0.5}),/across the flats of at least 40 mm/);
 });
 
+test('the hexagon box lid lifts straight off its base, and the flat sheet stays one sheet',()=>{
+  // Each vertex is a position, a normal and a texture point: eight numbers.
+  const box=getTemplateRuntime('hexagon-box');
+  for(const dimensions of [{width:100,height:70,depth:42,thickness:0.5},{width:40,height:15,depth:10,thickness:0.3}]){
+    const size=`${dimensions.width}×${dimensions.height}×${dimensions.depth}`;
+    const bounds=(formation,opening)=>{
+      const meshes=box.buildMeshes({dimensions,formation,opening,openingMode:'lid_from_back',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+      const result={};
+      for(const mesh of meshes){
+        if(!mesh.panel)continue;
+        const part=/^(Interior )?Lid/.test(mesh.panel)?'lid':'base';
+        const b=result[part]??={min:[Infinity,Infinity,Infinity],max:[-Infinity,-Infinity,-Infinity]};
+        for(let i=0;i<mesh.vertices.length;i+=8)for(let k=0;k<3;k++){b.min[k]=Math.min(b.min[k],mesh.vertices[i+k]);b.max[k]=Math.max(b.max[k],mesh.vertices[i+k]);}
+      }
+      return result;
+    };
+    // Flat, as the slider starts with the lid lifted: both halves in one plane.
+    const flat=bounds(0,100);
+    assert.ok(Math.abs(flat.lid.min[2]-flat.base.min[2])<1&&Math.abs(flat.lid.max[2]-flat.base.max[2])<1,`flat sheet in one plane (${size})`);
+    const closed=bounds(100,0);
+    for(let opening=0;opening<=100;opening+=5){
+      const {lid,base}=bounds(100,opening);
+      // Over the base the whole way, so it never passes through its walls.
+      for(const k of [0,2])assert.ok(Math.abs((lid.min[k]+lid.max[k])-(closed.lid.min[k]+closed.lid.max[k]))<0.01,`lid centred at ${opening}% open (${size})`);
+      assert.ok(lid.min[1]>=closed.lid.min[1]-1e-6,`lid never below its seat at ${opening}% open (${size})`);
+      // Fully open, it clears the rim, and lifts by less than the box is tall.
+      if(opening===100){
+        assert.ok(lid.min[1]>base.max[1],`open lid clears the rim (${size})`);
+        assert.ok(lid.max[1]-closed.lid.max[1]<dimensions.height,`open lid lifts by less than the box is tall (${size})`);
+      }
+    }
+  }
+});
+
 test('every hexagon box its size checks pass folds, with its flaps and play at their limits',()=>{
   // The 3D view is only ever given a size that folds: anything that passes
   // the template's checks, across board, size and adjustable sizes.

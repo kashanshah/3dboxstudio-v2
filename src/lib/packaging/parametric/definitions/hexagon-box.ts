@@ -217,11 +217,13 @@ export const hexagonBoxDefinition = {
       ['flapSetback', 'foldT * 1.05'],
       // The lid comes in from where it is on the sheet over the base's front,
       // its front a little further forward (it is the wider tube), then drops
-      // onto the base's rim; opening lifts it off and moves it back.
+      // onto the base. Opening only lifts it straight up, clear of the rim by
+      // a fifth of the height: it never moves sideways while over the base,
+      // so it cannot pass through the base's walls. The lift only applies as
+      // the lid is placed, so the flat sheet stays one sheet.
       ['gather', 'stage(formation, 0.1, 0.55)'],
       ['drop', 'stage(formation, 0.8, 1)'],
-      ['lift', 'stage(opening, 0, 1) * (lidH + height * 0.5)'],
-      ['backOff', 'stage(opening, 0.3, 1) * width * 0.75'],
+      ['lift', 'stage(opening, 0, 1) * (lidH + height * 0.2)'],
       ['seat', 'baseH - height / 2 + 2.4 * foldT'],
       ['lidFlatY', 'frontCy - height / 2 + baseH / 2'],
       // seat is where the lid top's centre rests; the lid's front stands
@@ -235,8 +237,8 @@ export const hexagonBoxDefinition = {
       matrix: [
         1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
         '-lidFrontCx + (1 - gather) * (lidFrontCx - frontCx)',
-        '(1 - drop) * lidFlatY + drop * lidSeatY + lift',
-        'baseA + gather * (lidA - baseA) - backOff', 1,
+        '(1 - drop) * lidFlatY + drop * (lidSeatY + lift)',
+        'baseA + gather * (lidA - baseA)', 1,
       ],
     }],
     modelPanels: [...base.model, ...lid.model],
