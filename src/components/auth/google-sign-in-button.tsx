@@ -19,7 +19,7 @@ export function GoogleSignInButton({ next = '/studio', large = false }: { next?:
   const t = useTranslations();
 
   return (
-    <a className={`google-sign-in-button${large ? ' is-large' : ''}`} href={`/api/auth/google?next=${encodeURIComponent(safeReturnTo(next))}`}>
+    <a className={`google-sign-in-button${large ? ' is-large' : ''}`} href={`/api/auth/google?next=${encodeURIComponent(safeReturnTo(next))}`} rel="nofollow">
       <GoogleG />
       <span>{t("auth.continue_with_google")}</span>
     </a>
