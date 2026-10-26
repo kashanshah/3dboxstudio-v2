@@ -266,4 +266,4 @@ a.admin-thumb-strip{color:var(--admin-text);text-decoration:none}
   .admin-settings-field input,.admin-settings-field textarea,.admin-settings-field select{font-size:16px}
 }
 .admin-template-select{height:42px;max-width:260px;padding:0 10px;border:1px solid var(--admin-line);border-radius:9px;background:#0a0d12;color:var(--admin-text);font:inherit;font-size:14px}
-@media(max-width:760px){.admin-template-select{flex:1;min-width:0;font-size:16px}}
+@media(max-width:760px){.admin-template-select{flex:1 1 100%;max-width:none;font-size:16px}}
