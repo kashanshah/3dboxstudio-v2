@@ -190,7 +190,7 @@ export const gableBoxDefinition = {
   ],
   // Folded from the cutting template: the body wraps round with the glue
   // flap stuck inside the back, and the bottom closes as the auto-lock
-  // bottom's does. Then the gussets fold in, and last the roof panels come
+  // bottom's does, its glue tabs turned while the sheet is still flat. Then the gussets fold in, and last the roof panels come
   // down onto them, each handle staying upright until the two meet.
   fold: {
     root: 'front',
@@ -200,7 +200,7 @@ export const gableBoxDefinition = {
     motions: [
       ['turnWalls', 'stage(formation, 0, 0.5) * (pi / 2)'],
       ['turnBack', 'stage(formation, 0.12, 0.6) * (pi / 2)'],
-      ['turnTabs', 'stage(formation, 0.32, 0.46) * pi'],
+      ['turnTabs', 'stage(formation, 0, 0.08) * pi'],
       ['turnSides', 'stage(formation, 0.42, 0.56) * (pi / 2)'],
       ['turnFront', 'stage(formation, 0.5, 0.64) * (pi / 2)'],
       ['turnBackFlap', 'stage(formation, 0.56, 0.7) * (pi / 2)'],

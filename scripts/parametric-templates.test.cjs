@@ -800,6 +800,36 @@ test('every hexagon box its size checks pass folds, with its flaps and play at t
   assert.ok(folded>100,`only ${folded} sizes passed the checks`);
 });
 
+test('an auto-lock bottom\'s glue tabs are turned flat before the walls stand, so they never swing out through a wall',()=>{
+  // The gluer folds the tabs over on the flat sheet. Turned while the walls
+  // wrap round, a tab swings out through the side wall beside it.
+  for(const [id,dimensions] of [['auto-lock-bottom-box',{width:100,height:140,depth:70,thickness:0.5}],['gable-box',{width:100,height:200,depth:80,thickness:0.5}],['gable-box',{width:120,height:90,depth:70,thickness:2}]]){
+    const box=getTemplateRuntime(id),t=dimensions.thickness;
+    const plane=(meshes,name)=>{
+      const quad=meshes.find(mesh=>mesh.panel===name&&mesh.pickCorners).pickCorners;
+      const u=quad[1].map((v,k)=>v-quad[0][k]),w=quad[3].map((v,k)=>v-quad[0][k]);
+      const n=[u[1]*w[2]-u[2]*w[1],u[2]*w[0]-u[0]*w[2],u[0]*w[1]-u[1]*w[0]],length=Math.hypot(...n);
+      return {at:quad[0],n:n.map(v=>v/length)};
+    };
+    let checked=0;
+    for(let step=0;step<=100;step++){
+      const meshes=box.buildMeshes({dimensions,formation:step,opening:0,openingMode:'closed',splitTopHingeSide:'side_a',color:[1,1,1],interiorColor:[1,1,1]});
+      const [front,left]=[plane(meshes,'Front'),plane(meshes,'Left')];
+      const turned=Math.acos(Math.min(1,Math.abs(front.n.reduce((sum,v,k)=>sum+v*left.n[k],0))))*180/Math.PI;
+      if(turned<10)continue;
+      checked++;
+      for(const side of ['Left','Right']){
+        const flap=plane(meshes,`Bottom ${side}`);
+        for(const mesh of meshes.filter(item=>item.panel===`${side} Glue`))for(let i=0;i<mesh.vertices.length;i+=8){
+          const off=Math.abs([0,1,2].reduce((sum,k)=>sum+(mesh.vertices[i+k]-flap.at[k])*flap.n[k],0));
+          assert.ok(off<=3*t+0.5,`${id} at ${step}% formed: the ${side.toLowerCase()} glue tab stands ${off.toFixed(1)} mm off its flap while the walls have turned ${turned.toFixed(0)}°`);
+        }
+      }
+    }
+    assert.ok(checked>50,`${id}: ${checked} stages checked`);
+  }
+});
+
 function onOutline(outline,point){
   return outline.some((a,i)=>{
     const b=outline[(i+1)%outline.length],length=Math.hypot(b.x-a.x,b.y-a.y);

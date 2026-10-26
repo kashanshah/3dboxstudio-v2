@@ -98,17 +98,19 @@ export const autoLockBottomDefinition = {
     { require: 'width >= 30', message: 'The width is too small for the bottom\'s side flaps and glue tabs. Use a width of at least 30 mm.' },
   ],
   // Folded from the cutting template: the body wraps round with the glue flap
-  // stuck inside the back. At the bottom every flap swings up from below, so
-  // they close from the inside layer out: the glue tabs turn under their side
-  // flaps, as the gluer folds them, the side flaps close, then the front flap
-  // and last the back, outermost where the two overlap. The top closes like
-  // the straight tuck end's.
+  // stuck inside the back. The glue tabs turn under their side flaps first,
+  // while the sheet is still flat, as the gluer folds them: turned while the
+  // walls wrap, a tab would swing out through the side wall. At the bottom
+  // every flap then swings up from below, so they close from the inside layer
+  // out: the side flaps close, then the front flap and last the back,
+  // outermost where the two overlap. The top closes like the straight tuck
+  // end's.
   fold: {
     ...TUCK_END_FOLD,
     motions: [
       ['turnWalls', 'stage(formation, 0, 0.6) * (pi / 2)'],
       ['turnBack', 'stage(formation, 0.15, 0.75) * (pi / 2)'],
-      ['turnTabs', 'stage(formation, 0.38, 0.54) * pi'],
+      ['turnTabs', 'stage(formation, 0, 0.08) * pi'],
       ['turnSides', 'stage(formation, 0.5, 0.68) * (pi / 2)'],
       ['turnFront', 'stage(formation, 0.6, 0.78) * (pi / 2)'],
       ['turnBackFlap', 'stage(formation, 0.66, 0.84) * (pi / 2)'],
