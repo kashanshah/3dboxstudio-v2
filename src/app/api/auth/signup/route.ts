@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureV2Schema } from '@/server/db';
 import { guardAuthAction } from '@/server/auth/action-request';
-import { cleanName,isValidEmail,passwordError } from '@/server/auth/validation';
+import { cleanName,isValidEmail,passwordError,signupEmailError } from '@/server/auth/validation';
 import { createEmailUser,getUserByEmail,toPublicUser } from '@/server/auth/users';
 import { issueEmailAction } from '@/server/auth/email-actions';
 import { alertAdmin } from '@/server/ops-alerts';
@@ -15,7 +15,8 @@ export async function POST(req:Request){
   if(limited) return limited;
   await ensureV2Schema();
   const body=await req.json().catch(()=>null) as {email?:unknown;password?:unknown;name?:unknown}|null;
-  if(!isValidEmail(body?.email)) return NextResponse.json({error:'Enter a valid email address.'},{status:400});
+  const emailError=signupEmailError(body?.email);
+  if(emailError||!isValidEmail(body?.email)) return NextResponse.json({error:emailError??'Enter a valid email address.'},{status:400});
   const error=passwordError(body?.password);
   if(error) return NextResponse.json({error},{status:400});
   const existing=await getUserByEmail(body.email);
