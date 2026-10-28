@@ -23,7 +23,7 @@ export const SEO_PAGES = {
     path: '/box-size-calculator',
     title: 'Box Size Calculator: Inside & Outside Dimensions',
     description: 'Enter your product size and padding to get the inside and outside box dimensions, the board to use and the box styles that fit, then make the dieline free.',
-    status: 'draft',
+    status: 'published',
     priority: 0.8,
   },
   sizes: {

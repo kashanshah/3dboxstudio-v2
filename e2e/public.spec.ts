@@ -156,3 +156,15 @@ test('the box sizes page is in the Tools menu and finds the standard box a produ
   await first.click();
   await expect(page).toHaveURL(/\/box-templates\/split-top-box\?style=shipping-box-rsc&l=10&w=8&d=6&u=in&mode=inner$/);
 });
+
+test('the box size calculator is in the Tools menu and the sitemap', async ({ page, request }) => {
+  await page.goto('/');
+  const nav = page.locator('.marketing-nav-links');
+  await nav.getByRole('button', { name: 'Tools' }).click();
+  await nav.getByRole('link', { name: 'Box size calculator' }).click();
+  await expect(page).toHaveURL(/\/box-size-calculator$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Box size calculator' })).toBeVisible();
+  const sitemap = await (await request.get('/sitemap.xml')).text();
+  expect(sitemap).toContain('/box-size-calculator</loc>');
+  expect(sitemap).toContain('/box-sizes</loc>');
+});
