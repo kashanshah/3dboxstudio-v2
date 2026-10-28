@@ -60,7 +60,7 @@ export default async function BoxSizesPage() {
       </section>)}
       <section>
         <h2>How to read a box size</h2>
-        <p>Box sizes are written length × width × height. Length and width are the opening, with length the longer side, and height runs from the opening to the bottom. Stock boxes are quoted by their inside size; the metric cartons above are outside sizes, so the volume shown allows about {CORRUGATED_WALL_MM} mm of board on each wall. <Link href="/blog/how-to-measure-a-box-inside-vs-outside-dimensions">Inside vs outside box dimensions</Link> explains the difference, and the <Link href="/blog/standard-box-sizes-carton-mailer-shipping">standard box sizes guide</Link> covers when each kind of box is used.</p>
+        <p>Box sizes are written length × width × height. Length and width are the opening, with length the longer side, and height runs from the opening to the bottom. Stock boxes are quoted by their inside size; the metric cartons above are outside sizes, so the volume shown allows about {CORRUGATED_WALL_MM} mm of board on each wall. <Link href="/blog/how-to-measure-a-box-inside-vs-outside-dimensions">Inside vs outside box dimensions</Link> explains the difference, and <Link href="/blog/standard-box-sizes-carton-mailer-shipping">how to choose a box size</Link> covers when each kind of box is used and when a custom size pays off.</p>
       </section>
       <section>
         <h2>From a size to a dieline</h2>

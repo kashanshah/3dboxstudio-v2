@@ -28,7 +28,7 @@ test('every Spanish template page has its English page and the same presets', ()
     assert.deepEqual(templateLanguageAlternates(page.slug), { en: `/box-templates/${page.slug}`, es: `/es/box-templates/${page.slug}`, 'x-default': `/box-templates/${page.slug}` });
     // Links in the text go to pages that exist.
     for (const text of [...page.sections.flatMap(section => [section.body, ...(section.bullets ?? [])]), ...page.faqs.map(faq => faq.answer)]) {
-      for (const [, href] of text.matchAll(/\]\((\/[^)]+)\)/g)) assert.match(href, /^\/(box-templates|blog|es)\//, `${page.slug}: ${href}`);
+      for (const [, href] of text.matchAll(/\]\((\/[^)]+)\)/g)) assert.match(href, /^\/((box-templates|blog|es)\/|box-sizes$)/, `${page.slug}: ${href}`);
     }
   }
 });
