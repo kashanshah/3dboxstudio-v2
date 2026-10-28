@@ -116,7 +116,7 @@ export const ES_BOX_TEMPLATE_PAGES: EsBoxTemplatePage[] = [
       },
       {
         title: 'Cómo medir una caja postal',
-        body: 'Mide el producto, o el conjunto de productos con papel de seda y separadores, y añade unos milímetros de holgura. El ancho va de lado a lado del frente, el fondo de delante hacia atrás y el alto de la base a la tapa. Las paredes laterales dobles ocupan cartón dentro de la caja; la plantilla ya lo tiene en cuenta, así que introduce el espacio que necesitas dentro. Si buscas un punto de partida, consulta las [medidas estándar de cajas](/blog/standard-box-sizes-carton-mailer-shipping) (en inglés).',
+        body: 'Mide el producto, o el conjunto de productos con papel de seda y separadores, y añade unos milímetros de holgura. El ancho va de lado a lado del frente, el fondo de delante hacia atrás y el alto de la base a la tapa. Las paredes laterales dobles ocupan cartón dentro de la caja; la plantilla ya lo tiene en cuenta, así que introduce el espacio que necesitas dentro. Si buscas un punto de partida, consulta las [medidas estándar de cajas](/box-sizes) (en inglés).',
       },
     ],
     faqs: [
@@ -210,7 +210,7 @@ export const ES_BOX_TEMPLATE_PAGES: EsBoxTemplatePage[] = [
       },
       {
         title: 'Diseñar el unboxing',
-        body: 'Imprimir el interior de una caja de envío es una forma barata de hacer memorable el unboxing. En el Studio diseñas el exterior y el interior por separado, abres las solapas en 3D y exportas imágenes PNG para tu tienda, tus redes o un briefing para el proveedor. Para elegir el tamaño, consulta las [medidas estándar de cajas](/blog/standard-box-sizes-carton-mailer-shipping) (en inglés).',
+        body: 'Imprimir el interior de una caja de envío es una forma barata de hacer memorable el unboxing. En el Studio diseñas el exterior y el interior por separado, abres las solapas en 3D y exportas imágenes PNG para tu tienda, tus redes o un briefing para el proveedor. Para elegir el tamaño, consulta las [medidas estándar de cajas](/box-sizes) (en inglés).',
       },
     ],
     faqs: [

@@ -2270,20 +2270,20 @@ const ALL_BLOG_POSTS: BlogPost[] = [
       { type: "h2", text: "Entering the size in a 3D template" },
       { type: "p", text: "In the [reverse tuck end box template](/box-templates/reverse-tuck-end-box) the closures are at the top and bottom, so the opening is the width × depth face. Enter the opening's long side as width, its short side as depth, and the distance between the closures as height. The [pizza box](/box-templates/pizza-box) and [split top box](/box-templates/split-top-box) templates follow the same width × depth footprint with height as the wall." },
       { type: "p", text: "The templates draw panels at the size you enter, without allowances for board thickness, so use your inside dimensions and let your printer adjust the final die for their board." },
-      { type: "p", text: "Not sure what size to start from? [Standard box sizes](/blog/standard-box-sizes-carton-mailer-shipping) lists common small, medium and large boxes, mailers and cartons in inches and centimetres." },
+      { type: "p", text: "Not sure what size to start from? [Standard box sizes](/box-sizes) lists common small, medium and large boxes, mailers and cartons in inches and centimetres, and finds the one your product fits." },
       { type: "cta", label: "Try your size on a tuck end box", href: "/box-templates/reverse-tuck-end-box" },
       { type: "faq" }
     ],
   },
   {
     slug: "standard-box-sizes-carton-mailer-shipping",
-    title: "Standard Box Sizes: Small, Medium and Large Box Dimensions in Inches and cm",
-    seoTitle: "Standard Box Sizes in Inches & cm: Small, Medium, Large | 3D Box Studio",
-    description: "Standard box sizes in inches and cm: small, medium and large shipping boxes, mailer box dimensions, metric cartons for international shipping, pizza boxes and retail cartons.",
+    title: "How to Choose a Box Size: Stock Sizes by Box Type, or Custom",
+    seoTitle: "How to Choose a Box Size: Stock or Custom | 3D Box Studio",
+    description: "What size box do you need? Choose a box size for your product: stock sizes for each kind of box, how much room to leave, and when a custom size pays off.",
     published: "2026-10-06",
-    updated: "2026-10-26",
+    updated: "2026-10-28",
     readMinutes: 8,
-    keywords: ["standard box sizes","standard box sizes in cm","small medium large box dimensions","mailer box dimensions","shipping box sizes","international shipping box sizes","carton box dimensions","pizza box sizes"],
+    keywords: ["how to choose a box size","what size box do i need","box size for shipping","stock vs custom box size","mailer box dimensions","pizza box sizes","carton box dimensions"],
     imagePath: "/images/blog/corrugated-shipping-box-branding.webp",
     imageAlt: "Cartons, mailers and shipping boxes in several common sizes",
     relatedSlugs: ["how-to-measure-a-box-inside-vs-outside-dimensions","mailer-box-mockup-online","corrugated-shipping-box-branding"],
@@ -2295,8 +2295,14 @@ const ALL_BLOG_POSTS: BlogPost[] = [
       { question: "Should I use a stock size or a custom size?", answer: "Stock sizes are cheaper in small runs and ship faster. A custom size reduces empty space, filler and shipping cost, and usually looks more premium. Preview both in 3D before deciding." },
     ],
     sections: [
-      { type: "p", text: "There is no single standard for box sizes. What exists are sizes that suppliers stock in volume, sizes set by product categories such as pizza, and carrier box programs. The examples below are common starting points, not specifications; always confirm the exact inside dimensions with your supplier." },
-      { type: "p", text: "For every size in one chart, in inches and cm, and the standard box your product fits, use the [standard box sizes finder](/box-sizes)." },
+      { type: "p", text: "Choosing a box size starts with the product, not the box. Measure it, decide how much room it needs, then either pick the closest stock size for that kind of box or have a box made to measure. This guide walks through each kind of box and the sizes suppliers usually stock; they are common starting points, not specifications, so always confirm the exact inside dimensions with your supplier." },
+      { type: "h2", text: "How to choose a box size" },
+      { type: "ol", items: [
+        "Measure the product at its widest points, or the product with its inner packaging. [How to measure a box](/blog/how-to-measure-a-box-inside-vs-outside-dimensions) explains the order of the sizes.",
+        "Add room on every side: about 2–5 mm for a retail carton, about 20 mm (3/4 in) when shipping with bubble wrap or crinkle paper.",
+        "Choose the kind of box for the job: a folding carton for the shelf, a mailer for e-commerce, a slotted carton for shipping.",
+        "Compare the closest stock size with a custom size. The [standard box sizes finder](/box-sizes) lists the stock boxes your product fits and the size made to measure; the [box size calculator](/box-size-calculator) adds the board and suggests a style."
+      ] },
       { type: "h2", text: "Retail folding cartons" },
       { type: "p", text: "Folding cartons are almost always sized to the product, so there are few true stock sizes. Typical proportions look like this (width × depth × height):" },
       { type: "ul", items: [
