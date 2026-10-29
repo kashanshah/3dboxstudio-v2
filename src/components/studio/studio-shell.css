@@ -2272,6 +2272,18 @@
   height:42px;
   font-size:var(--fs-body);
 }
+/* A size the printable exports refuse, in the template's own words. */
+.pro-size-problem{
+  margin:10px 0 12px;
+  padding:10px 12px;
+  border:1px solid #f3d9a4;
+  border-radius:10px;
+  background:#fffbf0;
+  color:#5b4a1f;
+  font-size:var(--fs-meta);
+  line-height:1.45;
+}
+.pro-size-problem strong{display:block;color:#3d3214;font-weight:650}
 /* Right side is preview-only, visually distinct from editing controls. */
 .pro-2d-right-preview{
   position:absolute;

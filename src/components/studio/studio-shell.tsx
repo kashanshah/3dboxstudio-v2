@@ -47,7 +47,7 @@ import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/compo
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { MeasuredSize, PanelSizes } from '@/lib/packaging/parametric/sheet';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
-import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
+import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, templateSizeProblem, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplate, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
 import { catalogEntryFor, listedTemplates, NO_TEMPLATE_RECORDS, resolveTemplateCatalog, templateIdOf, type TemplateCatalogEntry, type TemplateSettingsRecord } from '@/lib/packaging/template-catalog';
@@ -2760,6 +2760,9 @@ function Inspector(props: {
   const [structureTab,setStructureTab] = useState<'size'|'templates'>('size');
   const [exportTab,setExportTab] = useState<'image'|'video'|'pdf'|'dieline'>('image');
   const exportRuntime = getTemplateRuntime(props.selectedTemplateId);
+  // The printable exports refuse a size the box can't be made at; say why before anyone tries.
+  const sizeProblem = templateSizeProblem(props.selectedTemplateId, props.dimensions, {openingMode:props.openingMode,splitTopHingeSide:props.splitTopHingeSide});
+  const sizeNotice = sizeProblem ? <p className="pro-size-problem" role="status"><strong>This box can’t be made at this size.</strong> {sizeProblem}</p> : null;
   if (tool === 'structure') {
     const categories = ['All', ...Array.from(new Set(props.templates.map(template => template.category)))];
     const query = props.templateSearch.trim().toLowerCase();
@@ -2885,6 +2888,7 @@ function Inspector(props: {
       {structureTab === 'size' ? <>
       {/* Every measurement together: the box size above, then its flaps and tucks. */}
       <AdjustableSizesCard templateId={props.selectedTemplateId} dimensions={props.dimensions} setDimensions={props.setDimensions} options={{openingMode:props.openingMode,splitTopHingeSide:props.splitTopHingeSide}} unit={props.measurementUnit}/>
+      {sizeNotice}
 
       <div className="pro-card-section pro-box-thickness-card">
         <SectionTitle title={t("studio.board_thickness")} meta="Box & size" />
@@ -3132,14 +3136,15 @@ function Inspector(props: {
         <Ruler size={22}/>
         <div><strong>{t("studio.dieline_file_title")}</strong><span>{t("studio.dieline_file_help")}</span></div>
       </div>
+      {sizeNotice}
       <div className="pro-dieline-formats">
         <label className="pro-dieline-artwork-option">
           <input type="checkbox" checked={props.dielineArtwork} disabled={props.dielineBusy} onChange={event=>props.setDielineArtwork(event.target.checked)}/>
           <span><strong>{t("studio.dieline_svg_artwork")}</strong><small>{t("studio.dieline_svg_artwork_help",{side:props.artworkScope})}</small></span>
         </label>
-        <button className="pro-primary pro-export-button" disabled={props.dielineBusy} onClick={()=>props.onExportDieline('svg')}><Download size={16}/> {t("studio.download_svg")}</button>
+        <button className="pro-primary pro-export-button" disabled={props.dielineBusy||Boolean(sizeProblem)} onClick={()=>props.onExportDieline('svg')}><Download size={16}/> {t("studio.download_svg")}</button>
         <p>{t("studio.dieline_svg_help")}</p>
-        <button className="pro-secondary-button pro-export-button" disabled={props.dielineBusy} onClick={()=>props.onExportDieline('dxf')}><Download size={16}/> {t("studio.download_dxf")}</button>
+        <button className="pro-secondary-button pro-export-button" disabled={props.dielineBusy||Boolean(sizeProblem)} onClick={()=>props.onExportDieline('dxf')}><Download size={16}/> {t("studio.download_dxf")}</button>
         <p>{t("studio.dieline_dxf_help")}</p>
       </div>
     </section> : <section className="pro-export-tab-panel" role="tabpanel">
@@ -3157,7 +3162,8 @@ function Inspector(props: {
         <p>Artwork must extend past the cut to fill the bleed: make full-sheet art at the artboard size shown under the design sheet (the dieline plus the bleed on every side). Print at Actual size / 100%.</p>
         {exportRuntime?.exportArtworkNote && <p>{exportRuntime.exportArtworkNote}</p>}
       </div>
-      <button className="pro-primary pro-export-button pro-export-pdf-button" disabled={props.pdfBusy} onClick={props.onExportPdf}><Download size={16}/> {props.pdfBusy?'Preparing PDF…':'Download 1:1 PDF'}</button>
+      {sizeNotice}
+      <button className="pro-primary pro-export-button pro-export-pdf-button" disabled={props.pdfBusy||Boolean(sizeProblem)} onClick={props.onExportPdf}><Download size={16}/> {props.pdfBusy?'Preparing PDF…':'Download 1:1 PDF'}</button>
     </section>}
 
     <section className="pro-export-share">
@@ -3587,6 +3593,7 @@ function DielinePrototype({
 
   const lastPdfExportRequest=useRef(0);
   const pdfRunning=useRef(false);
+  const sizeProblem=templateSizeProblem(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide});
   const exportPdf=useCallback(async()=>{
     if(pdfRunning.current)return;
     pdfRunning.current=true;
@@ -3605,9 +3612,11 @@ function DielinePrototype({
       onPdfStatus(false,'PDF downloaded at 1:1 scale. Print at Actual size / 100%.');
     } catch(error) {
       const message=error instanceof Error?error.message:'Could not prepare the PDF. Please retry.';
+      // A size the box can't be made at is refused on purpose, with the template's reason: not a broken export.
+      const invalidSize=templateSizeProblem(selectedTemplateId,dimensions,{openingMode,splitTopHingeSide})!==null;
       setPrintError(message);
-      trackEvent('export_failed',{...context,failure_category:'pdf_generation',error_name:error instanceof Error?error.name:'unknown',error_message:message.slice(0,200),duration_ms:Math.round(performance.now()-startedAt)});
-      offerFeedback({title:'The PDF export failed.',source:'studio-export-failed',kind:'problem',context:{box:selectedTemplateId,export:'pdf',error:message}});
+      trackEvent('export_failed',{...context,failure_category:invalidSize?'invalid_size':'pdf_generation',error_name:error instanceof Error?error.name:'unknown',error_message:message.slice(0,200),duration_ms:Math.round(performance.now()-startedAt)});
+      if(!invalidSize)offerFeedback({title:'The PDF export failed.',source:'studio-export-failed',kind:'problem',context:{box:selectedTemplateId,export:'pdf',error:message}});
       onPdfStatus(false,message);
     } finally {
       pdfRunning.current=false;
@@ -4057,7 +4066,8 @@ function DielinePrototype({
 
           <div className="pro-design-output">
             <span>{t("studio.print_output")}</span>
-            <button type="button" className="pro-secondary-button" disabled={printing} onClick={()=>void exportPdf()}><Download size={16}/> {printing?t("studio.preparing_pdf"):'Download 1:1 PDF'}</button>
+            <button type="button" className="pro-secondary-button" disabled={printing||sizeProblem!==null} title={sizeProblem??undefined} onClick={()=>void exportPdf()}><Download size={16}/> {printing?t("studio.preparing_pdf"):'Download 1:1 PDF'}</button>
+            {sizeProblem && <p className="pro-size-problem" role="status"><strong>This box can’t be made at this size.</strong> {sizeProblem}</p>}
           </div>
         </div>}
       </aside>}

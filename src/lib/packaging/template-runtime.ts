@@ -81,6 +81,21 @@ export function getTemplateGeometry(templateId:string,dimensions:CartonDimension
   };
 }
 
+/**
+ * The first size check a box fails, in the template's own words ("Use a width
+ * and depth of at least 60 mm."), or null when the size can be made. The
+ * printable exports refuse such a size, so the Studio says so up front.
+ */
+export function templateSizeProblem(templateId: string, dimensions: CartonDimensions, options?: TemplateGeometryOptions): string | null {
+  const runtime = getTemplateRuntime(templateId);
+  if (!runtime?.getSizeProblems) return null;
+  try {
+    return runtime.getSizeProblems(runtime.sanitizeParameters(dimensions), options)[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function getTemplateExportGeometry(templateId: string, dimensions: CartonDimensions, options?: TemplateGeometryOptions) {
   const runtime = requireTemplateRuntime(templateId);
   const sanitized = runtime.sanitizeParameters(dimensions);
