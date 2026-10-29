@@ -60,6 +60,12 @@ test.describe('signed in', () => {
     const preview = card.getByRole('link', { name: `Preview ${DESIGN_NAME} in 3D` });
     await expect(preview).toHaveAttribute('target', '_blank');
     expect((await page.request.get((await preview.getAttribute('href'))!)).status()).toBe(200);
+    // Beside a long list, the popup stays in view as the page scrolls.
+    if ((page.viewportSize()?.width ?? 0) >= 1180) {
+      await page.locator('.admin-split-main').evaluate(list => { const spacer = document.createElement('div'); spacer.style.height = '3000px'; list.append(spacer); });
+      await page.evaluate(() => window.scrollTo(0, 1500));
+      await expect.poll(async () => Math.round((await drawer.boundingBox())?.y ?? -1)).toBe(16);
+    }
     await page.keyboard.press('Escape');
     await expect(page).not.toHaveURL(/view=/);
   });
