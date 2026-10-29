@@ -146,8 +146,10 @@ test.describe('signed in', () => {
     await visitor.close();
 
     await openAdmin(page);
-    await expect(page.locator('.admin-error-summary')).toContainText(/\d+ errors? today/);
-    await page.locator('.admin-error-summary').getByRole('link', { name: /today/ }).click();
+    // Scoped to the page: while the dashboard streams, React briefly keeps a hidden copy outside it.
+    const summary = page.getByRole('main').locator('.admin-error-summary');
+    await expect(summary).toContainText(/\d+ errors? today/);
+    await summary.getByRole('link', { name: /today/ }).click();
     await expect(page.locator('.admin-main h1')).toHaveText('Errors');
     const row = page.getByRole('row').filter({ hasText: message });
     await expect(row).toContainText('Browser');
