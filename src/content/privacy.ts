@@ -2,7 +2,7 @@ export const PRIVACY_PAGE_TITLE = "Privacy Policy";
 export const PRIVACY_PAGE_DESCRIPTION =
   "How 3D Box Studio collects, uses, and protects your information when you use the free online box designer, create an account, save designs, or contact us.";
 
-export const PRIVACY_EFFECTIVE_DATE = "2026-10-24";
+export const PRIVACY_EFFECTIVE_DATE = "2026-10-29";
 
 export type PrivacySection =
   | { type: "h2"; text: string }
@@ -66,6 +66,11 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "PostHog — if enabled, product usage events, autocapture, and session replay used to understand how visitors use the site and Studio.",
       "Admin routes are excluded from analytics tracking where technically possible.",
     ],
+  },
+  { type: "h2", text: "Error reports" },
+  {
+    type: "p",
+    text: "When something breaks, on our servers or in this site's own code in your browser, we record what went wrong so we can fix it: the error message, the page, when it happened, your browser's name and version, and your account id if you are signed in. This happens whether or not you accept analytics. Email addresses and links with sign-in or reset codes are removed first, we never store your IP address with it, and error reports are deleted after 90 days.",
   },
   { type: "h2", text: "Cookies and similar technologies" },
   {
@@ -132,6 +137,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "Account data is kept while your account is active and as needed to provide the service.",
       "Cloud-saved designs and uploaded images are retained according to share expiry settings and operational needs.",
       "Contact form submissions are kept as long as needed to respond and maintain records.",
+      "Error reports are deleted after 90 days.",
       "Server logs and analytics are retained for limited periods according to provider defaults and our operational needs.",
     ],
   },

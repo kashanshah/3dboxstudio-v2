@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
 const load=Module._load,resolve=Module._resolveFilename;
 const scheduled=[];
-Module._load=function(request,...args){if(request==='next/server')return {after:callback=>scheduled.push(callback)};return load.call(this,request,...args);};
+Module._load=function(request,...args){if(request==='next/server')return {after:callback=>scheduled.push(callback)};if(request==='@/server/error-log')return {recordError:async()=>{},serverErrorReport:(kind,error)=>({kind,error})};return load.call(this,request,...args);};
 Module._resolveFilename=function(request,...args){return resolve.call(this,request.startsWith('@/')?path.resolve(__dirname,'../src',request.slice(2)):request,...args);};
 require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);
 

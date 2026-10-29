@@ -59,6 +59,10 @@ export async function captureServerUserEvent(
 }
 
 export async function captureServerException(error:unknown,distinctId?:string,properties?:Record<string,unknown>):Promise<void>{
+  // Also in Admin → Errors. A distinct id with a colon names a record, not a person.
+  const { recordError,serverErrorReport }=await import('@/server/error-log');
+  const ref=distinctId?.includes(':')?distinctId:undefined;
+  await recordError(serverErrorReport('handled',error,{userId:ref?null:distinctId,details:{...(ref?{ref}:{}),...properties}}));
   const posthog=getPostHogClient();
   if(!posthog)return;
   posthog.captureException(error,distinctId,properties);

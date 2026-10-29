@@ -133,9 +133,35 @@ test.describe('signed in', () => {
     await expect(page.getByText(subject).first()).toBeVisible();
   });
 
+  test('errors: a crash in a visitor\'s browser shows under its day, with who and where', async ({ page, browser }) => {
+    const message = `E2E browser error ${Date.now()}`;
+    expect((await page.request.post('/api/errors', { headers: { origin: 'https://elsewhere.example' }, data: { kind: 'uncaught_error', message } })).status(), 'other sites cannot report').toBe(403);
+    // An error thrown by one of the site's own scripts, for a signed-in person.
+    const visitor = await browser.newContext({ storageState: USER_STATE });
+    const visit = await visitor.newPage();
+    await visit.goto('/box-templates?ref=a@example.com');
+    const reported = visit.waitForResponse(response => response.url().endsWith('/api/errors'));
+    await visit.evaluate(text => window.dispatchEvent(new ErrorEvent('error', { message: text, error: new Error(text), filename: `${location.origin}/_next/static/chunks/app.js`, lineno: 12, colno: 3 })), message);
+    expect((await reported).status()).toBe(204);
+    await visitor.close();
+
+    await openAdmin(page);
+    await expect(page.locator('.admin-error-summary')).toContainText(/\d+ errors? today/);
+    await page.locator('.admin-error-summary').getByRole('link', { name: /today/ }).click();
+    await expect(page.locator('.admin-main h1')).toHaveText('Errors');
+    const row = page.getByRole('row').filter({ hasText: message });
+    await expect(row).toContainText('Browser');
+    await row.getByRole('link', { name: 'Uncaught error' }).click();
+    const drawer = page.locator('.admin-drawer');
+    await expect(drawer.locator('.admin-error-message')).toHaveText(message);
+    await expect(drawer.getByRole('link', { name: TEST_USER.name })).toBeVisible();
+    await expect(drawer.locator('.admin-error-samples code')).toHaveText('/box-templates');
+    await expect(drawer).not.toContainText('example.com');
+  });
+
   test('the dashboard and every admin page load', async ({ page }) => {
     await openAdmin(page);
-    for (const path of ['/admin/emails?tab=templates', '/admin/users', '/admin/designs', '/admin/media', '/admin/contacts', '/admin/feedback', '/admin/emails', '/admin/campaigns', '/admin/settings', '/admin/search']) {
+    for (const path of ['/admin/emails?tab=templates', '/admin/users', '/admin/designs', '/admin/media', '/admin/contacts', '/admin/feedback', '/admin/errors', '/admin/errors?day=2020-01-01', '/admin/emails', '/admin/campaigns', '/admin/settings', '/admin/search']) {
       await openAdmin(page, path);
     }
   });

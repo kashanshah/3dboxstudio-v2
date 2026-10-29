@@ -55,6 +55,8 @@ async function setup() {
     CREATE TABLE export_feedback(id text PRIMARY KEY,user_id text,project_id text,rating int);
     INSERT INTO export_feedback VALUES('fb1','u1','d1',5),('fb2','u2',NULL,4);
     CREATE TABLE admin_deletion_files(job_id text,storage_key text,created_at timestamptz default now(),PRIMARY KEY(job_id,storage_key));
+    CREATE TABLE error_samples(id bigserial PRIMARY KEY,day date,fingerprint text,user_id text,details jsonb default '{}');
+    INSERT INTO error_samples(day,fingerprint,user_id) VALUES('2026-10-29','f','u1'),('2026-10-29','f','u2');
     INSERT INTO users VALUES('u1','Ada','ada@example.com'),('u2','Bob','bob@example.com');
     INSERT INTO workspace_projects VALUES('f1','u1','Client work',false),('f2','u1','My Project',true),('f3','u2','Other',false);
     INSERT INTO media_assets VALUES('m1','u1','shared.png','v2/uploads/shared.png'),('m2','u1','only.png','v2/uploads/only.png'),('m3','u1','unused.png','v2/uploads/unused.png');
@@ -125,6 +127,7 @@ test('admin cascade deletion', async t => {
       assert.equal((await db.query("SELECT payload,deleted_at FROM legacy_records")).rows[0].payload.user_id,undefined);
       assert.ok(deletedKeys.includes('v2/uploads/unused.png'));
       assert.equal((await db.query("SELECT id FROM admin_deleted_entities WHERE kind='user'")).rows[0].id,'u1');
+      assert.deepEqual((await db.query('SELECT user_id FROM error_samples ORDER BY id')).rows.map(r=>r.user_id),[null,'u2'],'error reports no longer name the deleted account');
     } finally { await db.close(); }
   });
   await t.test('people delete their own account after confirming who they are', async () => {

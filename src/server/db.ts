@@ -4,6 +4,7 @@ import { requireEnv } from './env';
 import { ADMIN_READ_MODEL_SCHEMA } from './admin/read-model-schema';
 import { LEGACY_SYNC_SCHEMA } from './legacy-schema';
 import { TEMPLATE_SETTINGS_SCHEMA } from './template-sql';
+import { ERROR_LOG_SCHEMA } from './error-log-sql';
 
 let sql: ReturnType<typeof neon> | null = null;
 let schemaPromise: Promise<void> | null = null;
@@ -286,6 +287,7 @@ const V2_SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_contact_submissions_status ON contact_submissions (status)`,
   `CREATE INDEX IF NOT EXISTS idx_contact_submissions_email ON contact_submissions (email)`,
   ...TEMPLATE_SETTINGS_SCHEMA,
+  ...ERROR_LOG_SCHEMA,
   ...ADMIN_READ_MODEL_SCHEMA,
   `CREATE TABLE IF NOT EXISTS app_schema_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 ];
