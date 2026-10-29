@@ -1180,3 +1180,22 @@ test('a box too small to fold says so with its own error, and every size its che
     }
   }
 });
+
+test('the Studio names the size problem the printable exports would refuse, and only then', ()=>{
+  // The PDF, SVG and DXF refuse a size the box can't be made at; the Studio
+  // says so before anyone tries, with the same words.
+  const {templateSizeProblem,getTemplateExportGeometry}=require('../src/lib/packaging/template-runtime.ts');
+  const {getReadyPackagingTemplates}=require('../src/lib/packaging/template-registry.ts');
+  assert.match(templateSizeProblem('mailer-box',{width:100,height:150,depth:50,thickness:1.5}),/at least 60 mm/);
+  assert.equal(templateSizeProblem('not-a-template',{width:100,height:150,depth:50,thickness:1.5}),null);
+  for(const template of getReadyPackagingTemplates()){
+    const runtime=getTemplateRuntime(template.id);
+    const options={openingMode:runtime.assembly.defaultOpeningMode,splitTopHingeSide:'side_a'};
+    for(const width of [30,100,250])for(const height of [30,150,250])for(const depth of [30,50,250]){
+      const dimensions={...template.defaultDimensions,width,height,depth};
+      const problem=templateSizeProblem(template.id,dimensions,options);
+      if(problem)assert.throws(()=>getTemplateExportGeometry(template.id,dimensions,options),{message:problem},`${template.id} ${width}×${height}×${depth}`);
+      else assert.doesNotThrow(()=>getTemplateExportGeometry(template.id,dimensions,options),`${template.id} ${width}×${height}×${depth}`);
+    }
+  }
+});

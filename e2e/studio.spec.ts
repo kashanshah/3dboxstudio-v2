@@ -185,6 +185,24 @@ test('download the 1:1 print PDF', async ({ page }) => {
   expect(bytes.length).toBeGreaterThan(2_000);
 });
 
+test('a box too small for its style says why and does not offer the printable files', async ({ page }) => {
+  // A mailer needs a width and depth of at least 60 mm for its locking tabs.
+  await createDesign(page, 'E2E small mailer', { width: 100, height: 150, depth: 50 }, 'mailer-box');
+  await openDesignStep(page);
+  const output = page.locator('.pro-design-output');
+  await expect(output.getByRole('button', { name: 'Download 1:1 PDF' })).toBeDisabled();
+  await expect(output.getByRole('status')).toContainText('at least 60 mm');
+
+  await page.getByRole('button', { name: /^3\s*Preview/ }).click();
+  await page.getByRole('navigation', { name: 'Preview & Download tools' }).getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('tab', { name: 'PDF layout' }).click();
+  await expect(page.locator('.pro-export-pdf-button')).toBeDisabled();
+  await expect(page.locator('.pro-size-problem').first()).toContainText('at least 60 mm');
+  await page.getByRole('tab', { name: 'Dieline' }).click();
+  await expect(page.getByRole('button', { name: 'Download SVG' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Download DXF' })).toBeDisabled();
+});
+
 test('a share link opens for someone who is signed out', async ({ page, browser }) => {
   await createDesign(page, 'E2E shared');
   await page.getByRole('button', { name: 'Share', exact: true }).click();

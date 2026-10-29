@@ -325,12 +325,13 @@ test('PDF completion follows generated download; generation failures are reporte
   }
   visit(shellAst);
   assert.ok(callback);
-  for(const success of [true,false]){
+  for(const [success,sizeProblem] of [[true,null],[false,null],[false,'Use a width and depth of at least 60 mm.']]){
     const events=[],statuses=[],offers=[];
     let resolveDownload;
     const pending=new Promise(resolve=>{resolveDownload=resolve;});
     const context={Error,performance,exports:{},pdfRunning:{current:false},pdfExportOptions:{bleedMm:3},pdfBaseColor:null,artworkByPanel:{},
       selectedTemplateId:'fixture',dimensions:{},openingMode:'closed',splitTopHingeSide:'side_a',layers:[],artworkScope:'outside',
+      templateSizeProblem:()=>sizeProblem,
       offerFeedback:detail=>offers.push(detail),setPrintError:()=>{},setPrinting:()=>{},onPdfStatus:(...args)=>statuses.push(args),trackEvent:(...args)=>events.push(args),
       require:()=>({downloadDielinePdf:async()=>{await pending;if(!success)throw Error('Image failed');return {widthMm:100,heightMm:200};}})};
     vm.runInNewContext(transpile('exports.handler = '+callback.getText(shellAst)),context);
@@ -346,8 +347,10 @@ test('PDF completion follows generated download; generation failures are reporte
     assert.equal(context.pdfRunning.current,false);
     assert.equal(statuses.at(-1)[0],false);
     if(!success)assert.equal(statuses.at(-1)[1],'Image failed');
-    assert.equal(offers.length,success?0:1);
-    if(!success)assert.equal(offers[0].context.error,'Image failed');
+    // A size the box can't be made at is refused on purpose: its own category, and no feedback prompt.
+    if(!success)assert.equal(events[1][1].failure_category,sizeProblem?'invalid_size':'pdf_generation');
+    assert.equal(offers.length,success||sizeProblem?0:1);
+    if(offers.length)assert.equal(offers[0].context.error,'Image failed');
   }
 });
 
