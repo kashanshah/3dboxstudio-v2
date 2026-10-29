@@ -2,6 +2,11 @@ import type { CaptureResult, PostHog } from 'posthog-js';
 import { REPLAY_BLOCK_SELECTOR, isAnalyticsBlockedPath, redactUrl } from '@/lib/analytics/policy';
 import { getConsentState, onConsentChange } from '@/lib/analytics/consent';
 import { setPostHogClient } from '@/lib/analytics/posthog';
+import { installErrorReporting } from '@/lib/error-reporting';
+
+// Errors go to Admin → Errors whatever the analytics consent: they carry no
+// identifier of the visitor, and are what keeps the site working.
+installErrorReporting();
 
 const token=process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN?.trim();
 const host=process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim();

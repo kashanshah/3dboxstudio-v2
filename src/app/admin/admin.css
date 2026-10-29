@@ -267,3 +267,42 @@ a.admin-thumb-strip{color:var(--admin-text);text-decoration:none}
 }
 .admin-template-select{height:42px;max-width:260px;padding:0 10px;border:1px solid var(--admin-line);border-radius:9px;background:#0a0d12;color:var(--admin-text);font:inherit;font-size:14px}
 @media(max-width:760px){.admin-template-select{flex:1 1 100%;max-width:none;font-size:16px}}
+
+/* Admin → Errors */
+.admin-error-days{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:6px;margin:0 0 16px}
+.admin-error-days a{position:relative;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px;height:96px;padding:6px 2px;border:1px solid var(--admin-line);border-radius:10px;background:var(--admin-panel);color:var(--admin-muted);text-decoration:none;overflow:hidden}
+.admin-error-days a i{position:absolute;left:0;right:0;bottom:0;background:#e5484d2e}
+.admin-error-days a b,.admin-error-days a small{position:relative;font-size:12px;white-space:nowrap}
+.admin-error-days a b{color:var(--admin-text);font-size:14px}
+.admin-error-days a[aria-current=date]{border-color:var(--admin-accent);background:#14202f}
+.admin-error-days a:hover{border-color:#3d9eff88}
+.admin-error-daynav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+.admin-error-daynav h2{margin:0;font-size:18px;text-align:center}
+.admin-error-daynav a{color:var(--admin-accent);font-size:13px;text-decoration:none;white-space:nowrap}
+.admin-error-line{overflow-wrap:anywhere}
+.admin-error-message{margin:12px 0;padding:12px;border:1px solid #5a1515;border-radius:10px;background:#5a151522;color:#ffd0ce;font-size:13px;overflow-wrap:anywhere}
+.admin-drawer-subhead{margin:18px 0 8px;font-size:13px;color:var(--admin-muted);font-weight:600}
+.admin-error-history{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.admin-error-history li{display:flex;gap:6px;padding:3px 9px;border:1px solid var(--admin-line);border-radius:999px;font-size:12px}
+.admin-error-history a{color:var(--admin-muted);text-decoration:none}
+.admin-error-history a[aria-current=date]{color:var(--admin-accent)}
+.admin-error-samples{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.admin-error-samples li{padding:12px;border:1px solid var(--admin-line);border-radius:10px;font-size:13px;min-width:0}
+.admin-error-samples header{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;color:var(--admin-muted);font-size:12px}
+.admin-error-samples code{overflow-wrap:anywhere}
+.admin-error-samples p{margin:6px 0 0}
+.admin-error-samples a{color:var(--admin-accent);text-decoration:none}
+.admin-error-details{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 10px;margin:8px 0 0;font-size:12px}
+.admin-error-details div{display:contents}
+.admin-error-details dt{color:var(--admin-muted)}
+.admin-error-details dd{margin:0;overflow-wrap:anywhere}
+.admin-error-samples summary{margin-top:8px;color:var(--admin-muted);font-size:12px;cursor:pointer}
+.admin-error-stack{margin:6px 0 0;padding:10px;border-radius:8px;background:#0a0d12;font-size:11px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto}
+.admin-error-note{font-size:12px}
+@media(max-width:760px){.admin-error-days{grid-template-columns:repeat(7,minmax(0,1fr))}.admin-error-days a{height:72px}.admin-error-daynav h2{font-size:15px}}
+.admin-error-summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin:0 0 18px;padding:12px 16px;border:1px solid var(--admin-line);border-radius:12px;background:var(--admin-panel);font-size:14px}
+.admin-error-summary a{color:var(--admin-accent);text-decoration:none}
+.admin-error-summary.has-errors{border-color:#5a1515;background:#5a151518}
+.admin-error-stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px}
+.admin-error-tags{display:flex;gap:6px;margin-bottom:6px}
+@media(max-width:760px){.admin-error-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}

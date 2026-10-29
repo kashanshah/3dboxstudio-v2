@@ -1,5 +1,6 @@
 import { adminAlertEmail, sendEmail } from '@/server/email/mailer';
 import { captureServerEvent } from '@/lib/posthog-server';
+import { recordError } from '@/server/error-log';
 
 export type OpsAlertKind='email_delivery'|'google_oauth';
 
@@ -25,6 +26,8 @@ export async function alertAdmin(kind:OpsAlertKind,summary:string,details:Record
   const reason=error===undefined?undefined:describe(error);
   const fields={...details,...(reason?{error:reason}:{})};
   console.error(`[ops-alert] ${kind}: ${summary}`,fields);
+  const {userId,user_id,...rest}=details;
+  await recordError({source:'server',kind,message:reason?`${summary}: ${reason}`:summary,userId:String(userId??user_id??'')||null,details:rest});
   await captureServerEvent('system:ops-alerts','ops_alert',{kind,summary,...Object.fromEntries(Object.entries(fields).filter(([,value])=>value!=null).map(([key,value])=>[key,String(value).slice(0,500)]))}).catch(()=>{});
 
   const key=`${kind}:${summary}`;

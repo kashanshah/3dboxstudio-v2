@@ -7,6 +7,8 @@ export function register(){
 
 export const onRequestError:Instrumentation.onRequestError=async(error,request,context)=>{
   if(process.env.NEXT_RUNTIME!=='nodejs')return;
+  const { recordError,serverErrorReport }=await import('@/server/error-log');
+  await recordError(serverErrorReport(context.routeType,error,{path:request.path,details:{method:request.method,route:context.routePath}}));
   const { getPostHogClient }=await import('@/lib/posthog-server');
   const posthog=getPostHogClient();
   if(!posthog)return;

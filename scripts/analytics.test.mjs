@@ -401,6 +401,7 @@ function instrumentation() {
       if(name==='@/lib/analytics/policy'){const out={};vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/policy.ts'),'utf8')),{exports:out,process:{env:{}},window});return out;}
       if(name==='@/lib/analytics/consent'){vm.runInNewContext(transpile(fs.readFileSync(path.join(root,'lib/analytics/consent.ts'),'utf8')),{exports:consentApi,window});return consentApi;}
       if(name==='@/lib/analytics/posthog')return {setPostHogClient:client=>{state.handedOver=client;}};
+      if(name==='@/lib/error-reporting')return {installErrorReporting:()=>{state.errorReporting=true;}};
       throw new Error('unexpected import '+name);
     },
   });

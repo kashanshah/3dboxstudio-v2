@@ -4,6 +4,7 @@ import { catchError, type ErrorInfo } from 'next/error';
 import { useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
+import { reportClientError } from '@/lib/error-reporting';
 import { installDomMutationGuard } from '@/lib/dom-mutation-guard';
 
 // Installed when the editor's code loads, before React commits any update.
@@ -29,6 +30,7 @@ function StudioViewFallback({ view }: { view: string }, { error, reset }: ErrorI
       error_message: (error instanceof Error ? error.message : String(error)).slice(0, 200),
       auto_recovered: automatic,
     });
+    reportClientError('studio_view_crashed', error, { view, auto_recovered: automatic });
     if (!automatic) return;
     // DOM errors (e.g. a browser translator or extension rewrote the page)
     // usually clear once React rebuilds the view from scratch. Editor state

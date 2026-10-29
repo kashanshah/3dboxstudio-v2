@@ -171,6 +171,7 @@ export async function executeDeletion(kind: DeletionKind, id: string, token: str
   if (kind === 'user') {
     queries.push(sql.query("INSERT INTO admin_deleted_entities(kind,id) VALUES('user',$1) ON CONFLICT DO NOTHING", [id]));
     queries.push(sql.query('DELETE FROM users WHERE id=$1', [id]));
+    queries.push(sql.query('UPDATE error_samples SET user_id=NULL WHERE user_id=$1', [id]));
     queries.push(sql.query('DELETE FROM legacy_migrations WHERE target_id=$1', [id]));
   }
   queries.push(sql.query('INSERT INTO admin_deletion_files(job_id,storage_key) SELECT $1,unnest($2::text[]) ON CONFLICT DO NOTHING', [jobId, plan.keys]));
