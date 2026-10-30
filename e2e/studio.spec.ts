@@ -191,6 +191,7 @@ test('a box too small for its style says why and does not offer the printable fi
   await openDesignStep(page);
   const output = page.locator('.pro-design-output');
   await expect(output.getByRole('button', { name: 'Download 1:1 PDF' })).toBeDisabled();
+  await expect(output.getByRole('button', { name: 'Get this box printed' })).toBeDisabled();
   await expect(output.getByRole('status')).toContainText('at least 60 mm');
 
   await page.getByRole('button', { name: /^3\s*Preview/ }).click();
@@ -201,6 +202,19 @@ test('a box too small for its style says why and does not offer the printable fi
   await page.getByRole('tab', { name: 'Dieline' }).click();
   await expect(page.getByRole('button', { name: 'Download SVG' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Download DXF' })).toBeDisabled();
+});
+
+test('the Studio offers to get the box printed, with its size and board', async ({ page }) => {
+  await createDesign(page, 'E2E print quote', { width: 220, height: 80, depth: 160 }, 'mailer-box');
+  await page.getByRole('button', { name: /^3\s*Preview/ }).click();
+  await page.getByRole('navigation', { name: 'Preview & Download tools' }).getByRole('button', { name: 'Download' }).click();
+  await page.getByRole('tab', { name: 'PDF layout' }).click();
+  await page.getByRole('button', { name: 'Get this box printed' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Get this box printed' });
+  await expect(dialog).toContainText('Roll end tuck front mailer box');
+  await expect(dialog).toContainText('220 × 160 × 80 mm, inside');
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await expect(dialog).toBeHidden();
 });
 
 test('a share link opens for someone who is signed out', async ({ page, browser }) => {

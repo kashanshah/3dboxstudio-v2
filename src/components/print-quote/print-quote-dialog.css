@@ -19,6 +19,9 @@
 .pq-dialog input:not([type=checkbox]),.pq-dialog select{height:42px;padding:0 10px}
 .pq-dialog textarea{padding:10px;resize:vertical}
 .pq-notes{margin-top:12px}
+.pq-country{margin-bottom:12px}
+.pq-waitlist{margin:0 0 12px;padding:10px 12px;border:1px solid #f3d9a4;border-radius:9px;background:#fffbf0;color:#5b4a1f;font-size:14px;line-height:1.5}
+.pq-dialog form>label:not(.pq-country):not(.pq-notes):not(.pq-consent){margin-bottom:4px}
 .pq-consent{grid-template-columns:auto 1fr;align-items:start;margin:14px 0;font-weight:400 !important;line-height:1.45;color:#344054}
 .pq-consent input{width:18px;height:18px;margin:1px 0 0}
 .pq-consent a{color:var(--pq-accent);text-decoration:underline}

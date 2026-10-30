@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { ensureV2Schema, getSql } from './db';
-import { quoteLines, type QuoteRequest } from '@/content/print-quote';
+import { countryName, quoteLines, type QuoteRequest, type WaitlistRequest } from '@/content/print-quote';
 
 // "Get this box printed" requests, stored with the contact messages (kind
 // 'print_quote') so they show in the admin inbox; the full request is kept in
@@ -17,4 +17,18 @@ export async function createPrintQuote(request: QuoteRequest, meta: { locale?: s
     RETURNING created_at
   ` as { created_at: string }[];
   return { id, subject, createdAt: rows[0]?.created_at ?? new Date().toISOString() };
+}
+
+/** "Tell me when printing is available in my country": kept in the same inbox, kind 'print_waitlist'. */
+export async function createPrintWaitlist(request: WaitlistRequest, meta: { pagePath?: string | null; ipAddress?: string | null; userAgent?: string | null }) {
+  await ensureV2Schema();
+  const id = randomBytes(9).toString('hex');
+  const country = countryName(request.country);
+  const subject = `Print waitlist: ${country}`;
+  const message = `Email when printing is available in ${country} (${request.country}).\nBox: ${request.box.styleName}\nSent from: ${request.box.source === 'studio' ? 'Studio' : 'Dieline generator'}`;
+  await getSql()`
+    INSERT INTO contact_submissions (id,kind,source,email,name,topic,subject,message,locale,page_path,referrer,ip_address,user_agent,payload)
+    VALUES (${id},'print_waitlist',${request.box.source === 'studio' ? 'studio' : 'dieline_generator'},${request.email.toLowerCase()},${null},'print_waitlist',${subject},${message},${'en'},${meta.pagePath ?? null},${null},${meta.ipAddress ?? null},${meta.userAgent ?? null},${JSON.stringify(request)}::jsonb)
+  `;
+  return { id };
 }

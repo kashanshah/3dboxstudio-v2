@@ -133,6 +133,38 @@ test.describe('signed in', () => {
     await expect(page.getByText(subject).first()).toBeVisible();
   });
 
+  test('a print quote from a country printing is offered in reaches the admin; elsewhere the form takes a waitlist email', async ({ page }) => {
+    const name = `E2E Printer ${Date.now()}`;
+    await page.goto('/box-dieline-generator');
+    await page.getByRole('button', { name: 'Get this box printed' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Get this box printed' });
+    const country = dialog.getByLabel('Country for delivery');
+    await country.selectOption({ label: 'United States' });
+    await dialog.getByLabel('Name', { exact: true }).fill(name);
+    await dialog.getByLabel('Email', { exact: true }).fill('printer@e2e.test');
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: 'Send request' }).click();
+    await expect(dialog.getByRole('status')).toContainText('Request sent');
+    const email = await latestEmailTo(siteEnv.ADMIN_EMAIL, /Print quote:/);
+    expect(email.html).toContain(name);
+    expect(email.html).toContain('United States (US)');
+    await dialog.getByRole('button', { name: 'Done' }).click();
+
+    // India: no printing yet, so the quote fields give way to a waitlist email.
+    await page.getByRole('button', { name: 'Get this box printed' }).click();
+    await country.selectOption({ label: 'India' });
+    await expect(dialog.getByText('We don’t print in India yet.')).toBeVisible();
+    await expect(dialog.getByLabel('Quantity', { exact: true })).toHaveCount(0);
+    await dialog.getByLabel('Email', { exact: true }).fill('waitlist@e2e.test');
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: 'Email me when it’s available' }).click();
+    await expect(dialog.getByRole('status').filter({ hasText: 'on the list' })).toContainText('India');
+
+    await openAdmin(page, '/admin/contacts');
+    await expect(page.getByText(`Print quote:`).first()).toBeVisible();
+    await expect(page.getByText('Print waitlist: India').first()).toBeVisible();
+  });
+
   test('errors: a crash in a visitor\'s browser shows under its day, with who and where', async ({ page, browser }) => {
     const message = `E2E browser error ${Date.now()}`;
     expect((await page.request.post('/api/errors', { headers: { origin: 'https://elsewhere.example' }, data: { kind: 'uncaught_error', message } })).status(), 'other sites cannot report').toBe(403);

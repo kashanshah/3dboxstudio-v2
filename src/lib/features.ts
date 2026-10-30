@@ -15,7 +15,7 @@ export type FeatureStatus = 'off' | 'draft' | 'beta' | 'on';
 export type Feature = { status: FeatureStatus; pro: boolean; summary: string };
 
 export const FEATURES = {
-  printQuote: { status: 'draft', pro: false, summary: 'Get this box printed: a quote request form on the dieline generator, emailed to the admin.' },
+  printQuote: { status: 'on', pro: false, summary: 'Get this box printed: a quote request form on the dieline generator and in the Studio, emailed to the admin; a waitlist email in countries printing is not offered in yet.' },
   welcomeEmails: { status: 'on', pro: false, summary: 'A welcome email when an account is verified, and one follow-up 3 days later, each with an unsubscribe link.' },
   clientShares: { status: 'beta', pro: true, summary: 'Branded links for clients: your name and logo instead of ours, and an optional password. Plain share links stay free.' },
   nesting: { status: 'off', pro: true, summary: 'Nest several dielines on a press sheet (imposition).' },

@@ -2272,6 +2272,8 @@
   height:42px;
   font-size:var(--fs-body);
 }
+.pro-design-output .pro-print-quote-button{margin-top:8px}
+.pro-export-tab-panel .pro-print-quote-button{margin-top:8px}
 /* A size the printable exports refuse, in the template's own words. */
 .pro-size-problem{
   margin:10px 0 12px;
