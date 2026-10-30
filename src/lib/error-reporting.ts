@@ -1,12 +1,29 @@
 // Sends errors in the visitor's browser to Admin → Errors (POST /api/errors).
 // Only errors from this site's own scripts: extensions, translators and
-// other sites' scripts are left out. A few per page at most, each once.
+// other sites' scripts are left out, and so are the hydration errors a
+// translator causes by rewriting the page. A few per page at most, each once.
 
 export const CLIENT_ERROR_KINDS = ['uncaught_error', 'unhandled_rejection', 'studio_view_crashed'] as const;
 export type ClientErrorKind = typeof CLIENT_ERROR_KINDS[number];
 
 const MAX_PER_PAGE = 5;
 const IGNORED = /ResizeObserver loop|^Script error\.?$/i;
+// React's hydration mismatch errors (minified in production).
+const HYDRATION = /Minified React error #(418|423|425)\b|Hydration failed|error while hydrating/i;
+
+/**
+ * Whether a browser translator has rewritten the page: Google Translate marks
+ * <html translated-ltr/rtl> and wraps text in <font>, Microsoft's (Edge) adds
+ * _msttexthash attributes. Translated text no longer matches what React
+ * rendered, so React rebuilds it and reports a hydration error that is not a
+ * fault in the site.
+ */
+export function isPageTranslated(doc: Document = document) {
+  return /\btranslated-(ltr|rtl)\b/.test(doc.documentElement.className)
+    || doc.documentElement.hasAttribute('_msttexthash')
+    || Boolean(doc.querySelector('[_msttexthash], [_mstmutation], font[style*="vertical-align: inherit"]'));
+}
+
 let sent = 0;
 const seen = new Set<string>();
 
@@ -22,6 +39,7 @@ export function reportClientError(kind: ClientErrorKind, error: unknown, details
   const err = error instanceof Error ? error : null;
   const message = (err ? err.message : String(error ?? '')).slice(0, 500);
   if (!message || IGNORED.test(message)) return;
+  if (HYDRATION.test(message) && isPageTranslated()) return;
   const key = `${kind}\0${message}`;
   if (seen.has(key)) return;
   seen.add(key);

@@ -4,7 +4,7 @@ import { catchError, type ErrorInfo } from 'next/error';
 import { useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
-import { reportClientError } from '@/lib/error-reporting';
+import { isPageTranslated, reportClientError } from '@/lib/error-reporting';
 import { installDomMutationGuard } from '@/lib/dom-mutation-guard';
 
 // Installed when the editor's code loads, before React commits any update.
@@ -12,7 +12,7 @@ let guardReported = false;
 installDomMutationGuard(operation => {
   if (guardReported) return;
   guardReported = true;
-  trackEvent('studio_dom_conflict_ignored', { operation, page_translated: typeof document !== 'undefined' && /translated/.test(document.documentElement.className) });
+  trackEvent('studio_dom_conflict_ignored', { operation, page_translated: typeof document !== 'undefined' && isPageTranslated() });
 });
 
 // Last automatic recovery per view, so an error that keeps recurring shows the
