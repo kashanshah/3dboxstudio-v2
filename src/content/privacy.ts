@@ -2,7 +2,7 @@ export const PRIVACY_PAGE_TITLE = "Privacy Policy";
 export const PRIVACY_PAGE_DESCRIPTION =
   "How 3D Box Studio collects, uses, and protects your information when you use the free online box designer, create an account, save designs, or contact us.";
 
-export const PRIVACY_EFFECTIVE_DATE = "2026-10-29";
+export const PRIVACY_EFFECTIVE_DATE = "2026-10-30";
 
 export type PrivacySection =
   | { type: "h2"; text: string }
@@ -52,6 +52,10 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   {
     type: "p",
     text: "If you ask us to get a box printed, we collect the box, its size and material, the quantity and printing options you choose, and your name, email address, country and notes. We share the request with printing partners so they can quote for it, only after you agree to this in the form. Each partner handles your details under its own privacy policy, and we do not sell them.",
+  },
+  {
+    type: "p",
+    text: "Printing is offered in some countries only. If you are in another country, the form instead asks for your email address so we can tell you once when printing becomes available there. We keep that email with your country and the box you were looking at, use it for that one message only, and do not share it with printing partners.",
   },
   { type: "h2", text: "Usage analytics" },
   {

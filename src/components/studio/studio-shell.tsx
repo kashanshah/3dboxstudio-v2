@@ -47,6 +47,8 @@ import { CartonEngine, type CartonEngineHandle, type RenderStyle } from '@/compo
 import type { CartonDimensions } from '@/lib/packaging/reverse-tuck';
 import type { MeasuredSize, PanelSizes } from '@/lib/packaging/parametric/sheet';
 import { layoutVersionFor, migrateStudioLayout } from '@/lib/packaging/layout-migration';
+import { PrintQuoteButton } from '@/components/print-quote/print-quote-button';
+import { studioQuoteBox } from '@/lib/print-quote-box';
 import { getTemplateAssemblyState, getTemplateExportGeometry, getTemplateGeometry, getTemplateRuntime, templateAssemblyValuesForProgress, templateSizeProblem, type TemplateGeometryOptions } from '@/lib/packaging/template-runtime';
 import { artworkCss, defaultArtworkPlacement, type ArtworkByPanel, type ArtworkMode, type ArtworkPlacement, type LocalMediaAsset } from '@/lib/packaging/artwork';
 import { STUDIO_MATERIALS, getDefaultPackagingTemplate, getPackagingTemplate, type PackagingTemplateDefinition } from '@/lib/packaging/template-registry';
@@ -3164,6 +3166,7 @@ function Inspector(props: {
       </div>
       {sizeNotice}
       <button className="pro-primary pro-export-button pro-export-pdf-button" disabled={props.pdfBusy||Boolean(sizeProblem)} onClick={props.onExportPdf}><Download size={16}/> {props.pdfBusy?'Preparing PDF…':'Download 1:1 PDF'}</button>
+      <PrintQuoteButton className="pro-secondary-button pro-export-button pro-print-quote-button" disabledReason={sizeProblem} getBox={()=>studioQuoteBox(props.selectedTemplateId,props.dimensions,props.material)}/>
     </section>}
 
     <section className="pro-export-share">
@@ -4067,6 +4070,7 @@ function DielinePrototype({
           <div className="pro-design-output">
             <span>{t("studio.print_output")}</span>
             <button type="button" className="pro-secondary-button" disabled={printing||sizeProblem!==null} title={sizeProblem??undefined} onClick={()=>void exportPdf()}><Download size={16}/> {printing?t("studio.preparing_pdf"):'Download 1:1 PDF'}</button>
+            <PrintQuoteButton className="pro-secondary-button pro-print-quote-button" disabledReason={sizeProblem} getBox={()=>studioQuoteBox(selectedTemplateId,dimensions)}/>
             {sizeProblem && <p className="pro-size-problem" role="status"><strong>This box can’t be made at this size.</strong> {sizeProblem}</p>}
           </div>
         </div>}
